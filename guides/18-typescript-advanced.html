@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced TypeScript: Mapped Types, Conditional Types &amp; Modelling State</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --ink: #23201d;
+    --ink-soft: #55504a;
+    --rule: #e4dfd7;
+    --accent: #7a4be0;
+    --accent-soft: #f1ebff;
+    --code-bg: #1e1b2e;
+    --code-ink: #e8e4f5;
+    --green: #2f7a4a;
+    --green-soft: #eaf6ee;
+    --red: #b03030;
+    --red-soft: #fdecec;
+    --amber-soft: #fdf4e3;
+    --amber: #8a6412;
+    --blue-soft: #eaf2fb;
+    --blue: #1d5b9e;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.75;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  header.hero {
+    padding: 64px 0 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 36px;
+  }
+  header.hero .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.25rem;
+    line-height: 1.2;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p {
+    color: var(--ink-soft);
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    margin: 3.2rem 0 1rem;
+    letter-spacing: -0.015em;
+    padding-top: 0.4rem;
+  }
+  h3 {
+    font-size: 1.18rem;
+    margin: 2.2rem 0 0.7rem;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1rem;
+    margin: 1.6rem 0 0.5rem;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 0 0 1.1rem; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.5rem; }
+
+  code {
+    font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.885em;
+  }
+
+  p > code, li > code, td > code, h3 > code, h4 > code, summary > code, dt > code {
+    background: #efece6;
+    border: 1px solid #e2ddd4;
+    border-radius: 4px;
+    padding: 0.08em 0.34em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.93rem;
+    line-height: 1.62;
+    margin: 0 0 1.3rem;
+  }
+  pre code { font-size: inherit; }
+
+  .snippet { margin: 0 0 1.4rem; }
+  .snippet pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .snippet .label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+  }
+  .snippet.bad .label { background: var(--red-soft); color: var(--red); border: 1px solid #f3d2d2; border-bottom: none; }
+  .snippet.good .label { background: var(--green-soft); color: var(--green); border: 1px solid #cfe7d8; border-bottom: none; }
+  .snippet.plain .label { background: #eceae4; color: var(--ink-soft); border: 1px solid var(--rule); border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px 4px;
+    margin: 1.6rem 0;
+    border: 1px solid;
+    font-size: 0.97rem;
+  }
+  .callout .ttl {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.93rem;
+  }
+  .callout.wait { background: var(--blue-soft); border-color: #cfe0f2; }
+  .callout.wait .ttl { color: var(--blue); }
+  .callout.myth { background: var(--red-soft); border-color: #f3d2d2; }
+  .callout.myth .ttl { color: var(--red); }
+  .callout.hood { background: #f1eef8; border-color: #ded6f0; }
+  .callout.hood .ttl { color: var(--accent); }
+  .callout.interview { background: var(--amber-soft); border-color: #eedcb4; }
+  .callout.interview .ttl { color: var(--amber); }
+  .callout pre { font-size: 0.87rem; }
+
+  .answer {
+    background: #fff;
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px 2px;
+    margin: 1rem 0 1.3rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .answer .who {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .answer p { font-size: 0.99rem; }
+  .why-lands {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--rule);
+    padding-top: 0.7rem;
+    margin-top: -0.2rem;
+  }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 0 1.2rem;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.98rem;
+  }
+  details[open] summary { margin-bottom: 0.8rem; }
+  details > *:last-child { margin-bottom: 0.4rem; }
+
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin-bottom: 2.5rem;
+  }
+  nav.toc h2 { margin: 0 0 0.6rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); padding-top: 0; }
+  nav.toc ol { margin: 0; padding-left: 1.2rem; font-size: 0.96rem; }
+  nav.toc li { margin-bottom: 0.28rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.94rem;
+    margin: 0 0 1.4rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f2efe9; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .cheat {
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 8px 24px 20px;
+  }
+  .cheat dt { font-weight: 700; margin-top: 1rem; font-size: 0.98rem; }
+  .cheat dd { margin: 0.2rem 0 0; color: var(--ink-soft); font-size: 0.97rem; }
+
+  figure { margin: 1.8rem 0; text-align: center; }
+  figure svg { max-width: 100%; height: auto; }
+  figcaption { font-size: 0.86rem; color: var(--ink-soft); margin-top: 0.6rem; }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+  .lede { font-size: 1.08rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Interview prep · Tier 3 · Senior</p>
+  <h1>Advanced TypeScript: Mapped Types, Conditional Types &amp; Modelling State</h1>
+  <p>The features that look like black magic right up until somebody shows you the mechanism. Then they look like ordinary code, and you can write them yourself.</p>
+</header>
+
+<p class="lede">You already know the basics. You can write a generic function, you understand that <code>string | number</code> is a union, and you know that an <code>if (typeof x === "string")</code> narrows things down. Good — that's genuinely all you need to start here.</p>
+
+<p>But at some point you open a library's type definitions, or somebody's <code>utils/types.ts</code>, and you see this:</p>
+
+<div class="snippet plain"><div class="label">Somebody's real code</div>
+<pre><code>type Handlers&lt;T&gt; = {
+  [K in keyof T as `on${Capitalize&lt;string &amp; K&gt;}Change`]: (value: T[K]) =&gt; void
+};</code></pre></div>
+
+<p>And you close the file. I did too, for about two years! It looks like line noise. It looks like the sort of thing you either "get" or don't.</p>
+
+<p>Here's the good news, and it's the whole reason this guide exists: that snippet is built from exactly <strong>four</strong> small ideas, each of which is boring on its own. We're going to learn all four, one at a time, and then that line will read as plainly as a <code>for</code> loop. By the end you'll be able to build <code>Partial</code>, <code>Readonly</code>, <code>Pick</code>, <code>ReturnType</code> and <code>Awaited</code> from scratch — which, as a bonus, is one of the most common senior TypeScript interview questions there is.</p>
+
+<nav class="toc">
+  <h2>What we'll cover</h2>
+  <ol>
+    <li><a href="#prereqs">Two things you need first: <code>keyof</code> and indexed access</a></li>
+    <li><a href="#mapped">Mapped types — building the utility types yourself</a></li>
+    <li><a href="#remap">Key remapping, and that scary snippet decoded</a></li>
+    <li><a href="#conditional">Conditional types — an <code>if</code> statement for types</a></li>
+    <li><a href="#infer">
+      <code>infer</code> — pulling a type back out of another type</a></li>
+    <li><a href="#distributive">Distributive conditional types (the surprising one)</a></li>
+    <li><a href="#merging">Declaration merging, and why <code>interface</code> ≠ <code>type</code></a></li>
+    <li><a href="#enums">Why seniors avoid <code>enum</code></a></li>
+    <li><a href="#states">Making impossible states unrepresentable</a></li>
+    <li><a href="#boundary">Types are erased — so what do you trust?</a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheat">The cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="prereqs">1. Two things you need first</h2>
+
+<p>Everything in this guide is built on two tiny operators. If you already know them, skim — but don't skip, because I want us using the same words for things.</p>
+
+<h3><code>keyof</code> gives you the keys, as a union</h3>
+
+<p>Given an object <em>type</em>, <code>keyof</code> hands you back a union of its property names as string literal types:</p>
+
+<div class="snippet plain"><div class="label">keyof</div>
+<pre><code>type User = {
+  name: string;
+  age: number;
+  isAdmin: boolean;
+};
+
+type UserKey = keyof User;
+// → "name" | "age" | "isAdmin"</code></pre></div>
+
+<p>Not <code>string</code>. Not an array. A <em>union of three specific string literal types</em>. That distinction matters constantly, so let me make it concrete: <code>const k: UserKey = "nmae"</code> is a compile error, because <code>"nmae"</code> isn't one of the three.</p>
+
+<h3>Indexed access gives you the type <em>at</em> a key</h3>
+
+<p>Once you have a key, you can look up what type lives there. The syntax is the same square brackets you'd use at runtime, except it's happening in type-land:</p>
+
+<div class="snippet plain"><div class="label">Indexed access</div>
+<pre><code>type Name = User["name"];   // → string
+type Age  = User["age"];    // → number
+
+type Anything = User[keyof User];
+// → string | number | boolean   👈 pass a union, get a union back</code></pre></div>
+
+<p>That last line is the one people miss. If you index with a union of keys, you get a union of the value types. TypeScript is doing the lookup once per member of the union and gluing the results together with <code>|</code>. Hold onto that idea — "operations on unions happen once per member" is going to come back in a big way later.</p>
+
+<p>That's it. That's the whole prerequisite. <code>keyof T</code> gives you keys; <code>T[K]</code> gives you the type at a key. Everything else is built out of these.</p>
+
+<hr>
+
+<h2 id="mapped">2. Mapped types</h2>
+
+<h3>The problem, first</h3>
+
+<p>Say we've got that <code>User</code> type, and somewhere in the app we need a version of it where nothing can be reassigned — a frozen user we hand to a rendering function that has no business mutating it.</p>
+
+<p>The obvious move is to just... write it out:</p>
+
+<div class="snippet bad"><div class="label">❌ The version that rots</div>
+<pre><code>type ReadonlyUser = {
+  readonly name: string;
+  readonly age: number;
+  readonly isAdmin: boolean;
+};</code></pre></div>
+
+<p>This works! Today. Then next Tuesday somebody adds <code>email: string</code> to <code>User</code>, doesn't know <code>ReadonlyUser</code> exists, and now you have two types that claim to describe the same thing and disagree. TypeScript will not warn you — as far as it's concerned these are two unrelated types that happen to look similar.</p>
+
+<p>What we actually want to say is: <em>"same shape as <code>User</code>, but every field is readonly."</em> A rule, not a copy. A transformation.</p>
+
+<h3>The mechanism</h3>
+
+<p>Here's the syntax, and then I'll take it apart:</p>
+
+<div class="snippet good"><div class="label">✅ A rule, not a copy</div>
+<pre><code>type ReadonlyUser = {
+  readonly [K in keyof User]: User[K]
+};</code></pre></div>
+
+<p>Read <code>[K in keyof User]</code> out loud as: <strong>"for each key <code>K</code> in <code>keyof User</code>..."</strong> It's a <code>for...of</code> loop, except it runs at compile time and it builds a type instead of a value.</p>
+
+<p>On each pass through the loop, <code>K</code> is bound to one key. The thing after the colon is what that key's type should be — and since we want to keep the original type, we write <code>User[K]</code>, which is the indexed access we just learned. Slap <code>readonly</code> on the front and every generated property gets it.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram: keys of User flow through a mapped type and come out with readonly attached">
+  <rect x="10" y="30" width="170" height="180" rx="10" fill="#fff" stroke="#e4dfd7"/>
+  <text x="95" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="#23201d" font-family="sans-serif">User</text>
+  <text x="95" y="100" text-anchor="middle" font-size="13" fill="#55504a" font-family="monospace">name: string</text>
+  <text x="95" y="130" text-anchor="middle" font-size="13" fill="#55504a" font-family="monospace">age: number</text>
+  <text x="95" y="160" text-anchor="middle" font-size="13" fill="#55504a" font-family="monospace">isAdmin: boolean</text>
+
+  <rect x="240" y="60" width="220" height="120" rx="10" fill="#f1ebff" stroke="#ded6f0"/>
+  <text x="350" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#7a4be0" font-family="sans-serif">the mapped type</text>
+  <text x="350" y="118" text-anchor="middle" font-size="12.5" fill="#23201d" font-family="monospace">for each K in keyof User</text>
+  <text x="350" y="145" text-anchor="middle" font-size="12.5" fill="#23201d" font-family="monospace">emit  readonly K: User[K]</text>
+
+  <line x1="185" y1="120" x2="235" y2="120" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="235,120 227,115 227,125" fill="#7a4be0"/>
+  <line x1="465" y1="120" x2="515" y2="120" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="515,120 507,115 507,125" fill="#7a4be0"/>
+
+  <rect x="520" y="30" width="170" height="180" rx="10" fill="#fff" stroke="#e4dfd7"/>
+  <text x="605" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="#23201d" font-family="sans-serif">ReadonlyUser</text>
+  <text x="605" y="100" text-anchor="middle" font-size="11.5" fill="#2f7a4a" font-family="monospace">readonly name: string</text>
+  <text x="605" y="130" text-anchor="middle" font-size="11.5" fill="#2f7a4a" font-family="monospace">readonly age: number</text>
+  <text x="605" y="160" text-anchor="middle" font-size="11.5" fill="#2f7a4a" font-family="monospace">readonly isAdmin: bool</text>
+</svg>
+<figcaption>A mapped type is a loop over keys that emits one property per pass. Nothing more mysterious than that.</figcaption>
+</figure>
+
+<p>A mapped type is a <strong>photocopier with a filter on the glass</strong>. The original document goes in, each line comes out, but every line passes through the same little transformation on the way. Where the analogy breaks: a photocopier can't add or remove pages, and a mapped type absolutely can rename or drop keys — we'll get there in a minute.</p>
+
+<h3>Now make it generic, and you've written <code>Readonly</code></h3>
+
+<p>Hardcoding <code>User</code> in there is silly. Swap it for a type parameter:</p>
+
+<div class="snippet good"><div class="label">✅ You just wrote a built-in utility type</div>
+<pre><code>type MyReadonly&lt;T&gt; = {
+  readonly [K in keyof T]: T[K]
+};
+
+type Frozen = MyReadonly&lt;User&gt;;
+// → { readonly name: string; readonly age: number; readonly isAdmin: boolean }</code></pre></div>
+
+<p>That is, character for character, how <code>Readonly&lt;T&gt;</code> is defined in TypeScript's own <code>lib.es5.d.ts</code>. Not a compiler intrinsic. Not special-cased. Just a mapped type somebody wrote, sitting in a <code>.d.ts</code> file you could open right now.</p>
+
+<p>I want to dwell on this because it's the mental unlock of the entire guide: <strong>the utility types are not magic.</strong> They're library code. You can read them, and you can write them.</p>
+
+<h3>Partial, in one line</h3>
+
+<p>Same shape, different modifier. Instead of <code>readonly</code>, we want <code>?</code>, which goes after the key:</p>
+
+<div class="snippet good"><div class="label">✅ Partial from scratch</div>
+<pre><code>type MyPartial&lt;T&gt; = {
+  [K in keyof T]?: T[K]
+};
+
+type Draft = MyPartial&lt;User&gt;;
+// → { name?: string; age?: number; isAdmin?: boolean }</code></pre></div>
+
+<callout></callout>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "How would you implement <code>Partial</code> yourself?"</span>
+  <p>This gets asked <em>a lot</em>, because it's a perfect one-line test of whether you understand mapped types or just memorised a list of utility names. Write the three lines above, then say the sentence that proves you get it:</p>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"<code>type Partial&lt;T&gt; = { [K in keyof T]?: T[K] }</code>. It's a mapped type — <code>keyof T</code> gives me a union of the keys, <code>K in</code> loops over that union, and for each key I emit the same key with the same value type, plus a question mark to make it optional. That's genuinely the whole definition in <code>lib.es5.d.ts</code>; the built-in utility types aren't compiler magic, they're just mapped types."</p>
+  </div>
+  <p class="why-lands">Why it lands: the phrase "they're just mapped types" signals you've actually read the lib files rather than treated the type system as a black box. That's the difference between a mid and a senior answer.</p>
+</div>
+
+<h3>Pick and Record — the loop doesn't have to be over <code>keyof T</code></h3>
+
+<p>Here's the part people don't expect. The thing on the right of <code>in</code> just has to be a union of keys. It <em>usually</em> comes from <code>keyof T</code>, but it doesn't have to:</p>
+
+<div class="snippet good"><div class="label">✅ Pick from scratch</div>
+<pre><code>type MyPick&lt;T, K extends keyof T&gt; = {
+  [P in K]: T[P]
+};
+
+type Preview = MyPick&lt;User, "name" | "age"&gt;;
+// → { name: string; age: number }</code></pre></div>
+
+<p>We loop over <code>K</code> — the caller's chosen subset — and look each one up in <code>T</code>. The <code>K extends keyof T</code> constraint is what stops someone passing <code>"emial"</code> and getting a type full of <code>never</code>.</p>
+
+<p>And <code>Record</code> is the same trick with the value type held constant:</p>
+
+<div class="snippet good"><div class="label">✅ Record from scratch</div>
+<pre><code>type MyRecord&lt;K extends string | number | symbol, V&gt; = {
+  [P in K]: V
+};
+
+type Flags = MyRecord&lt;"dark" | "beta", boolean&gt;;
+// → { dark: boolean; beta: boolean }</code></pre></div>
+
+<h3>Adding and removing modifiers with <code>+</code> and <code>-</code></h3>
+
+<p>So we can <em>add</em> <code>readonly</code> and <code>?</code>. Can we take them away? Yes — prefix the modifier with a minus sign:</p>
+
+<div class="snippet good"><div class="label">✅ Required and Mutable</div>
+<pre><code>type MyRequired&lt;T&gt; = {
+  [K in keyof T]-?: T[K]      // 👈 strip the optionality
+};
+
+type Mutable&lt;T&gt; = {
+  -readonly [K in keyof T]: T[K]   // 👈 strip the readonly
+};
+
+type Complete = MyRequired&lt;Draft&gt;;
+// → { name: string; age: number; isAdmin: boolean }</code></pre></div>
+
+<p><code>+readonly</code> and <code>+?</code> also exist, and mean exactly the same thing as writing <code>readonly</code> and <code>?</code> with no sign. They're there for symmetry and for when you want to be loud about intent. You'll almost never write them.</p>
+
+<p><code>Mutable</code> is a genuinely useful one that <em>isn't</em> built in, which is a nice thing to know — it's the escape hatch for when a library hands you a deeply readonly config and you need a working copy.</p>
+
+<div class="callout wait">
+  <span class="ttl">Wait — why did <code>MyReadonly&lt;User&gt;</code> keep the <code>?</code> on optional fields?</span>
+  <p>Good catch, and this is a real rule with a real name. When a mapped type has the exact shape <code>{ [K in keyof T]: ... }</code> — looping directly over <code>keyof T</code> where <code>T</code> is a bare type parameter — TypeScript calls it <strong>homomorphic</strong>, and treats it specially: existing <code>readonly</code> and <code>?</code> modifiers are carried through, and if you hand it an array or tuple you get an array or tuple back rather than a weird object with numeric keys.</p>
+  <p>Compare with <code>MyPick</code>, which loops over <code>K</code> rather than <code>keyof T</code>... except <code>Pick</code> is <em>also</em> treated as homomorphic because <code>K</code> is constrained to <code>keyof T</code>. The rule is fiddlier than it looks. You don't need to recite it; you just need to know the word exists so that when <code>Readonly&lt;string[]&gt;</code> gives you <code>readonly string[]</code> instead of nonsense, you know why.</p>
+</div>
+
+<h3>A realistic one: making a form's fields nullable</h3>
+
+<p>Enough toy examples. Here's the shape of a thing you'll actually write. A form's <em>submitted</em> values are fully populated, but a form's <em>in-progress</em> values have empty fields, and in our API layer "empty" means <code>null</code>:</p>
+
+<div class="snippet good"><div class="label">✅ One rule, applied to every field</div>
+<pre><code>type Nullable&lt;T&gt; = {
+  [K in keyof T]: T[K] | null
+};
+
+type SignupForm = { email: string; age: number; referrer: string };
+
+type FormDraft = Nullable&lt;SignupForm&gt;;
+// → { email: string | null; age: number | null; referrer: string | null }</code></pre></div>
+
+<p>Three fields today, eleven fields next quarter, and <code>FormDraft</code> stays correct without anyone touching it. That's the whole payoff of mapped types: <strong>you write the relationship down once, and it can't drift.</strong></p>
+
+<hr>
+
+<h2 id="remap">3. Key remapping with <code>as</code></h2>
+
+<p>Right. So far we've been changing the <em>values</em> and leaving the <em>keys</em> alone. But remember I said a mapped type can rename keys, unlike a photocopier?</p>
+
+<p>Since TypeScript 4.1 you can put an <code>as</code> clause in the loop header, and whatever you write there becomes the key:</p>
+
+<div class="snippet plain"><div class="label">The syntax</div>
+<pre><code>type Renamed&lt;T&gt; = {
+  [K in keyof T as NewKeyGoesHere]: T[K]
+};</code></pre></div>
+
+<p>To do anything interesting with that we need one more small feature — and it's small, I promise.</p>
+
+<h3>Template literal types</h3>
+
+<p>You know template literals at runtime: <code>` hello ${name} `</code>. TypeScript has the same thing in type-land. Backticks, <code>${}</code>, but the things inside the holes are <em>types</em>:</p>
+
+<div class="snippet plain"><div class="label">Template literal types</div>
+<pre><code>type Greeting = `hello ${string}`;
+const a: Greeting = "hello world";   // ✅
+const b: Greeting = "goodbye world"; // ❌ not assignable
+
+type Method = "get" | "post";
+type Route  = `/api/${Method}`;
+// → "/api/get" | "/api/post"   👈 unions multiply out</code></pre></div>
+
+<p>That last bit is the powerful part: a template literal type with a union in a hole expands to every combination. Two unions of three members each gives you nine literal types, for free.</p>
+
+<p>TypeScript also ships four <em>intrinsic</em> string types that only exist in the compiler: <code>Uppercase&lt;S&gt;</code>, <code>Lowercase&lt;S&gt;</code>, <code>Capitalize&lt;S&gt;</code> and <code>Uncapitalize&lt;S&gt;</code>. These <em>are</em> genuine magic — you can't implement them yourself — but there are only four of them and they do exactly what their names say.</p>
+
+<h3>Decoding the scary snippet</h3>
+
+<p>We now have every piece. Let's go back to the thing from the top of the guide:</p>
+
+<div class="snippet good"><div class="label">✅ Generating handler props</div>
+<pre><code>type Handlers&lt;T&gt; = {
+  [K in keyof T as `on${Capitalize&lt;string &amp; K&gt;}Change`]: (value: T[K]) =&gt; void
+};
+
+type FormProps = Handlers&lt;{ email: string; age: number }&gt;;
+// → { onEmailChange: (value: string) =&gt; void;
+//     onAgeChange:   (value: number) =&gt; void }</code></pre></div>
+
+<p>Piece by piece:</p>
+
+<ul>
+  <li><code>[K in keyof T</code> — for each key in <code>T</code>. Just a loop.</li>
+  <li><code>as \`on${...}Change\`</code> — but call the output key <em>this</em> instead.</li>
+  <li><code>Capitalize&lt;...&gt;</code> — uppercase the first letter, so we get <code>onEmailChange</code> not <code>onemailChange</code>.</li>
+  <li><code>string &amp; K</code> — this is the only genuinely ugly bit. <code>keyof T</code> can technically include <code>number</code> and <code>symbol</code> keys, and <code>Capitalize</code> only accepts strings. Intersecting with <code>string</code> is how you tell the compiler "just the string ones, please."</li>
+  <li><code>(value: T[K]) =&gt; void</code> — the value type is a function taking whatever type that field actually had.</li>
+</ul>
+
+<p>Four ideas, none of them hard. It reads like a sentence now, right? That's the feeling to chase with all of this stuff.</p>
+
+<h3>The other use of <code>as</code>: deleting keys</h3>
+
+<p>Here's a genuinely surprising rule. If the <code>as</code> clause produces <code>never</code> for a key, that key is <strong>dropped from the result entirely</strong>. Which turns key remapping into a filter:</p>
+
+<div class="snippet good"><div class="label">✅ Keep only the string-valued fields</div>
+<pre><code>type StringFieldsOnly&lt;T&gt; = {
+  [K in keyof T as T[K] extends string ? K : never]: T[K]
+};
+
+type Searchable = StringFieldsOnly&lt;{ name: string; age: number; city: string }&gt;;
+// → { name: string; city: string }   👈 age vanished</code></pre></div>
+
+<p>You'll notice we just used <code>T[K] extends string ? K : never</code> — a conditional type — before I've explained conditional types. That's on me, and it's the perfect segue.</p>
+
+<hr>
+
+<h2 id="conditional">4. Conditional types</h2>
+
+<h3>An <code>if</code> statement, for types</h3>
+
+<p>The syntax is a ternary, and it means what it looks like it means:</p>
+
+<div class="snippet plain"><div class="label">The shape</div>
+<pre><code>T extends U ? X : Y</code></pre></div>
+
+<p>"If <code>T</code> is assignable to <code>U</code>, the answer is <code>X</code>, otherwise <code>Y</code>."</p>
+
+<p>The word <code>extends</code> is doing something confusing here, so let's fix that immediately. In a class, <code>extends</code> means inheritance. In a conditional type, <code>extends</code> means <strong>"is assignable to"</strong> — is every value of <code>T</code> also a valid value of <code>U</code>? Read it as "fits into" and you'll never be confused again.</p>
+
+<div class="snippet plain"><div class="label">Reading "fits into"</div>
+<pre><code>type A = "hello" extends string ? true : false;   // → true
+type B = string extends "hello" ? true : false;   // → false 👈 not every string is "hello"
+type C = { a: 1; b: 2 } extends { a: 1 } ? true : false;  // → true</code></pre></div>
+
+<p>On its own this is a party trick. It becomes useful the moment the thing being tested is a <em>type parameter</em>, because then the type changes shape depending on what you pass in:</p>
+
+<div class="snippet good"><div class="label">✅ A useful conditional</div>
+<pre><code>type Unpacked&lt;T&gt; = T extends Promise&lt;unknown&gt; ? "async thing" : "plain thing";
+
+type X = Unpacked&lt;Promise&lt;string&gt;&gt;;  // → "async thing"
+type Y = Unpacked&lt;number&gt;;            // → "plain thing"</code></pre></div>
+
+<hr>
+
+<h2 id="infer"><code>infer</code> — pulling a type back out</h2>
+
+<p>Now the good part. Detecting that something is a <code>Promise</code> is fine, but what you usually want is <em>the thing inside the Promise</em>. How do you get at it?</p>
+
+<p>Take a guess at what the tool would have to do. You'd want to say something like: "match <code>T</code> against the pattern <code>Promise&lt;something&gt;</code>, and give me a name for whatever <code>something</code> turned out to be."</p>
+
+<p>That's <code>infer</code>, exactly:</p>
+
+<div class="snippet good"><div class="label">✅ Awaited, hand-built</div>
+<pre><code>type MyAwaited&lt;T&gt; = T extends Promise&lt;infer Value&gt; ? Value : T;
+
+type A = MyAwaited&lt;Promise&lt;User&gt;&gt;;  // → User
+type B = MyAwaited&lt;string&gt;;         // → string  👈 not a promise, pass it through</code></pre></div>
+
+<p><code>infer Value</code> declares a brand new type variable <em>inside the condition</em>. If the match succeeds, <code>Value</code> is bound to whatever filled that slot, and you can use it in the true branch. If the match fails, <code>Value</code> never exists and you fall to the false branch.</p>
+
+<p>The mental model I use: <code>infer</code> is a <strong>luggage tag</strong>. You're saying "I don't know what's in this slot, but stick a tag on it called <code>Value</code> so I can find it again on the other side of the conveyor belt." The analogy is imperfect — a real luggage tag doesn't disappear if the bag doesn't show up — but it captures the important bit, which is that <code>infer</code> <em>names</em> something you can't write down yourself.</p>
+
+<h3>Build <code>ReturnType</code></h3>
+
+<p>Same pattern, different shape to match against. A function type is <code>(...args) =&gt; Something</code>, so put the tag on the <code>Something</code>:</p>
+
+<div class="snippet good"><div class="label">✅ ReturnType from scratch</div>
+<pre><code>type MyReturnType&lt;T&gt; =
+  T extends (...args: any[]) =&gt; infer R ? R : never;
+
+function getUser() {
+  return { id: "u_1", name: "Ada" };
+}
+
+type U = MyReturnType&lt;typeof getUser&gt;;
+// → { id: string; name: string }</code></pre></div>
+
+<p>Note <code>typeof getUser</code> — that's how you get from a <em>value</em> (the function) to its <em>type</em>. And the same trick works on the arguments side with <code>infer A</code> in the parameter position, which is how <code>Parameters&lt;T&gt;</code> is built.</p>
+
+<h3>Build <code>ElementType</code></h3>
+
+<div class="snippet good"><div class="label">✅ What's inside an array?</div>
+<pre><code>type ElementType&lt;T&gt; = T extends (infer E)[] ? E : never;
+
+type A = ElementType&lt;User[]&gt;;              // → User
+type B = ElementType&lt;(string | number)[]&gt;; // → string | number</code></pre></div>
+
+<p>The parentheses in <code>(infer E)[]</code> are load-bearing — they say "an array of <code>infer E</code>", not "infer an <code>E[]</code>".</p>
+
+<h3>Recursive conditional types</h3>
+
+<p>Conditional types can call themselves. That's how the real <code>Awaited</code> handles a <code>Promise&lt;Promise&lt;string&gt;&gt;</code>:</p>
+
+<div class="snippet good"><div class="label">✅ Unwrap all the way down</div>
+<pre><code>type DeepAwaited&lt;T&gt; = T extends Promise&lt;infer V&gt; ? DeepAwaited&lt;V&gt; : T;
+
+type A = DeepAwaited&lt;Promise&lt;Promise&lt;number&gt;&gt;&gt;;  // → number</code></pre></div>
+
+<div class="callout hood">
+  <span class="ttl">🔧 Under the hood (skippable)</span>
+  <p>The real <code>Awaited&lt;T&gt;</code> in <code>lib.es5.d.ts</code> is chunkier than mine, because it also handles <em>thenables</em> — any object with a <code>.then()</code> method, not just actual <code>Promise</code> instances — and it has to deal with <code>null</code> and <code>undefined</code>. If you're curious, cmd-click <code>Awaited</code> in your editor and read it. Genuinely: reading the lib files is the fastest way to get good at this, because every technique in this guide is in there, used in anger.</p>
+  <p>Also worth knowing: recursion here isn't unlimited. TypeScript will bail with "Type instantiation is excessively deep and possibly infinite" if you go too far. That error usually means a recursive type didn't have a base case, not that you did something illegal.</p>
+</div>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "What does <code>infer</code> do?"</span>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"<code>infer</code> lets you pattern-match inside a conditional type and capture part of the matched type as a variable. So <code>T extends Promise&lt;infer V&gt; ? V : T</code> says 'if <code>T</code> is a Promise, give me whatever's inside it'. It's how <code>ReturnType</code>, <code>Parameters</code> and <code>Awaited</code> are all implemented — <code>ReturnType</code> is just <code>T extends (...args: any[]) =&gt; infer R ? R : never</code>. The variable only exists in the true branch, because if the match failed there's nothing to bind."</p>
+  </div>
+  <p class="why-lands">Why it lands: naming where the variable is scoped ("only in the true branch") is the detail that separates "I've seen <code>infer</code>" from "I've written <code>infer</code>."</p>
+</div>
+
+<hr>
+
+<h2 id="distributive">5. Distributive conditional types</h2>
+
+<p>OK. This is the surprising one, and I want to set it up as a puzzle, because being surprised by it once is how you remember it forever.</p>
+
+<p>Here's a conditional type that wraps something in an array:</p>
+
+<div class="snippet plain"><div class="label">Guess the output</div>
+<pre><code>type ToArray&lt;T&gt; = T extends unknown ? T[] : never;
+
+type Result = ToArray&lt;string | number&gt;;
+// → ???</code></pre></div>
+
+<p>Have a think. <code>string | number</code> extends <code>unknown</code>, obviously — everything does. So the answer should be <code>(string | number)[]</code>, an array that can hold either. Right?</p>
+
+<details>
+<summary>Show me the actual answer</summary>
+<pre><code>type Result = ToArray&lt;string | number&gt;;
+// → string[] | number[]</code></pre>
+<p>Not an array of "string or number". <em>Either</em> an array of strings <em>or</em> an array of numbers. Those are very different types — <code>["a", 1]</code> is valid for the first and invalid for the second.</p>
+</details>
+
+<h3>What actually happened</h3>
+
+<p>When the thing on the left of <code>extends</code> is a <strong>naked type parameter</strong> — just <code>T</code>, not wrapped in anything — and you pass it a union, TypeScript doesn't evaluate the condition once. It <em>splits the union apart</em>, runs the whole conditional separately on each member, and unions the results back together.</p>
+
+<figure>
+<svg viewBox="0 0 700 260" role="img" aria-label="Diagram showing a union splitting into two branches, each evaluated, then rejoined">
+  <rect x="20" y="105" width="150" height="46" rx="8" fill="#fff" stroke="#e4dfd7"/>
+  <text x="95" y="134" text-anchor="middle" font-size="13" fill="#23201d" font-family="monospace">string | number</text>
+
+  <line x1="172" y1="128" x2="215" y2="60" stroke="#7a4be0" stroke-width="2"/>
+  <line x1="172" y1="128" x2="215" y2="196" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="218,56 209,60 214,68" fill="#7a4be0"/>
+  <polygon points="218,200 209,196 214,188" fill="#7a4be0"/>
+  <text x="150" y="80" text-anchor="middle" font-size="11" fill="#7a4be0" font-family="sans-serif">split</text>
+
+  <rect x="220" y="34" width="200" height="46" rx="8" fill="#f1ebff" stroke="#ded6f0"/>
+  <text x="320" y="63" text-anchor="middle" font-size="12.5" fill="#23201d" font-family="monospace">string extends unknown</text>
+  <rect x="220" y="174" width="200" height="46" rx="8" fill="#f1ebff" stroke="#ded6f0"/>
+  <text x="320" y="203" text-anchor="middle" font-size="12.5" fill="#23201d" font-family="monospace">number extends unknown</text>
+
+  <line x1="424" y1="57" x2="466" y2="57" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="469,57 461,53 461,61" fill="#7a4be0"/>
+  <line x1="424" y1="197" x2="466" y2="197" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="469,197 461,193 461,201" fill="#7a4be0"/>
+
+  <rect x="472" y="34" width="90" height="46" rx="8" fill="#eaf6ee" stroke="#cfe7d8"/>
+  <text x="517" y="63" text-anchor="middle" font-size="13" fill="#2f7a4a" font-family="monospace">string[]</text>
+  <rect x="472" y="174" width="90" height="46" rx="8" fill="#eaf6ee" stroke="#cfe7d8"/>
+  <text x="517" y="203" text-anchor="middle" font-size="13" fill="#2f7a4a" font-family="monospace">number[]</text>
+
+  <line x1="566" y1="57" x2="605" y2="115" stroke="#7a4be0" stroke-width="2"/>
+  <line x1="566" y1="197" x2="605" y2="141" stroke="#7a4be0" stroke-width="2"/>
+  <polygon points="608,119 599,116 601,109" fill="#7a4be0"/>
+  <polygon points="608,137 599,140 601,147" fill="#7a4be0"/>
+  <text x="600" y="90" text-anchor="middle" font-size="11" fill="#7a4be0" font-family="sans-serif">rejoin</text>
+
+  <rect x="612" y="105" width="78" height="46" rx="8" fill="#fff" stroke="#e4dfd7"/>
+  <text x="651" y="128" text-anchor="middle" font-size="11.5" fill="#23201d" font-family="monospace">string[] |</text>
+  <text x="651" y="143" text-anchor="middle" font-size="11.5" fill="#23201d" font-family="monospace">number[]</text>
+</svg>
+<figcaption>A naked type parameter turns a conditional type into a <code>map</code> over the union, not a single test.</figcaption>
+</figure>
+
+<p>The analogy I like: it's <strong>mail sorting</strong>. You hand the clerk a stack of envelopes and a rule ("if it's international, put it in the blue bin"). The clerk doesn't look at the stack as one object — they run the rule on each envelope. The rule was written for one envelope; the machinery applies it to all of them.</p>
+
+<h3>This is a feature, and it's how <code>Exclude</code> works</h3>
+
+<p>Distribution isn't a wart. It's the thing that makes union-filtering possible at all:</p>
+
+<div class="snippet good"><div class="label">✅ Exclude and NonNullable, hand-built</div>
+<pre><code>type MyExclude&lt;T, U&gt; = T extends U ? never : T;
+
+type Status = "idle" | "loading" | "error";
+type Settled = MyExclude&lt;Status, "loading"&gt;;
+// → "idle" | "error"
+
+type MyNonNullable&lt;T&gt; = T extends null | undefined ? never : T;
+type A = MyNonNullable&lt;string | null&gt;;  // → string</code></pre></div>
+
+<p>Walk through <code>MyExclude</code> with distribution in mind: the union splits into three, each member is tested against <code>"loading"</code>, the matching one becomes <code>never</code>, and — here's the last piece — <strong><code>never</code> in a union disappears</strong>. <code>"idle" | never | "error"</code> collapses to <code>"idle" | "error"</code>. Without distribution this type would be useless; the condition would evaluate once against the whole union and give you one answer for everything.</p>
+
+<h3>Turning distribution off: <code>[T] extends [U]</code></h3>
+
+<p>Sometimes distribution is exactly wrong. Say you want to ask "is <code>T</code> exactly <code>string</code>?":</p>
+
+<div class="snippet bad"><div class="label">❌ Distributes, gives a weird answer</div>
+<pre><code>type IsString&lt;T&gt; = T extends string ? true : false;
+
+type A = IsString&lt;string | number&gt;;
+// → boolean   👈 what?!</code></pre></div>
+
+<p>Where did <code>boolean</code> come from? Distribution: <code>string</code> gave <code>true</code>, <code>number</code> gave <code>false</code>, and <code>true | false</code> <em>is</em> <code>boolean</code>. Technically correct, completely useless.</p>
+
+<p>The fix is a rule I mentioned in passing: distribution only happens for a <strong>naked</strong> type parameter. So don't leave it naked. Wrap both sides in a one-element tuple:</p>
+
+<div class="snippet good"><div class="label">✅ Distribution off</div>
+<pre><code>type IsString&lt;T&gt; = [T] extends [string] ? true : false;
+
+type A = IsString&lt;string | number&gt;;  // → false ✅
+type B = IsString&lt;string&gt;;           // → true  ✅</code></pre></div>
+
+<p>The tuple brackets are pure ceremony — they don't change the assignability check, they just hide <code>T</code> from the distribution machinery. Any wrapper works; <code>[T]</code> is the idiom.</p>
+
+<p>(The other place you need it: testing for <code>never</code>. Since <code>never</code> is the empty union, distributing over it produces <code>never</code> rather than a boolean — so <code>IsNever&lt;T&gt;</code> has to be written <code>[T] extends [never]</code>.)</p>
+
+<div class="callout myth">
+  <span class="ttl">A common misconception</span>
+  <p>"Conditional types distribute over unions." Not quite — they distribute when the checked type is a <em>naked type parameter</em>. Wrap it in anything (<code>[T]</code>, <code>{ a: T }</code>) and it doesn't. Nor does a concrete union written inline rather than passed as a parameter.</p>
+</div>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "What's a distributive conditional type?"</span>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"When a conditional type checks a naked type parameter and you pass it a union, TypeScript doesn't evaluate it once — it applies the condition to each member of the union separately and unions the results. So <code>T extends unknown ? T[] : never</code> given <code>string | number</code> gives you <code>string[] | number[]</code>, not <code>(string | number)[]</code>. It's the mechanism behind <code>Exclude</code> and <code>NonNullable</code>, since <code>never</code> members drop out of a union. If you don't want it, wrap both sides in a tuple — <code>[T] extends [U]</code> — which stops the parameter being naked."</p>
+  </div>
+  <p class="why-lands">Why it lands: you gave the behaviour, a concrete example with the surprising output, why it exists, and the escape hatch. That's a complete answer, and the <code>[T] extends [U]</code> trick is the bit most candidates don't know.</p>
+</div>
+
+<hr>
+
+<h2 id="merging">6. Declaration merging</h2>
+
+<p>Switching gears. This one isn't about clever type transformations — it's about a rule that feels like a bug until you learn what it's for.</p>
+
+<p>Declare the same interface twice and TypeScript doesn't complain. It <em>merges</em> them:</p>
+
+<div class="snippet plain"><div class="label">Interfaces merge</div>
+<pre><code>interface User { name: string }
+interface User { age: number }
+
+const u: User = { name: "Ada", age: 36 };  // ✅ both required</code></pre></div>
+
+<p>Try that with <code>type</code> and you get <em>"Duplicate identifier 'User'"</em>. This is the single most concrete difference between the two, and it's why "<code>interface</code> and <code>type</code> are basically the same" is a slightly wrong thing to say in an interview.</p>
+
+<p>The merge is a union of members, not an override. If the two declarations give the same property <em>different</em> types, that's an error — you can add, you can't contradict. (Methods are the exception: same-name methods become overloads rather than a conflict.)</p>
+
+<p>(Functions and classes can also merge with <code>namespace</code> blocks, which is how older <code>.d.ts</code> files attach typed static properties to a function. You'll read it, you won't write it.)</p>
+
+<h3>Why this exists: you can't edit node_modules</h3>
+
+<p>Here's the actual point of the whole feature. You're using Express. Your auth middleware attaches a <code>user</code> to the request object:</p>
+
+<div class="snippet bad"><div class="label">❌ The compiler has never heard of req.user</div>
+<pre><code>app.use((req, res, next) =&gt; {
+  req.user = decodeToken(req.headers.authorization);  // ❌ Property 'user'
+  next();                                             //    does not exist
+});</code></pre></div>
+
+<p>You know <code>req.user</code> is real. TypeScript doesn't, because Express's own type definitions don't mention it — and you can't go and edit them, because they live in <code>node_modules</code> and get blown away on every install.</p>
+
+<p>So: <strong>module augmentation</strong>. You reopen the library's interface from your own file and add to it:</p>
+
+<div class="snippet good"><div class="label">✅ types/express.d.ts</div>
+<pre><code>import "express";   // 👈 makes this file a module — required!
+
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: { id: string; role: "admin" | "member" };
+  }
+}</code></pre></div>
+
+<p>Now <code>req.user</code> is typed everywhere in the project, with no casts and no <code>any</code>. The merge happened across package boundaries, which is a genuinely remarkable thing for a type system to allow.</p>
+
+<div class="callout wait">
+  <span class="ttl">Wait — why the pointless-looking <code>import "express"</code> at the top?</span>
+  <p>Because of a rule that has burned every TypeScript developer at least once. A <code>.ts</code> file with no top-level <code>import</code> or <code>export</code> is a <strong>script</strong>, not a module — everything in it is global. And inside a script, <code>declare module "x" { }</code> means "<em>declare</em> a module called x", i.e. define it from scratch, which <em>replaces</em> the real types instead of adding to them. Inside a module, the same syntax means "<em>augment</em> the existing module x."</p>
+  <p>So if your augmentation seems to have deleted the library's types rather than extending them, you're missing an import or an <code>export {}</code> at the top of the file. That's the bug, every time.</p>
+</div>
+
+<h3>Extending globals</h3>
+
+<p>Same idea, different keyword — <code>declare global</code> for <code>Window</code> and friends:</p>
+
+<div class="snippet good"><div class="label">✅ globals.d.ts</div>
+<pre><code>export {};   // 👈 same rule: this file must be a module
+
+declare global {
+  interface Window { __APP_VERSION__: string }
+}
+
+window.__APP_VERSION__;  // → string, no cast needed</code></pre></div>
+
+<p>And here's the payoff, because it turns the whole section into a design principle. Every styled-components or Emotion codebase augments the library's <code>DefaultTheme</code> to get autocomplete on <code>props.theme.colors.primary</code>. That's only possible because the library authors declared it as an <code>interface</code>. Had they written <code>type DefaultTheme = {}</code>, you could not extend it. Full stop.</p>
+
+<p><strong>So the practical rule:</strong> <code>interface</code> for public object shapes consumers might reasonably need to extend; <code>type</code> for everything <code>interface</code> can't express — unions, tuples, mapped and conditional types — and for internal shapes you specifically <em>don't</em> want reopened.</p>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "When would you use declaration merging?"</span>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"Almost always for one reason: adding to types I don't own. The classic is attaching <code>req.user</code> to Express's <code>Request</code> from auth middleware — I write a <code>declare module "express-serve-static-core"</code> block that reopens the <code>Request</code> interface. Same technique for filling in <code>DefaultTheme</code> for styled-components, or adding a property to <code>Window</code> via <code>declare global</code>. The gotcha is that the augmenting file has to be a module — needs an <code>import</code> or <code>export {}</code> — otherwise <code>declare module</code> defines a new ambient module instead of augmenting the real one, and you silently wipe out the library's types. It's also why <code>interface</code> and <code>type</code> aren't interchangeable: only interfaces merge, so a library's extension points have to be interfaces."</p>
+  </div>
+  <p class="why-lands">Why it lands: you've named a real problem, the real fix, the real footgun, and connected it back to a design decision. That's a story, not a definition.</p>
+</div>
+
+<hr>
+
+<h2 id="enums">7. Why seniors avoid <code>enum</code></h2>
+
+<p>This one comes up constantly, and it's a trap in both directions: say "enums are bad" with no reasons and you sound like you're repeating a tweet; defend them with no awareness of the problems and you sound like you've never shipped one.</p>
+
+<p>Let's earn the opinion properly. Here's the thing every other TypeScript feature has in common, and that <code>enum</code> breaks.</p>
+
+<h3>Problem 1: enums emit runtime JavaScript</h3>
+
+<p>The rule you've internalised is <em>types are erased</em>. Strip the annotations, get JavaScript. Interfaces, type aliases, generics — all gone at build time, zero bytes shipped.</p>
+
+<p><code>enum</code> is the exception:</p>
+
+<div class="snippet plain"><div class="label">What the compiler actually emits</div>
+<pre><code>// You write:
+enum Status { Idle, Loading, Done }
+
+// It emits (roughly):
+var Status;
+(function (Status) {
+  Status[Status["Idle"] = 0] = "Idle";
+  Status[Status["Loading"] = 1] = "Loading";
+  Status[Status["Done"] = 2] = "Done";
+})(Status || (Status = {}));</code></pre></div>
+
+<p>A real object, in your bundle, at runtime. It's small — but it means <code>enum</code> is the one piece of TypeScript syntax that isn't a type annotation at all. It's a language feature bolted onto JavaScript, which is a different thing, and it's the reason a `.ts` file using enums can't simply have its types stripped.</p>
+
+<p>That last point has teeth now: Node's built-in TypeScript support and TypeScript's own <code>erasableSyntaxOnly</code> flag work by <em>deleting</em> type syntax, not compiling it. Under that flag, <code>enum</code> is a hard error. Same for <code>namespace</code> with runtime content and parameter properties. The ecosystem is moving toward "TypeScript is erasable annotations," and enums are on the wrong side of that line.</p>
+
+<h3>Problem 2: numeric enums have a hole in them</h3>
+
+<p>Look at that emitted object again. It maps names to numbers <em>and</em> numbers back to names — <code>Status[0] === "Idle"</code>. That's "reverse mapping," and it means the object has six keys, not three, and iterating it gives you garbage unless you filter.</p>
+
+<p>Worse, historically, numeric enums accepted numbers that weren't members at all:</p>
+
+<div class="snippet bad"><div class="label">❌ Unsound</div>
+<pre><code>enum Status { Idle, Loading, Done }
+
+const s: Status = 47;   // no error in older TS — 47 is not a status!</code></pre></div>
+
+<p>TypeScript 5.0 tightened this for enums whose members are all literals, so plain cases now error. But enums with any computed member still behave loosely, and the reverse mapping is still there in every numeric enum you ship. The safe habit is: if you must use an enum, give every member an explicit string value.</p>
+
+<h3>Problem 3: enums are nominal, and TypeScript is structural</h3>
+
+<p>This is the one that actually bites teams. Everywhere else, TypeScript compares types by <em>shape</em>. Enums compare by <em>identity</em>:</p>
+
+<div class="snippet bad"><div class="label">❌ "But they're identical!"</div>
+<pre><code>enum Method { Get = "GET", Post = "POST" }
+
+function request(m: Method) { /* ... */ }
+
+request("GET");        // ❌ Type '"GET"' is not assignable to type 'Method'
+request(Method.Get);   // ✅ only this works</code></pre></div>
+
+<p>So the enum is viral. Every caller — including callers in other packages, including test fixtures, including JSON you parsed — has to import the enum object to say a value it already knows. And if two copies of your library end up in the dependency tree, those are two <em>distinct</em> enums that don't accept each other's members, which produces one of the more baffling error messages you'll ever read.</p>
+
+<h3>Problem 4: <code>const enum</code> fixes one thing and breaks another</h3>
+
+<p><code>const enum</code> tells the compiler to inline the values and emit no object — which solves the bundle-weight and tree-shaking complaints. But inlining requires the compiler to see the enum's declaration and the use site <em>at the same time</em>, and modern toolchains don't work that way. Babel, esbuild, swc and TypeScript's own <code>isolatedModules</code> mode all transpile one file at a time with no cross-file knowledge. Under <code>isolatedModules</code>, exported <code>const enum</code>s are an error precisely because a single-file transpiler can't inline them correctly.</p>
+
+<h3>What to do instead</h3>
+
+<p>A union of string literals. That's it:</p>
+
+<div class="snippet good"><div class="label">✅ The default</div>
+<pre><code>type Status = "idle" | "loading" | "done";
+
+function setStatus(s: Status) {}
+setStatus("loading");   // ✅ just write it
+setStatus("loadng");    // ❌ caught, with a "did you mean" suggestion</code></pre></div>
+
+<p>Zero runtime output, structural so plain strings work, autocompletes at the call site, narrows perfectly in a <code>switch</code>, and JSON from your API matches it directly without translation.</p>
+
+<p>When you also need a runtime value — to iterate the options, render a dropdown, or map to display labels — use an object with <code>as const</code> and derive the type from it:</p>
+
+<div class="snippet good"><div class="label">✅ When you need runtime values too</div>
+<pre><code>const STATUS = {
+  Idle: "idle",
+  Loading: "loading",
+  Done: "done",
+} as const;
+
+type Status = typeof STATUS[keyof typeof STATUS];
+// → "idle" | "loading" | "done"
+
+Object.values(STATUS);   // → ["idle", "loading", "done"]  ✅ iterable</code></pre></div>
+
+<p>That <code>typeof STATUS[keyof typeof STATUS]</code> line is worth decoding, since it's just the two operators from section 1: <code>typeof STATUS</code> gets the type of the object, <code>keyof</code> that gets <code>"Idle" | "Loading" | "Done"</code>, and indexing with that union gives the union of the values. Without <code>as const</code>, TypeScript would widen every value to <code>string</code> and you'd get <code>string</code> back — the <code>as const</code> is what preserves the literals.</p>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "Why do seniors avoid enums?"</span>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"Mainly because <code>enum</code> is the one TypeScript feature that isn't erased — it emits a real object into the bundle, which breaks the mental model that types are compile-time only, and it's banned outright under <code>erasableSyntaxOnly</code> and Node's type-stripping. On top of that, enums are nominally typed in an otherwise structural language, so you can't pass <code>"GET"</code> where a <code>Method.Get</code> is expected even though they're the same string, and two copies of a package produce two incompatible enums. Numeric enums also carry a reverse mapping and historically accepted any number. <code>const enum</code> avoids the runtime object but breaks under <code>isolatedModules</code>, Babel and esbuild, which is most build setups now."</p>
+    <p>"So my default is a union of string literals, plus an <code>as const</code> object when I need to iterate the values at runtime. That said, I wouldn't rip enums out of a codebase that already uses them consistently — a string-valued enum in an app that isn't bundle-sensitive is fine, and mixed conventions cost more than either convention alone."</p>
+  </div>
+  <p class="why-lands">Why it lands: the mechanism ("emits an object", "nominal not structural") shows you know <em>why</em>, and the last sentence shows judgment. Dogma reads as junior; "here's the tradeoff and here's when I'd leave it alone" reads as senior.</p>
+</div>
+
+<div class="callout myth">
+  <span class="ttl">Trap</span>
+  <p>Don't say "enums are slow" or "enums bloat your bundle" as the headline. The object is a handful of bytes; that's not the real argument, and an interviewer who knows this will push back. The real arguments are <em>erasability</em> and <em>nominal typing</em>. Lead with those.</p>
+</div>
+
+<hr>
+
+<h2 id="states">8. Making impossible states unrepresentable</h2>
+
+<p>This is the part I'd most want a senior candidate to be able to talk about, because it's not a feature — it's a <em>way of using</em> the features we've built up, and it changes how code feels to work in.</p>
+
+<h3>The shape almost everyone writes first</h3>
+
+<div class="snippet bad"><div class="label">❌ The classic</div>
+<pre><code>type RequestState = {
+  isLoading: boolean;
+  error: Error | null;
+  data: User[] | null;
+};</code></pre></div>
+
+<p>Three independent fields. How many states does that describe? Two × two × two = <strong>eight</strong>. How many of those are real?</p>
+
+<table>
+  <tr><th>isLoading</th><th>error</th><th>data</th><th>Meaning</th></tr>
+  <tr><td>false</td><td>null</td><td>null</td><td>Idle — fine ✅</td></tr>
+  <tr><td>true</td><td>null</td><td>null</td><td>Loading — fine ✅</td></tr>
+  <tr><td>false</td><td>null</td><td>set</td><td>Success — fine ✅</td></tr>
+  <tr><td>false</td><td>set</td><td>null</td><td>Failed — fine ✅</td></tr>
+  <tr><td>true</td><td>set</td><td>null</td><td>Loading <em>and</em> errored? 🤨</td></tr>
+  <tr><td>true</td><td>null</td><td>set</td><td>Refetching, maybe? Ambiguous 🤨</td></tr>
+  <tr><td>true</td><td>set</td><td>set</td><td>Nonsense ❌</td></tr>
+  <tr><td>false</td><td>set</td><td>set</td><td>Nonsense ❌</td></tr>
+</table>
+
+<p>Four real states, four states that are either meaningless or ambiguous. And the type system will happily let you construct every one of them, so every component that reads this state has to defensively guess:</p>
+
+<div class="snippet bad"><div class="label">❌ Defensive guessing, and a bug</div>
+<pre><code>if (state.isLoading) return &lt;Spinner /&gt;;
+if (state.error)     return &lt;ErrorBox error={state.error} /&gt;;
+return &lt;List users={state.data!} /&gt;;   // 👈 that ! is a lie you're forced into</code></pre></div>
+
+<p>See the <code>!</code>? You <em>know</em> <code>data</code> is there by that line, but the type doesn't, so you assert. Every non-null assertion in a codebase is a little note saying "the type is less precise than reality." And the classic bug lives here too: a failed refetch that sets <code>error</code> but forgets to clear <code>isLoading</code> leaves you with a spinner forever, and nothing complained.</p>
+
+<h3>The fix: a discriminated union</h3>
+
+<p>Instead of describing the <em>fields</em>, describe the <em>states</em>, and give each one only the data that state actually has:</p>
+
+<div class="snippet good"><div class="label">✅ Four states, exactly four</div>
+<pre><code>type RequestState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: User[] }
+  | { status: "failure"; error: Error };</code></pre></div>
+
+<p>The shared literal field — <code>status</code> here — is the <strong>discriminant</strong>. Because each member has a different literal value for it, TypeScript can look at <code>state.status</code> and know precisely which member you're holding.</p>
+
+<p>The "impossible" states are now unspellable. There's no way to construct a value with both <code>error</code> and <code>data</code>, because no member of the union has both fields. You didn't add a validation rule or a lint check — you removed the states from existence.</p>
+
+<figure>
+<svg viewBox="0 0 700 170" role="img" aria-label="Diagram comparing eight boolean combinations against four named states">
+  <text x="150" y="22" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b03030" font-family="sans-serif">3 booleans → 8 combinations</text>
+  <g font-family="monospace" font-size="10.5">
+    <rect x="30" y="36" width="110" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="85" y="53" text-anchor="middle" fill="#2f7a4a">idle ✅</text>
+    <rect x="160" y="36" width="110" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="215" y="53" text-anchor="middle" fill="#2f7a4a">loading ✅</text>
+    <rect x="30" y="68" width="110" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="85" y="85" text-anchor="middle" fill="#2f7a4a">success ✅</text>
+    <rect x="160" y="68" width="110" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="215" y="85" text-anchor="middle" fill="#2f7a4a">failure ✅</text>
+    <rect x="30" y="100" width="110" height="26" rx="5" fill="#fdecec" stroke="#f3d2d2"/><text x="85" y="117" text-anchor="middle" fill="#b03030">load + error ❌</text>
+    <rect x="160" y="100" width="110" height="26" rx="5" fill="#fdecec" stroke="#f3d2d2"/><text x="215" y="117" text-anchor="middle" fill="#b03030">load + data ❌</text>
+    <rect x="30" y="132" width="110" height="26" rx="5" fill="#fdecec" stroke="#f3d2d2"/><text x="85" y="149" text-anchor="middle" fill="#b03030">all three ❌</text>
+    <rect x="160" y="132" width="110" height="26" rx="5" fill="#fdecec" stroke="#f3d2d2"/><text x="215" y="149" text-anchor="middle" fill="#b03030">err + data ❌</text>
+  </g>
+
+  <text x="350" y="100" text-anchor="middle" font-size="24" fill="#7a4be0" font-family="sans-serif">→</text>
+
+  <text x="530" y="22" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2f7a4a" font-family="sans-serif">discriminated union → 4 states</text>
+  <g font-family="monospace" font-size="10.5">
+    <rect x="420" y="36" width="220" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="530" y="53" text-anchor="middle" fill="#2f7a4a">{ status: "idle" }</text>
+    <rect x="420" y="68" width="220" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="530" y="85" text-anchor="middle" fill="#2f7a4a">{ status: "loading" }</text>
+    <rect x="420" y="100" width="220" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="530" y="117" text-anchor="middle" fill="#2f7a4a">{ status: "success", data }</text>
+    <rect x="420" y="132" width="220" height="26" rx="5" fill="#eaf6ee" stroke="#cfe7d8"/><text x="530" y="149" text-anchor="middle" fill="#2f7a4a">{ status: "failure", error }</text>
+  </g>
+</svg>
+<figcaption>The bad states don't get validated away. They stop being expressible.</figcaption>
+</figure>
+
+<h3>And now narrowing does the work for you</h3>
+
+<div class="snippet good"><div class="label">✅ No assertions, no guessing</div>
+<pre><code>switch (state.status) {
+  case "idle":    return &lt;StartButton /&gt;;
+  case "loading": return &lt;Spinner /&gt;;
+  case "failure": return &lt;ErrorBox error={state.error} /&gt;;   // 👈 error is defined here
+  case "success": return &lt;List users={state.data} /&gt;;        // 👈 and data here
+}</code></pre></div>
+
+<p>Inside <code>case "success"</code>, <code>state</code> isn't <code>RequestState</code> any more — it's narrowed to exactly <code>{ status: "success"; data: User[] }</code>. So <code>state.data</code> is <code>User[]</code>, not <code>User[] | null</code>. The <code>!</code> is gone, and it's gone because it was never needed, not because you got away with something.</p>
+
+<p>Try to write <code>state.error</code> in the <code>"success"</code> branch and you get a compile error. The type system is now enforcing the state machine.</p>
+
+<h3>The same move, on a checkout flow</h3>
+
+<p>This scales past loading spinners. A multi-step flow has the same disease — a pile of optional fields that are only meaningfully optional at certain steps:</p>
+
+<div class="snippet bad"><div class="label">❌ Everything optional, forever</div>
+<pre><code>type Checkout = {
+  step: number;
+  items: CartItem[];
+  address?: Address;
+  payment?: PaymentMethod;
+  orderId?: string;
+};</code></pre></div>
+
+<p>Every function that touches <code>address</code> has to handle it being missing, even the ones that only ever run after the address was collected. So you get <code>address!</code> sprinkled everywhere, or defensive early-returns that can never fire.</p>
+
+<div class="snippet good"><div class="label">✅ Each step carries exactly what it has</div>
+<pre><code>type Checkout =
+  | { step: "cart";      items: CartItem[] }
+  | { step: "shipping";  items: CartItem[]; address: Address }
+  | { step: "payment";   items: CartItem[]; address: Address; method: PaymentMethod }
+  | { step: "confirmed"; orderId: string };
+
+function chargeCard(c: Extract&lt;Checkout, { step: "payment" }&gt;) {
+  c.method;    // ✅ guaranteed present, by the type
+  c.address;   // ✅ so is this
+}</code></pre></div>
+
+<p>And look — that's <code>Extract</code>, which is a distributive conditional type, filtering a union by discriminant. All the pieces are connecting up.</p>
+
+<p>Same story for permissions. Rather than <code>{ user: User | null; isLoggedIn: boolean }</code> — which lets you have <code>isLoggedIn: true</code> with a null user — write:</p>
+
+<div class="snippet good"><div class="label">✅ Sessions</div>
+<pre><code>type Session =
+  | { state: "anonymous" }
+  | { state: "authenticated"; user: User; permissions: Set&lt;Permission&gt; };</code></pre></div>
+
+<h3>Guaranteeing you handled every case: exhaustiveness with <code>never</code></h3>
+
+<p>Now the follow-up question. You've got four cases handled. Six months later somebody adds a fifth state — <code>{ status: "cancelled" }</code>. How do you find every <code>switch</code> that needs updating?</p>
+
+<p>You make the compiler find them. The trick uses <code>never</code>, and it's genuinely elegant once you see the mechanism.</p>
+
+<p>First, the two facts it rests on. <strong>One:</strong> as you handle each case, TypeScript narrows the remaining possibilities — if you've handled all four, the type left over in <code>default</code> is <code>never</code>, the type with no values. <strong>Two:</strong> <code>never</code> is assignable to everything, but nothing is assignable to <code>never</code>. So a parameter typed <code>never</code> only accepts an argument that's already <code>never</code>.</p>
+
+<p>Put them together:</p>
+
+<div class="snippet good"><div class="label">✅ The exhaustiveness check</div>
+<pre><code>function assertNever(value: never): never {
+  throw new Error(`Unhandled case: ${JSON.stringify(value)}`);
+}
+
+function render(state: RequestState) {
+  switch (state.status) {
+    case "idle":    return &lt;StartButton /&gt;;
+    case "loading": return &lt;Spinner /&gt;;
+    case "failure": return &lt;ErrorBox error={state.error} /&gt;;
+    case "success": return &lt;List users={state.data} /&gt;;
+    default:        return assertNever(state);   // 👈 state is `never` here
+  }
+}</code></pre></div>
+
+<p>Today this compiles, because all four are handled and <code>state</code> narrows to <code>never</code> in the default branch. Add <code>"cancelled"</code> to the union without adding a case, and <code>state</code> in <code>default</code> narrows to <code>{ status: "cancelled" }</code> instead — which is not assignable to <code>never</code>:</p>
+
+<div class="snippet bad"><div class="label">❌ The error you want to see</div>
+<pre><code>// Argument of type '{ status: "cancelled" }' is not assignable
+// to parameter of type 'never'.</code></pre></div>
+
+<p>Every switch in the codebase that forgot the new case lights up red, in the right file, on the right line. That's a refactor you can actually trust.</p>
+
+<p>The <code>throw</code> matters too: it's your runtime safety net for when bad data sneaks past the type system, which — as we're about to discuss — it can.</p>
+
+<div class="callout wait">
+  <span class="ttl">Wait — do I need <code>assertNever</code>, or is there a compiler flag?</span>
+  <p>There's <code>noFallthroughCasesInSwitch</code>, but that's a different thing — it catches missing <code>break</code>s, not missing cases. There's no built-in "this switch must be exhaustive" flag for statements.</p>
+  <p>You do get exhaustiveness for free in one situation: if the function has an explicit return type annotation and every case returns, a missing case makes the function implicitly return <code>undefined</code>, which fails the annotation. That works, but the error points at the function signature rather than the missing case, so it's a worse message. <code>assertNever</code> is three lines and points right at the problem — write the three lines.</p>
+</div>
+
+<h3>Branded types, briefly</h3>
+
+<p>One more tool in the same family. Structural typing means a <code>UserId</code> and a <code>PostId</code> are both just <code>string</code>, so nothing stops you passing one where the other belongs — a bug that type-checks perfectly and blows up in production.</p>
+
+<p>You can fake nominal typing by intersecting with a marker that nothing else has:</p>
+
+<div class="snippet good"><div class="label">✅ Branded / opaque types</div>
+<pre><code>type UserId = string &amp; { readonly __brand: "UserId" };
+type PostId = string &amp; { readonly __brand: "PostId" };
+
+const asUserId = (raw: string) =&gt; raw as UserId;   // 👈 one blessed entry point
+
+function getUser(id: UserId) {}
+
+getUser(asUserId("u_1"));          // ✅
+getUser("u_1");                    // ❌ plain string isn't branded
+getUser(somePostId);               // ❌ wrong brand</code></pre></div>
+
+<p>The brand doesn't exist at runtime — it's <code>string</code> all the way down, which is exactly why you get all the string methods for free and zero overhead. The cost is that one <code>as</code> cast in the constructor function, which is fine <em>if</em> that function is the only way to make a <code>UserId</code>, ideally after validating the format. Use this sparingly — for IDs, for money amounts in cents versus dollars, for "this string has been HTML-escaped." Brand everything and you've just made your codebase annoying.</p>
+
+<hr>
+
+<h2 id="boundary">9. Types are erased — so what do you actually trust?</h2>
+
+<p>Here's the uncomfortable thing about everything we've just built. All of it vanishes at build time. Which means this:</p>
+
+<div class="snippet bad"><div class="label">❌ A confident lie</div>
+<pre><code>const res = await fetch("/api/users");
+const users = (await res.json()) as User[];   // 👈 pure fiction</code></pre></div>
+
+<p><code>res.json()</code> returns <code>Promise&lt;any&gt;</code>. That <code>as User[]</code> generates <em>no code</em> and performs <em>no check</em>. You have simply told the compiler to stop asking questions. If the API renamed <code>name</code> to <code>fullName</code> last Tuesday, TypeScript will keep insisting <code>users[0].name</code> is a <code>string</code> right up until it's <code>undefined</code> on someone's screen.</p>
+
+<p>This is the honest limit of a static type system: it can only guarantee things about data that <em>originated inside the program</em>. Anything crossing the boundary — HTTP responses, <code>localStorage</code>, URL params, form input, <code>postMessage</code>, environment variables — is unknown at compile time and must be <strong>checked at runtime</strong>.</p>
+
+<p>The standard answer in 2026 is a schema validation library — Zod, Valibot, ArkType, whichever — where you define the shape once and get both the runtime check and the static type out of it:</p>
+
+<div class="snippet good"><div class="label">✅ Validate, don't assert</div>
+<pre><code>import { z } from "zod";
+
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(["admin", "member"]),
+});
+
+type User = z.infer&lt;typeof UserSchema&gt;;
+// → { id: string; name: string; role: "admin" | "member" }
+
+const res = await fetch("/api/users");
+const users = z.array(UserSchema).parse(await res.json());
+// ✅ throws right here if the API changed — not three components later</code></pre></div>
+
+<p>Two things to notice. First, <code>z.infer&lt;typeof UserSchema&gt;</code> — the type is <em>derived from</em> the validator, so they can't drift apart. That's the same "write the relationship once" principle as mapped types, applied at the boundary.</p>
+
+<p>Second, the failure moves. Instead of <code>undefined</code> propagating silently into a component and producing a blank space or a crash in an unrelated file, you get a loud error at the exact moment the data arrived, naming the field that was wrong. Debugging time goes from an afternoon to a minute.</p>
+
+<p>The mental model: <strong>types are the rules inside the building; validation is the security desk at the door.</strong> The rules are only meaningful if somebody checks badges on the way in. (The analogy leaks a bit — TypeScript's rules are enforced by the compiler, not by trust — but the shape is right: everything inside is only as trustworthy as what you let in.)</p>
+
+<div class="callout interview">
+  <span class="ttl">🎤 In an interview: "If types are erased, how do you trust API responses?"</span>
+  <div class="answer">
+    <span class="who">Say this</span>
+    <p>"You don't — not from the type system alone. <code>res.json()</code> is <code>any</code>, so <code>as User[]</code> is just me promising the compiler something I can't actually guarantee; it emits no check. So I validate at the boundary with a schema library like Zod: I define the schema once, derive the TypeScript type from it with <code>z.infer</code>, and <code>parse</code> the response. Then the failure happens at the fetch with a message naming the bad field, instead of surfacing as <code>undefined</code> in a component three layers away. Inside the app I trust the types completely; at every boundary — network, localStorage, URL params, form input — I check."</p>
+  </div>
+  <p class="why-lands">Why it lands: "I trust types inside, I check at boundaries" is the exact framing experienced people use. Bonus points for naming boundaries beyond HTTP — <code>localStorage</code> especially, since it's a boundary people forget.</p>
+</div>
+
+<hr>
+
+<h2 id="followups">10. Interview follow-ups, answered</h2>
+
+<p>The model answers for the big questions are in the callouts above. Here are the ones interviewers reach for <em>next</em>, when they're probing for depth rather than recall — the "why not just—" family.</p>
+
+<details>
+<summary>"Why not just use <code>any</code> when the types get hard?"</summary>
+<p>Because <code>any</code> isn't a wildcard, it's a <em>hole</em> — it disables checking for everything downstream of it, silently, including things you didn't intend. If you genuinely don't know a type, the right tool is <code>unknown</code>: it accepts anything going in, but forces you to narrow before you can do anything with it. The rule I use: <code>unknown</code> at boundaries, <code>any</code> essentially never in application code, and if I need an escape hatch I write a narrowly-scoped cast with a comment explaining why, so it's greppable.</p>
+</details>
+
+<details>
+<summary>"Why not just use <code>as</code> to fix a type error?"</summary>
+<p>Because <code>as</code> doesn't fix anything — it silences the compiler about a mismatch that still exists at runtime. It's appropriate in exactly two places: narrowing something you've genuinely just proven (usually better done with a type guard), and branding. If I'm reaching for <code>as</code> to make an error go away, that's a signal the model is wrong, and I should go fix the type rather than the symptom. The <code>data!</code> in the loading-state example is the perfect illustration: the assertion was hiding a badly-shaped type, and modelling it as a union made the assertion unnecessary.</p>
+</details>
+
+<details>
+<summary>"Isn't a discriminated union more verbose than a few booleans?"</summary>
+<p>Slightly, at the definition. But you get it back immediately at every use site: no non-null assertions, no defensive checks for combinations that can't happen, and no "did we forget to reset <code>isLoading</code>" bugs. And when the requirements grow — a fifth state, a step that needs extra data — the union grows in one place and the compiler tells you every consumer that needs updating. The boolean version grows by <em>doubling</em> the number of possible combinations each time you add a flag.</p>
+</details>
+
+<details>
+<summary>"Can't you just write a runtime guard instead of a mapped type?"</summary>
+<p>They solve different problems. A mapped type expresses a relationship <em>between two types</em> so they can't drift — <code>Nullable&lt;Form&gt;</code> updates itself when <code>Form</code> changes. A runtime guard checks a <em>value</em>. You want both, in different places: mapped and conditional types for internal consistency, runtime validation at the boundary. Neither substitutes for the other.</p>
+</details>
+
+<details>
+<summary>"When would you reach for a conditional type in app code, rather than library code?"</summary>
+<p>Honestly, less often than in library code — and I'd say so, because the wrong answer here is pretending you write <code>infer</code> daily. Where they earn their keep in an app is at typed API layers: a <code>useQuery</code>-style wrapper where the return type depends on the endpoint key, or a form library where field props are derived from the schema type. The rule of thumb is that a conditional type is worth it when it removes a whole category of casts for the callers. If it only makes the definition cleverer without making call sites safer, it's not paying for itself.</p>
+</details>
+
+<details>
+<summary>"What's the difference between <code>keyof</code> on an interface and on a <code>Record&lt;string, X&gt;</code>?"</summary>
+<p><code>keyof</code> on a fixed shape gives you a union of literal keys. On an index-signature type like <code>Record&lt;string, X&gt;</code> it gives you <code>string | number</code> — because the type says <em>any</em> string is a valid key, so there's nothing more specific to report. That's a common source of confusion when someone expects autocompletion from a <code>Record&lt;string, ...&gt;</code> and gets nothing. If you want the specific keys, constrain the record's key type to a union of literals instead.</p>
+</details>
+
+<details>
+<summary>"How do you tell whether an interviewer wants depth or recall here?"</summary>
+<p>Listen for whether they ask "what is" or "how would you". "What is a mapped type" is recall — answer in two sentences and stop. "How would you implement <code>Partial</code>", "walk me through what happens when you pass a union to that" or "why would you avoid X" is depth — that's an invitation to show the mechanism and the tradeoff, and short answers there read as thin. When in doubt, give the crisp answer first and then offer: "want me to go through how that's actually implemented?" That's a very safe move.</p>
+</details>
+
+<hr>
+
+<h2 id="cheat">11. Interview cheat sheet</h2>
+
+<p>Read this on the train. Each line is a thing you could say out loud.</p>
+
+<div class="cheat">
+<dl>
+  <dt><code>keyof T</code> / <code>T[K]</code></dt>
+  <dd>Keys as a union of string literals; the type at a key. Index with a union, get a union back.</dd>
+
+  <dt>Mapped type</dt>
+  <dd><code>{ [K in keyof T]: ... }</code> — a compile-time loop over keys that builds a new object type.</dd>
+
+  <dt><code>Partial</code></dt>
+  <dd><code>type Partial&lt;T&gt; = { [K in keyof T]?: T[K] }</code>. The built-in utility types are ordinary mapped types in <code>lib.es5.d.ts</code>, not compiler magic.</dd>
+
+  <dt><code>Readonly</code> / <code>Pick</code> / <code>Record</code></dt>
+  <dd><code>{ readonly [K in keyof T]: T[K] }</code> / <code>{ [P in K]: T[P] }</code> / <code>{ [P in K]: V }</code>.</dd>
+
+  <dt>Modifiers</dt>
+  <dd><code>-?</code> strips optionality (that's <code>Required</code>), <code>-readonly</code> strips readonly (that's <code>Mutable</code>, which isn't built in).</dd>
+
+  <dt>Key remapping</dt>
+  <dd><code>[K in keyof T as NewKey]</code>. Combine with template literals to generate <code>on${Capitalize&lt;K&gt;}Change</code>. Remap to <code>never</code> to delete a key — that's how you filter.</dd>
+
+  <dt>Conditional type</dt>
+  <dd><code>T extends U ? X : Y</code>. <code>extends</code> here means "is assignable to", not inheritance.</dd>
+
+  <dt><code>infer</code></dt>
+  <dd>Pattern-matches and captures part of a type. <code>T extends (...a: any[]) =&gt; infer R ? R : never</code> is <code>ReturnType</code>. The variable exists only in the true branch.</dd>
+
+  <dt>Distributive conditional</dt>
+  <dd>A naked type parameter + a union = the condition runs per member and the results re-union. <code>ToArray&lt;string|number&gt;</code> → <code>string[] | number[]</code>. It's why <code>Exclude</code> works.</dd>
+
+  <dt>Turning distribution off</dt>
+  <dd><code>[T] extends [U]</code>. Required for <code>IsNever</code>, since distributing over <code>never</code> (the empty union) gives <code>never</code>.</dd>
+
+  <dt>Declaration merging</dt>
+  <dd>Same-name interfaces combine. Used for augmenting types you don't own: <code>declare module "express-serve-static-core"</code>, <code>declare global</code>, styled-components' <code>DefaultTheme</code>. The file must be a module (<code>export {}</code>) or you replace instead of augment.</dd>
+
+  <dt><code>interface</code> vs <code>type</code></dt>
+  <dd>Only interfaces merge, so public extension points must be interfaces. Only <code>type</code> can express unions, tuples, mapped and conditional types.</dd>
+
+  <dt>Why not <code>enum</code></dt>
+  <dd>It emits runtime JS (so it isn't erasable — banned under <code>erasableSyntaxOnly</code>), it's nominal in a structural language, numeric enums carry reverse mappings, and <code>const enum</code> breaks under <code>isolatedModules</code>/Babel/esbuild. Default to a string-literal union plus an <code>as const</code> object when you need runtime values — but don't crusade against a codebase that uses them consistently.</dd>
+
+  <dt>Impossible states</dt>
+  <dd>Three booleans = eight combinations, half nonsense. A discriminated union on <code>status</code> permits exactly the real states, and narrowing then guarantees each state's data is present — no <code>!</code> assertions.</dd>
+
+  <dt>Exhaustiveness</dt>
+  <dd><code>default: return assertNever(state)</code> where <code>assertNever(v: never)</code>. Handled cases narrow the remainder to <code>never</code>; an unhandled one doesn't, and nothing is assignable to <code>never</code>, so it's a compile error pointing at the right line.</dd>
+
+  <dt>Branded types</dt>
+  <dd><code>string &amp; { __brand: "UserId" }</code> fakes nominal typing for IDs and units. Zero runtime cost; needs one blessed constructor doing the cast.</dd>
+
+  <dt>Trusting external data</dt>
+  <dd><code>as User</code> emits no check — it's a promise, not a proof. Validate at boundaries with Zod and derive the type via <code>z.infer</code> so schema and type can't drift. Trust types inside, check at the door.</dd>
+</dl>
+</div>
+
+<hr>
+
+<p>One last thought before you close the tab. Almost everything here is the same idea wearing different hats: <strong>say the rule once, and let the compiler derive the consequences.</strong> Mapped types say it about shapes. Conditional types say it about branching. Discriminated unions say it about states. Zod schemas say it about the boundary. If an interviewer asks a question this guide didn't cover, that sentence is a genuinely good place to reason from. 🎯</p>
+
+</div>
+</body>
+</html>

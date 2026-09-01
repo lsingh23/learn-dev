@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semantic HTML &amp; Accessibility</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --surface: #ffffff;
+    --text: #1f2430;
+    --muted: #5a6474;
+    --rule: #e4e0d8;
+    --accent: #7c3aed;
+    --accent-soft: #f3ecff;
+    --code-bg: #262335;
+    --code-text: #eae6f5;
+    --good: #1d7a4c;
+    --good-bg: #edfaf2;
+    --bad: #b3261e;
+    --bad-bg: #fdefee;
+    --warn-bg: #fff8e6;
+    --warn-line: #d99b17;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  /* --- The guide practises what it preaches: a real skip link --- */
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 20px;
+    z-index: 100;
+    border-radius: 0 0 8px 0;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .skip:focus { left: 0; }
+
+  /* Focus styling: visible, never removed */
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  header.masthead {
+    padding: 68px 0 30px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 34px;
+  }
+  header.masthead p.kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 14px;
+  }
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.4em 0 0.6em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 1.24rem;
+    line-height: 1.35;
+    margin: 2.4em 0 0.5em;
+  }
+  h4 {
+    margin: 1.9em 0 0.4em;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.82rem;
+  }
+
+  p { margin: 0 0 1.15em; }
+
+  a { color: var(--accent); }
+
+  .lede { font-size: 1.12rem; color: var(--muted); }
+
+  ul, ol { padding-left: 1.35em; margin: 0 0 1.2em; }
+  li { margin-bottom: 0.5em; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.87em;
+    background: #efeae2;
+    padding: 0.12em 0.36em;
+    border-radius: 4px;
+  }
+
+  kbd {
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: 0.8em;
+    background: #fff;
+    border: 1px solid #c4bdb1;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.83rem;
+    line-height: 1.65;
+    margin: 0 0 1.3em;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+  pre .c { color: #8f8aa8; font-style: italic; }
+  pre .hl { color: #ffd479; }
+
+  .codeblock { margin-bottom: 1.4em; }
+  .codeblock pre { margin-bottom: 0; border-radius: 0 0 10px 10px; }
+  .codelabel {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 10px 10px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .codelabel.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid #f3cdc9; border-bottom: none; }
+  .codelabel.good { background: var(--good-bg); color: var(--good); border: 1px solid #c2e8d4; border-bottom: none; }
+
+  .aside {
+    border-radius: 10px;
+    padding: 18px 20px 4px;
+    margin: 1.8em 0;
+    font-size: 0.95rem;
+  }
+  .aside .t {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+  .aside.wait   { background: #eef4ff; border-left: 4px solid #3b6ee0; }
+  .aside.wait .t { color: #2b53ad; }
+  .aside.myth   { background: var(--bad-bg); border-left: 4px solid var(--bad); }
+  .aside.myth .t { color: var(--bad); }
+  .aside.hood   { background: #f2f0ec; border-left: 4px solid #8a8375; }
+  .aside.hood .t { color: #635d51; }
+  .aside.warn   { background: var(--warn-bg); border-left: 4px solid var(--warn-line); }
+  .aside.warn .t { color: #8a6210; }
+
+  .interview {
+    background: var(--accent-soft);
+    border: 1px solid #ded0fb;
+    border-radius: 12px;
+    padding: 20px 22px 6px;
+    margin: 2em 0;
+  }
+  .interview > .t {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #5b21b6;
+    margin-bottom: 10px;
+  }
+  .answer {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px 17px 1px;
+    margin: 14px 0;
+    border-left: 4px solid var(--accent);
+  }
+  .answer .lbl {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .answer p { font-style: italic; }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 2.4em;
+  }
+  .toc h2 {
+    border: none;
+    margin: 0 0 8px;
+    padding: 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .toc ol { margin: 0; padding-left: 1.3em; font-size: 0.94rem; }
+  .toc li { margin-bottom: 0.25em; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 0 0 1.5em;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f4f1ec; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  td code { font-size: 0.85em; }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 16px;
+    margin: 0 0 1em;
+    background: var(--surface);
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.96rem;
+  }
+  details[open] summary { margin-bottom: 10px; }
+  details p:last-child { margin-bottom: 0.4em; }
+
+  figure { margin: 2em 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .cheat td:first-child { font-weight: 600; width: 34%; }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 3em 0; }
+
+  .swatch {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="kicker">Frontend Interview Guide · 23</p>
+  <h1>Semantic HTML &amp; Accessibility</h1>
+  <p class="lede">Almost everything you know as "accessibility work" is actually just the reward for picking the right HTML element. And almost every accessibility bug is the receipt for picking the wrong one.</p>
+</header>
+
+<main id="main">
+
+<p>Let's start with the most boring four lines of code in frontend development.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ You've written this. I've written this.</div>
+<pre><code>&lt;div class="btn" onClick={handleDelete}&gt;
+  Delete account
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>It works. You click it, the account gets deleted. You styled it to look exactly like a button — rounded corners, hover state, the works. Your designer is happy. Your tests pass.</p>
+
+<p>Now let me tell you everything that just broke, and I want you to notice that <em>none</em> of it is about disability yet. It's just… missing behaviour:</p>
+
+<ul>
+  <li>You can't reach it with the <kbd>Tab</kbd> key. It's not in the tab order at all. If your mouse dies, or your trackpad glass cracks, this button no longer exists.</li>
+  <li>Pressing <kbd>Enter</kbd> does nothing. Pressing <kbd>Space</kbd> does nothing (well — it scrolls the page).</li>
+  <li>It doesn't get a focus ring, because it can't be focused.</li>
+  <li>If it were inside a form, it wouldn't submit it.</li>
+  <li>You can't disable it. There's no <code>disabled</code> attribute on a div.</li>
+  <li>A screen reader reads it as… nothing. Not "button". Just some text sitting on the page. The user has no idea it does anything.</li>
+</ul>
+
+<p>Now the fix:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ The fix</div>
+<pre><code>&lt;button onClick={handleDelete}&gt;
+  Delete account
+&lt;/button&gt;</code></pre>
+</div>
+
+<p>Every single one of those six problems is now solved. Not "mitigated" — <em>solved</em>, by the browser, for free, in every browser, forever, with no JavaScript from you.</p>
+
+<p>That's the whole guide, really. <strong>Accessibility is mostly not a feature you bolt on. It's what you get for free from the right element, and what you silently lose the moment you don't use it.</strong> I'm going to come back to this <code>div</code>-vs-<code>button</code> comparison over and over, because once you truly feel it, the rest of accessibility stops being a checklist and starts being obvious.</p>
+
+<div class="aside wait">
+  <span class="t">Wait — isn't accessibility a niche thing?</span>
+  <p>I want to kill this thought early, because it quietly shapes how much effort people put in. Roughly one in five people has a disability of some kind. But also: the "temporarily able-bodied" framing matters more day to day. Someone with a broken wrist is keyboard-only this month. Someone on a train with sun glare needs your contrast. Someone holding a baby is one-handed. Someone whose mouse battery died is you, on Tuesday.</p>
+  <p>And the legal framing is real too — in most of the US, EU, UK, Canada and Australia, an inaccessible public-facing site is a lawsuit surface. But honestly, the reason I care is simpler: the accessible version is usually the version with fewer bugs.</p>
+</div>
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#semantics">Semantic HTML, and the four separate reasons it matters</a></li>
+    <li><a href="#div-section-article">div vs section vs article (properly)</a></li>
+    <li><a href="#landmark-elements">header, footer, nav, main, aside</a></li>
+    <li><a href="#headings">Heading hierarchy</a></li>
+    <li><a href="#button-vs-a">button vs a — the most common semantic mistake</a></li>
+    <li><a href="#other-elements">Lists, figure, time, dialog</a></li>
+    <li><a href="#aria">ARIA — when to use it (and when not to)</a></li>
+    <li><a href="#keyboard">Keyboard navigation &amp; focus management</a></li>
+    <li><a href="#screenreader">The screen reader interaction model</a></li>
+    <li><a href="#contrast">Colour contrast</a></li>
+    <li><a href="#forms">Form accessibility</a></li>
+    <li><a href="#landmarks">Landmark roles &amp; the document outline</a></li>
+    <li><a href="#wcag">WCAG levels and POUR</a></li>
+    <li><a href="#modals">Focus trapping in modals</a></li>
+    <li><a href="#live">Live regions</a></li>
+    <li><a href="#testing">How to actually test</a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheatsheet">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="semantics">1. Semantic HTML, and the four separate reasons it matters</h2>
+
+<p>"Use semantic HTML" is advice you've heard a hundred times, and it's usually delivered with such vague moral weight that it doesn't stick. So let me be concrete. There are <strong>four completely separate</strong> payoffs, and they're worth separating because different people in your org care about different ones.</p>
+
+<h3>Reason 1: Assistive tech gets a machine-readable description of your page</h3>
+
+<p>A screen reader doesn't see your page. It doesn't know that this box is "obviously a button" because it's blue with rounded corners. It reads a data structure the browser builds — we'll go deep on this later — and that structure is built almost entirely from <em>which elements you used</em>.</p>
+
+<p>When you write <code>&lt;button&gt;Save&lt;/button&gt;</code>, the browser tells assistive tech: <em>this thing has the role "button", its name is "Save", it's enabled.</em> When you write <code>&lt;div class="btn"&gt;Save&lt;/div&gt;</code>, the browser says: <em>here's a generic container with the text "Save" in it.</em> The visual result is identical. The information handed to the user is not.</p>
+
+<h3>Reason 2: SEO</h3>
+
+<p>Search crawlers are, in a real sense, the world's most well-funded screen reader. They parse the same structure. A crawler uses your <code>&lt;h1&gt;</code> and heading hierarchy to understand what the page is about and how its sections relate. It uses <code>&lt;nav&gt;</code> to recognise site navigation, <code>&lt;main&gt;</code> to find the actual content and skip the boilerplate, and <code>&lt;article&gt;</code> to identify a self-contained piece of content worth indexing on its own.</p>
+
+<p>It also uses <code>&lt;a href&gt;</code> to discover pages. This one bites hard: a <code>&lt;div onClick={() =&gt; navigate('/pricing')}&gt;</code> is <em>invisible to the crawler</em>. There's no href, so there's no link, so that page might as well not exist. I've watched a team spend a sprint on "why isn't Google indexing our product pages" and the answer was a router component that rendered divs.</p>
+
+<h3>Reason 3: Default browser behaviour you'd otherwise have to rebuild</h3>
+
+<p>This is the one people underrate the most, and it has nothing to do with disability. HTML elements come with a pile of behaviour baked in by the browser vendors, tested across every platform, and it is <em>free</em>.</p>
+
+<ul>
+  <li><code>&lt;button type="submit"&gt;</code> submits the form it's in. Pressing Enter inside a text input also submits that form, via that button. You didn't write a line of JS.</li>
+  <li><code>&lt;a href&gt;</code> gives you right-click → open in new tab, middle-click, <kbd>Cmd</kbd>-click, drag-to-bookmark, the URL preview in the corner, browser history, and the back button.</li>
+  <li><code>&lt;input type="email"&gt;</code> on a phone brings up a keyboard with an <code>@</code> key. <code>type="tel"</code> brings up a number pad. <code>type="date"</code> gives you a whole date picker.</li>
+  <li><code>&lt;details&gt;</code> is a working disclosure widget with zero JS.</li>
+  <li><code>&lt;dialog&gt;</code> with <code>showModal()</code> gives you a top-layer modal, a backdrop, Escape-to-close, and focus containment.</li>
+</ul>
+
+<p>Every time you don't use the native element, you have volunteered to reimplement all of that. You will do a worse job. Not because you're bad — because the browser has had twenty-five years and a hundred engineers on it.</p>
+
+<h3>Reason 4: Code readability</h3>
+
+<p>Open a file and see this:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ What is any of this</div>
+<pre><code>&lt;div class="wrapper"&gt;
+  &lt;div class="top"&gt;
+    &lt;div class="links"&gt;...&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="body"&gt;...&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Oh, I see</div>
+<pre><code>&lt;div class="wrapper"&gt;
+  &lt;header&gt;
+    &lt;nav aria-label="Main"&gt;...&lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main&gt;...&lt;/main&gt;
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>The class names in the first version are someone's private vocabulary. The element names in the second are a shared one. In six months, when you've forgotten this file entirely, the second version still tells you what it is. That's not an accessibility benefit — that's just good engineering that happens to also be an accessibility benefit.</p>
+
+<div class="interview">
+  <span class="t">How this gets asked</span>
+  <p>"Why does semantic HTML matter?" or the sneakier version, <em>"We use a component library that renders everything as divs. Is that a problem?"</em></p>
+  <div class="answer">
+    <span class="lbl">Model answer, out loud</span>
+    <p>"Semantic HTML matters in four pretty different ways. Assistive tech reads the element to figure out role, name and state, so a div gives a screen reader user nothing. Crawlers use the same structure for SEO — a div with a click handler isn't a link, so it doesn't get followed. Native elements come with behaviour you'd otherwise have to rebuild: focusability, keyboard activation, form submission. And it's more readable for the next developer. The way I think about it is that accessibility isn't mostly a feature you add — it's what the right element gives you for free, and what you lose the moment you swap it out for a div."</p>
+  </div>
+  <p><strong>Why it lands:</strong> most candidates give you one reason (screen readers) and stop. Giving four, including the two that aren't about disability, signals that you actually build things rather than having read a checklist.</p>
+</div>
+
+<h2 id="div-section-article">2. <code>div</code> vs <code>section</code> vs <code>article</code>, properly</h2>
+
+<p>This is a genuinely popular interview question and most people fumble it, because the popular answer — "use section instead of div, it's more semantic!" — is wrong in a subtle and interesting way.</p>
+
+<h3><code>&lt;div&gt;</code>: no meaning, and that is <em>correct</em></h3>
+
+<p>A <code>&lt;div&gt;</code> means nothing. It has no role. It contributes nothing to the accessibility tree. It is a box.</p>
+
+<p>And here's the part people miss: <strong>that's often exactly what you want.</strong> If you need a wrapper purely so you can apply <code>display: flex</code> or a background colour or a max-width, a div is the <em>right</em> element. Reaching for <code>&lt;section&gt;</code> because it "sounds more semantic" is like putting a label on an unlabelled box that says "BOX". You've added noise, not meaning.</p>
+
+<p>Rule of thumb: <em>if the element exists for the stylesheet, use a div.</em></p>
+
+<h3><code>&lt;section&gt;</code>: a thematic grouping that needs a name to be worth anything</h3>
+
+<p>A <code>&lt;section&gt;</code> is a thematically related chunk of content — the kind of thing you'd naturally give a heading to. "Customer reviews." "Shipping information." "Related products."</p>
+
+<p>Now, the crucial bit that almost nobody knows: <strong>a <code>&lt;section&gt;</code> with no accessible name is exposed to assistive tech as a generic container.</strong> Identical to a div. You get literally nothing.</p>
+
+<p>What's an "accessible name"? It's the label the accessibility tree computes for an element — the string a screen reader says when it reaches it. For a section, you give it one in one of two ways:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Semantically decorative. This is a div wearing a hat.</div>
+<pre><code>&lt;section class="reviews"&gt;
+  &lt;p&gt;Great product, five stars.&lt;/p&gt;
+&lt;/section&gt;</code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Named via a heading — now it's a real landmark</div>
+<pre><code>&lt;section aria-labelledby="reviews-h"&gt;
+  &lt;h2 id="reviews-h"&gt;Customer reviews&lt;/h2&gt;   <span class="c">&lt;!-- 👈 this names the section --&gt;</span>
+  &lt;p&gt;Great product, five stars.&lt;/p&gt;
+&lt;/section&gt;
+
+<span class="c">&lt;!-- or, when there's no visible heading to point at: --&gt;</span>
+&lt;section aria-label="Customer reviews"&gt;...&lt;/section&gt;</code></pre>
+</div>
+
+<p>Once it has a name, that section is exposed with the role <code>region</code> — which is a <em>landmark</em>, meaning a screen reader user can jump straight to it from a list of page regions. That's a real, tangible benefit. Without the name, there's no benefit at all.</p>
+
+<div class="aside warn">
+  <span class="t">Don't over-landmark</span>
+  <p>Because named sections become landmarks, wrapping every third paragraph in a named <code>&lt;section&gt;</code> gives your user a landmark list with forty entries, which is worse than having none. Landmarks are for the handful of top-level regions of the page. Use headings for everything below that — a screen reader user can navigate by heading just as easily.</p>
+</div>
+
+<h3><code>&lt;article&gt;</code>: independently distributable content</h3>
+
+<p>The test for <code>&lt;article&gt;</code> is beautifully simple. <strong>Could you lift this chunk out of the page, drop it somewhere else entirely — an RSS feed, a search results page, an email digest — and would it still make sense on its own?</strong> If yes, it's an article.</p>
+
+<p>Things that pass the test: a blog post. A news story. A single comment in a comment thread. A product card in a grid. A tweet. A forum reply. A recipe card.</p>
+
+<p>Things that fail: your sidebar. A "Related links" box. A pricing table (it only makes sense in context). A generic layout wrapper.</p>
+
+<p>Two things that surprise people:</p>
+
+<ul>
+  <li><strong>Articles nest.</strong> A blog post is an <code>&lt;article&gt;</code>, and each comment on it is <em>also</em> an <code>&lt;article&gt;</code>, nested inside. That's correct and intended — a comment is independently distributable too.</li>
+  <li><strong>"Article" doesn't mean prose.</strong> A product card with an image, a price and an add-to-cart button is an article. The name is misleading; think "self-contained unit", not "essay".</li>
+</ul>
+
+<p>Like <code>&lt;section&gt;</code>, an <code>&lt;article&gt;</code> really wants a heading so users can identify it in a list. Unlike section, an unnamed article still gets the <code>article</code> role — but a list of twelve identical unnamed "article" entries isn't much use to anybody.</p>
+
+<div class="aside myth">
+  <span class="t">A common misconception</span>
+  <p><em>"section is the modern, semantic replacement for div."</em> No. They're not competitors. <code>div</code> is for structure with no meaning; <code>section</code> is for a named thematic region. Swapping every div for a section makes your markup <em>less</em> useful, because you dilute the signal. The number of divs on a well-built page is still large, and that's fine.</p>
+</div>
+
+<h2 id="landmark-elements">3. <code>header</code>, <code>footer</code>, <code>nav</code>, <code>main</code>, <code>aside</code></h2>
+
+<p>These five give a page its skeleton. Each maps to a <em>landmark role</em> — I'll define landmarks fully in section 12, but the short version for now: a landmark is a region a screen reader user can jump directly to, the way you'd jump to a chapter in a book.</p>
+
+<p><strong><code>&lt;main&gt;</code></strong> — the primary content of this page. Not the header, not the nav, not the footer. Exactly one per page. This is the single highest-value element on this list, because it's what a skip link targets and what "jump to main content" means.</p>
+
+<p><strong><code>&lt;nav&gt;</code></strong> — a block of navigation links. Not <em>every</em> group of links: a paragraph with three links in it isn't a nav. Use it for the major navigation blocks — the primary menu, breadcrumbs, pagination, an in-page table of contents. If you have more than one on a page, label them (I'll show you how in section 12).</p>
+
+<p><strong><code>&lt;header&gt;</code></strong> — introductory content. Here's the twist: it only becomes the <code>banner</code> landmark (the site header) when it's a <em>direct child of <code>&lt;body&gt;</code></em>. A <code>&lt;header&gt;</code> inside an <code>&lt;article&gt;</code> is just that article's header, with no landmark role. That's deliberate and useful — you can put a header inside every article without creating twelve "banner" landmarks.</p>
+
+<p><strong><code>&lt;footer&gt;</code></strong> — same deal. Direct child of body → the <code>contentinfo</code> landmark. Inside an article → just that article's footer.</p>
+
+<p><strong><code>&lt;aside&gt;</code></strong> — content tangentially related to the content around it. A sidebar, a pull quote, a "you might also like" box, an ad unit. The test: <em>if you deleted it, would the main content still make complete sense?</em> If yes, aside. If the content <em>needs</em> it, it's not an aside.</p>
+
+<figure>
+<svg viewBox="0 0 700 340" role="img" aria-labelledby="skeleton-title">
+  <title id="skeleton-title">A page skeleton showing header with nav, main containing an article and an aside, and a footer</title>
+  <rect x="10" y="10" width="680" height="320" fill="none" stroke="#c9c3b8" stroke-width="2" rx="8"/>
+  <text x="24" y="32" font-size="12" fill="#8a8375" font-family="monospace">&lt;body&gt;</text>
+
+  <rect x="30" y="44" width="640" height="56" fill="#eef4ff" stroke="#3b6ee0" stroke-width="2" rx="6"/>
+  <text x="44" y="66" font-size="14" fill="#2b53ad" font-family="monospace">&lt;header&gt;</text>
+  <text x="44" y="86" font-size="11" fill="#5a6474">→ banner landmark (direct child of body)</text>
+  <rect x="420" y="54" width="238" height="36" fill="#dbe7ff" stroke="#3b6ee0" stroke-width="1.5" rx="4"/>
+  <text x="432" y="77" font-size="13" fill="#2b53ad" font-family="monospace">&lt;nav&gt; → navigation</text>
+
+  <rect x="30" y="112" width="640" height="146" fill="#f3ecff" stroke="#7c3aed" stroke-width="2" rx="6"/>
+  <text x="44" y="134" font-size="14" fill="#5b21b6" font-family="monospace">&lt;main&gt;</text>
+  <text x="44" y="152" font-size="11" fill="#5a6474">→ main landmark · exactly one per page</text>
+
+  <rect x="46" y="164" width="380" height="80" fill="#fff" stroke="#7c3aed" stroke-width="1.5" rx="4"/>
+  <text x="58" y="186" font-size="13" fill="#5b21b6" font-family="monospace">&lt;article&gt;</text>
+  <text x="58" y="204" font-size="11" fill="#5a6474">self-contained, distributable</text>
+  <rect x="58" y="212" width="200" height="24" fill="#f6f2ff" stroke="#b79cf0" stroke-width="1" rx="3"/>
+  <text x="68" y="229" font-size="11" fill="#7c3aed" font-family="monospace">&lt;header&gt; → no landmark</text>
+
+  <rect x="438" y="164" width="220" height="80" fill="#fff8e6" stroke="#d99b17" stroke-width="1.5" rx="4"/>
+  <text x="450" y="186" font-size="13" fill="#8a6210" font-family="monospace">&lt;aside&gt;</text>
+  <text x="450" y="204" font-size="11" fill="#5a6474">→ complementary</text>
+  <text x="450" y="222" font-size="11" fill="#5a6474">delete it, page still works</text>
+
+  <rect x="30" y="270" width="640" height="46" fill="#edfaf2" stroke="#1d7a4c" stroke-width="2" rx="6"/>
+  <text x="44" y="292" font-size="14" fill="#1d7a4c" font-family="monospace">&lt;footer&gt;</text>
+  <text x="44" y="308" font-size="11" fill="#5a6474">→ contentinfo landmark (direct child of body)</text>
+</svg>
+<figcaption>The five structural elements, and the landmark each one maps to. Note that <code>header</code> only becomes <code>banner</code> at the top level.</figcaption>
+</figure>
+
+<h2 id="headings">4. Heading hierarchy, and why skipping levels hurts</h2>
+
+<p>Here's a thing that took me embarrassingly long to internalise: <strong>for a screen reader user, the heading structure <em>is</em> the table of contents.</strong> Not a nice-to-have. The primary navigation mechanism.</p>
+
+<p>Every major screen reader has a "list all headings" command, and it produces something like an indented outline of the page. Users press <kbd>H</kbd> to hop to the next heading, or <kbd>2</kbd> to hop to the next <code>&lt;h2&gt;</code>. Surveys of screen reader users consistently put headings at the very top of the list of how people find things on a page.</p>
+
+<p>So the rules:</p>
+
+<ul>
+  <li><strong>Don't skip levels going down.</strong> <code>h2</code> → <code>h4</code> means the outline has a hole in it. The user hears "heading level 4" and wonders what level-3 thing they missed. Going back <em>up</em> is fine — <code>h4</code> → <code>h2</code> just means you've started a new top-level section.</li>
+  <li><strong>Pick the level by depth, not by font size.</strong> This is <em>the</em> mistake. You need a small heading, so you use <code>&lt;h4&gt;</code>. Wrong tool — use <code>&lt;h2 class="text-sm"&gt;</code>. Heading level is a structural statement; size is a visual one. CSS handles the second.</li>
+  <li><strong>One <code>&lt;h1&gt;</code> per page</strong>, describing what the page is. (The spec now technically allows more; the practical advice from accessibility practitioners is still one, and interviewers expect that answer.)</li>
+  <li><strong>Don't use a heading for something that isn't a heading.</strong> If it's bold text that introduces nothing, it's a <code>&lt;p&gt;</code> with a class. Fake headings pollute the outline.</li>
+  <li><strong>Don't leave headings out either.</strong> Some designs have no visible heading for a section. If the section genuinely needs a name for navigation, add a visually-hidden heading — real text, positioned off-screen with CSS, present in the accessibility tree.</li>
+</ul>
+
+<div class="aside hood">
+  <span class="t">Under the hood: the visually-hidden pattern</span>
+  <p>You'll see this class in every serious codebase. It hides content visually while keeping it in the accessibility tree — the opposite of <code>aria-hidden</code>.</p>
+  <pre><code>.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}</code></pre>
+  <p>Note what it does <em>not</em> use: <code>display: none</code>, <code>visibility: hidden</code>, or <code>width: 0</code>. All three remove the element from the accessibility tree entirely, which defeats the whole point.</p>
+</div>
+
+<h2 id="button-vs-a">5. <code>&lt;button&gt;</code> vs <code>&lt;a&gt;</code> — the most common semantic mistake</h2>
+
+<p>We opened with div-vs-button. Now let's do the other half, because getting these two straight fixes more real-world bugs than anything else in this guide.</p>
+
+<p>The rule is one sentence: <strong>a link goes somewhere; a button does something.</strong></p>
+
+<p>If activating it changes the URL — you're navigating — it's an <code>&lt;a href&gt;</code>. If it triggers an action on the current page — submit, delete, open a modal, toggle a menu, add to cart — it's a <code>&lt;button&gt;</code>.</p>
+
+<p>Here's the everyday-object version. A link is a <strong>road sign</strong>: it tells you where you'd end up, and you can plan around it — copy the destination, take a different route, take it in a different car (new tab). A button is a <strong>light switch</strong>: there's no "where", there's just an effect, right here, right now. You can't open a light switch in a new tab. That's not a limitation; it's a category difference.</p>
+
+<h3>Everything <code>&lt;button&gt;</code> gives you for free</h3>
+
+<p>Let me lay this out completely, because "what does button give you that a div doesn't" is a direct interview question and you want the full list:</p>
+
+<ol>
+  <li><strong>Focusability.</strong> It's in the tab order automatically. No <code>tabindex</code> needed.</li>
+  <li><strong>Enter <em>and</em> Space activation.</strong> Both keys fire a <code>click</code> event. This matters — different users have different habits, and a widget that only responds to Enter feels broken to half of them. (Note: links activate on <kbd>Enter</kbd> only. Space scrolls the page on a link, which is correct behaviour.)</li>
+  <li><strong>The <code>button</code> role</strong> in the accessibility tree, so it's announced as "Save, button" and shows up in a screen reader's list of form controls.</li>
+  <li><strong>Form submission.</strong> Inside a <code>&lt;form&gt;</code>, a button defaults to <code>type="submit"</code> and submits it. It also makes <kbd>Enter</kbd>-in-a-text-input submit the form, which users expect and never consciously think about.</li>
+  <li><strong>Disabled semantics.</strong> The <code>disabled</code> attribute removes it from the tab order, blocks click events, and gets announced as unavailable. On a div, "disabled" is just a class name and a lie.</li>
+  <li><strong>Correct default styling hooks</strong> — <code>:active</code>, <code>:focus-visible</code>, and the OS's own high-contrast and forced-colours handling.</li>
+</ol>
+
+<div class="aside warn">
+  <span class="t">The <code>type</code> attribute gotcha</span>
+  <p>A <code>&lt;button&gt;</code> inside a form defaults to <code>type="submit"</code>. So a "Show password" toggle button inside your login form will, if you forget, submit the form when clicked. Always write <code>type="button"</code> on buttons that aren't submit buttons. This is a real bug I have shipped more than once.</p>
+</div>
+
+<h3>The three failure modes you'll meet in real code</h3>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ 1. A link used as a button</div>
+<pre><code>&lt;a href="#" onClick={openModal}&gt;Open settings&lt;/a&gt;</code></pre>
+</div>
+<p>The <code>href="#"</code> is a tell. It announces as a link, so the user expects to navigate. Cmd-clicking it opens a new tab to nowhere. And if your JS fails to load, it jumps the page to the top. Should be a <code>&lt;button&gt;</code>.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ 2. A button used as a link</div>
+<pre><code>&lt;button onClick={() =&gt; router.push('/pricing')}&gt;Pricing&lt;/button&gt;</code></pre>
+</div>
+<p>No href means no new tab, no middle-click, no copy-link-address, nothing for a crawler to follow. Users will try to open it in a background tab and get nothing. Should be an <code>&lt;a href="/pricing"&gt;</code> — and note that every decent SPA router (React Router's <code>Link</code>, Next's <code>Link</code>) renders a real anchor with a real href for exactly this reason. If you're calling <code>router.push</code> in an onClick, you're probably fighting your router.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ 3. An anchor with no href</div>
+<pre><code>&lt;a onClick={handleThing}&gt;Do the thing&lt;/a&gt;</code></pre>
+</div>
+<p>This is the sneakiest, because it <em>looks</em> semantic. But <strong>an <code>&lt;a&gt;</code> without an <code>href</code> is not a link.</strong> It has no <code>link</code> role, it's not focusable, it's not keyboard-activatable. It is, in every way that matters, a <code>&lt;span&gt;</code>. All of the div's problems, wearing better clothes.</p>
+
+<div class="aside wait">
+  <span class="t">Wait — what about a button that looks like a link, or a link that looks like a button?</span>
+  <p>Totally fine, and common. "Cancel" next to a "Save" button is often styled as text. Your "Get started" CTA is a link styled as a big pill. <strong>Choose the element by behaviour, then style it however the design says.</strong> These are independent decisions. Just be careful to keep the affordance honest enough that users can predict what happens — and if a link is styled as a button, make sure it still has a real href.</p>
+</div>
+
+<h2 id="other-elements">6. Lists, <code>figure</code>, <code>time</code>, <code>dialog</code></h2>
+
+<h3>Lists</h3>
+
+<p>A <code>&lt;ul&gt;</code> isn't just bullet points — it tells assistive tech <em>how many items there are</em>. Screen readers announce "list, 5 items" on entry and "list end" on exit. That count is genuinely useful: it's the difference between "I've read three products" and "I've read three of five products."</p>
+
+<p>So: navigation menus are lists. Search results are lists. Product grids are lists. Breadcrumbs are lists (usually an <code>&lt;ol&gt;</code>, since order matters). Tag chips are lists.</p>
+
+<p>Two notes. First, if you strip the bullets with <code>list-style: none</code> in Safari, WebKit removes the list semantics too — the fix is <code>role="list"</code> on the <code>&lt;ul&gt;</code>, which is one of the rare cases where adding a redundant ARIA role is genuinely the right call. Second, <code>&lt;dl&gt;</code> (description list) with <code>&lt;dt&gt;</code>/<code>&lt;dd&gt;</code> pairs is the right element for key–value data — spec sheets, metadata, glossaries — and it's badly underused.</p>
+
+<h3><code>&lt;figure&gt;</code> and <code>&lt;figcaption&gt;</code></h3>
+
+<p>A figure is a piece of self-contained referenced content — an image, a chart, a code sample, a quote — with an optional caption that's <em>associated</em> with it.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Caption bound to the image, not just floating near it</div>
+<pre><code>&lt;figure&gt;
+  &lt;img src="/revenue.png" alt="Revenue rose from $2M to $9M between 2021 and 2024."&gt;
+  &lt;figcaption&gt;Quarterly revenue, 2021–2024. Source: internal dashboard.&lt;/figcaption&gt;
+&lt;/figure&gt;</code></pre>
+</div>
+
+<p>The <code>&lt;figcaption&gt;</code> becomes the figure's accessible name, so the association is programmatic rather than "they happen to be near each other visually". And notice the split of duties: <strong><code>alt</code> describes what the image shows; the caption adds context you'd want even if you could see it.</strong> Don't duplicate them.</p>
+
+<p>While we're here — the alt text rules, quickly. Informative image: describe the information, not the picture ("Revenue rose from $2M to $9M", not "a line chart"). Decorative image that adds nothing: <code>alt=""</code>, empty but present, which tells the screen reader to skip it. Image inside a link with no other text: the alt describes the <em>destination</em>, because it's acting as the link's label. And never omit the attribute entirely — with no <code>alt</code> at all, some screen readers read out the filename, which is how users end up hearing "I M G underscore 4 4 7 2 dot P N G".</p>
+
+<h3><code>&lt;time&gt;</code></h3>
+
+<p>Humans read "3 days ago" or "next Tuesday". Machines can't parse that. <code>&lt;time&gt;</code> lets you have both:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Human-readable and machine-readable</div>
+<pre><code>Published &lt;time datetime="2026-03-14T09:30"&gt;3 days ago&lt;/time&gt;</code></pre>
+</div>
+
+<p>The <code>datetime</code> attribute takes an unambiguous machine format (ISO 8601). Search engines use it for article dates, and it's the honest way to express relative times without losing the real value.</p>
+
+<h3><code>&lt;dialog&gt;</code></h3>
+
+<p>The newest of the bunch and the biggest free win. Called with <code>.showModal()</code>, a native dialog gives you, with no library:</p>
+
+<ul>
+  <li>Rendering in the browser's <strong>top layer</strong> — always above everything, immune to your <code>z-index</code> wars and to being clipped by a parent's <code>overflow: hidden</code></li>
+  <li>A <code>::backdrop</code> pseudo-element you can style</li>
+  <li><kbd>Escape</kbd> closes it (fires a <code>cancel</code> event first)</li>
+  <li>Focus moves into the dialog on open</li>
+  <li><strong>The rest of the page becomes inert</strong> — unclickable, unfocusable, and hidden from the accessibility tree. That's the focus trap, for free.</li>
+  <li>An implicit <code>dialog</code> role and modal semantics</li>
+</ul>
+
+<p>We'll come back to dialogs properly in section 14, including the parts you still have to do yourself.</p>
+
+<h2 id="aria">7. ARIA — when to use it</h2>
+
+<p>ARIA (Accessible Rich Internet Applications) is a set of HTML attributes that let you describe an element to assistive tech: what it is, what it's called, what state it's in.</p>
+
+<p>And the very first thing to know about it is a warning, which is why the spec's own guidance leads with it.</p>
+
+<div class="aside myth">
+  <span class="t">The First Rule of ARIA</span>
+  <p><strong>Don't use ARIA if a native HTML element or attribute will do the job.</strong></p>
+  <p>If you find yourself typing <code>role="button"</code>, stop and ask why you aren't typing <code>&lt;button&gt;</code>. If you're typing <code>role="navigation"</code>, ask why you aren't typing <code>&lt;nav&gt;</code>. Nine times out of ten there's an element that does it better, with behaviour attached.</p>
+</div>
+
+<h3>The single most important fact about ARIA</h3>
+
+<p>Say this one out loud until it's automatic:</p>
+
+<p style="font-size:1.14rem; font-weight:600; border-left:4px solid var(--accent); padding-left:18px; margin:1.6em 0;">ARIA changes only the accessibility tree. It adds <em>no behaviour whatsoever</em>.</p>
+
+<p>Not "a little behaviour". <em>None.</em> ARIA does not make anything focusable. It does not add keyboard handling. It does not add styling. It does not make anything clickable. All it does is change what gets <em>reported</em> to assistive tech.</p>
+
+<p>Which brings us back to our through-line. Watch what happens when someone tries to fix the div-button with ARIA:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Looks fixed. Is not fixed.</div>
+<pre><code>&lt;div role="button" onClick={handleDelete}&gt;
+  Delete account
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>A screen reader now says "Delete account, button". Great! And then the user presses <kbd>Enter</kbd>, and <em>nothing happens</em>, because the div still isn't focusable and there's still no key handler. We have made it <strong>worse</strong>: before, it was silently useless. Now it announces itself as a button and then fails to behave like one. We've lied.</p>
+
+<p>Here's what "fixing" it with ARIA actually costs:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ The honest amount of work (still don't do this)</div>
+<pre><code>&lt;div
+  role="button"
+  tabindex="0"                        <span class="c">&lt;!-- 👈 focusability: yours now --&gt;</span>
+  onClick={handleDelete}
+  onKeyDown={(e) =&gt; {                 <span class="c">&lt;!-- 👈 keyboard: yours now --&gt;</span>
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();             <span class="c">&lt;!-- Space would scroll the page --&gt;</span>
+      handleDelete();
+    }
+  }}
+  aria-disabled={isBusy}              <span class="c">&lt;!-- and you must block clicks yourself --&gt;</span>
+&gt;
+  Delete account
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>Twelve lines, a focus style you still have to write, and it <em>still</em> won't submit a form. Versus:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ One line. Zero bugs.</div>
+<pre><code>&lt;button onClick={handleDelete} disabled={isBusy}&gt;Delete account&lt;/button&gt;</code></pre>
+</div>
+
+<h3>"No ARIA is better than bad ARIA"</h3>
+
+<p>This is the industry's standard phrasing and it deserves unpacking, because it sounds like hand-wringing and it isn't.</p>
+
+<p>Missing ARIA leaves a user under-informed. They hear "Delete account" and have to guess. Annoying, but they can explore, they can try clicking, they'll figure it out.</p>
+
+<p><strong>Incorrect ARIA actively lies.</strong> If your collapsed accordion says <code>aria-expanded="true"</code> because you forgot to update it, the user believes the content is on screen and starts hunting for it. If you put <code>role="alert"</code> on a static container, they get interrupted for nothing. If <code>aria-hidden="true"</code> lands on a wrapper containing your whole form, the form vanishes from the accessibility tree — visible to you, gone for them.</p>
+
+<p>A user can work around missing information. They cannot work around confidently-stated false information, because they have no way to know it's false. And this isn't theoretical: the large-scale annual survey of home page accessibility consistently finds that pages <em>using</em> ARIA average <em>more</em> detected errors than pages that don't. Not because ARIA is bad — because it's usually applied by people who haven't learned it.</p>
+
+<h3>Roles vs states vs properties</h3>
+
+<p>ARIA has three kinds of thing, and interviewers do ask you to distinguish them.</p>
+
+<p>A <strong>role</strong> says <em>what the element is</em>. <code>role="button"</code>, <code>role="dialog"</code>, <code>role="tablist"</code>, <code>role="navigation"</code>. One per element, and it overrides the element's native role entirely — which is why <code>&lt;button role="heading"&gt;</code> is such a spectacularly bad idea.</p>
+
+<p>A <strong>state</strong> is a condition that <em>changes over the element's lifetime</em>, usually in response to the user. <code>aria-expanded</code>, <code>aria-checked</code>, <code>aria-selected</code>, <code>aria-disabled</code>, <code>aria-pressed</code>, <code>aria-invalid</code>. If you set one, <strong>you own keeping it in sync</strong> — a stale state is exactly the lie we just talked about.</p>
+
+<p>A <strong>property</strong> is more essential and more static: it describes the element's nature or its relationships. <code>aria-label</code>, <code>aria-labelledby</code>, <code>aria-describedby</code>, <code>aria-controls</code>, <code>aria-required</code>, <code>aria-haspopup</code>.</p>
+
+<p>Honestly? The state/property line is blurry — both are written as <code>aria-*</code> attributes, and even the spec has some awkward cases. The useful takeaway isn't the taxonomy, it's the instinct: <em>"is this something that changes? then something in my code has to change it."</em></p>
+
+<h3>Naming things: <code>aria-label</code>, <code>aria-labelledby</code>, <code>aria-describedby</code></h3>
+
+<p>Every element in the accessibility tree can have an <strong>accessible name</strong> (what it's called — announced immediately) and an <strong>accessible description</strong> (extra detail — announced after a pause, and some users have it turned off).</p>
+
+<p>Most of the time the name comes from content: a button's name is its text, an input's name is its <code>&lt;label&gt;</code>. These three attributes are for when that isn't enough:</p>
+
+<ul>
+  <li><code><strong>aria-label="..."</strong></code> — a string you invent. Use when there's no visible text at all, like an icon-only button.</li>
+  <li><code><strong>aria-labelledby="id1 id2"</strong></code> — points at other elements by ID; their text becomes the name. Takes multiple IDs, space-separated, and concatenates them in the order you list. Use when the label already exists visibly on the page. <strong>It wins over <code>aria-label</code></strong> if both are present.</li>
+  <li><code><strong>aria-describedby="id"</strong></code> — same mechanism, but produces the description instead. This is where hint text, format requirements, and error messages go.</li>
+</ul>
+
+<div class="codeblock">
+<div class="codelabel good">✅ All three, doing their actual jobs</div>
+<pre><code>&lt;button aria-label="Close dialog"&gt;
+  &lt;svg aria-hidden="true"&gt;...&lt;/svg&gt;  <span class="c">&lt;!-- icon hidden; label carries the name --&gt;</span>
+&lt;/button&gt;
+
+&lt;input id="pw" aria-describedby="pw-hint"&gt;
+&lt;p id="pw-hint"&gt;At least 12 characters.&lt;/p&gt;</code></pre>
+</div>
+
+<div class="aside warn">
+  <span class="t">Where <code>aria-label</code> silently breaks voice control</span>
+  <p>Voice control users (Dragon, Voice Control on iOS/macOS) say <em>"click Save"</em>. The software matches what they said against the element's <strong>accessible name</strong> — not the visible text.</p>
+  <p>So if a button visibly reads <strong>Save</strong> but you gave it <code>aria-label="Save changes to profile"</code>, saying "click Save" may fail to match, and the user is stuck staring at a button they can see and cannot activate. Nothing is visibly wrong. Nothing shows up in an automated audit.</p>
+  <p>The rule (it's a real WCAG criterion, 2.5.3 <em>Label in Name</em>): <strong>if an element has visible text, the accessible name must contain that visible text</strong>, ideally starting with it. "Save changes" is fine. "Submit profile updates" is a bug. And when the visible text is already good, don't add an <code>aria-label</code> at all — you're only creating a chance to disagree with yourself.</p>
+</div>
+
+<h3><code>aria-hidden</code>, and the trap</h3>
+
+<p><code>aria-hidden="true"</code> removes an element and <em>all its descendants</em> from the accessibility tree, while leaving it fully visible and fully interactive. It's for visual noise that would be redundant or confusing when read aloud: a decorative icon next to text that already says the same thing, an ASCII flourish, a duplicated element that exists only for a layout trick.</p>
+
+<p>Now the trap, and it's the most common ARIA bug there is:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ A focusable ghost</div>
+<pre><code>&lt;div aria-hidden="true"&gt;
+  &lt;button&gt;Dismiss&lt;/button&gt;   <span class="c">&lt;!-- 👈 still focusable. still tabbable. --&gt;</span>
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>Because <code>aria-hidden</code> adds no behaviour (there it is again), that button is still in the tab order. A keyboard user tabs to it, focus visibly lands on it — and the screen reader announces <em>nothing</em>, because as far as the accessibility tree is concerned, that element doesn't exist. The user's focus is somewhere they can't perceive. It's genuinely disorienting.</p>
+
+<p><strong>Never put <code>aria-hidden="true"</code> on a focusable element, or on any ancestor of one.</strong> If you need to hide interactive content, use the <code>inert</code> attribute (which removes it from the accessibility tree <em>and</em> the tab order <em>and</em> blocks clicks — it's the correct tool, and it's now widely supported), or actually remove/`display: none` it.</p>
+
+<h4>The four ways to hide something — memorise this table</h4>
+
+<table>
+<thead><tr><th>Technique</th><th>Visible?</th><th>In a11y tree?</th><th>Focusable?</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td><code>display: none</code><br><code>visibility: hidden</code><br><code>hidden</code> attribute</td><td>No</td><td>No</td><td>No</td><td>Genuinely hidden content — collapsed panels, inactive tabs</td></tr>
+<tr><td><code>aria-hidden="true"</code></td><td><strong>Yes</strong></td><td>No</td><td><strong>Yes</strong> ⚠️</td><td>Decorative visuals only. Never on interactive content</td></tr>
+<tr><td><code>.visually-hidden</code> (clip)</td><td>No</td><td><strong>Yes</strong></td><td>Yes</td><td>Screen-reader-only text: skip links, icon button labels</td></tr>
+<tr><td><code>inert</code></td><td>Yes</td><td>No</td><td>No</td><td>Background content behind a modal</td></tr>
+</tbody>
+</table>
+
+<h3>The state attributes you'll actually use</h3>
+
+<p><code><strong>aria-expanded</strong></code> — goes on the <em>trigger</em> (not the panel) of anything that opens and closes: accordions, disclosure buttons, dropdown menus, comboboxes. <code>"true"</code> when the thing is open, <code>"false"</code> when closed. Note that it must be present-and-false when closed, not absent — absent means "this isn't an expandable thing at all". Screen readers announce it as "collapsed" / "expanded", and it's how the user knows whether pressing it will reveal or hide.</p>
+
+<p><code><strong>aria-controls="panel-id"</strong></code> — says "this element controls that one". Conceptually lovely; support is patchy in practice (only some screen readers offer a "jump to controlled element" shortcut). Harmless and correct to include; just don't rely on it as your only mechanism for connecting things. Put the panel right after the trigger in the DOM too.</p>
+
+<p><code><strong>aria-current</strong></code> — marks the one item in a set that's "the current one". <code>aria-current="page"</code> on the active nav link, <code>"step"</code> in a wizard, <code>"date"</code> in a calendar, or plain <code>"true"</code>. This is the fix for the extremely common bug where the active nav item is indicated <em>only</em> by being a different colour.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ The current page, announced not just coloured</div>
+<pre><code>&lt;nav aria-label="Main"&gt;
+  &lt;a href="/"&gt;Home&lt;/a&gt;
+  &lt;a href="/pricing" aria-current="page"&gt;Pricing&lt;/a&gt;  <span class="c">&lt;!-- 👈 --&gt;</span>
+&lt;/nav&gt;</code></pre>
+</div>
+
+<p><code><strong>aria-selected</strong></code> — for selection inside a composite widget: which tab in a <code>tablist</code>, which option in a <code>listbox</code>, which row in a grid. It is <em>not</em> a general "this thing is highlighted" attribute — it's only meaningful inside roles that define selection, and using it elsewhere is invalid ARIA. For a nav link, you want <code>aria-current</code>. For a toggle button, you want <code>aria-pressed</code>.</p>
+
+<div class="interview">
+  <span class="t">How this gets asked</span>
+  <p>"When should you use ARIA?" — this is a filter question. The interviewer wants to know whether you'll reach for ARIA first (bad) or last (good).</p>
+  <div class="answer">
+    <span class="lbl">Model answer, out loud</span>
+    <p>"As little as possible, honestly. The first rule of ARIA is not to use ARIA if a native element does the job — <code>&lt;button&gt;</code> beats <code>role="button"</code> every time because it brings actual behaviour with it. ARIA only changes the accessibility tree; it adds zero behaviour, so <code>role="button"</code> on a div still needs tabindex, key handlers and focus styles I write myself. Where I do reach for it is for things HTML has no element for — tabs, comboboxes, live regions — or for naming things, like <code>aria-label</code> on an icon-only button. And I'm careful, because incorrect ARIA is worse than none: it tells the user something false and they have no way to detect it."</p>
+  </div>
+  <p><strong>Why it lands:</strong> "ARIA adds no behaviour" is the sentence that separates people who've built this stuff from people who've read about it. It also naturally sets up your answer to the next question, which will be about custom widgets.</p>
+</div>
+
+<h2 id="keyboard">8. Keyboard navigation &amp; focus management</h2>
+
+<p>Time for a small experiment. Put your mouse in a drawer and try to use the last app you built. Not a thought experiment — actually do it. Most developers discover something broken within about ninety seconds.</p>
+
+<p>Keyboard access is the load-bearing accessibility requirement, because it isn't just for screen reader users. It's for people with motor impairments, people using switch devices, people using voice control (which drives the keyboard interface underneath), power users, and anyone whose trackpad just died.</p>
+
+<h3>The tab order, and how DOM order drives it</h3>
+
+<p>Pressing <kbd>Tab</kbd> moves focus to the next focusable element. "Next" means <strong>next in the DOM</strong> — the order the elements appear in your HTML source. Not the order they appear on screen.</p>
+
+<p>By default, focusable means: links with an href, buttons, form controls, <code>&lt;summary&gt;</code>, <code>contenteditable</code> elements, and iframes. Everything else — divs, spans, headings, paragraphs — is not focusable unless you say so.</p>
+
+<h4>The flexbox/grid desync</h4>
+
+<p>Here's the bug that catches everyone, exactly once, and then never again:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Visual order and tab order now disagree</div>
+<pre><code>&lt;div class="actions"&gt;
+  &lt;button&gt;Cancel&lt;/button&gt;
+  &lt;button&gt;Save&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+  .actions { display: flex; flex-direction: row-reverse; }
+  <span class="c">/* now Save appears on the LEFT, Cancel on the RIGHT */</span>
+&lt;/style&gt;</code></pre>
+</div>
+
+<p>On screen, reading left to right, the user sees <strong>Save, Cancel</strong>. Pressing Tab focuses <strong>Cancel first</strong>, then Save. A sighted keyboard user watches the focus ring jump right, then left. It's small here; in a grid with <code>order</code> values scattered across a dozen cards, it's chaos.</p>
+
+<p>The same trap comes from <code>flex-direction: column-reverse</code>, the <code>order</code> property, and grid placement that doesn't follow source order. WCAG has a criterion for this (2.4.3, <em>Focus Order</em>) and the fix is always the same: <strong>reorder the DOM, not the pixels.</strong> If the design wants Save first, put Save first in your HTML. Use CSS reordering only for things that aren't interactive, or for responsive layouts where the reading order is genuinely equivalent.</p>
+
+<h3><code>tabindex</code>: three values, two of them useful</h3>
+
+<p><code><strong>tabindex="0"</strong></code> — "put this in the natural tab order, at whatever position its DOM location implies." This is how you make a custom widget reachable. (And if you're typing it, do pause and check whether a native element would have done it for you.)</p>
+
+<p><code><strong>tabindex="-1"</strong></code> — "this is <em>not</em> in the tab order, but it <em>can</em> be focused programmatically with <code>element.focus()</code>." This one is the workhorse of focus management, and it confuses people because "-1" sounds like "off". It's not off — it's "by invitation only". You'll use it constantly: focusing a heading after a route change, focusing a modal container on open, focusing an error summary after a failed submit.</p>
+
+<p><code><strong>tabindex="1"</strong></code> (or any positive number) — <strong>don't.</strong> Positive values create a second, parallel tab order that comes <em>before</em> every natural element on the page. Add <code>tabindex="1"</code> to one input and it becomes the first thing focused on the entire document, before your skip link, before your logo. Worse, it's viral: to fix the resulting mess, you end up numbering everything, and now every future insertion requires renumbering. The accessibility community's position is unanimous: there is no good reason to use a positive tabindex. If an interviewer asks about tabindex values, saying "and positive values are an anti-pattern because they create a competing tab order" is exactly the depth they're fishing for.</p>
+
+<h3>Focus outlines: <code>outline: none</code> is a bug</h3>
+
+<p>Somewhere near the top of almost every stylesheet on the internet is this:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ The single most damaging line of CSS in common use</div>
+<pre><code>*:focus { outline: none; }</code></pre>
+</div>
+
+<p>What this does is delete the keyboard user's cursor. Imagine using your mouse with the pointer invisible. That's the experience you've just shipped. You can still Tab, but you have no idea where you are, so you can't know what pressing Enter will do.</p>
+
+<p>The reason people write it is legitimate, though: the default outline appears on <em>mouse clicks too</em>, and a chunky ring flashing on every button click looks unpolished. For years the workaround was a JS library that detected input modality. Now the platform just handles it.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ :focus-visible — the browser decides when a ring is warranted</div>
+<pre><code>button:focus { outline: none; }              <span class="c">/* kill the mouse-click ring */</span>
+
+button:focus-visible {                        <span class="c">/* 👈 keyboard focus only */</span>
+  outline: 3px solid #7c3aed;
+  outline-offset: 3px;
+}</code></pre>
+</div>
+
+<p><code>:focus-visible</code> matches only when the browser heuristically decides the user would benefit from seeing focus — keyboard navigation, yes; a mouse click on a button, no; a click into a text input, yes (because you need to see the caret target). It's supported everywhere now, and it is the right answer to "how do you handle focus styles" in an interview.</p>
+
+<p>Two more things while we're here. Make your ring actually visible against every background it can land on — WCAG 2.2 added a criterion about focus appearance, and the practical guidance is roughly: at least a 2px-thick indicator with at least 3:1 contrast against what's behind it. And never rely on colour change alone for focus (a button that just gets slightly darker is not a focus indicator).</p>
+
+<h3>Skip links</h3>
+
+<p>A screen reader user can jump to landmarks. A sighted keyboard user can't — they have to Tab through everything. So if you have a 40-link navigation menu above your content, they press Tab forty times on <em>every single page</em> before reaching the article.</p>
+
+<p>A skip link is the fix: the first focusable thing in the DOM, invisible until focused, jumping straight to main content.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ The whole pattern</div>
+<pre><code>&lt;body&gt;
+  &lt;a class="skip" href="#main"&gt;Skip to content&lt;/a&gt;
+  &lt;header&gt;...&lt;/header&gt;
+  &lt;main id="main" tabindex="-1"&gt;...&lt;/main&gt;
+
+&lt;style&gt;
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { left: 0; top: 0; z-index: 100; }  <span class="c">/* 👈 appears on Tab */</span>
+&lt;/style&gt;</code></pre>
+</div>
+
+<p>Two gotchas. It must be <em>visible when focused</em> — a skip link hidden with <code>display: none</code> can't be focused at all, so it does nothing. And the <code>tabindex="-1"</code> on the target matters: in some browsers, jumping to a non-focusable element moves the scroll position but not focus, so the next Tab press sends you right back to the top of the nav. (This page has a working skip link — press Tab right now and you'll see it slide in.)</p>
+
+<h3>Focus after a route change in an SPA</h3>
+
+<p>This one is genuinely, commonly missed, and it's a great thing to bring up unprompted because it shows you've thought about accessibility in the framework era rather than in the abstract.</p>
+
+<p>Here's the problem. On a traditional multi-page site, clicking a link loads a new document. The browser resets focus to the top, the screen reader announces the new page title, and everything is fine — for free.</p>
+
+<p>In a single-page app, clicking a link does none of that. The router swaps some components. From the browser's point of view <em>nothing has happened</em>: same document, same title (unless you update it), and focus is still sitting on the link you clicked — which has now been unmounted, so focus falls back to <code>&lt;body&gt;</code>.</p>
+
+<p>The result for a screen reader user: they activate a link, hear <em>silence</em>, and have no idea whether anything happened. Then they press Tab and land at the very top of the page, because focus reset to the document root. On every navigation.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ What a route change should do</div>
+<pre><code><span class="c">// on every route change:</span>
+useEffect(() =&gt; {
+  document.title = `${page.title} — Acme`;   <span class="c">// 1. update the title</span>
+  headingRef.current?.focus();               <span class="c">// 2. move focus to the new h1</span>
+}, [pathname]);
+
+<span class="c">// the h1 needs tabindex="-1" so it can receive programmatic focus</span>
+&lt;h1 ref={headingRef} tabindex="-1"&gt;{page.title}&lt;/h1&gt;</code></pre>
+</div>
+
+<p>Focusing the new page's <code>&lt;h1&gt;</code> is the most common approach: it announces the page name, and it puts the keyboard user at the top of the new content rather than the top of the nav. The alternatives are focusing the <code>&lt;main&gt;</code> element, or leaving focus alone and announcing the route change through a live region (section 15). Any of the three is a defensible answer; having <em>an</em> answer is what matters.</p>
+
+<h3>Returning focus after a modal or menu closes</h3>
+
+<p>The general principle: <strong>focus should never be lost, and it should always end up somewhere the user expects.</strong></p>
+
+<p>When you open a modal, you move focus into it. When it closes, that element is destroyed — so if you do nothing, focus falls to <code>&lt;body&gt;</code>, and the user is dumped at the top of the document. They had been carefully working their way down a long settings page; now they're at the logo.</p>
+
+<p>The fix is to remember where they came from:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Save it on open, restore it on close</div>
+<pre><code>function openModal() {
+  triggerRef.current = document.activeElement;  <span class="c">// 👈 remember</span>
+  setIsOpen(true);
+}
+
+function closeModal() {
+  setIsOpen(false);
+  triggerRef.current?.focus();                  <span class="c">// 👈 put it back</span>
+}</code></pre>
+</div>
+
+<p>Same rule for a dropdown menu (focus returns to the menu button), a popover, an expanded accordion that you collapse, and a deleted list item (focus the next item, or the list container — <em>not</em> nothing).</p>
+
+<h2 id="screenreader">9. The screen reader interaction model</h2>
+
+<p>Everything above gets sharper once you understand what a screen reader is actually doing, because the intuitive model — "it reads the screen out loud" — is wrong in a way that causes real bugs.</p>
+
+<h3>The accessibility tree</h3>
+
+<p>When the browser parses your HTML, it builds the DOM. Then it builds a <em>second</em> structure alongside it: the <strong>accessibility tree</strong>. This is a filtered, transformed version of the DOM, and it's what assistive technology actually reads. Screen readers never touch your DOM directly, and they certainly never look at your pixels.</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-labelledby="a11ytree-title">
+  <title id="a11ytree-title">Diagram: HTML produces the DOM tree and, in parallel, the accessibility tree, which is what a screen reader reads</title>
+  <rect x="10" y="14" width="200" height="46" rx="6" fill="#f2f0ec" stroke="#8a8375" stroke-width="2"/>
+  <text x="110" y="43" font-size="14" text-anchor="middle" fill="#635d51" font-family="monospace">Your HTML + CSS</text>
+
+  <path d="M110 62 L110 84" stroke="#8a8375" stroke-width="2"/>
+  <path d="M110 84 L60 84 L60 104" stroke="#8a8375" stroke-width="2" fill="none"/>
+  <path d="M110 84 L400 84 L400 104" stroke="#8a8375" stroke-width="2" fill="none"/>
+  <polygon points="60,112 55,102 65,102" fill="#8a8375"/>
+  <polygon points="400,112 395,102 405,102" fill="#8a8375"/>
+
+  <rect x="10" y="114" width="180" height="150" rx="6" fill="#eef4ff" stroke="#3b6ee0" stroke-width="2"/>
+  <text x="100" y="136" font-size="13" text-anchor="middle" fill="#2b53ad" font-weight="bold">DOM tree</text>
+  <text x="26" y="160" font-size="11" fill="#5a6474" font-family="monospace">div.wrapper</text>
+  <text x="38" y="180" font-size="11" fill="#5a6474" font-family="monospace">div.row</text>
+  <text x="50" y="200" font-size="11" fill="#5a6474" font-family="monospace">span.icon</text>
+  <text x="50" y="220" font-size="11" fill="#5a6474" font-family="monospace">button#save</text>
+  <text x="26" y="248" font-size="11" fill="#5a6474">every node, styling and all</text>
+
+  <rect x="300" y="114" width="200" height="150" rx="6" fill="#f3ecff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="400" y="136" font-size="13" text-anchor="middle" fill="#5b21b6" font-weight="bold">Accessibility tree</text>
+  <text x="316" y="162" font-size="11" fill="#5a6474" font-family="monospace">role: button</text>
+  <text x="316" y="182" font-size="11" fill="#5a6474" font-family="monospace">name: "Save"</text>
+  <text x="316" y="202" font-size="11" fill="#5a6474" font-family="monospace">state: enabled</text>
+  <text x="316" y="222" font-size="11" fill="#5a6474" font-family="monospace">value: —</text>
+  <text x="316" y="248" font-size="11" fill="#5a6474">divs &amp; spans mostly gone</text>
+
+  <path d="M508 190 L556 190" stroke="#7c3aed" stroke-width="2"/>
+  <polygon points="564,190 554,185 554,195" fill="#7c3aed"/>
+  <rect x="572" y="152" width="118" height="76" rx="6" fill="#edfaf2" stroke="#1d7a4c" stroke-width="2"/>
+  <text x="631" y="180" font-size="12" text-anchor="middle" fill="#1d7a4c" font-weight="bold">Screen reader</text>
+  <text x="631" y="200" font-size="11" text-anchor="middle" fill="#5a6474">"Save, button"</text>
+
+  <text x="196" y="196" font-size="11" fill="#8a8375" text-anchor="middle">flattened</text>
+  <text x="196" y="212" font-size="11" fill="#8a8375" text-anchor="middle">&amp; annotated</text>
+</svg>
+<figcaption>The accessibility tree is derived from the DOM but is not the DOM. Elements with no semantic value are collapsed away; what remains is role, name, state and value.</figcaption>
+</figure>
+
+<p>Every node in that tree carries roughly four things:</p>
+
+<ul>
+  <li><strong>Role</strong> — what it is. <em>button, link, heading level 2, checkbox, region, list</em>.</li>
+  <li><strong>Name</strong> — what it's called. From its text content, its <code>&lt;label&gt;</code>, its <code>alt</code>, or an <code>aria-label</code>/<code>aria-labelledby</code>.</li>
+  <li><strong>State</strong> — how it currently is. <em>checked, expanded, disabled, selected, invalid, required</em>.</li>
+  <li><strong>Value</strong> — what's in it. The text in an input, the position of a slider.</li>
+</ul>
+
+<p>That's the announcement. "Email, edit text, required, invalid, Enter a valid email address" is: name, role, state, state, description. Every accessibility decision you make is really a decision about what goes in those four slots.</p>
+
+<div class="aside hood">
+  <span class="t">Under the hood: see it yourself, right now</span>
+  <p>Chrome DevTools → Elements → select a node → the <strong>Accessibility</strong> pane in the sidebar. It shows the computed role and name, and — the best part — the "accessible name" calculation chain, telling you exactly which source won. Firefox has an even nicer full Accessibility tab that lets you browse the whole tree.</p>
+  <p>Do this on the div-button from the intro and you'll see it: role <code>generic</code>, name empty. Do it on a real button and you'll see role <code>button</code>, name "Delete account". Watching it happen makes the whole concept concrete in about ten seconds.</p>
+</div>
+
+<h3>Browse mode vs focus mode</h3>
+
+<p>This is the part that most surprises developers, and it explains a whole category of bug.</p>
+
+<p>A screen reader on the desktop has (at least) two modes. In <strong>browse mode</strong> (NVDA calls it browse mode, JAWS calls it virtual cursor mode, VoiceOver's equivalent runs through its own cursor), the user is reading the document like a book. Arrow keys move a virtual cursor through the content — <em>all</em> the content, including plain paragraphs that can't be focused. Single letter keys become navigation shortcuts: <kbd>H</kbd> for next heading, <kbd>K</kbd> for next link, <kbd>B</kbd> for next button, <kbd>D</kbd> for next landmark, <kbd>F</kbd> for next form field, <kbd>1</kbd>–<kbd>6</kbd> for heading levels.</p>
+
+<p>In <strong>focus mode</strong> (or "forms mode" / "application mode"), those keystrokes are passed straight through to the page instead, because you're inside a control where <kbd>H</kbd> should type the letter H. Screen readers switch automatically when focus lands on a text input or an element with certain ARIA roles, and users can toggle manually.</p>
+
+<p>Why this matters to you:</p>
+
+<ul>
+  <li><strong>Being reachable in browse mode is not the same as being focusable.</strong> A div with <code>role="button"</code> and no tabindex will be found by the user arrowing through the page, and announced as a button — but <kbd>Tab</kbd> will never reach it. So it works for some users, in some modes, some of the time. That inconsistency is worse than a clean failure.</li>
+  <li><strong>Certain roles change the mode.</strong> Putting <code>role="application"</code> on a container (please don't, unless you know exactly why) forces focus mode, which disables all those navigation shortcuts and can make a page nearly unusable.</li>
+  <li><strong>Keystrokes you capture may never reach the user's screen reader, or vice versa.</strong> Global single-key shortcuts ("press S to search") collide directly with browse mode navigation. WCAG 2.1 added a criterion about this: single-character shortcuts must be disableable or remappable, or only active on focus.</li>
+</ul>
+
+<h3>Navigating by structure, and why a visual model misleads</h3>
+
+<p>Screen reader users don't read linearly from the top; that would be agonisingly slow. They navigate by <em>structure</em> — pull up a list of headings and jump, pull up a list of landmarks and jump, pull up a list of links and filter. (VoiceOver bundles this into the "rotor"; NVDA and JAWS have "elements lists".) Every published survey of screen reader users puts headings and landmarks at the top of "how do you find information on a page."</p>
+
+<p>Which means: <strong>your structure is their interface.</strong> Not a nicety. The interface.</p>
+
+<p>And it's why a purely visual mental model quietly misleads you. Consider what carries meaning visually but transmits <em>nothing</em> to the accessibility tree:</p>
+
+<ul>
+  <li><strong>Proximity.</strong> You can see that this error message belongs to that input because it's directly beneath it. The tree has no concept of "beneath". Unless they're linked with <code>aria-describedby</code>, they are unrelated strings.</li>
+  <li><strong>Colour.</strong> A red border says "invalid" to you and nothing to anyone else. Needs <code>aria-invalid</code> plus text.</li>
+  <li><strong>Size and weight.</strong> Big bold text looks like a heading. If it's a <code>&lt;p&gt;</code>, it isn't one, and it won't appear in the heading list.</li>
+  <li><strong>Layering.</strong> A modal covering the page looks obviously exclusive. In the DOM it's just more content — a user in browse mode can arrow straight past it into the page behind, unless you make the background <code>inert</code>.</li>
+  <li><strong>Position.</strong> "The button in the top right" means nothing. Order in the DOM is the only order there is.</li>
+</ul>
+
+<p>Once you've internalised this, a lot of the rules stop feeling arbitrary. <code>aria-describedby</code> isn't bureaucracy — it's the replacement for proximity. The heading hierarchy isn't pedantry — it's the replacement for font size.</p>
+
+<h3>The pairings, at awareness level</h3>
+
+<p>You don't need deep knowledge here, but knowing the landscape signals experience:</p>
+
+<ul>
+  <li><strong>NVDA + Firefox or Chrome</strong> (Windows). Free and open source, and the most widely used screen reader in recent surveys. This is the one to install if you're going to install one.</li>
+  <li><strong>JAWS + Chrome</strong> (Windows). Commercial, expensive, deeply entrenched in enterprise and government.</li>
+  <li><strong>VoiceOver + Safari</strong> (macOS and iOS). Built in — <kbd>Cmd</kbd>+<kbd>F5</kbd> on a Mac. On iOS it's overwhelmingly dominant, so mobile-web accessibility largely means VoiceOver + Safari.</li>
+  <li><strong>TalkBack + Chrome</strong> (Android).</li>
+  <li><strong>Narrator + Edge</strong> (Windows, built in).</li>
+</ul>
+
+<p>The reason people specify browser <em>and</em> reader is that the pairing genuinely changes behaviour — the two communicate over platform accessibility APIs, and support for a given ARIA pattern can differ between combinations. This is a big part of why "just use the native element" is such durable advice: native semantics are the best-supported thing everywhere.</p>
+
+<h2 id="contrast">10. Colour contrast</h2>
+
+<p>Contrast ratio is a number from 1:1 (identical colours, invisible) to 21:1 (pure black on pure white). It's computed from the relative luminance of two colours — you don't need the formula, you need the thresholds and a tool.</p>
+
+<p>For <strong>WCAG level AA</strong>, which is the level basically everyone actually targets:</p>
+
+<table>
+<thead><tr><th>What</th><th>Ratio (AA)</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Normal body text</td><td><strong>4.5:1</strong></td><td>Anything under 24px, or under 18.66px bold</td></tr>
+<tr><td>Large text</td><td><strong>3:1</strong></td><td>24px+ regular, or 18.66px+ (14pt) bold</td></tr>
+<tr><td>UI components &amp; graphical objects</td><td><strong>3:1</strong></td><td>Input borders, focus rings, toggle switches, icons that carry meaning, chart segments you must distinguish</td></tr>
+</tbody>
+</table>
+
+<p>That third row is WCAG 2.1's <em>Non-text Contrast</em> (1.4.11) and it's the one teams forget. Your body text passes; your form input's 1px light-grey border against white is at 1.4:1 and is effectively invisible to a chunk of your users. If the only thing indicating "there is a text field here" is that border, the field is undiscoverable.</p>
+
+<p><strong>AAA</strong> raises the bar to <strong>7:1</strong> for normal text and <strong>4.5:1</strong> for large text. Almost nobody targets AAA site-wide — the WCAG authors themselves say it isn't achievable for all content — but it's a good target for body copy on a text-heavy product, and it's what you'd reach for if your audience skews older (contrast sensitivity declines with age, well before anyone would call it a disability).</p>
+
+<h3>Disabled and placeholder states</h3>
+
+<p>These two come up constantly and the answers differ.</p>
+
+<p><strong>Disabled controls are technically exempt</strong> from the contrast requirements — WCAG explicitly excludes inactive components. But "you won't fail an audit" isn't the same as "it's fine". If your disabled state is so faint that users can't read what the button says, they can't work out why it's disabled or what to do about it. My practical rule: keep disabled text readable (aim for around 3:1 even though you don't have to), and never let "disabled" be conveyed by low contrast alone — pair it with the actual <code>disabled</code> attribute so it's announced, and, when the reason isn't obvious, say why in nearby text.</p>
+
+<p><strong>Placeholder text is <em>not</em> exempt.</strong> It's text, it must hit 4.5:1. Browsers' default placeholder grey often fails outright. Which is a bit academic, because — as we'll cover in the forms section — a placeholder should never be carrying important information anyway.</p>
+
+<h3>Colour must never be the only carrier of meaning</h3>
+
+<p>This is a separate criterion (1.4.1, <em>Use of Color</em>, level A — the base level), and it's not about contrast at all. It says: if you use colour to convey information, you must <em>also</em> convey it some other way.</p>
+
+<p>Around 1 in 12 men has some form of colour vision deficiency. Plus: greyscale printing, e-ink, sunlight, cheap monitors, dark mode inversions, and screen readers, which see no colour at all.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Meaning lives only in the colour</div>
+<pre><code>&lt;span class="status-red"&gt;Payment&lt;/span&gt;
+&lt;span class="status-green"&gt;Payment&lt;/span&gt;
+<span class="c">&lt;!-- red = failed, green = ok. Says who? --&gt;</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Colour reinforces, text carries</div>
+<pre><code>&lt;span class="status-red"&gt;
+  &lt;svg aria-hidden="true"&gt;&lt;!-- ✕ icon --&gt;&lt;/svg&gt; Payment failed
+&lt;/span&gt;</code></pre>
+</div>
+
+<p>The everyday examples: a required field marked only by a red label (add an asterisk and the word "required"); a chart with a colour-only legend (add direct labels or distinct patterns/shapes); an active nav item that's only a different colour (add <code>aria-current="page"</code>, and ideally an underline or bar); links inside a paragraph distinguished only by colour (this one specifically needs a non-colour cue — usually an underline — or 3:1 contrast against the surrounding text <em>plus</em> a cue on hover and focus).</p>
+
+<h2 id="forms">11. Form accessibility</h2>
+
+<p>Forms are where accessibility bugs are most expensive, because a broken form isn't an annoyance — it's a user who cannot buy the thing, or book the appointment, or apply for the job.</p>
+
+<h3>Label association</h3>
+
+<p>Every input needs a label that is <em>programmatically associated</em> with it, not just sitting nearby. Two valid ways:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Explicit: for → id (preferred)</div>
+<pre><code>&lt;label for="email"&gt;Email address&lt;/label&gt;
+&lt;input id="email" type="email" name="email"&gt;</code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Implicit: wrapping</div>
+<pre><code>&lt;label&gt;
+  Email address
+  &lt;input type="email" name="email"&gt;
+&lt;/label&gt;</code></pre>
+</div>
+
+<p>Both work. The explicit version is usually better because it doesn't constrain your markup structure — with wrapping, the label must be an ancestor, which can fight your layout. (A small note: the <code>for</code> attribute matches the input's <code>id</code>, not its <code>name</code>. Mixing those up is a classic five-minute debugging session.)</p>
+
+<p>And it buys you something for everyone, not just screen reader users: <strong>clicking a properly associated label focuses the input.</strong> For a checkbox, that turns a 16px target into a whole line of text. That's a real usability win for anyone with a tremor or a small phone.</p>
+
+<h3>Why placeholder is not a label</h3>
+
+<p>You've seen the design. Clean, minimal, no labels — just grey text inside each field. It looks fantastic in a portfolio and it's a genuine accessibility failure:</p>
+
+<ul>
+  <li><strong>It vanishes when you type.</strong> Halfway through a long form you glance up: what was this field again? You must delete your input to find out.</li>
+  <li><strong>Nothing tells you what you filled in.</strong> On review, you see values with no names.</li>
+  <li><strong>Contrast.</strong> Default placeholder grey usually fails 4.5:1, and darkening it makes it look like a filled-in value.</li>
+  <li><strong>Support is inconsistent.</strong> Some screen reader/browser combinations announce it, some don't, and it's not a reliable naming source.</li>
+  <li><strong>It breaks autofill and translation</strong> in various browsers.</li>
+  <li><strong>It's worst for the people who need labels most</strong> — users with memory or attention difficulties, for whom "remember what this box was for" is exactly the wrong ask.</li>
+</ul>
+
+<p>Use a real <code>&lt;label&gt;</code>. If the design truly cannot fit one, a floating label (starts as placeholder-looking, animates above the field on focus) is the standard compromise — it's a real label element the whole time. Keep placeholders for what they're good at: <em>examples of format</em>. "e.g. +44 7700 900000".</p>
+
+<h3>Grouping with <code>fieldset</code> and <code>legend</code></h3>
+
+<p>Some questions have a group of inputs as their answer. "What's your shipping method?" is one question with three radio buttons. Each radio has its own label ("Standard", "Express", "Overnight") — but where does the <em>question</em> live?</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ fieldset groups, legend names the group</div>
+<pre><code>&lt;fieldset&gt;
+  &lt;legend&gt;Shipping method&lt;/legend&gt;    <span class="c">&lt;!-- 👈 the question --&gt;</span>
+
+  &lt;input type="radio" id="std" name="ship" value="std"&gt;
+  &lt;label for="std"&gt;Standard — 5 days&lt;/label&gt;
+
+  &lt;input type="radio" id="exp" name="ship" value="exp"&gt;
+  &lt;label for="exp"&gt;Express — 2 days&lt;/label&gt;
+&lt;/fieldset&gt;</code></pre>
+</div>
+
+<p>Screen readers announce the legend along with each option — "Shipping method, Standard, 5 days, radio button, 1 of 2" — so a user tabbing straight into the middle of the group still knows what's being asked. Without it, they hear "Standard, radio button" and have to go hunting for context.</p>
+
+<p>Use it for radio groups (essentially always), related checkbox groups, and multi-input answers like a date split across three fields or an address block. Don't wrap your entire form in one fieldset — that's just noise.</p>
+
+<h3>Required and invalid state</h3>
+
+<p>Use the native <code>required</code> attribute. It gives you the state in the accessibility tree ("required" is announced), it powers native validation, and it's one word.</p>
+
+<p><code>aria-required="true"</code> exists for when you're building something with no native equivalent, or when you're deliberately suppressing native validation and want the semantic without the browser behaviour. It marks the state but does nothing else.</p>
+
+<p><code>aria-invalid="true"</code> is how you say "the value currently in this field is wrong". Set it when validation fails, remove it (or set <code>"false"</code>) when the user fixes it. Crucially, this is a <em>state</em> — you own keeping it accurate, and a field permanently marked invalid is a lie.</p>
+
+<h3>Error messages that actually reach the user</h3>
+
+<p>Here's the whole picture. Three things have to happen when a field is invalid: it must be marked invalid, the message must be <em>linked</em> to the field, and the user must be <em>told</em> it happened.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Visible. Also, invisible.</div>
+<pre><code>&lt;label for="email"&gt;Email&lt;/label&gt;
+&lt;input id="email" class="has-error"&gt;
+&lt;p class="error"&gt;Enter a valid email address&lt;/p&gt;</code></pre>
+</div>
+
+<p>The red border says nothing to the tree. The message is a floating paragraph with no connection to the input — remember, proximity transmits nothing. A user who tabs back into the field hears "Email, edit text" and no hint that anything is wrong.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Marked, linked, and announced</div>
+<pre><code>&lt;label for="email"&gt;Email&lt;/label&gt;
+&lt;input id="email"
+       aria-invalid="true"                <span class="c">&lt;!-- 1. the state --&gt;</span>
+       aria-describedby="email-err"&gt;      <span class="c">&lt;!-- 2. the link --&gt;</span>
+
+&lt;p id="email-err" class="error"&gt;
+  &lt;svg aria-hidden="true"&gt;&lt;!-- ✕ --&gt;&lt;/svg&gt;
+  Enter a valid email address
+&lt;/p&gt;</code></pre>
+</div>
+
+<p>Now focusing the field announces: "Email, edit text, invalid, Enter a valid email address." The message travels with the field.</p>
+
+<p>That covers a user who <em>returns</em> to the field. But what about the moment they hit Submit and the page just… sprouts red? Visually obvious; audibly nothing. That's what the third piece is for — a <strong>live region</strong>, an element whose changes get announced automatically. Full treatment in section 15; the short version:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ An error summary that announces itself</div>
+<pre><code><span class="c">&lt;!-- always in the DOM, empty until needed --&gt;</span>
+&lt;div id="summary" role="alert" tabindex="-1"&gt;
+  {errors.length &gt; 0 &amp;&amp; (
+    &lt;&gt;
+      &lt;h2&gt;There are {errors.length} problems with this form&lt;/h2&gt;
+      &lt;ul&gt;{errors.map(e =&gt; (
+        &lt;li&gt;&lt;a href={`#${e.fieldId}`}&gt;{e.message}&lt;/a&gt;&lt;/li&gt;   <span class="c">&lt;!-- 👈 links --&gt;</span>
+      ))}&lt;/ul&gt;
+    &lt;/&gt;
+  )}
+&lt;/div&gt;</code></pre>
+</div>
+
+<p>An <strong>error summary</strong> at the top of the form, focused on failed submit, is the pattern used by essentially every government design system, and for good reason. It tells the user how many problems there are, what they are, and — because each entry is a link to the field — lets them jump straight to each one. That's much kinder than "hunt through 30 fields for red borders."</p>
+
+<h3>Autocomplete attributes</h3>
+
+<p>The <code>autocomplete</code> attribute takes a standardised token telling the browser what a field is for: <code>autocomplete="given-name"</code>, <code>"email"</code>, <code>"street-address"</code>, <code>"postal-code"</code>, <code>"cc-number"</code>, <code>"one-time-code"</code>.</p>
+
+<p>This is a WCAG criterion in its own right (1.3.5, <em>Identify Input Purpose</em>, AA). The reason it's an accessibility requirement and not just a convenience: for users with motor impairments, every keystroke has a cost, and autofill removes dozens. For users with cognitive or memory difficulties, not having to recall your own postcode is meaningful. And some assistive tools use these tokens to swap in familiar icons next to fields.</p>
+
+<p>It's also the highest effort-to-reward ratio thing in this entire guide. It's one attribute, everyone benefits, your conversion rate goes up.</p>
+
+<h3>Native validation plus custom messaging</h3>
+
+<p>Should you use the browser's built-in validation? The honest answer is: use its <em>brain</em>, not its <em>mouth</em>.</p>
+
+<p>The brain is great. <code>required</code>, <code>type="email"</code>, <code>min</code>, <code>max</code>, <code>pattern</code>, <code>minlength</code> give you free constraint checking, plus the Constraint Validation API (<code>input.validity</code>, <code>input.checkValidity()</code>) to query it from JS. And it's your safety net: it works before your JS bundle loads and if it fails to load at all.</p>
+
+<p>The mouth is not great. Native error bubbles are unstyleable, worded by the browser (in the <em>browser's</em> language, not necessarily your page's), disappear after a few seconds, appear one at a time so a user with five errors fixes them one round-trip at a time, and their screen reader support has historically been shaky.</p>
+
+<p>So the standard blend: put <code>novalidate</code> on the form to suppress the native UI, keep all the constraint attributes, and on submit call <code>checkValidity()</code> — then render your own messages with the <code>aria-invalid</code> + <code>aria-describedby</code> + error-summary pattern above. You get the browser's correctness and your own presentation.</p>
+
+<div class="interview">
+  <span class="t">How this gets asked</span>
+  <p>"Walk me through making a form accessible." A favourite, because it touches labels, grouping, state, errors and live regions all at once.</p>
+  <div class="answer">
+    <span class="lbl">Model answer, out loud</span>
+    <p>"Start with real <code>&lt;label for&gt;</code> elements on every input — placeholders aren't labels, they disappear the moment you type. Group related inputs like radio sets in a <code>fieldset</code> with a <code>legend</code>, so the question gets announced with each option. Use native <code>required</code> and <code>type</code> attributes so the state is in the accessibility tree and I get validation for free. For errors, three things: <code>aria-invalid</code> on the field, the message linked with <code>aria-describedby</code> so it's announced when you focus the field, and an error summary at the top in a live region that gets focused on submit — otherwise a screen reader user hits Submit and hears nothing at all. And <code>autocomplete</code> attributes throughout, which is a WCAG requirement and also just helps everyone."</p>
+  </div>
+</div>
+
+<h2 id="landmarks">12. Landmark roles and the document outline</h2>
+
+<p>We keep saying "landmark". Let's finish the job.</p>
+
+<p>A <strong>landmark</strong> is a region of the page with a special role that assistive tech treats as a navigational waypoint. A screen reader user can list all landmarks on a page and jump to any one, or cycle through them with a single key (<kbd>D</kbd> in NVDA). It's the fast-travel system for a web page.</p>
+
+<p>Here's the mapping you should be able to recite:</p>
+
+<table>
+<thead><tr><th>HTML element</th><th>Implicit landmark role</th><th>Conditions</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;main&gt;</code></td><td><code>main</code></td><td>One per page</td></tr>
+<tr><td><code>&lt;nav&gt;</code></td><td><code>navigation</code></td><td>Label them if there's more than one</td></tr>
+<tr><td><code>&lt;header&gt;</code></td><td><code>banner</code></td><td><strong>Only</strong> as a direct child of <code>&lt;body&gt;</code></td></tr>
+<tr><td><code>&lt;footer&gt;</code></td><td><code>contentinfo</code></td><td><strong>Only</strong> as a direct child of <code>&lt;body&gt;</code></td></tr>
+<tr><td><code>&lt;aside&gt;</code></td><td><code>complementary</code></td><td>—</td></tr>
+<tr><td><code>&lt;form&gt;</code></td><td><code>form</code></td><td><strong>Only</strong> if it has an accessible name</td></tr>
+<tr><td><code>&lt;section&gt;</code></td><td><code>region</code></td><td><strong>Only</strong> if it has an accessible name</td></tr>
+<tr><td><code>&lt;search&gt;</code></td><td><code>search</code></td><td>Newer element; <code>role="search"</code> is the compatible fallback</td></tr>
+</tbody>
+</table>
+
+<p>Notice how many rows say "only if…". That's the thread running through this whole guide: <strong>the element gives you the potential, and something else has to complete it.</strong></p>
+
+<h3>Labelling multiple navs</h3>
+
+<p>A typical page has two or three <code>&lt;nav&gt;</code>s: the main menu, breadcrumbs, maybe a footer nav. Unlabelled, the user's landmark list reads "navigation, navigation, navigation". Useless.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Distinguishable landmarks</div>
+<pre><code>&lt;nav aria-label="Main"&gt;...&lt;/nav&gt;
+&lt;nav aria-label="Breadcrumb"&gt;...&lt;/nav&gt;
+&lt;nav aria-labelledby="related-h"&gt;
+  &lt;h2 id="related-h"&gt;Related articles&lt;/h2&gt;
+  ...
+&lt;/nav&gt;</code></pre>
+</div>
+
+<p>One subtlety worth knowing, because it makes you sound like you've done this: <strong>don't include the word "navigation" in the label.</strong> The role is already announced, so <code>aria-label="Main navigation"</code> is read as "Main navigation, navigation". Same for <code>aria-label="Search button"</code> on a button — it becomes "Search button, button". Label the <em>thing</em>, not the type.</p>
+
+<h3>The document outline algorithm never happened</h3>
+
+<p>This is a lovely bit of trivia that's also a practical trap, and it shows real depth if you bring it up.</p>
+
+<p>When HTML5 was designed, it specified an <strong>outline algorithm</strong>: sectioning elements (<code>section</code>, <code>article</code>, <code>nav</code>, <code>aside</code>) would create nested outline levels, and heading levels would be interpreted <em>relative to their nesting depth</em>. Under that model you could use <code>&lt;h1&gt;</code> everywhere and the browser would work out that an <code>h1</code> inside two nested sections was really a level-3 heading. Tutorials taught this. It was on the spec page.</p>
+
+<p><strong>No browser ever implemented it. No screen reader ever implemented it.</strong> It was eventually removed from the HTML spec entirely.</p>
+
+<p>So the practical consequence: <strong>your heading levels mean exactly what they say.</strong> Nesting an <code>&lt;h1&gt;</code> inside three sections doesn't demote it — it's still announced as "heading level 1", and now your page has six h1s and a meaningless outline. You have to choose the right numbers yourself, by hand, based on document structure.</p>
+
+<p>Which also means landmarks and headings are two independent systems doing two different jobs: <strong>landmarks give you the handful of top-level regions; headings give you the detailed outline within them.</strong> A well-built page has both, and they don't overlap.</p>
+
+<h2 id="wcag">13. WCAG levels and POUR</h2>
+
+<p><strong>WCAG</strong> — the Web Content Accessibility Guidelines — is the standard everyone means when they say "accessibility standard". It's published by the W3C. Version 2.1 is the one most regulations point at, and 2.2 is current.</p>
+
+<p>It's organised under four principles, which spell <strong>POUR</strong>:</p>
+
+<ul>
+  <li><strong>Perceivable</strong> — users must be able to perceive the information. Text alternatives for images, captions for video, sufficient contrast, content that survives being resized.</li>
+  <li><strong>Operable</strong> — users must be able to operate the interface. Everything reachable by keyboard, no keyboard traps, enough time to complete things, nothing that flashes in a way that can trigger seizures, clear ways to navigate.</li>
+  <li><strong>Understandable</strong> — the content and the interface must make sense. Readable language, predictable behaviour (a select that navigates on change is unpredictable), and help with mistakes.</li>
+  <li><strong>Robust</strong> — it must work with the tools people actually use. Valid markup, correct names/roles/values, so assistive tech now and in five years can parse it. This is the principle that "use semantic HTML" sits under.</li>
+</ul>
+
+<p>Under those principles sit individual <em>success criteria</em>, each graded at one of three <strong>conformance levels</strong>:</p>
+
+<ul>
+  <li><strong>Level A</strong> — the floor. Fail these and the content is straightforwardly unusable for some people. Images need alt text; everything works by keyboard; colour isn't the only carrier of meaning; nothing flashes more than three times a second.</li>
+  <li><strong>Level AA</strong> — <strong>the target.</strong> Adds 4.5:1 contrast, visible focus indicators, consistent navigation, labels and instructions, resizable text, meaningful headings and labels. This is what "accessible" means in practice.</li>
+  <li><strong>Level AAA</strong> — the aspiration. 7:1 contrast, sign language for video, reading level, no interruptions. The W3C explicitly notes AAA isn't achievable for all content, and doesn't recommend it as a site-wide policy. Cherry-pick criteria that fit your audience.</li>
+</ul>
+
+<p>The bit worth knowing for interviews: <strong>AA is the near-universal legal and contractual target.</strong> Section 508 in the US references it, EN 301 549 in Europe references it, the UK public sector regulations reference it, and it's what enterprise procurement asks for in a VPAT. If someone asks "what level should we aim for", the answer is AA, always, with specific AAA criteria where they're cheap and relevant.</p>
+
+<div class="aside hood">
+  <span class="t">Under the hood: what 2.1 and 2.2 added</span>
+  <p>2.0 (2008) predates the smartphone, which is why 2.1 (2018) added criteria for mobile and touch — orientation, pointer gestures, motion actuation, reflow at 320px, text spacing — plus <em>Identify Input Purpose</em> (autocomplete). 2.2 (2023) added focus appearance requirements, dragging alternatives, minimum target size (24×24 CSS px), consistent help, and criteria about not making authentication depend on memory or transcription. You don't need to memorise these; knowing roughly what each version was <em>for</em> is plenty.</p>
+</div>
+
+<h2 id="modals">14. Focus trapping in modals</h2>
+
+<p>Modals are the hardest common widget to get right, which makes them a favourite interview question. Let's do the complete correct behaviour.</p>
+
+<p>The problem: a modal is <em>visually</em> exclusive. It's on top, everything behind is dimmed, and it's obvious to a sighted mouse user that the rest of the page is off limits. But that obviousness is 100% visual. In the DOM, the rest of the page is right there — focusable, arrowable, clickable.</p>
+
+<p>So without intervention, a keyboard user Tabs through your three modal buttons and then focus quietly leaves the modal and starts wandering through the page behind it. They can't see where it went (it's under a dim overlay), and every subsequent keypress goes somewhere invisible. A screen reader user has it worse: in browse mode they can arrow right out of the dialog into the page behind and never realise a dialog is open.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-labelledby="trap-title">
+  <title id="trap-title">Diagram: Tab cycles from the last element in a modal back to the first, and Shift+Tab wraps the other way</title>
+  <rect x="10" y="10" width="680" height="230" rx="8" fill="#f2f0ec" stroke="#c9c3b8" stroke-width="2"/>
+  <text x="26" y="32" font-size="12" fill="#8a8375">page behind — inert: not focusable, not in the a11y tree</text>
+
+  <rect x="120" y="52" width="460" height="170" rx="10" fill="#fff" stroke="#7c3aed" stroke-width="2.5"/>
+  <text x="140" y="78" font-size="13" fill="#5b21b6" font-family="monospace">&lt;dialog aria-modal="true"&gt;</text>
+
+  <rect x="140" y="94" width="180" height="30" rx="5" fill="#f3ecff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="152" y="114" font-size="12" fill="#5b21b6">1. Close (×)  ← focus lands</text>
+
+  <rect x="140" y="134" width="180" height="30" rx="5" fill="#f3ecff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="152" y="154" font-size="12" fill="#5b21b6">2. Cancel</text>
+
+  <rect x="140" y="174" width="180" height="30" rx="5" fill="#f3ecff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="152" y="194" font-size="12" fill="#5b21b6">3. Confirm  ← last</text>
+
+  <path d="M330 189 C 420 189, 420 109, 334 109" fill="none" stroke="#1d7a4c" stroke-width="2.5"/>
+  <polygon points="326,109 338,103 338,115" fill="#1d7a4c"/>
+  <text x="428" y="146" font-size="12" fill="#1d7a4c" font-weight="bold">Tab from last</text>
+  <text x="428" y="163" font-size="12" fill="#1d7a4c">wraps to first</text>
+
+  <path d="M126 109 C 60 109, 60 189, 122 189" fill="none" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 4"/>
+  <polygon points="130,189 118,183 118,195" fill="#b3261e"/>
+  <text x="24" y="130" font-size="11" fill="#b3261e">Shift+Tab</text>
+  <text x="24" y="146" font-size="11" fill="#b3261e">wraps back</text>
+</svg>
+<figcaption>A focus trap: Tab from the last element wraps to the first, Shift+Tab from the first wraps to the last, and focus never escapes while the dialog is open. Escape closes it and focus returns to the trigger.</figcaption>
+</figure>
+
+<h3>The full correct behaviour</h3>
+
+<ol>
+  <li><strong>Remember the trigger.</strong> Before opening, store <code>document.activeElement</code>.</li>
+  <li><strong>Move focus into the dialog</strong> on open. Best landing spot depends: the first interactive element if there's an obvious one, the dialog container (with <code>tabindex="-1"</code>) or its heading if the content needs reading first. For a <em>destructive</em> confirmation, don't land on "Delete" — a stray Enter would be catastrophic. Land on Cancel or the heading.</li>
+  <li><strong>Trap Tab and Shift+Tab.</strong> From the last focusable element, Tab wraps to the first; from the first, Shift+Tab wraps to the last.</li>
+  <li><strong><kbd>Escape</kbd> closes it.</strong> Universally expected. (Clicking the backdrop should usually close it too — but backdrop clicks are a mouse-only affordance, so they're never a substitute for Escape or a visible close button.)</li>
+  <li><strong>Restore focus to the trigger on close.</strong> Not to the body, not to the top — the exact element they opened it from.</li>
+  <li><strong><code>role="dialog"</code> and <code>aria-modal="true"</code></strong>, plus a name via <code>aria-labelledby</code> pointing at the dialog's heading. <code>aria-modal</code> tells assistive tech that content outside is unavailable. Use <code>role="alertdialog"</code> instead for an urgent interruption that needs a response.</li>
+  <li><strong>Inert the background.</strong> The <code>inert</code> attribute on your app root is the modern answer — it makes a whole subtree unfocusable, unclickable, and invisible to the accessibility tree in one attribute. It's what actually enforces the trap, rather than fighting Tab key by key.</li>
+  <li><strong>Lock body scroll,</strong> so the page behind doesn't scroll under the dialog.</li>
+</ol>
+
+<h3>Native <code>&lt;dialog&gt;</code> gives you most of this for free</h3>
+
+<p>This is a genuinely recent shift and it's worth knowing, because "how do you build a focus trap" now has a much better answer than "here's my 60-line utility".</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Most of the list, handled by the browser</div>
+<pre><code>&lt;dialog id="confirm" aria-labelledby="confirm-h"&gt;
+  &lt;h2 id="confirm-h"&gt;Delete this project?&lt;/h2&gt;
+  &lt;p&gt;This can't be undone.&lt;/p&gt;
+  &lt;button autofocus&gt;Cancel&lt;/button&gt;   <span class="c">&lt;!-- 👈 safe landing spot --&gt;</span>
+  &lt;button class="danger"&gt;Delete&lt;/button&gt;
+&lt;/dialog&gt;
+
+&lt;script&gt;
+  dialog.showModal();   <span class="c">// modal mode — NOT .show()</span>
+&lt;/script&gt;</code></pre>
+</div>
+
+<p><code>showModal()</code> puts the dialog in the browser's <strong>top layer</strong> (above everything, unclippable, immune to z-index), renders a stylable <code>::backdrop</code>, makes the rest of the document inert — which <em>is</em> the focus trap, structurally, rather than by intercepting keys — wires up Escape, moves focus in, exposes <code>role="dialog"</code> with modal semantics, and returns focus to the invoking element on close in current browsers.</p>
+
+<p>What you still do yourself: choose the landing element with <code>autofocus</code>; provide a visible close button (Escape alone isn't enough — touch users have no Escape key); style <code>::backdrop</code>; handle body scroll lock; and treat focus restoration as something to verify rather than assume, since it's the newest part of the behaviour. Also note <code>.show()</code> (non-modal) gives you <em>none</em> of the modal behaviour — no backdrop, no inertness, no trap. If you want a modal, it must be <code>showModal()</code>.</p>
+
+<div class="aside warn">
+  <span class="t">The one trap you must never build: a real keyboard trap</span>
+  <p>WCAG 2.1.2 <em>No Keyboard Trap</em> is a Level A criterion: a user must always be able to Tab <em>out</em> of any component. A modal focus trap is legitimate <em>because Escape provides the exit</em>. If you trap focus with no keyboard escape route, you haven't built an accessible modal — you've built a page a keyboard user has to close the tab to leave. Escape is not optional.</p>
+</div>
+
+<h2 id="live">15. Live regions</h2>
+
+<p>Everything so far has been about content the user goes to. Live regions are the opposite: content that <em>comes to the user</em>.</p>
+
+<p>The problem is simple once you see it. Your app does something asynchronously — "Message sent", "3 results found", "Saving…", a validation error, an item added to cart. Visually it's obvious: a toast slides in, a counter updates. But a screen reader is reading somewhere else entirely, and nothing tells it that the DOM changed over there. The user learns nothing.</p>
+
+<p>A <strong>live region</strong> is an element you mark as "watch this — if the content inside changes, announce it, wherever the user currently is."</p>
+
+<h3>Polite vs assertive</h3>
+
+<div class="codeblock">
+<div class="codelabel good">✅ The two politeness levels</div>
+<pre><code>&lt;div aria-live="polite"&gt;&lt;/div&gt;
+<span class="c">&lt;!-- waits for a natural pause, then announces. The default choice. --&gt;</span>
+
+&lt;div aria-live="assertive"&gt;&lt;/div&gt;
+<span class="c">&lt;!-- interrupts immediately, cutting off whatever is being read. --&gt;</span></code></pre>
+</div>
+
+<p><strong>Polite</strong> queues the announcement until the screen reader finishes its current sentence. This is what you want ~95% of the time: search result counts, save confirmations, status updates, loading states.</p>
+
+<p><strong>Assertive</strong> interrupts mid-word. Reserve it for things that genuinely can't wait — a session about to expire, a payment that failed, an error that blocks the user's current action. Using assertive for a "Copied to clipboard" toast is like a colleague cutting you off mid-sentence to say they've refilled the stapler.</p>
+
+<h3><code>role="status"</code> and <code>role="alert"</code></h3>
+
+<p>These are the shorthand versions, and in practice they're better supported and less error-prone:</p>
+
+<ul>
+  <li><code><strong>role="status"</strong></code> ≈ <code>aria-live="polite"</code> + <code>aria-atomic="true"</code>. For status messages, confirmations, result counts.</li>
+  <li><code><strong>role="alert"</strong></code> ≈ <code>aria-live="assertive"</code> + <code>aria-atomic="true"</code>. For errors and urgent messages.</li>
+</ul>
+
+<p>Prefer these when they fit; you get the semantics as a role rather than two attributes you might mismatch.</p>
+
+<h3>The rule that trips everyone up</h3>
+
+<p style="font-size:1.1rem; font-weight:600; border-left:4px solid var(--accent); padding-left:18px; margin:1.6em 0;">The live region must already exist in the DOM before the content changes.</p>
+
+<p>This is the number one live-region bug, and it's subtle enough that people burn a whole afternoon on it. Assistive tech registers a live region when it's added to the accessibility tree, then <em>watches it</em> for mutations. If you inject the region and its text simultaneously, there was nothing to watch — often nothing is announced at all.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Region and content arrive together — commonly silent</div>
+<pre><code>{error &amp;&amp; &lt;div role="alert"&gt;{error}&lt;/div&gt;}</code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Region always mounted; only the text changes</div>
+<pre><code>&lt;div role="alert"&gt;{error}&lt;/div&gt;   <span class="c">&lt;!-- 👈 always rendered, empty when no error --&gt;</span></code></pre>
+</div>
+
+<p>An empty live region is silent and invisible, so leaving it mounted costs nothing. (In practice some screen reader/browser combinations do handle the first pattern; but it's inconsistent, and the second version always works. Take the reliable one.)</p>
+
+<h3><code>aria-atomic</code></h3>
+
+<p><code>aria-atomic="true"</code> means "when anything in here changes, read the <em>whole</em> region." The default, <code>false</code>, means "read only the bits that changed."</p>
+
+<p>Say your region contains "12 results found" and it updates to "5 results found". With atomic false, the user might just hear "5" — technically accurate, contextually useless. With atomic true they hear the whole sentence. For short status messages, atomic true is almost always what you want, which is exactly why <code>role="status"</code> and <code>role="alert"</code> bake it in.</p>
+
+<h3>Don't over-announce</h3>
+
+<p>A live region firing constantly is genuinely worse than none, because it makes the page impossible to read. The failure modes:</p>
+
+<ul>
+  <li><strong>Announcing on every keystroke.</strong> A live search whose result count updates as you type will interrupt continuously. Debounce it — announce once when results settle, a few hundred milliseconds after typing stops.</li>
+  <li><strong>Assertive for everything.</strong> If everything interrupts, the user can never finish a sentence.</li>
+  <li><strong>Multiple live regions firing at once.</strong> They queue up, and the user sits through a backlog.</li>
+  <li><strong>Announcing things that are already announced.</strong> If a change happens because the user pressed a button, and the button's own state (<code>aria-expanded</code>, <code>aria-pressed</code>) already conveys it, a live region is redundant noise.</li>
+  <li><strong>Putting a whole page region in a live region.</strong> Wrapping your results container in <code>aria-live</code> means every re-render reads the entire list. Announce the <em>summary</em> ("5 results found"), and let the user navigate to the list themselves.</li>
+</ul>
+
+<h2 id="testing">16. How to actually test</h2>
+
+<p>Four passes, in increasing order of effort and decreasing order of how often people do them.</p>
+
+<h3>1. The keyboard-only pass (5 minutes, catches the most)</h3>
+
+<p>Push your mouse away and Tab through the page. You're checking five things:</p>
+
+<ul>
+  <li><strong>Can I reach everything interactive?</strong> If a control is skipped, it's a div wearing button clothes.</li>
+  <li><strong>Can I always see where I am?</strong> If the focus ring disappears — behind a sticky header, inside an overflow container, or because someone wrote <code>outline: none</code> — that's a bug.</li>
+  <li><strong>Does the order match the visual order?</strong> Watch the ring. If it jumps around, your DOM and your CSS disagree.</li>
+  <li><strong>Can I always get out?</strong> Escape closes modals and menus. No component swallows focus permanently.</li>
+  <li><strong>Do widgets respond to the keys I'd expect?</strong> Enter and Space on buttons, arrows within a radio group or tab list, Escape and arrows in a dropdown.</li>
+</ul>
+
+<p>This single pass finds more real bugs per minute than anything else on this list, and it needs no tools.</p>
+
+<h3>2. Automated tooling (fast, and limited in a specific way)</h3>
+
+<p>Run <strong>axe DevTools</strong> (browser extension), <strong>Lighthouse</strong>'s accessibility audit (built into Chrome, uses axe under the hood), <code>eslint-plugin-jsx-a11y</code> in your editor, and <code>axe-core</code> in CI via jest-axe or Playwright.</p>
+
+<p>These are great at what they do: missing alt attributes, unlabelled form fields, contrast failures on solid backgrounds, invalid ARIA attribute values, duplicate IDs, missing document language, ARIA roles missing their required attributes. Cheap and worth automating.</p>
+
+<p>But here's the number everyone quotes and you should quote back: <strong>automated tools catch somewhere around a third of accessibility issues</strong> — estimates range from about 30% to maybe 57% depending on whose methodology you accept and what you count. The precise figure matters less than the shape of it: <em>a clean axe report is not an accessible page.</em></p>
+
+<p>What they structurally cannot check, because it requires judgement:</p>
+
+<ul>
+  <li>Whether the alt text is <em>correct</em>. <code>alt="image"</code> passes every automated check and helps nobody.</li>
+  <li>Whether the heading order is <em>meaningful</em> — the levels can be perfectly nested and describe nothing.</li>
+  <li>Whether the focus order is <em>logical</em>. A tool sees focusable elements; it can't tell that jumping from the header to the footer to the sidebar is nonsense.</li>
+  <li>Whether a live region announces at the <em>right moment</em>, or at all.</li>
+  <li>Whether the label is the <em>right</em> label, or whether <code>aria-label</code> contradicts the visible text.</li>
+  <li>Whether your custom dropdown actually behaves like a dropdown.</li>
+</ul>
+
+<h3>3. A real screen reader</h3>
+
+<p>You don't need to be an expert user — you need to hear your own page. Fifteen minutes on your main flow is transformative, because you find out what your interface sounds like, and it's usually not what you assumed.</p>
+
+<p>On a Mac, VoiceOver is already installed: <kbd>Cmd</kbd>+<kbd>F5</kbd>, then use <kbd>Ctrl</kbd>+<kbd>Option</kbd>+arrows to move, and <kbd>Ctrl</kbd>+<kbd>Option</kbd>+<kbd>U</kbd> for the rotor. On Windows, NVDA is free. Test with the browser that pairs with it (VoiceOver + Safari, NVDA + Firefox or Chrome).</p>
+
+<p>Listen for: does every control announce a sensible name and role? When something changes, is the user told? Do you hear the same thing twice (a sign of duplicated labels)? Can you complete the task with the screen off?</p>
+
+<p>And the honest caveat: <strong>testing with real users who rely on assistive tech beats all of this.</strong> You're a fluent sighted developer imitating a workflow you don't live in. That's useful, and it isn't the same thing.</p>
+
+<h3>4. Zoom and reflow</h3>
+
+<p>Two quick checks people forget entirely:</p>
+
+<ul>
+  <li><strong>Browser zoom to 200%</strong> (WCAG 1.4.4). Does text stay readable? Does anything get clipped or overlap? Low-vision users often browse permanently zoomed.</li>
+  <li><strong>Reflow at 320px</strong> (WCAG 1.4.10) — equivalent to 400% zoom on a desktop viewport. Content must reflow into a single column with no horizontal scrolling. A responsive site usually passes this for free; a fixed-width dashboard usually doesn't.</li>
+</ul>
+
+<p>Bonus fifth check: <strong>disable CSS entirely</strong> (Firefox: View → Page Style → No Style). What you're left with is roughly your document order and structure. If it reads as a sensible document — heading, content, heading, content — your semantics are sound. If it's a jumble, so is your accessibility tree.</p>
+
+<h2 id="followups">17. Interview follow-ups, answered</h2>
+
+<p>These are the questions that actually get asked, in the phrasings they get asked in. Try answering each before you open it.</p>
+
+<details>
+<summary>"Why not just use divs and add click handlers? It works."</summary>
+<p>Because "it works" is doing a lot of load-bearing there — it works <em>with a mouse</em>. A <code>&lt;button&gt;</code> gives you six things automatically: it's in the tab order, it activates on both Enter and Space, it exposes the button role to assistive tech, it submits forms, it supports the <code>disabled</code> attribute properly, and it gets correct focus and active states including in forced-colours mode. A div gives you zero of those.</p>
+<p>You can rebuild them — <code>role="button"</code>, <code>tabindex="0"</code>, a keydown handler for Enter and Space with <code>preventDefault</code> on Space, a focus style, and an <code>aria-disabled</code> plus click guard. That's a dozen lines you'll have to maintain, per component, forever, and it still won't submit a form. Versus one element name.</p>
+<p><strong>The signal:</strong> naming the specific list rather than saying "it's bad for accessibility". And the phrase that lands: <em>"the accessibility isn't something I add — it's the default I'd be opting out of."</em></p>
+</details>
+
+<details>
+<summary>"When should you use ARIA?"</summary>
+<p>As little as possible. The first rule of ARIA is: don't use ARIA if a native element or attribute will do the job.</p>
+<p>Three legitimate cases. <strong>One:</strong> patterns HTML has no element for — tabs, comboboxes, tree views, live regions. <strong>Two:</strong> naming things that have no visible text, like an icon-only button (<code>aria-label</code>), or connecting things that are only visually related, like an error message (<code>aria-describedby</code>). <strong>Three:</strong> communicating state that HTML can't express — <code>aria-expanded</code> on a disclosure trigger, <code>aria-current="page"</code> on the active nav link.</p>
+<p>And the caveat that matters: ARIA changes only the accessibility tree. It adds no behaviour, so any role you apply comes with a bill for the keyboard interaction, focus management and state syncing that the native element would have handled.</p>
+</details>
+
+<details>
+<summary>"Is <code>aria-label</code> on a div enough to make it a button?"</summary>
+<p>No — and this question is specifically testing whether you know that ARIA adds no behaviour.</p>
+<p><code>aria-label</code> gives the div a <em>name</em>. It doesn't give it a role, so it isn't announced as a button. Even if you add <code>role="button"</code> too, you've now got a name and a role — and still nothing else. It isn't focusable (needs <code>tabindex="0"</code>), it doesn't respond to Enter or Space (needs a keydown handler), it has no focus style, and it can't be disabled.</p>
+<p>Worse, it's now <em>actively misleading</em>: the screen reader confidently announces "button", the user presses Enter, nothing happens, and they have no way to know why. Missing semantics leave a user under-informed; wrong semantics lie to them. That's the whole reason people say no ARIA is better than bad ARIA.</p>
+</details>
+
+<details>
+<summary>"How would you make a custom dropdown accessible?"</summary>
+<p>First answer: I'd try very hard not to build one. If it's a form field with a list of options, <code>&lt;select&gt;</code> gives me keyboard support, mobile native pickers, screen reader support and zero maintenance. Custom dropdowns exist mainly because designers want to restyle the option list, and that's often not worth what you give up. (The <code>&lt;details&gt;</code> element covers a lot of simple disclosure cases too.)</p>
+<p>If it genuinely has to be custom, I'd follow the ARIA Authoring Practices pattern for a menu button or combobox rather than inventing one, because these are exactly the widgets where inventing goes wrong. Concretely, for a menu button:</p>
+<ul>
+<li>The trigger is a real <code>&lt;button&gt;</code> with <code>aria-expanded</code> (true/false, kept in sync) and <code>aria-haspopup</code>.</li>
+<li>The list is a <code>role="menu"</code> with <code>role="menuitem"</code> children — and note that <em>this is a real commitment</em>: those roles come with an expected keyboard model I now have to implement.</li>
+<li>Arrow keys move between items (not Tab — in a menu, Tab exits). Home and End jump to the ends. Typing a letter jumps to the matching item.</li>
+<li>Escape closes it and returns focus to the trigger. Clicking outside closes it.</li>
+<li>Focus moves into the list on open — either by focusing items directly or with the roving-tabindex technique, where one item has <code>tabindex="0"</code> and the rest have <code>-1</code>.</li>
+<li>The panel sits next to the trigger in the DOM, so browse-mode order matches visual order.</li>
+</ul>
+<p><strong>The signal:</strong> the interviewer is checking whether you know how much work a custom widget really is. "I'd start by asking whether we need one" is a strong opener, not a dodge — as long as you can then describe the real implementation.</p>
+</details>
+
+<details>
+<summary>"What happens to focus when a route changes in an SPA?"</summary>
+<p>By default: nothing good. On a real page load the browser resets focus and the screen reader announces the new page. In an SPA the router just swaps components — same document, so focus stays on the link you clicked, which then unmounts, dropping focus to <code>&lt;body&gt;</code>.</p>
+<p>The user experience is that you activate a link and hear absolute silence, with no confirmation anything happened. Then your next Tab starts from the very top of the page, so you re-traverse the entire nav on every navigation.</p>
+<p>The fix has two or three parts: update <code>document.title</code>; and move focus deliberately — usually to the new page's <code>&lt;h1&gt;</code> with <code>tabindex="-1"</code>, which both announces the page name and puts the keyboard user at the start of the new content. The alternative is leaving focus alone and announcing the route through a polite live region. Also worth handling: scroll position, which SPAs frequently leave halfway down the previous page.</p>
+<p><strong>The signal:</strong> this is a "have you actually shipped an SPA and thought about this" question. Very few candidates raise it unprompted, so bringing it up yourself during a general accessibility discussion is disproportionately impressive.</p>
+</details>
+
+<details>
+<summary>"How do you announce a form error to a screen reader?"</summary>
+<p>It depends which of two moments you mean, and saying so is itself the good answer.</p>
+<p><strong>When the user returns to a broken field:</strong> mark it with <code>aria-invalid="true"</code> and link the message with <code>aria-describedby</code> pointing at the message's id. Now focusing the field announces "Email, edit text, invalid, Enter a valid email address" — the error travels with the field instead of being a nearby paragraph, since proximity means nothing in the accessibility tree.</p>
+<p><strong>At the moment of failed submission:</strong> that needs a live region, because nothing is moving focus. I'd render an error summary at the top of the form inside <code>role="alert"</code>, and give it <code>tabindex="-1"</code> so I can focus it programmatically — that both announces it and puts the user at the list. Each entry links to its field so they can jump straight there.</p>
+<p>The critical implementation detail: the live region has to be in the DOM <em>before</em> the content changes. If I conditionally render <code>{error &amp;&amp; &lt;div role="alert"&gt;…}</code>, the region and its content appear together and it often announces nothing. Render the container always, fill it when needed.</p>
+</details>
+
+<details>
+<summary>"What's the difference between <code>aria-hidden</code> and <code>display: none</code>?"</summary>
+<p><code>display: none</code> removes the element from <em>everything</em>: it's not rendered, not in the accessibility tree, not focusable, not clickable. It's genuinely gone.</p>
+<p><code>aria-hidden="true"</code> removes it from the accessibility tree <em>only</em>. It stays fully visible, fully clickable, and — this is the dangerous bit — anything focusable inside it stays in the tab order. So a keyboard user can Tab to a control that a screen reader insists doesn't exist. Focus visibly lands somewhere and nothing is announced.</p>
+<p>So: <code>aria-hidden</code> for decorative visuals that would be redundant noise — an icon next to text that already says the same thing. Never on interactive content or an ancestor of it.</p>
+<p>Then two more in the same family, which is where the answer gets strong: the <strong>visually-hidden</strong> CSS pattern (absolute positioning plus clip) is the <em>inverse</em> — hidden visually, present in the tree — which is how skip links and screen-reader-only labels work. And <code>inert</code> is the one that does what people usually mean by aria-hidden on a container: visible, but unfocusable, unclickable and out of the accessibility tree. That's the correct tool for the page behind a modal.</p>
+</details>
+
+<details>
+<summary>"How do you test accessibility?"</summary>
+<p>Four layers, and the ordering matters.</p>
+<p>Start with a <strong>keyboard-only pass</strong> — mouse away, Tab through the whole flow. Can I reach everything, can I always see focus, does the order match the visual layout, can I Escape out of everything, do widgets respond to the keys I'd expect. Five minutes, no tools, finds the most.</p>
+<p>Then <strong>automated tooling</strong>: axe DevTools or Lighthouse in the browser, <code>eslint-plugin-jsx-a11y</code> while writing, <code>axe-core</code> in CI. Cheap and catches the mechanical stuff — missing alt, unlabelled inputs, contrast, invalid ARIA. But automated tools catch roughly a third of issues, so I treat a clean report as a floor, not a pass. They can tell me alt text <em>exists</em>; they can't tell me it's <em>right</em>.</p>
+<p>Then <strong>a real screen reader</strong> on the main flows — VoiceOver on Mac, NVDA on Windows. Not as an expert, just to hear what my interface actually sounds like, which is reliably not what I assumed.</p>
+<p>Then <strong>zoom to 200% and reflow at 320px</strong>, which catch a whole class of low-vision problems that nothing else does. And if I can get it, testing with people who actually use assistive tech beats all four.</p>
+</details>
+
+<details>
+<summary>"What contrast ratio do you need?"</summary>
+<p>For AA — which is what basically everyone targets — 4.5:1 for normal text, 3:1 for large text, where large means 24px or 18.66px bold and up. And 3:1 for UI components and graphical objects: input borders, focus rings, toggle states, meaningful icons. That last one is the commonly missed one; plenty of design systems have body text that passes and 1px form borders around 1.4:1.</p>
+<p>AAA raises it to 7:1 and 4.5:1, which is a reasonable target for body copy but isn't recommended as a site-wide policy — the W3C says as much.</p>
+<p>Two edge cases worth mentioning unprompted: disabled controls are technically exempt, but I still keep them readable, because a user who can't read a disabled button can't work out why it's disabled. And placeholder text is <em>not</em> exempt — it's text and needs 4.5:1, though it shouldn't be carrying important information anyway.</p>
+<p>Separately from contrast entirely: colour can never be the <em>only</em> way something is conveyed. That's a Level A criterion. Red border means nothing without text.</p>
+</details>
+
+<details>
+<summary>"section vs div vs article?"</summary>
+<p><code>&lt;div&gt;</code> has no semantic meaning at all — and that's often exactly right. If the element exists purely so I can hang CSS on it, a div is the correct choice; reaching for <code>&lt;section&gt;</code> because it sounds more semantic just adds noise.</p>
+<p><code>&lt;section&gt;</code> is a thematic grouping — a chunk you'd naturally give a heading to. The catch most people miss: a section with no accessible name is exposed as a generic container, exactly like a div. You get nothing. Give it a name — <code>aria-labelledby</code> pointing at its heading, or an <code>aria-label</code> — and it becomes a <code>region</code> landmark that users can jump to. Name it or it's a div.</p>
+<p><code>&lt;article&gt;</code> is independently distributable content. The test is: could I lift this out and drop it in an RSS feed or a search results page and would it still make sense? A blog post, a comment, a product card, a tweet. They nest too — a post is an article, and each comment inside it is also an article.</p>
+<p><strong>The signal:</strong> the "section needs an accessible name or it's just a div" detail is the one that separates people who've read the spec from people who've read a blog post.</p>
+</details>
+
+<details>
+<summary>Bonus: "Our design has no visible focus indicator — the designer says it's ugly. What do you do?"</summary>
+<p>I'd push back, and I'd frame it as a functionality problem rather than a compliance one, because that's the argument that wins. The focus ring is the keyboard user's mouse cursor. Removing it doesn't make the interaction subtle, it makes it invisible — you can still move focus, you just can't see where it is, so you can't know what Enter will do.</p>
+<p>Then I'd offer the compromise, because usually the real objection is "I don't want a ring flashing every time I click a button", which is fair. <code>:focus-visible</code> solves exactly that: the browser shows the indicator for keyboard navigation and suppresses it for mouse clicks. And the indicator doesn't have to be a default blue ring — it can be a custom outline, an inset shadow, a colour-plus-underline. It just has to be clearly visible, roughly 2px or more, with about 3:1 contrast against its background, and not conveyed by a subtle colour shift alone.</p>
+<p><strong>The signal:</strong> they're testing whether you can advocate for users without being dogmatic. "It's a WCAG violation" is a weaker answer than "here's how we get the visual result you want without breaking it."</p>
+</details>
+
+<h3>Traps — the specific answers that get people dinged</h3>
+
+<table>
+<thead><tr><th>❌ What candidates say</th><th>✅ What to say instead</th></tr></thead>
+<tbody>
+<tr><td>"I add ARIA to make things accessible."</td><td>"I use native elements first; ARIA is a last resort, and it adds no behaviour."</td></tr>
+<tr><td>"Accessibility means screen readers."</td><td>"Keyboard, low vision, colour vision, motor, cognitive — and screen readers are one part."</td></tr>
+<tr><td>"We ran Lighthouse, it scores 100."</td><td>"Automated tools catch about a third; I pair them with a keyboard pass and a screen reader."</td></tr>
+<tr><td>"I use <code>&lt;section&gt;</code> instead of <code>&lt;div&gt;</code>, it's more semantic."</td><td>"A section without an accessible name is exposed as a generic — div is right for styling hooks."</td></tr>
+<tr><td>"<code>outline: none</code> and I add a hover state."</td><td>"Never remove focus without replacing it; <code>:focus-visible</code> gives keyboard-only rings."</td></tr>
+<tr><td>"Placeholders keep the form clean."</td><td>"Placeholders vanish on typing and aren't reliable names — real labels, floating if the design needs it."</td></tr>
+<tr><td>"I use <code>tabindex</code> to fix the tab order."</td><td>"I fix the DOM order; positive tabindex creates a competing tab order and is an anti-pattern."</td></tr>
+<tr><td>"<code>aria-hidden</code> hides it."</td><td>"From the accessibility tree only — it's still visible and still focusable. Use <code>inert</code> for that."</td></tr>
+</tbody>
+</table>
+
+<h2 id="cheatsheet">18. Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<table class="cheat">
+<tbody>
+<tr><td>The core idea</td><td>Accessibility is mostly what the right element gives you free — and what you lose the moment you don't use it.</td></tr>
+<tr><td>Why semantic HTML</td><td>Four reasons: assistive tech, SEO, free browser behaviour, readability.</td></tr>
+<tr><td>div</td><td>No meaning. Correct for pure styling hooks.</td></tr>
+<tr><td>section</td><td>Thematic grouping. <strong>Needs an accessible name</strong> (heading or <code>aria-label</code>) or it's just a div.</td></tr>
+<tr><td>article</td><td>Independently distributable — would it make sense in an RSS feed? Nests.</td></tr>
+<tr><td>header / footer</td><td>banner / contentinfo landmarks <em>only</em> as direct children of <code>&lt;body&gt;</code>.</td></tr>
+<tr><td>main</td><td>Exactly one per page. The skip-link target.</td></tr>
+<tr><td>Headings</td><td>The screen reader's table of contents. Don't skip levels down. Pick level by structure, size by CSS.</td></tr>
+<tr><td>button vs a</td><td>Button does something; link goes somewhere. <code>&lt;a&gt;</code> with no href is not a link.</td></tr>
+<tr><td>button gives you free</td><td>Tab order, Enter + Space, button role, form submit, <code>disabled</code>, focus states.</td></tr>
+<tr><td>First rule of ARIA</td><td>Don't use ARIA if a native element will do.</td></tr>
+<tr><td>The ARIA fact</td><td>ARIA changes only the accessibility tree. <strong>Zero behaviour.</strong></td></tr>
+<tr><td>Bad ARIA</td><td>No ARIA beats bad ARIA — wrong ARIA lies, and users can't detect the lie.</td></tr>
+<tr><td>role / state / property</td><td>What it is / what it currently is (you must sync it) / what it's called and related to.</td></tr>
+<tr><td>aria-label caveat</td><td>Must contain the visible text, or voice control users can't activate it (WCAG 2.5.3).</td></tr>
+<tr><td>aria-hidden</td><td>Out of a11y tree, still visible <em>and still focusable</em>. Never on interactive content.</td></tr>
+<tr><td>inert</td><td>Visible but unfocusable, unclickable, out of the tree. The right tool behind a modal.</td></tr>
+<tr><td>Tab order</td><td>DOM order. Flex/grid <code>order</code> desyncs visual and tab order — fix the DOM, not the CSS.</td></tr>
+<tr><td>tabindex</td><td><code>0</code> = natural order. <code>-1</code> = programmatic focus only. Positive = never.</td></tr>
+<tr><td>Focus rings</td><td>Never <code>outline: none</code> alone. Use <code>:focus-visible</code>. ~2px, ~3:1 contrast.</td></tr>
+<tr><td>Skip link</td><td>First focusable element, hidden until focused, targets <code>#main</code> (which needs <code>tabindex="-1"</code>).</td></tr>
+<tr><td>SPA route change</td><td>Update title, move focus to the new <code>&lt;h1&gt;</code> (<code>tabindex="-1"</code>) or announce via live region.</td></tr>
+<tr><td>Modal / menu close</td><td>Restore focus to the element that opened it.</td></tr>
+<tr><td>Accessibility tree</td><td>Parallel structure from the DOM. Each node: role, name, state, value.</td></tr>
+<tr><td>Browse vs focus mode</td><td>Browse = virtual cursor + single-key nav. Focus = keys go to the control. Browse-reachable ≠ tabbable.</td></tr>
+<tr><td>Contrast (AA)</td><td>4.5:1 text · 3:1 large text · 3:1 UI components and graphics.</td></tr>
+<tr><td>Contrast (AAA)</td><td>7:1 text · 4.5:1 large. Not recommended site-wide.</td></tr>
+<tr><td>Colour</td><td>Never the only carrier of meaning (Level A).</td></tr>
+<tr><td>Labels</td><td><code>&lt;label for&gt;</code> matching the input's <code>id</code>. Placeholder is not a label.</td></tr>
+<tr><td>fieldset / legend</td><td>Radio and checkbox groups — the legend is announced with every option.</td></tr>
+<tr><td>Form errors</td><td><code>aria-invalid</code> + <code>aria-describedby</code> + a focused error summary in <code>role="alert"</code>.</td></tr>
+<tr><td>autocomplete</td><td>WCAG 1.3.5. One attribute, everyone benefits.</td></tr>
+<tr><td>Validation</td><td>Native constraints + <code>novalidate</code> + your own messages.</td></tr>
+<tr><td>Landmarks</td><td>Fast travel for screen reader users. Label multiple navs — and don't say "navigation" in the label.</td></tr>
+<tr><td>Outline algorithm</td><td>Never implemented, removed from the spec. Heading levels mean exactly what they say.</td></tr>
+<tr><td>POUR</td><td>Perceivable, Operable, Understandable, Robust.</td></tr>
+<tr><td>WCAG levels</td><td>A = floor, <strong>AA = the target</strong> (and the legal one), AAA = aspiration.</td></tr>
+<tr><td>Modal checklist</td><td>Save trigger → focus in → trap Tab → Escape closes → restore focus → <code>role="dialog"</code> + <code>aria-modal</code> → inert background.</td></tr>
+<tr><td>Native dialog</td><td><code>showModal()</code> gives top layer, backdrop, Escape, inert background, focus in. Not <code>show()</code>.</td></tr>
+<tr><td>Keyboard trap</td><td>A focus trap is legal only because Escape exits. WCAG 2.1.2 is Level A.</td></tr>
+<tr><td>Live regions</td><td><code>polite</code> waits, <code>assertive</code> interrupts. <code>role="status"</code> / <code>role="alert"</code> are the shorthands.</td></tr>
+<tr><td>Live region gotcha</td><td>The region must exist in the DOM <em>before</em> the content changes.</td></tr>
+<tr><td>aria-atomic</td><td><code>true</code> = read the whole region, not just the diff.</td></tr>
+<tr><td>Testing</td><td>Keyboard pass → axe/Lighthouse (~⅓ of issues) → real screen reader → 200% zoom / 320px reflow.</td></tr>
+</tbody>
+</table>
+
+<hr class="soft">
+
+<h2 id="close" style="border-top:none;">One last thing</h2>
+
+<p>If you remember exactly one sentence from all of this, make it this one:</p>
+
+<p style="font-size:1.18rem; font-weight:600; border-left:4px solid var(--accent); padding-left:20px; margin:1.6em 0;">Accessibility is not mostly a feature you add. It's the default you're opting out of every time you reach for a div.</p>
+
+<p>Almost every rule in this guide is a consequence of that. Semantic elements carry role, name and state for free. ARIA can restore the <em>description</em> but never the <em>behaviour</em>, so the moment you leave the native path you owe the browser's work back in JavaScript — focus, keys, state, all of it, correctly, in every browser.</p>
+
+<p>Which is genuinely good news, because it means most of accessibility isn't extra work. It's <em>less</em> work, done in the right order. The <code>&lt;button&gt;</code> was always shorter than the div. 🙂</p>
+
+<p>Now go put your mouse in a drawer and Tab through the last thing you built. I'll wait.</p>
+
+</main>
+
+</div>
+</body>
+</html>

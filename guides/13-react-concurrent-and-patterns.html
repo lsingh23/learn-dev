@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concurrent React, Suspense, Error Boundaries &amp; Legacy Patterns</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --ink: #1f2430;
+    --ink-soft: #4a5163;
+    --ink-faint: #767d90;
+    --rule: #e6e2db;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --code-bg: #1e222b;
+    --code-ink: #e7e9ee;
+    --green: #157a4a;
+    --green-bg: #eaf7f0;
+    --red: #b3261e;
+    --red-bg: #fdeeed;
+    --amber: #8a5a00;
+    --amber-bg: #fdf4e1;
+    --purple: #6b3fa0;
+    --purple-bg: #f4eefc;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 48px 22px 120px;
+  }
+
+  header.hero {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 30px;
+    margin-bottom: 8px;
+  }
+
+  .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+
+  .standfirst {
+    font-size: 1.14rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.62rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.2rem 0 0.9rem;
+    padding-top: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.18rem;
+    margin: 2.2rem 0 0.7rem;
+    letter-spacing: -0.008em;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.6rem 0 0.5rem;
+  }
+
+  p { margin: 0 0 1.05rem; }
+
+  a { color: var(--accent); }
+
+  ul, ol { padding-left: 1.35rem; margin: 0 0 1.1rem; }
+  li { margin-bottom: 0.45rem; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.875em;
+  }
+
+  p code, li code, td code, .callout code {
+    background: #f0edE8;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.08em 0.34em;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 9px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 1.2rem;
+  }
+
+  pre code { font-size: 0.9rem; background: none; border: none; padding: 0; white-space: pre; }
+
+  .cm { color: #8e97ab; font-style: italic; }
+  .out { color: #7fd6a6; font-style: italic; }
+  .kw { color: #c99bf5; }
+  .str { color: #9fd68a; }
+  .fn { color: #7fc8f0; }
+
+  .codeblock { margin-bottom: 1.3rem; }
+  .codeblock pre { margin-bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .codelabel {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 6px 14px;
+    border-radius: 9px 9px 0 0;
+    display: block;
+  }
+  .codelabel.bad { background: var(--red-bg); color: var(--red); border: 1px solid #f3cdc9; border-bottom: none; }
+  .codelabel.good { background: var(--green-bg); color: var(--green); border: 1px solid #bfe3d0; border-bottom: none; }
+  .codelabel.neutral { background: #ecebe7; color: var(--ink-soft); border: 1px solid var(--rule); border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px 4px;
+    margin: 1.6rem 0;
+    border: 1px solid;
+    font-size: 0.98rem;
+  }
+  .callout .ct {
+    font-weight: 700;
+    font-size: 0.87rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+    display: block;
+  }
+  .callout.wait { background: var(--amber-bg); border-color: #ecd9a8; }
+  .callout.wait .ct { color: var(--amber); }
+  .callout.myth { background: var(--red-bg); border-color: #f3cdc9; }
+  .callout.myth .ct { color: var(--red); }
+  .callout.hood { background: var(--purple-bg); border-color: #ddd0f0; }
+  .callout.hood .ct { color: var(--purple); }
+  .callout.iv { background: var(--accent-soft); border-color: #cdd2fb; }
+  .callout.iv .ct { color: var(--accent); }
+
+  .model {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px 20px 6px;
+    margin: 1.3rem 0 1.7rem;
+  }
+  .model .ct {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .model p { font-size: 1.02rem; }
+  .model .why {
+    border-top: 1px dashed var(--rule);
+    padding-top: 0.7rem;
+    font-size: 0.93rem;
+    color: var(--ink-soft);
+  }
+
+  details.qa {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 0.75rem;
+  }
+  details.qa > summary {
+    cursor: pointer;
+    font-weight: 650;
+    list-style: none;
+    position: relative;
+    padding-left: 1.5rem;
+  }
+  details.qa > summary::-webkit-details-marker { display: none; }
+  details.qa > summary::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.qa[open] > summary::before { transform: rotate(90deg); }
+  details.qa > *:not(summary) { margin-top: 0.8rem; }
+  details.qa p:last-child { margin-bottom: 0.4rem; }
+
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin: 30px 0 10px;
+    font-size: 0.96rem;
+  }
+  nav.toc p { font-weight: 700; margin: 0 0 0.5rem; font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; }
+  nav.toc li { margin-bottom: 0.25rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.94rem;
+    margin: 0 0 1.4rem;
+    background: var(--surface);
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f2f0ec; font-size: 0.85rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-soft); }
+
+  figure { margin: 1.8rem 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-top: 0.6rem;
+  }
+
+  hr.sec {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 3.4rem 0 0;
+  }
+
+  .cheat td:first-child { font-weight: 650; width: 34%; }
+
+  blockquote {
+    margin: 1.4rem 0;
+    padding: 0.2rem 0 0.2rem 1.1rem;
+    border-left: 3px solid var(--accent);
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  .trap {
+    border-left: 4px solid var(--red);
+    background: var(--red-bg);
+    padding: 12px 16px 1px;
+    border-radius: 0 8px 8px 0;
+    margin: 1.3rem 0;
+    font-size: 0.97rem;
+  }
+  .trap strong:first-child { color: var(--red); }
+
+  @media (max-width: 520px) {
+    body { font-size: 16.5px; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.38rem; }
+    .wrap { padding: 32px 16px 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">React · Tier 3 · Senior</p>
+  <h1>Concurrent React, Suspense, Error Boundaries &amp; Legacy Patterns</h1>
+  <p class="standfirst">Why your input box freezes, how React learned to pause mid-render, what actually happens when a component "suspends", the four things error boundaries refuse to catch, and why a modal in a portal still bubbles clicks to its React parent.</p>
+</header>
+
+<nav class="toc">
+  <p>On this page</p>
+  <ol>
+    <li><a href="#frozen">The frozen input box</a></li>
+    <li><a href="#concurrent">Concurrent rendering: the premise</a></li>
+    <li><a href="#transition">useTransition</a></li>
+    <li><a href="#deferred">useDeferredValue</a></li>
+    <li><a href="#suspense">Suspense</a></li>
+    <li><a href="#lazy">React.lazy and code splitting</a></li>
+    <li><a href="#streaming">Streaming SSR &amp; selective hydration</a></li>
+    <li><a href="#errors">Error boundaries</a></li>
+    <li><a href="#portals">Portals</a></li>
+    <li><a href="#legacy">HOCs and render props</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="frozen">1. The frozen input box</h2>
+
+<p>I want to start with a bug you have almost certainly experienced as a <em>user</em>, even if you've never built it yourself.</p>
+
+<p>You're on a page with a search box. Below it, a list of a few thousand things. You start typing, and… the letters lag. You type "chair" and for a beat the box shows "cha", then it catches up and slams in "ir". The cursor stutters. The page feels broken, even though nothing is broken.</p>
+
+<p>Here's the code that causes it. It looks completely reasonable:</p>
+
+<div class="codeblock">
+<span class="codelabel bad">❌ Types like it's underwater</span>
+<pre><code>function ProductSearch({ products }) {   <span class="cm">// products.length === 10000</span>
+  const [query, setQuery] = useState('');
+
+  const matches = products.filter(p =&gt; p.name.includes(query));
+
+  return (
+    &lt;&gt;
+      &lt;input value={query} onChange={e =&gt; setQuery(e.target.value)} /&gt;
+      &lt;ProductList items={matches} /&gt;   <span class="cm">// 👈 renders ~10,000 rows</span>
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Take a second and ask yourself: <em>why</em> does the input lag? The filter itself is fast — filtering ten thousand small objects is a millisecond or two. The expensive part is rendering ten thousand list items. But rendering happens after the state update, right? So why does that block the letter from appearing?</p>
+
+<p>Because — and this is the whole reason concurrent React exists — <strong>the letter appearing in the input box <em>is</em> a render</strong>. It's a controlled input. The character shows up only once React re-renders with the new <code>query</code>. And in the same render pass, React also renders the ten thousand rows. They're welded together. One `setQuery` call, one render, and that render takes 300ms.</p>
+
+<p>Now the deeper problem. Before React 18, once React started a render, <strong>it could not stop</strong>. It walked the entire component tree, top to bottom, building the new UI description, and only when it finished did it hand control back to the browser. The browser could not paint. It could not process your next keystroke. It just… waited.</p>
+
+<figure>
+<svg viewBox="0 0 700 190" role="img" aria-label="Timeline comparing a blocking render to an interruptible one">
+  <text x="0" y="16" font-size="13" font-weight="700" fill="#b3261e" font-family="sans-serif">Blocking render (React 17 and earlier)</text>
+  <rect x="0" y="28" width="60" height="26" rx="4" fill="#dfe3ea"/>
+  <text x="30" y="45" font-size="11" text-anchor="middle" fill="#4a5163" font-family="sans-serif">idle</text>
+  <rect x="62" y="28" width="440" height="26" rx="4" fill="#f3cdc9" stroke="#b3261e"/>
+  <text x="282" y="45" font-size="11.5" text-anchor="middle" fill="#7d1a14" font-family="sans-serif">rendering 10,000 rows — nothing else can happen</text>
+  <rect x="504" y="28" width="196" height="26" rx="4" fill="#dfe3ea"/>
+  <text x="602" y="45" font-size="11" text-anchor="middle" fill="#4a5163" font-family="sans-serif">paint</text>
+  <line x1="150" y1="60" x2="150" y2="76" stroke="#b3261e" stroke-width="1.5"/>
+  <text x="150" y="90" font-size="11" text-anchor="middle" fill="#b3261e" font-family="sans-serif">⌨ you type "i" — ignored</text>
+  <line x1="330" y1="60" x2="330" y2="76" stroke="#b3261e" stroke-width="1.5"/>
+  <text x="330" y="90" font-size="11" text-anchor="middle" fill="#b3261e" font-family="sans-serif">⌨ you type "r" — ignored</text>
+
+  <text x="0" y="128" font-size="13" font-weight="700" fill="#157a4a" font-family="sans-serif">Concurrent render (React 18+, marked as a transition)</text>
+  <rect x="0" y="140" width="60" height="26" rx="4" fill="#dfe3ea"/>
+  <rect x="62" y="140" width="86" height="26" rx="4" fill="#bfe3d0" stroke="#157a4a"/>
+  <rect x="150" y="140" width="34" height="26" rx="4" fill="#cdd2fb" stroke="#4f46e5"/>
+  <rect x="186" y="140" width="142" height="26" rx="4" fill="#bfe3d0" stroke="#157a4a"/>
+  <rect x="330" y="140" width="34" height="26" rx="4" fill="#cdd2fb" stroke="#4f46e5"/>
+  <rect x="366" y="140" width="334" height="26" rx="4" fill="#bfe3d0" stroke="#157a4a"/>
+  <text x="167" y="182" font-size="10.5" text-anchor="middle" fill="#4f46e5" font-family="sans-serif">keystroke</text>
+  <text x="347" y="182" font-size="10.5" text-anchor="middle" fill="#4f46e5" font-family="sans-serif">keystroke</text>
+  <text x="500" y="157" font-size="11.5" text-anchor="middle" fill="#0f5c37" font-family="sans-serif">list render resumes, finishes, paints</text>
+</svg>
+<figcaption>Same total work. The difference is whether React is willing to put it down.</figcaption>
+</figure>
+
+<hr class="sec">
+
+<h2 id="concurrent">2. Concurrent rendering: the premise</h2>
+
+<p>So here's the idea, in one sentence:</p>
+
+<blockquote>React can start rendering, pause partway through to deal with something more urgent, and then either resume where it left off or throw the half-finished work in the bin and start over.</blockquote>
+
+<p>That's it. That's concurrent React. Everything else — <code>useTransition</code>, <code>useDeferredValue</code>, Suspense's smarter behaviour, streaming SSR — is built on that one capability.</p>
+
+<p>Let me give you the analogy I use, because the word "concurrent" sends people down a completely wrong path.</p>
+
+<h3>The analogy: one chef, not many</h3>
+
+<p>Imagine a small restaurant with exactly <strong>one chef</strong>. A big catering order comes in: 200 identical sandwiches. The chef starts making them.</p>
+
+<p>In the old world, that chef is stubborn. Once started, they will not stop until all 200 sandwiches are done. A customer walks in and asks for a glass of water. Too bad — they stand there for twenty minutes while the chef assembles sandwich #47.</p>
+
+<p>In the new world, the chef works in short bursts. After every few sandwiches they look up and ask: <em>"anyone need anything urgently?"</em> Glass of water? Sure, here you go, five seconds, back to sandwiches. The catering order still takes roughly twenty minutes — maybe a hair longer, because of the interruptions — but nobody standing at the counter feels ignored.</p>
+
+<p>And sometimes something better happens. Halfway through the catering order, the client calls: "actually make it 200 <em>wraps</em>, not sandwiches." The chef bins the half-finished tray and starts on wraps. All that sandwich work is thrown away — and that's <em>fine</em>, because nobody ever saw it. It was never served.</p>
+
+<p><strong>That last part is the bit people miss.</strong> React's paused, half-finished render is not on screen. It exists only in memory. So React is free to discard it, and often does — every time you type another letter, the in-progress filtered-list render for the previous letter becomes garbage.</p>
+
+<div class="callout myth">
+<span class="ct">A common misconception</span>
+<p><strong>"Concurrent React uses multiple threads / Web Workers."</strong> No. There is one chef. JavaScript in the browser runs on a single main thread, and React does not change that. Nothing is running in parallel — ever.</p>
+<p>"Concurrent" here means <em>concurrency</em> in the computer-science sense: multiple pieces of work in flight, interleaved on one worker. Like a single person alternating between two books, not two people each reading one. React achieves it by chopping the render into small chunks and yielding back to the browser between them (roughly every 5ms), which lets the browser process input events and paint.</p>
+<p>This misconception is the single most common wrong answer on this topic, so it's worth having the correction ready as a sentence you can say out loud.</p>
+</div>
+
+<h3>Urgent vs. transition</h3>
+
+<p>If React can pause work to do something more important first, it needs to know what "more important" means. React can't figure that out on its own — filtering a list and typing a letter are, to React, both just <code>setState</code> calls. <strong>You</strong> have to tell it.</p>
+
+<p>React groups updates into two buckets:</p>
+
+<ul>
+  <li><strong>Urgent updates</strong> — the direct, physical response to something the user just did. Typing a character. Toggling a checkbox. A button visually depressing. If these lag, the app feels <em>broken</em>, because the user's fingers and the screen disagree.</li>
+  <li><strong>Transition updates</strong> — the consequence of that interaction, which can take a moment. Re-filtering 10,000 rows. Switching to a new tab that renders a heavy chart. Navigating to a different page. If these lag by 150ms, the app feels <em>busy</em>, which is completely acceptable.</li>
+</ul>
+
+<p>Everything is urgent by default. You opt specific updates into the transition bucket. That default is deliberate — an update that's accidentally urgent is merely slow, but an update that's accidentally deprioritised could feel unresponsive.</p>
+
+<div class="callout iv">
+<span class="ct">In an interview</span>
+<p>If someone asks <em>"what problem does concurrent mode solve?"</em>, the trap is answering "it makes React faster." It does not. The catering order still takes twenty minutes. Concurrent React does strictly <em>more</em> total work (interruptions have overhead, and discarded renders are wasted). What it buys you is <strong>responsiveness</strong> — the ability to keep the urgent 5% of work from getting stuck behind the slow 95%. Say "perceived performance", not "performance", and you've already separated yourself from most candidates.</p>
+</div>
+
+<hr class="sec">
+
+<h2 id="transition">3. <code>useTransition</code></h2>
+
+<p>Let's fix the search box. The API:</p>
+
+<pre><code>const [isPending, startTransition] = useTransition();</code></pre>
+
+<p>Two things come back. <code>startTransition</code> is a function you wrap state updates in to say "this one's not urgent." <code>isPending</code> is a boolean that's <code>true</code> while a transition you started is still rendering — so you can show a subtle spinner or dim the stale content.</p>
+
+<div class="codeblock">
+<span class="codelabel good">✅ Typing stays smooth</span>
+<pre><code>function ProductSearch({ products }) {
+  const [query, setQuery] = useState('');        <span class="cm">// urgent: the input</span>
+  const [filter, setFilter] = useState('');      <span class="cm">// transition: the list</span>
+  const [isPending, startTransition] = useTransition();
+
+  function handleChange(e) {
+    setQuery(e.target.value);                    <span class="cm">// 👈 urgent, always instant</span>
+    startTransition(() =&gt; {
+      setFilter(e.target.value);                 <span class="cm">// 👈 interruptible</span>
+    });
+  }
+
+  const matches = products.filter(p =&gt; p.name.includes(filter));
+
+  return (
+    &lt;&gt;
+      &lt;input value={query} onChange={handleChange} /&gt;
+      &lt;div style={{ opacity: isPending ? 0.6 : 1 }}&gt;
+        &lt;ProductList items={matches} /&gt;
+      &lt;/div&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Notice what we had to do: <strong>split one piece of state into two.</strong> <code>query</code> drives the input and is urgent. <code>filter</code> drives the list and is a transition. Most of the time they're identical; while you're typing fast, <code>filter</code> lags behind <code>query</code> by a render or two — and that lag is exactly the responsiveness we bought.</p>
+
+<p>Walk through what happens when you type "chair" quickly:</p>
+
+<ol>
+  <li>You press <kbd>c</kbd>. <code>setQuery('c')</code> is urgent — React renders the input immediately. The letter appears. <code>setFilter('c')</code> starts rendering the list in the background.</li>
+  <li>Before that finishes, you press <kbd>h</kbd>. React <strong>throws away</strong> the in-progress "c" list render, immediately renders the input showing "ch", then starts a fresh "ch" list render.</li>
+  <li>…and so on. Only when you actually pause does a list render get to finish and commit.</li>
+</ol>
+
+<p>You never see a partial list. React only shows finished work.</p>
+
+<div class="callout wait">
+<span class="ct">Wait, what about… the callback? Does it have to be synchronous?</span>
+<p>Yes, and this catches people. React marks as a transition only the <code>setState</code> calls that happen <em>synchronously inside</em> the callback. This does not work:</p>
+<pre><code>startTransition(() =&gt; {
+  setTimeout(() =&gt; setFilter(value), 0);  <span class="cm">// ❌ not a transition</span>
+});</code></pre>
+<p>By the time the timeout fires, React has stopped listening. Same problem with <code>await</code> in older React: updates after the first <code>await</code> escaped the transition. React 19 fixed this specific case — <code>startTransition</code> now accepts an async function and keeps <code>isPending</code> true across awaits (this is the machinery behind "Actions" and <code>useActionState</code>). But the mental model stays: <em>put the update in the callback, not in a callback inside the callback.</em></p>
+</div>
+
+<h3><code>startTransition</code> outside a component</h3>
+
+<p>Hooks can only run inside components. But sometimes the code that triggers the expensive update isn't in a component at all — it's in a router, a store subscription, a plain event handler on <code>window</code>. For that, React exports a standalone version:</p>
+
+<pre><code><span class="kw">import</span> { startTransition } <span class="kw">from</span> <span class="str">'react'</span>;
+
+router.subscribe(url =&gt; {
+  startTransition(() =&gt; {
+    store.setRoute(url);   <span class="cm">// 👈 same priority marking, no hook needed</span>
+  });
+});</code></pre>
+
+<p>Identical behaviour, one thing missing: no <code>isPending</code>. That flag has to live in a component's state, so if you want it, you need the hook. This is genuinely the only difference.</p>
+
+<div class="trap">
+<strong>Trap:</strong> candidates sometimes say "<code>useTransition</code> debounces the update." It doesn't, and the distinction matters. A debounce <em>delays starting</em> the work by a fixed wall-clock time — during that delay React is idle and the UI is stale for no reason. A transition <em>starts immediately</em> and just yields politely while it runs. Concretely: with a 300ms debounce and a fast typist, the list is always 300ms behind. With a transition, if the user pauses for 40ms and the render only needs 40ms, the list is already there. They also compose fine — debounce a network request, transition the render.
+</div>
+
+<hr class="sec">
+
+<h2 id="deferred">4. <code>useDeferredValue</code></h2>
+
+<p>Now here's a wrinkle. Our fix required us to own the <code>setState</code> call — we had to reach into <code>handleChange</code> and wrap it. What if we don't own it?</p>
+
+<p>Say you're writing a chart component. Someone passes you a <code>data</code> prop that changes rapidly, and rendering the chart takes 200ms. You have no access to their state setter. You can't wrap anything.</p>
+
+<p><code>useDeferredValue</code> attacks the same problem from the other end. Instead of marking the <em>update</em> as low priority, you take a value and ask React for a <em>lagging copy</em> of it:</p>
+
+<pre><code>function ProductSearch({ products }) {
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);   <span class="cm">// 👈 the lagging copy</span>
+
+  const matches = products.filter(p =&gt; p.name.includes(deferredQuery));
+
+  return (
+    &lt;&gt;
+      &lt;input value={query} onChange={e =&gt; setQuery(e.target.value)} /&gt;
+      &lt;ProductList items={matches} /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+
+<p>Here's the mechanic. When <code>query</code> changes to "ch", React does two renders:</p>
+
+<ol>
+  <li><strong>Urgent render:</strong> <code>query</code> is "ch", but <code>deferredQuery</code> is still the <em>old</em> value, "c". The input updates instantly. The list doesn't move — it still shows the "c" results.</li>
+  <li><strong>Background render:</strong> React then re-renders with <code>deferredQuery</code> = "ch", at transition priority — interruptible, discardable.</li>
+</ol>
+
+<p>The analogy: think of <code>useDeferredValue</code> as a <strong>photocopy that's always one page behind</strong>. You keep feeding pages in at the top; the copy that comes out the bottom catches up whenever the machine has a spare moment. If you feed pages faster than it can copy, it just skips the intermediate ones and copies the latest — you never get a queue of stale copies.</p>
+
+<p>This analogy breaks down in one place worth naming: a real photocopier processes every page it's given. React genuinely <em>abandons</em> intermediate renders. If you type five letters fast, React may only ever finish rendering the list for the fifth.</p>
+
+<h3>The "stale content while new content renders" pattern</h3>
+
+<p>Because the deferred value lags, you can detect the lag and style around it:</p>
+
+<pre><code>const deferredQuery = useDeferredValue(query);
+const isStale = query !== deferredQuery;   <span class="cm">// 👈 the whole trick</span>
+
+return (
+  &lt;div style={{ opacity: isStale ? 0.5 : 1, transition: 'opacity 0.2s' }}&gt;
+    &lt;ProductList items={matches} /&gt;
+  &lt;/div&gt;
+);</code></pre>
+
+<p>This produces something genuinely nicer than a spinner: the old results stay visible and readable, just faded, while the new ones render. Compare that to the usual approach, where results vanish and get replaced by a skeleton, the page height collapses and jumps, and your eyes lose their place. Keeping stale content on screen is almost always the better UX, and this is the cleanest way to get it.</p>
+
+<div class="callout hood">
+<span class="ct">Under the hood</span>
+<p>Both of these are the same machinery. <code>useDeferredValue</code> is essentially "re-render me with the new value, but schedule that render as a transition." You could hand-roll something similar with <code>useState</code> + <code>useEffect</code> + <code>startTransition</code>. The reason to use the built-in is that React can do it without the extra committed render an effect would cause, and it participates properly in interruption and Suspense.</p>
+<p>React 19 added a second argument: <code>useDeferredValue(value, initialValue)</code>, which controls what the deferred copy reads on the very first render instead of just mirroring <code>value</code>.</p>
+</div>
+
+<h3>So which one do I reach for?</h3>
+
+<table>
+  <tr><th></th><th><code>useTransition</code></th><th><code>useDeferredValue</code></th></tr>
+  <tr><td>You mark…</td><td>the state <em>update</em></td><td>the <em>value</em> you read</td></tr>
+  <tr><td>Requires</td><td>access to the <code>setState</code> call</td><td>only the value itself</td></tr>
+  <tr><td>Pending flag</td><td><code>isPending</code>, given to you</td><td>derive it: <code>value !== deferred</code></td></tr>
+  <tr><td>Typical home</td><td>the component that owns the state</td><td>a child that receives a fast-changing prop</td></tr>
+  <tr><td>Classic use</td><td>tab switch, route change, submitting</td><td>expensive list/chart fed by a prop</td></tr>
+</table>
+
+<p>The one-line rule: <strong>if you can wrap the setter, use <code>useTransition</code>. If all you have is the value, use <code>useDeferredValue</code>.</strong> They are not competitors — they're the same idea with different ergonomics, and it's normal for one app to use both.</p>
+
+<div class="callout iv">
+<span class="ct">In an interview</span>
+<p><em>"useTransition vs useDeferredValue?"</em> is a depth question, not a recall question. The interviewer wants to know if you understand they're the same priority system. A great answer is short: <strong>"Same mechanism, different handle. <code>useTransition</code> lets you mark the update as non-urgent, so you need to own the setter and you get <code>isPending</code> for free. <code>useDeferredValue</code> lets you mark the read as non-urgent, which is what you use when the value arrives as a prop and you can't touch the setter. If I own the state I reach for <code>useTransition</code>; in a leaf component receiving a hot prop I reach for <code>useDeferredValue</code>."</strong></p>
+</div>
+
+<hr class="sec">
+
+<h2 id="suspense">5. Suspense</h2>
+
+<p>Different problem now. Let's talk about loading states.</p>
+
+<p>Here is what basically every React component looks like when it fetches something:</p>
+
+<pre><code>function UserProfile({ id }) {
+  const { data, loading, error } = useUser(id);
+
+  if (loading) return &lt;Spinner /&gt;;
+  if (error) return &lt;ErrorMessage /&gt;;
+  return &lt;h1&gt;{data.name}&lt;/h1&gt;;
+}</code></pre>
+
+<p>Nothing's <em>wrong</em> with that. But notice: every single component that loads anything has to repeat that three-branch dance. And when a page has six such components, you get six independent spinners popping in at six different moments, which looks like a slot machine. Coordinating them — "wait until all of these are ready, then show the page" — means lifting all the loading flags up somewhere, and now your components are all tangled together.</p>
+
+<p>Suspense flips the responsibility. Instead of each component <em>handling</em> its own not-ready-ness, a component simply <strong>declares that it isn't ready</strong>, and some ancestor decides what to show meanwhile.</p>
+
+<h3>What "a component suspends" actually means</h3>
+
+<p>This phrase gets used constantly and rarely explained, so let's do it properly.</p>
+
+<p>Normally, React calls your component function and it returns some JSX. Suspending means: <strong>instead of returning JSX, the component signals "I can't render yet — here's a promise; come back when it resolves."</strong> Mechanically, in classic React internals, it <em>throws a promise</em>. React catches that the same way a <code>try/catch</code> would, walks up the tree looking for the nearest <code>&lt;Suspense&gt;</code> boundary, and renders that boundary's <code>fallback</code> instead of the subtree. It also subscribes to the thrown promise; when it resolves, React retries rendering the component.</p>
+
+<p>The analogy: it's a <strong>waiter taking your order and finding the kitchen out of an ingredient</strong>. The waiter doesn't stand at your table apologising. They go back to the manager and say "table 4 is blocked." The manager puts a bowl of bread on the table (the fallback) and sends the waiter back when the ingredient arrives.</p>
+
+<div class="callout wait">
+<span class="ct">Wait, what about… throwing a promise? That's bizarre.</span>
+<p>It is! It's an unusual use of the throw mechanism — throwing is normally for errors. React chose it because it's the only way to interrupt a function call from arbitrarily deep in a call stack and unwind back to the caller, without every component in between having to know or cooperate.</p>
+<p>You should never write <code>throw promise</code> yourself. It's an internal contract between React and data libraries. In modern React you go through the <code>use()</code> hook, or through your framework's data loading. But knowing that "suspends" means "unwinds to the nearest boundary" is what makes Suspense's behaviour predictable instead of magic.</p>
+</div>
+
+<h3>Boundaries: the loading equivalent of error boundaries</h3>
+
+<p>The shape is deliberately parallel, and pointing this out in an interview reads well:</p>
+
+<pre><code>&lt;ErrorBoundary fallback={&lt;p&gt;Something broke.&lt;/p&gt;}&gt;
+  &lt;Suspense fallback={&lt;ProfileSkeleton /&gt;}&gt;
+    &lt;UserProfile id={userId} /&gt;
+  &lt;/Suspense&gt;
+&lt;/ErrorBoundary&gt;</code></pre>
+
+<p>An error boundary catches <em>errors</em> thrown by its subtree. A Suspense boundary catches <em>not-ready-yet</em> thrown by its subtree. Both are declarative, both handle a whole subtree regardless of depth, both let the components underneath be written as if nothing can go wrong and everything is already loaded.</p>
+
+<p>And that's the real payoff: <code>UserProfile</code> gets to be three lines. No <code>loading</code>, no <code>error</code>, no early returns.</p>
+
+<h3>Nesting boundaries, and the "everything pops in at once" problem</h3>
+
+<p>A boundary's granularity <em>is</em> your loading design. One boundary at the top of the page means one spinner and an all-or-nothing reveal — the page shows nothing until the slowest thing on it is done. That's often worse than what you had.</p>
+
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="One coarse Suspense boundary versus several nested boundaries">
+  <text x="0" y="14" font-size="12.5" font-weight="700" fill="#4a5163" font-family="sans-serif">One boundary: the slowest child holds the whole page hostage</text>
+  <rect x="0" y="24" width="320" height="86" rx="7" fill="#fdf4e1" stroke="#8a5a00" stroke-dasharray="4 3"/>
+  <text x="10" y="40" font-size="11" fill="#8a5a00" font-family="monospace">&lt;Suspense&gt;</text>
+  <rect x="14" y="48" width="90" height="26" rx="4" fill="#fff" stroke="#d6d2cb"/>
+  <text x="59" y="65" font-size="10.5" text-anchor="middle" fill="#4a5163" font-family="sans-serif">Header 20ms</text>
+  <rect x="112" y="48" width="90" height="26" rx="4" fill="#fff" stroke="#d6d2cb"/>
+  <text x="157" y="65" font-size="10.5" text-anchor="middle" fill="#4a5163" font-family="sans-serif">Feed 60ms</text>
+  <rect x="210" y="48" width="98" height="26" rx="4" fill="#fdeeed" stroke="#b3261e"/>
+  <text x="259" y="65" font-size="10.5" text-anchor="middle" fill="#b3261e" font-family="sans-serif">Charts 2400ms</text>
+  <text x="14" y="96" font-size="11" fill="#8a5a00" font-family="sans-serif">→ blank skeleton for 2.4s, then everything at once</text>
+
+  <text x="370" y="14" font-size="12.5" font-weight="700" fill="#4a5163" font-family="sans-serif">Nested boundaries: each area reveals when ready</text>
+  <rect x="370" y="24" width="320" height="86" rx="7" fill="#eaf7f0" stroke="#157a4a" stroke-dasharray="4 3"/>
+  <rect x="384" y="42" width="90" height="34" rx="4" fill="#fff" stroke="#157a4a"/>
+  <text x="429" y="57" font-size="10" text-anchor="middle" fill="#157a4a" font-family="sans-serif">Suspense</text>
+  <text x="429" y="70" font-size="10" text-anchor="middle" fill="#4a5163" font-family="sans-serif">Header 20ms</text>
+  <rect x="482" y="42" width="90" height="34" rx="4" fill="#fff" stroke="#157a4a"/>
+  <text x="527" y="57" font-size="10" text-anchor="middle" fill="#157a4a" font-family="sans-serif">Suspense</text>
+  <text x="527" y="70" font-size="10" text-anchor="middle" fill="#4a5163" font-family="sans-serif">Feed 60ms</text>
+  <rect x="580" y="42" width="98" height="34" rx="4" fill="#fff" stroke="#157a4a"/>
+  <text x="629" y="57" font-size="10" text-anchor="middle" fill="#157a4a" font-family="sans-serif">Suspense</text>
+  <text x="629" y="70" font-size="10" text-anchor="middle" fill="#4a5163" font-family="sans-serif">Charts 2400ms</text>
+  <text x="384" y="96" font-size="11" fill="#157a4a" font-family="sans-serif">→ header at 20ms, feed at 60ms, charts last</text>
+
+  <text x="0" y="140" font-size="12.5" font-weight="700" fill="#4a5163" font-family="sans-serif">The tradeoff</text>
+  <text x="0" y="162" font-size="11.5" fill="#4a5163" font-family="sans-serif">Too few boundaries → long blank wait. Too many → the page reflows six times as things pop in.</text>
+  <text x="0" y="182" font-size="11.5" fill="#4a5163" font-family="sans-serif">Rule of thumb: one boundary per visually independent region, and give the fallback the same</text>
+  <text x="0" y="202" font-size="11.5" fill="#4a5163" font-family="sans-serif">dimensions as the real content so nothing jumps when it swaps in.</text>
+</svg>
+</figure>
+
+<p>That last point deserves emphasis because it's a real-code detail interviewers like: <strong>your fallback should reserve the same space as the content it replaces.</strong> A skeleton the same height as the loaded component means the swap is invisible. A tiny centred spinner means the page lurches. This is the same layout-shift problem you'd otherwise measure as CLS.</p>
+
+<hr class="sec">
+
+<h2 id="lazy">6. <code>React.lazy</code> and code splitting</h2>
+
+<p>Every reader of this guide will hit this one, so let's do it in detail.</p>
+
+<p>Your bundler produces one big JavaScript file. The user lands on the login page and downloads the admin dashboard, the PDF exporter, the chart library, and the emoji picker — none of which they will open. That's a lot of bytes to parse before anything is interactive.</p>
+
+<p>Code splitting means cutting the bundle into chunks that load on demand. <code>React.lazy</code> is React's hook into that:</p>
+
+<pre><code><span class="kw">const</span> Dashboard = React.lazy(() =&gt; <span class="kw">import</span>(<span class="str">'./Dashboard'</span>));  <span class="cm">// 👈 dynamic import</span>
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;Suspense fallback={&lt;PageSkeleton /&gt;}&gt;
+      &lt;Dashboard /&gt;
+    &lt;/Suspense&gt;
+  );
+}</code></pre>
+
+<h3>How does it actually work?</h3>
+
+<p>Piece by piece, because this is a direct interview question:</p>
+
+<ol>
+  <li><code>import('./Dashboard')</code> is a <strong>dynamic import</strong> — a JavaScript language feature, not a React one. It returns a promise for the module. Crucially, your bundler <em>sees</em> this syntax at build time and splits <code>Dashboard</code> (and everything only it imports) into a separate chunk file.</li>
+  <li><code>React.lazy</code> takes that loader function and returns a <em>component</em>. It doesn't call the loader yet — nothing is downloaded at this point.</li>
+  <li>The first time React tries to render <code>&lt;Dashboard /&gt;</code>, <code>lazy</code> calls the loader, gets back a pending promise, and <strong>suspends</strong>. Which is exactly the mechanism from the last section.</li>
+  <li>React finds the nearest <code>&lt;Suspense&gt;</code> and shows <code>PageSkeleton</code>. The network fetches the chunk.</li>
+  <li>The promise resolves with the module. <code>lazy</code> caches the resolved component and React retries. This time <code>&lt;Dashboard /&gt;</code> renders for real. Subsequent renders hit the cache — no second download.</li>
+</ol>
+
+<p>So <code>React.lazy</code> is not a separate feature bolted on. It's <em>the</em> canonical example of Suspense, and it's why Suspense shipped as stable long before Suspense-for-data-fetching did.</p>
+
+<div class="callout wait">
+<span class="ct">Wait, what about… the default export?</span>
+<p><code>React.lazy</code> requires the module to have a <strong>default export</strong> that is a component. If you use named exports, you re-shape it inline:</p>
+<pre><code>const Dashboard = React.lazy(() =&gt;
+  import('./Dashboard').then(m =&gt; ({ default: m.Dashboard }))
+);</code></pre>
+<p>Also: define <code>lazy()</code> at <em>module</em> scope, never inside a component body. Inside a component you'd create a brand-new lazy component on every render, which React sees as a different component type — it unmounts and re-downloads, and your app flickers forever. This is a genuinely common bug.</p>
+</div>
+
+<div class="trap">
+<strong>Trap:</strong> "code split every component." Don't. Each chunk is an extra network round trip, and a 2KB component split out costs more in latency than it saves in bytes. Split along the seams where users genuinely branch: routes first, then heavy modals and editors, then big third-party libraries (a chart lib, a rich text editor, a date picker). Nice thing to add: you can <strong>preload</strong> a chunk on hover or focus — call the same <code>import()</code> function in an <code>onMouseEnter</code> — so by the time the click lands, the code is already there.
+</div>
+
+<h3>Data fetching with Suspense: where it actually stands</h3>
+
+<p>Let's be honest about this, because it's a place candidates get caught pretending.</p>
+
+<p>Suspense for <em>code</em> has been stable and boring since React 16.6. Suspense for <em>data</em> took much longer, because the hard part isn't suspending — it's the cache. If a component fetches during render and suspends, and React retries the render, it must not fetch again. You need something that remembers "I already started this request" across render attempts. React deliberately did not ship that cache.</p>
+
+<p>So the honest state of things today:</p>
+
+<ul>
+  <li><strong>Frameworks do it.</strong> Next.js (App Router), Remix/React Router, and friends provide the caching layer and wire Suspense up for you. In a React Server Components setup you write an <code>async</code> server component and it just works.</li>
+  <li><strong>Data libraries do it.</strong> React Query (<code>useSuspenseQuery</code>), SWR (<code>suspense: true</code>), Relay, Apollo — they own the cache, so they can safely suspend.</li>
+  <li><strong>The <code>use</code> hook (React 19)</strong> is the official primitive: <code>const user = use(userPromise)</code> reads a promise and suspends if it's pending. Unlike other hooks it can be called conditionally, inside <code>if</code> blocks and loops. But note what it doesn't do — <strong>it does not create or cache the promise.</strong> The promise has to be created somewhere stable (a server component, a cache, a framework loader). Creating it inline during render still gives you an infinite loop.</li>
+  <li><strong>Rolling your own</strong> — a hand-written throw-a-promise cache — is a fun exercise and a bad production decision.</li>
+</ul>
+
+<p>The interview-safe framing: <em>"Suspense for code splitting is stable and I use it every day. Suspense for data is stable as a mechanism, but React doesn't ship a cache, so in practice you get it through a framework or a data library rather than writing it yourself."</em></p>
+
+<hr class="sec">
+
+<h2 id="streaming">7. Streaming SSR &amp; selective hydration</h2>
+
+<p>Conceptual level, but these two terms come up and you want to be able to hold a conversation.</p>
+
+<p>Quick grounding first, in case it's fuzzy. <strong>Server-side rendering</strong> means the server runs your components and sends real HTML, so the user sees content before any JavaScript loads. <strong>Hydration</strong> is what happens next on the client: React walks that server-rendered HTML, matches it to the component tree, and attaches the event handlers and state — turning static markup into a working app. Josh's line for it is watering the dry HTML with the water of interactivity.</p>
+
+<p>Classic SSR had two hard stalls, and they're both all-or-nothing:</p>
+
+<ol>
+  <li><strong>The server can't send anything until it has everything.</strong> One slow database query for the comments section, and the entire HTML document waits.</li>
+  <li><strong>The client can't hydrate anything until all the JS has loaded, and it hydrates in one uninterruptible pass.</strong> During that pass, the page is visible but dead — you can click and nothing happens.</li>
+</ol>
+
+<h3>Streaming SSR: send HTML in pieces</h3>
+
+<p>With <code>renderToPipeableStream</code>, the server sends the shell immediately, with a placeholder wherever there's a Suspense boundary whose data isn't ready:</p>
+
+<pre><code>&lt;main&gt;
+  &lt;h1&gt;Product page&lt;/h1&gt;         <span class="cm">&lt;!-- sent at 30ms --&gt;</span>
+  &lt;div id="B:0"&gt;&lt;Skeleton/&gt;&lt;/div&gt; <span class="cm">&lt;!-- the fallback, sent at 30ms --&gt;</span>
+&lt;/main&gt;
+<span class="cm">&lt;!-- ...connection stays open... --&gt;</span>
+&lt;template id="S:0"&gt;&lt;Reviews/&gt;&lt;/template&gt;  <span class="cm">&lt;!-- arrives at 900ms --&gt;</span>
+&lt;script&gt;$RC("B:0","S:0")&lt;/script&gt;          <span class="cm">&lt;!-- tiny inline script swaps them --&gt;</span></code></pre>
+
+<p>The connection stays open. When the slow data resolves, the server renders that boundary and pushes the real HTML down the same response, plus a few bytes of inline script that swap the placeholder for the real thing. <strong>Your <code>&lt;Suspense&gt;</code> boundaries are the streaming chunk boundaries</strong> — the same tags that control client loading states control what the server can send early. One concept, two payoffs.</p>
+
+<h3>Selective hydration: hydrate in pieces, in the right order</h3>
+
+<p>The client side of the same idea, and it does two distinct things:</p>
+
+<p><strong>One:</strong> React no longer needs all the JavaScript before it hydrates anything. Content inside a Suspense boundary can hydrate independently as its code arrives. The header becomes interactive while the comments are still downloading.</p>
+
+<p><strong>Two — and this is the part that makes interviewers nod:</strong> React watches where the user interacts. If you click a button inside a boundary that hasn't hydrated yet, React <em>reprioritises</em>: it hydrates that boundary first, ahead of everything else in the queue, then replays your click so it isn't lost.</p>
+
+<p>The analogy: hydration used to be a plumber who insists on connecting every tap in the building before turning the water on. Selective hydration is a plumber who connects taps one at a time — and if you walk over and turn a handle, they come do <em>that</em> tap next.</p>
+
+<p>Note the dependency chain, since it's the elegant bit: all of this is possible <em>because</em> rendering is interruptible. Hydration is a render. If React couldn't pause a render partway through, it couldn't abandon hydrating the footer to go hydrate the button you just clicked. Concurrent rendering is the foundation; streaming and selective hydration are what got built on it.</p>
+
+<hr class="sec">
+
+<h2 id="errors">8. Error boundaries</h2>
+
+<p>Let's break something. What do you think happens here?</p>
+
+<pre><code>function UserBadge({ user }) {
+  return &lt;span&gt;{user.name.toUpperCase()}&lt;/span&gt;;  <span class="cm">// user.name is null</span>
+}</code></pre>
+
+<p>Your instinct is probably "that little badge doesn't render, and the rest of the page is fine." Reasonable. It's also wrong.</p>
+
+<p>Since React 16, an uncaught error during render <strong>unmounts the entire component tree</strong>. Not the badge — the whole app. The user gets a blank white page.</p>
+
+<p>That sounds brutal, and it was a deliberate decision. The React team's reasoning: a component that threw mid-render has left the UI in an unknown, partially-updated state. For a banking app, showing a corrupted UI that says the wrong balance is worse than showing nothing. So the default is to bail out completely — and to give you a tool to catch it before it gets that far.</p>
+
+<h3>What an error boundary is</h3>
+
+<p>A component that catches errors thrown anywhere in the tree beneath it and renders a fallback instead of crashing the app. It's <code>try/catch</code>, for a subtree of your UI.</p>
+
+<pre><code>class ErrorBoundary extends React.Component {
+  state = { error: null };
+
+  static getDerivedStateFromError(error) {
+    return { error };                        <span class="cm">// 👈 render the fallback</span>
+  }
+
+  componentDidCatch(error, errorInfo) {
+    logToSentry(error, errorInfo.componentStack);  <span class="cm">// 👈 side effects go here</span>
+  }
+
+  render() {
+    if (this.state.error) return this.props.fallback;
+    return this.props.children;
+  }
+}</code></pre>
+
+<p>Two methods, two jobs, and interviewers do ask why there are two:</p>
+
+<ul>
+  <li><code>getDerivedStateFromError</code> runs during the <strong>render</strong> phase. It must be pure — no logging, no network calls, no side effects at all. Its only job is to return new state so the fallback renders. It's pure because the render phase can be run more than once, or thrown away, thanks to concurrent rendering.</li>
+  <li><code>componentDidCatch</code> runs during the <strong>commit</strong> phase, after the DOM has been updated. Side effects are safe here, so this is where error reporting goes. It receives <code>errorInfo.componentStack</code> — the React component stack, which is far more useful for debugging than the JS stack trace.</li>
+</ul>
+
+<h3>The four things error boundaries do NOT catch</h3>
+
+<p>This is a favourite follow-up, so let's make it stick. The unifying principle: <strong>error boundaries only catch errors that happen while React is rendering, in the subtree below them.</strong> If React isn't the one running your code, React can't catch what it throws.</p>
+
+<table>
+  <tr><th>Not caught</th><th>Why</th><th>What to do instead</th></tr>
+  <tr>
+    <td><strong>Event handlers</strong></td>
+    <td>An <code>onClick</code> runs long after render, triggered by the browser. React is not on the stack.</td>
+    <td>A plain <code>try/catch</code> inside the handler.</td>
+  </tr>
+  <tr>
+    <td><strong>Async code</strong> — <code>setTimeout</code>, promises, <code>fetch</code>, <code>requestAnimationFrame</code></td>
+    <td>Callback runs in a later task with a fresh stack. React's <code>try/catch</code> unwound long ago.</td>
+    <td><code>try/catch</code> with <code>async/await</code>, or <code>.catch()</code>. Or store the error in state and re-throw it during render.</td>
+  </tr>
+  <tr>
+    <td><strong>Server-side rendering</strong></td>
+    <td>There's no mounting, no commit phase, no re-render to swap in a fallback. (Streaming SSR does handle errors, but through the stream API, not this.)</td>
+    <td>Handle errors in your SSR entry / framework error handling.</td>
+  </tr>
+  <tr>
+    <td><strong>Errors in the boundary itself</strong></td>
+    <td>A <code>try/catch</code> can't catch an error thrown by its own <code>catch</code> block. If your fallback UI throws, there's nothing left to save it.</td>
+    <td>Nest a second boundary above it. Keep fallback UI dead simple — no data access, no fetching.</td>
+  </tr>
+</table>
+
+<p>The trick for remembering the third one is that it's the odd one out — the first two are about <em>when</em> the code runs, and SSR is about <em>where</em>. Say the principle first, then the list, and it sounds like understanding rather than memorisation.</p>
+
+<h3>How do you catch an error in an event handler, then?</h3>
+
+<p>Two answers, and the second one is the good one.</p>
+
+<div class="codeblock">
+<span class="codelabel neutral">The obvious one</span>
+<pre><code>async function handleSubmit() {
+  try {
+    await saveOrder(cart);
+  } catch (err) {
+    setSaveError(err);   <span class="cm">// show an inline message</span>
+  }
+}</code></pre>
+</div>
+
+<div class="codeblock">
+<span class="codelabel good">✅ Route it back into the boundary</span>
+<pre><code>const [error, setError] = useState(null);
+if (error) throw error;   <span class="cm">// 👈 now thrown DURING render — boundary catches it</span>
+
+async function handleSubmit() {
+  try {
+    await saveOrder(cart);
+  } catch (err) {
+    setError(err);
+  }
+}</code></pre>
+</div>
+
+<p>Catch the async error yourself, park it in state, and re-throw it during the next render. Now it's a render-phase error, so the boundary sees it and you get one consistent error path instead of two. This is exactly what <code>react-error-boundary</code>'s <code>useErrorBoundary().showBoundary(err)</code> does, and mentioning that pattern unprompted is a strong signal.</p>
+
+<h3>Why are error boundaries still class components?</h3>
+
+<p>Because there is <strong>no hook equivalent</strong> — <code>getDerivedStateFromError</code> and <code>componentDidCatch</code> have never been ported. That's the honest one-line answer, and the follow-up they want is <em>why not</em>.</p>
+
+<p>The reason is that a hook runs <em>inside</em> the component that calls it. An error boundary has to intercept an error thrown while React is rendering some <em>descendant</em> — code that runs after the boundary's own function has already returned. Hooks have no vocabulary for "wrap my children's rendering in a try/catch"; that's a lifecycle capability, not a state capability. React has said a hook version is wanted, but it needs a genuinely new API shape, so it keeps not shipping.</p>
+
+<p>In practice nobody writes the class. You install <a href="#">react-error-boundary</a>, which gives you a component with <code>onError</code>, <code>onReset</code>, <code>resetKeys</code>, a <code>FallbackComponent</code> that receives <code>resetErrorBoundary</code>, and the <code>useErrorBoundary</code> hook above. Saying "still class-only, so I use <code>react-error-boundary</code>" is the expected senior answer — the person asking is checking that you know the constraint, not that you enjoy writing classes.</p>
+
+<div class="callout hood">
+<span class="ct">Under the hood</span>
+<p>React 18 added root-level hooks for observability that people forget: <code>createRoot(container, { onCaughtError, onUncaughtError, onRecoverableError })</code>. <code>onCaughtError</code> fires for errors a boundary handled, <code>onUncaughtError</code> for ones that crashed the app, and <code>onRecoverableError</code> for things React recovered from itself (most famously hydration mismatches). These are for logging every error app-wide — they don't replace boundaries, which are what actually renders a fallback.</p>
+</div>
+
+<h3>Where to put them</h3>
+
+<p>Placement is a design decision, and this is where the question separates people who've shipped from people who've read the docs.</p>
+
+<ul>
+  <li><strong>Top-level, one per app.</strong> The safety net. Full-page "something went wrong, reload" screen. You always want this one — it's the difference between a white screen and an apology.</li>
+  <li><strong>Per route.</strong> A crash in <code>/settings</code> shouldn't take down the nav, and the user can click away to somewhere that works.</li>
+  <li><strong>Around independently-failing widgets.</strong> The recommendation carousel, the third-party embed, the analytics chart. If it dies, the rest of the page shrugs and carries on.</li>
+</ul>
+
+<p>Granularity has the same tradeoff as Suspense boundaries, incidentally: too coarse and one bad widget nukes the page; too fine and your app becomes a mosaic of tiny error messages. The question to ask is "if this subtree vanished, would the page still be worth looking at?" If yes, it's a boundary.</p>
+
+<p>For recovery: the fallback should offer a way out — a retry button that resets the boundary's state so it re-renders children. <code>react-error-boundary</code>'s <code>resetKeys</code> handles the common case automatically, resetting whenever a value like the route or user ID changes, because that error probably doesn't apply to the new context. And do wire up reporting — <code>componentDidCatch</code> / <code>onError</code> to Sentry or similar, with the component stack. An error boundary that silently swallows failures is worse than a crash, because now you don't know it's happening.</p>
+
+<hr class="sec">
+
+<h2 id="portals">9. Portals</h2>
+
+<p>Time for a very specific, very annoying CSS problem.</p>
+
+<p>You build a modal. It lives inside a card component, deep in the tree. It has <code>position: fixed</code>, a big <code>z-index</code>, the works. And it renders… clipped in half, trapped inside the card, or underneath the sticky header.</p>
+
+<p>Two CSS mechanics cause this, and neither is React's fault:</p>
+
+<ul>
+  <li><strong><code>overflow: hidden</code> on an ancestor.</strong> Anything that overflows that ancestor's box gets cut off. Your modal is bigger than the card, so it's clipped.</li>
+  <li><strong>Stacking contexts.</strong> If any ancestor has <code>transform</code>, <code>filter</code>, <code>opacity</code> below 1, or its own <code>z-index</code> with positioning, it creates a new stacking context. Your modal's <code>z-index: 9999</code> is then only "9999 within that ancestor" — the whole ancestor still sits below the header. This is why bumping the z-index never works, and it's the moment most developers discover stacking contexts exist.</li>
+</ul>
+
+<p>The DOM fix is obvious: put the modal at the end of <code>&lt;body&gt;</code>, where no ancestor can clip or trap it. But then it's not a child of your card anymore, so how does it get the card's props, context, and state?</p>
+
+<p><strong>That's the trick a portal performs.</strong> The element gets rendered into a different DOM node, while staying exactly where it is in the React tree.</p>
+
+<pre><code><span class="kw">import</span> { createPortal } <span class="kw">from</span> <span class="str">'react-dom'</span>;
+
+function Modal({ onClose, children }) {
+  return createPortal(
+    &lt;div className="backdrop" onClick={onClose}&gt;
+      &lt;div className="dialog"&gt;{children}&lt;/div&gt;
+    &lt;/div&gt;,
+    document.body            <span class="cm">// 👈 where in the DOM it lands</span>
+  );
+}</code></pre>
+
+<p>The analogy: a portal is <strong>mail forwarding</strong>. You've moved to a new address (the DOM node), so physical letters arrive there. But you're still on your family's contact list — you still get invited to the reunion, still inherit the family recipes, still get called when there's news. Your <em>relationships</em> didn't move; only your <em>street address</em> did.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="React tree versus DOM tree for a portal">
+  <text x="0" y="14" font-size="12.5" font-weight="700" fill="#4f46e5" font-family="sans-serif">React tree (props, context, events)</text>
+  <rect x="30" y="28" width="90" height="24" rx="4" fill="#eef0ff" stroke="#4f46e5"/>
+  <text x="75" y="45" font-size="11" text-anchor="middle" fill="#3b34b8" font-family="monospace">App</text>
+  <line x1="75" y1="52" x2="75" y2="68" stroke="#4f46e5"/>
+  <rect x="30" y="68" width="90" height="24" rx="4" fill="#eef0ff" stroke="#4f46e5"/>
+  <text x="75" y="85" font-size="11" text-anchor="middle" fill="#3b34b8" font-family="monospace">Card</text>
+  <line x1="75" y1="92" x2="75" y2="108" stroke="#4f46e5"/>
+  <rect x="30" y="108" width="90" height="24" rx="4" fill="#eef0ff" stroke="#4f46e5"/>
+  <text x="75" y="125" font-size="11" text-anchor="middle" fill="#3b34b8" font-family="monospace">Modal</text>
+  <text x="12" y="158" font-size="11" fill="#4a5163" font-family="sans-serif">Modal is still Card's child here.</text>
+  <text x="12" y="176" font-size="11" fill="#4a5163" font-family="sans-serif">Context flows down. Events bubble up.</text>
+
+  <text x="380" y="14" font-size="12.5" font-weight="700" fill="#8a5a00" font-family="sans-serif">DOM tree (layout, CSS, clipping)</text>
+  <rect x="410" y="28" width="100" height="24" rx="4" fill="#fdf4e1" stroke="#8a5a00"/>
+  <text x="460" y="45" font-size="11" text-anchor="middle" fill="#6b4600" font-family="monospace">body</text>
+  <line x1="460" y1="52" x2="430" y2="68" stroke="#8a5a00"/>
+  <line x1="460" y1="52" x2="600" y2="68" stroke="#8a5a00"/>
+  <rect x="380" y="68" width="100" height="24" rx="4" fill="#fdf4e1" stroke="#8a5a00"/>
+  <text x="430" y="85" font-size="11" text-anchor="middle" fill="#6b4600" font-family="monospace">div.card</text>
+  <rect x="550" y="68" width="100" height="24" rx="4" fill="#fdf4e1" stroke="#8a5a00"/>
+  <text x="600" y="85" font-size="11" text-anchor="middle" fill="#6b4600" font-family="monospace">div.backdrop</text>
+  <text x="374" y="122" font-size="11" fill="#4a5163" font-family="sans-serif">Modal's DOM sits beside the card, as a</text>
+  <text x="374" y="140" font-size="11" fill="#4a5163" font-family="sans-serif">direct child of body — nothing can clip it.</text>
+
+  <path d="M 130 120 C 240 120, 300 95, 545 82" stroke="#767d90" stroke-width="1.4" fill="none" stroke-dasharray="4 3" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6" fill="#767d90"/></marker></defs>
+  <text x="300" y="112" font-size="10.5" fill="#767d90" font-family="sans-serif">rendered into</text>
+
+  <rect x="0" y="196" width="700" height="46" rx="7" fill="#eef0ff" stroke="#cdd2fb"/>
+  <text x="14" y="216" font-size="11.5" font-weight="700" fill="#3b34b8" font-family="sans-serif">One component. Two positions. React's tree decides behaviour; the DOM tree decides pixels.</text>
+  <text x="14" y="234" font-size="11.5" fill="#3b34b8" font-family="sans-serif">This is the whole feature.</text>
+</svg>
+</figure>
+
+<h3>Why do portal events bubble to the React parent?</h3>
+
+<p>This is <em>the</em> portal question. Setup: your <code>Card</code> has an <code>onClick</code>. Your modal is portalled to <code>document.body</code>. You click a button inside the modal. Does <code>Card</code>'s handler fire?</p>
+
+<p>Take a guess before reading on. The DOM says no — <code>div.backdrop</code> is not inside <code>div.card</code>, so a real DOM event bubbling up from the button will never pass through the card.</p>
+
+<p><strong>But it fires.</strong> Yes, really.</p>
+
+<p>Here's why. React doesn't attach an <code>onClick</code> listener to your button. It attaches a small number of listeners at the <strong>root container</strong>, waits for real DOM events to bubble up there, and then <em>synthesises</em> the propagation itself. And when React builds the list of handlers to call, it walks up the <strong>fiber tree</strong> — its own internal component tree — not the DOM tree.</p>
+
+<p>In the fiber tree, <code>Modal</code> is still a child of <code>Card</code>. So <code>Card</code>'s <code>onClick</code> is on the path, and it gets called. React also attaches a listener to the portal's container node so events originating outside the root container still reach the system in the first place.</p>
+
+<p>And this is <em>correct</em>, not a quirk. It's the entire point of the feature. Portals exist so a component can escape CSS constraints without escaping its component relationships. If events followed the DOM tree, a portalled modal would silently lose context-like behaviour — and everything you write would need to know whether its children happened to be portalled. Consistency with the React tree is what makes portals composable.</p>
+
+<div class="callout wait">
+<span class="ct">Wait, what about… my "click outside to close" handler?</span>
+<p>Excellent instinct, and here's the sharp edge. The DOM event <em>also</em> genuinely bubbles through the real DOM. So if you attached a native listener with <code>document.addEventListener('click', closeDropdown)</code>, clicks inside your portalled dropdown will hit <code>document</code> and close it instantly.</p>
+<p>So you get both propagation paths at once: React handlers follow the React tree, native listeners follow the DOM tree. When they disagree, that's your bug. The usual fixes are to check <code>ref.current.contains(e.target)</code> before closing, or to listen on the root container rather than <code>document</code>.</p>
+</div>
+
+<h3>What portals don't do for you</h3>
+
+<p>A portal solves exactly one problem: DOM placement. It does <em>not</em> make your modal accessible — and a senior interview often goes here next. The missing pieces are a focus trap (focus moves in, <kbd>Tab</kbd> cycles inside), focus restoration on close, <code>role="dialog"</code> + <code>aria-modal</code> + a label so a screen reader announces it, making the background inert, and <kbd>Esc</kbd>-to-close plus scroll lock.</p>
+
+<p>That's a lot, which is why "just use Radix / React Aria / Headless UI" is the right production answer. Have this line ready: <em>"<code>createPortal</code> fixes the CSS problem. The accessibility problem is separate and much larger, so I'd reach for a headless dialog primitive rather than hand-rolling a focus trap."</em></p>
+
+<p>Same reasoning covers tooltips, dropdowns, and toasts — anything floating that a scrollable or transformed ancestor would otherwise clip.</p>
+
+<hr class="sec">
+
+<h2 id="legacy">10. HOCs and render props</h2>
+
+<p>These are legacy. You will still get asked, for two reasons: the interviewer wants to know if you understand <em>why hooks exist</em>, and half the codebases you'd join still contain them.</p>
+
+<p>So let's go back to 2017, before hooks. You have this problem: <strong>three different components each need to know the current user, and each needs to redirect to login if there isn't one.</strong> The logic is identical. How do you share it?</p>
+
+<p>Not with a regular function — the logic involves <em>state</em> and <em>lifecycle</em>, and in a class component those live in <code>this.state</code> and <code>componentDidMount</code>. You can't pull them out into a plain helper. And this was genuinely the biggest unsolved problem in React at the time. Two answers emerged.</p>
+
+<h3>Answer 1: the higher-order component</h3>
+
+<p>A function that takes a component and returns a new component that wraps it, injecting extra props.</p>
+
+<pre><code>function withAuth(WrappedComponent) {
+  return function WithAuth(props) {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() =&gt; {
+      fetchCurrentUser().then(u =&gt; { setUser(u); setLoading(false); });
+    }, []);
+
+    if (loading) return &lt;Spinner /&gt;;
+    if (!user) return &lt;Redirect to="/login" /&gt;;
+    return &lt;WrappedComponent {...props} user={user} /&gt;;  <span class="cm">// 👈 inject</span>
+  };
+}
+
+const Dashboard = withAuth(RawDashboard);</code></pre>
+
+<p>The analogy: HOCs are <strong>gift wrapping</strong>. The present inside is unchanged; you've added a layer around it that carries extra information. And like gift wrapping, one layer is charming and five layers is a nuisance.</p>
+
+<p>The problems, which are why we don't do this anymore:</p>
+
+<ul>
+  <li><strong>Wrapper hell.</strong> Real components accumulated them: <code>withRouter(withTheme(withAuth(connect(mapState)(Dashboard))))</code>. Your React DevTools tree becomes a ten-deep tower of <code>WithX</code> components around one real one. Debugging is miserable.</li>
+  <li><strong>Prop collisions.</strong> <code>withAuth</code> gives you a <code>user</code> prop. So does <code>withProfile</code>. One silently overwrites the other, depending on composition order, and nothing warns you. Static typing helps but doesn't eliminate it.</li>
+  <li><strong>You can't see where props come from.</strong> Open <code>RawDashboard</code>, see it uses <code>props.user</code> — where's that from? Not from the parent in JSX. You have to go find the HOC chain.</li>
+  <li><strong>Plumbing you have to remember.</strong> Static methods aren't copied across. Refs don't pass through without <code>forwardRef</code>. Display names need setting manually or DevTools shows <code>Unknown</code>.</li>
+</ul>
+
+<h3>Answer 2: the render prop</h3>
+
+<p>Same problem, opposite shape. Instead of wrapping a component, you pass a <em>function</em> as a prop (usually <code>children</code>) and call it with the data.</p>
+
+<pre><code>function Auth({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    fetchCurrentUser().then(u =&gt; { setUser(u); setLoading(false); });
+  }, []);
+
+  if (loading) return &lt;Spinner /&gt;;
+  if (!user) return &lt;Redirect to="/login" /&gt;;
+  return children(user);          <span class="cm">// 👈 children is a FUNCTION</span>
+}
+
+<span class="cm">// used like:</span>
+&lt;Auth&gt;{user =&gt; &lt;Dashboard user={user} /&gt;}&lt;/Auth&gt;</code></pre>
+
+<p>This fixed real things. No prop collisions — you name the argument yourself. Totally explicit about where <code>user</code> comes from; it's right there in the JSX. Dynamic, since you decide at call time what to render.</p>
+
+<p>But it introduced its own misery: <strong>the pyramid</strong>. Need three of them?</p>
+
+<pre><code>&lt;Auth&gt;{user =&gt;
+  &lt;Theme&gt;{theme =&gt;
+    &lt;Router&gt;{router =&gt;
+      &lt;Dashboard user={user} theme={theme} route={router.path} /&gt;
+    }&lt;/Router&gt;
+  }&lt;/Theme&gt;
+}&lt;/Auth&gt;</code></pre>
+
+<p>Callback hell, wearing a JSX costume. Your indentation grows with your dependencies, and there's no way to use one value in a condition <em>outside</em> the JSX tree without more contortions.</p>
+
+<h3>Answer 3 (2019): the hook</h3>
+
+<pre><code>function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    fetchCurrentUser().then(u =&gt; { setUser(u); setLoading(false); });
+  }, []);
+
+  return { user, loading };
+}
+
+function Dashboard() {
+  const { user, loading } = useAuth();     <span class="cm">// 👈 explicit, flat, renameable</span>
+  const theme = useTheme();
+  const route = useRoute();
+
+  if (loading) return &lt;Spinner /&gt;;
+  if (!user) return &lt;Redirect to="/login" /&gt;;
+  return &lt;h1&gt;Hi {user.name}&lt;/h1&gt;;
+}
+</code></pre>
+
+<p>Look at what happened. Three shared behaviours, three lines, zero nesting. No collision — <code>useAuth()</code> returns a value and <em>you</em> name it, so two hooks returning <code>user</code> is a non-issue. No mystery props — you can see the source of every value on the line where it's defined. No extra components in the tree at all: hooks add zero nodes, which is why the DevTools tree finally became readable again.</p>
+
+<p>That's the story to tell if you're asked "why did hooks happen?" Both older patterns worked around the same limitation — <em>stateful logic could only live in a component</em> — by creating extra components. Hooks removed the limitation instead of working around it. Everything else about hooks follows from that.</p>
+
+<div class="callout iv">
+<span class="ct">In an interview</span>
+<p>Bonus point if you name the fourth pattern: <strong>mixins</strong>, from <code>React.createClass</code>, the pre-2016 answer. They were removed because mixins could silently stomp on each other's state, and you couldn't tell which mixin owned which method. The React team's blog post "Mixins Considered Harmful" is what motivated HOCs in the first place. Every pattern in this section is an attempt at the same problem, and the arc — mixins → HOCs → render props → hooks — is a very satisfying 90-second answer.</p>
+</div>
+
+<h3>When would you still write an HOC?</h3>
+
+<p>Not "never" — and "never" is the answer that gets you a follow-up. There are cases where hooks genuinely can't help, because they can only run <em>inside</em> a component, and sometimes you need to change something <em>about</em> a component from the outside.</p>
+
+<ul>
+  <li><strong>You use them daily already.</strong> <code>React.memo(Component)</code> is an HOC. So is <code>forwardRef</code>, and <code>connect()</code> from react-redux.</li>
+  <li><strong>Wrapping a subtree in structure it can't wrap itself in.</strong> <code>withErrorBoundary(Widget)</code> — by the time a hook runs, the component is already rendering, so it can't put a boundary <em>around</em> itself. Same for deciding not to render the component at all.</li>
+  <li><strong>Feeding a class component.</strong> Classes can't call hooks, so an HOC is the only route — including for error boundaries, which are still classes.</li>
+</ul>
+
+<p>The crisp version: <strong>use a hook when you're sharing <em>logic</em>; use an HOC when you're wrapping the component in <em>structure</em> it can't wrap itself in.</strong></p>
+
+<p>Render props, meanwhile, aren't fully dead either — they're just narrower. Any time the shared thing includes JSX rather than only data, the pattern reappears: virtualised list libraries call you back per row, <code>&lt;Formik&gt;</code>-style form libraries hand you field state, and the modern descendant is the "children as a function" API you see in headless component libraries. Same idea, better taste about when to use it.</p>
+
+<hr class="sec">
+
+<h2>11. Model answers</h2>
+
+<p>Say these out loud once. They're written for speaking, not reading.</p>
+
+<div class="model">
+<span class="ct">Model answer — concurrent rendering</span>
+<p>"Before React 18, rendering was one synchronous, uninterruptible pass — once React started walking the tree, the browser couldn't paint or handle input until it finished. So a heavy render would visibly freeze the input box. Concurrent rendering means React can start a render, yield back to the browser to handle something urgent, and then resume or throw the partial work away. It's all still one thread — this is prioritisation, not parallelism. The way you use it is by telling React which updates are urgent, like typing, and which are transitions, like re-filtering a big list."</p>
+<p class="why"><strong>Why it lands:</strong> it starts from the problem rather than the API, it explicitly kills the multithreading misconception before they can ask, and it ends on the practical hook — which invites the natural <code>useTransition</code> follow-up on your terms.</p>
+</div>
+
+<div class="model">
+<span class="ct">Model answer — Suspense</span>
+<p>"Suspense is a boundary that catches 'not ready yet' from anywhere in its subtree, the same way an error boundary catches errors. A component suspends by signalling that it's waiting on a promise — internally it throws one — and React renders the nearest boundary's fallback until that resolves, then retries. The everyday use is <code>React.lazy</code> for code splitting. For data, the mechanism is stable but React doesn't ship a cache, so in practice you get it through a framework or a library like React Query. On the server, the same boundaries are also the streaming chunks — the shell goes out immediately and slow sections stream in later."</p>
+<p class="why"><strong>Why it lands:</strong> it defines Suspense by its <em>mechanism</em>, not its syntax, and the honest note about the missing cache signals you've actually built with it rather than read the announcement post.</p>
+</div>
+
+<div class="model">
+<span class="ct">Model answer — error boundaries</span>
+<p>"An error boundary is a component that catches errors thrown during rendering, in lifecycle methods, and in constructors anywhere below it, and renders a fallback instead of letting the whole app unmount. The rule for what it doesn't catch is simple: if React isn't on the stack, React can't catch it — so event handlers, anything async like setTimeout or a promise, server-side rendering, and errors thrown by the boundary itself. It has to be a class because there's still no hook version of <code>getDerivedStateFromError</code>, so in practice I use <code>react-error-boundary</code>. For async errors I catch them myself, put them in state, and re-throw during render so they land in the same boundary."</p>
+<p class="why"><strong>Why it lands:</strong> the four exclusions are the follow-up they were already planning, and giving the <em>principle</em> before the list shows understanding. The re-throw pattern is the detail that reads as production experience.</p>
+</div>
+
+<h2>12. Remaining follow-ups</h2>
+
+<p>Click to reveal. Try to answer each before you open it.</p>
+
+<details class="qa">
+<summary>Does concurrent React make my app faster?</summary>
+<p>No — usually marginally slower in total work. Interruption has overhead, and abandoned renders are wasted computation. What it improves is <em>perceived</em> performance: the urgent work stops being stuck behind the slow work. If your render is slow because of an O(n²) loop, concurrency won't save you; fix the loop. Concurrency is a scheduling tool, not an optimisation.</p>
+</details>
+
+<details class="qa">
+<summary>How does React actually yield to the browser mid-render?</summary>
+<p>It renders in small units of work (one fiber at a time) and checks a deadline — roughly every 5ms — asking "should I yield?" If yes, it stops, schedules a continuation via a task (<code>MessageChannel</code> is the mechanism the scheduler uses), and lets the browser process input and paint. Then it picks up where it left off. This is why it's called "time slicing." Note it only works during the render phase — the <em>commit</em> phase, where React actually mutates the DOM, is still synchronous and uninterruptible, because a partially-committed DOM would be visibly broken.</p>
+</details>
+
+<details class="qa">
+<summary>Do I have to opt into concurrent features?</summary>
+<p>You opt into the concurrent <em>renderer</em> by using <code>createRoot</code> instead of the old <code>ReactDOM.render</code> — that alone gives you automatic batching and makes concurrent features available. But no update is treated as a transition until you mark it, so an app that just switches to <code>createRoot</code> behaves almost identically. There's no "concurrent mode" switch anymore; that was the old, abandoned framing. It's "concurrent features", adopted one at a time.</p>
+</details>
+
+<details class="qa">
+<summary>Can I put a Suspense boundary anywhere?</summary>
+<p>Anywhere above the suspending component. The one that surprises people: a boundary <em>doesn't</em> catch a component that suspends if you place the boundary in the same component that suspends — it has to be an ancestor in the tree. Also, if there's no boundary at all, the suspension propagates to the root and you get an error telling you a component suspended while no fallback was shown. And a boundary you add <em>inside</em> the lazy component's own module won't help it load, since that module isn't there yet.</p>
+</details>
+
+<details class="qa">
+<summary>What happens to state inside a Suspense boundary when it re-suspends?</summary>
+<p>This is a nice depth question. When an already-visible boundary suspends again (say a filter change triggers a new fetch), React hides the existing DOM with <code>display: none</code> rather than unmounting it, and shows the fallback. State is preserved, so when it un-suspends you get your scroll position and inputs back. If you'd rather avoid the fallback flash entirely on a subsequent update, wrap the update in <code>startTransition</code> — React then keeps showing the old content while the new content loads. That's the same "stale while revalidating" feel as <code>useDeferredValue</code>, and it's not a coincidence.</p>
+</details>
+
+<details class="qa">
+<summary>Why does React unmount the whole tree on an uncaught error instead of just that component?</summary>
+<p>Because a component that threw mid-render left React unable to know what the correct UI is. Rendering the rest of the tree around a hole risks showing something wrong — the classic example being a payments or banking UI displaying a stale or partial value. The React team judged that a blank screen is a loud, visible failure, whereas a subtly corrupted UI is a silent one. The whole point is to make you add boundaries where you've decided a partial failure is acceptable.</p>
+</details>
+
+<details class="qa">
+<summary>Can an error boundary catch errors from a component inside a portal?</summary>
+<p>Yes. Everything about a portal follows the React tree, and error boundaries operate on the React tree. So a boundary above the component that calls <code>createPortal</code> catches errors thrown inside the portalled content, even though that content lives elsewhere in the DOM. Same for context, same for Suspense. If you can state that as a general rule — "portals move the DOM node, nothing else" — you've answered three questions at once.</p>
+</details>
+
+<details class="qa">
+<summary>Can I render a portal into a node that doesn't exist yet?</summary>
+<p>No — <code>createPortal</code> needs a real DOM node at the moment it renders. If you do <code>document.getElementById('modal-root')</code> and that div isn't in your HTML, you get null and a crash. Two common fixes: put a permanent <code>&lt;div id="modal-root"&gt;&lt;/div&gt;</code> in <code>index.html</code>, or create the node in an effect and render null on the first pass. Watch out with SSR too: <code>document</code> doesn't exist on the server, so portal code needs to be client-only or effect-guarded.</p>
+</details>
+
+<details class="qa">
+<summary>Isn't <code>useDeferredValue</code> just a debounce?</summary>
+<p>No, and it's a better answer than "yes, sort of." A debounce waits a fixed number of milliseconds regardless of how fast the device is — on a fast machine you've added pointless delay; on a slow one 300ms still isn't enough. <code>useDeferredValue</code> has no timer at all. It starts immediately and adapts to the actual machine: if the render finishes in 10ms the value updates in 10ms. It's also interruptible, so a fast typist never queues up work. Different tool, different mechanism, similar-looking result.</p>
+</details>
+
+<details class="qa">
+<summary>If hooks replaced HOCs, why does <code>React.memo</code> still exist as one?</summary>
+<p>Because <code>memo</code> changes something about the component <em>from the outside</em> — whether React bothers to call it at all. A hook runs inside the component, which means by the time a hook could run, the re-render already happened; it's too late to skip it. That's the general dividing line: hooks share logic that runs during a render, HOCs change the rules around the render. <code>forwardRef</code> is the same story — though React 19 makes <code>ref</code> a normal prop, so that particular HOC is on its way out.</p>
+</details>
+
+<details class="qa">
+<summary>What's the difference between a render prop and just passing children?</summary>
+<p>Plain <code>children</code> is JSX the parent renders as-is; it can't receive anything from the parent. A render prop is <em>a function</em>, so the parent can call it with values only the parent knows — the current user, a row index, the open/closed state. The one-line distinction: children is a value, a render prop is a function of a value. And the pattern is not dead, just narrow — it's still the right tool whenever the shared thing is "how to render each item", not just "here's some data."</p>
+</details>
+
+<details class="qa">
+<summary>What's the difference between hydration and selective hydration, in one line each?</summary>
+<p>Hydration: React attaches event handlers and state to server-rendered HTML so it becomes interactive. Selective hydration: React does that per Suspense boundary rather than all at once, and reprioritises to hydrate whichever boundary the user just interacted with — replaying the event so the click isn't lost.</p>
+</details>
+
+<hr class="sec">
+
+<h2 id="cheat">13. Interview cheat sheet</h2>
+
+<p>The morning-of scan. One line each.</p>
+
+<table class="cheat">
+  <tr><td>Concurrent rendering</td><td>React can pause a render, do something urgent, then resume or discard the partial work. One thread — prioritisation, not parallelism.</td></tr>
+  <tr><td>Problem it solves</td><td>A slow render used to block input and painting. Now urgent updates jump the queue. Perceived performance, not raw speed.</td></tr>
+  <tr><td>Urgent vs transition</td><td>Urgent = direct feedback (typing, clicking). Transition = the consequence (filtering, navigating). Everything is urgent by default.</td></tr>
+  <tr><td><code>useTransition</code></td><td><code>[isPending, startTransition]</code>. Wrap the setter to mark the update non-urgent. Callback must be synchronous.</td></tr>
+  <tr><td><code>startTransition</code> (standalone)</td><td>Same thing outside a component. No <code>isPending</code>, since that needs component state.</td></tr>
+  <tr><td><code>useDeferredValue</code></td><td>A lagging copy of a value; React re-renders with the new one at transition priority. Use when you only have the value, not the setter.</td></tr>
+  <tr><td>Choosing between them</td><td>Own the setter → <code>useTransition</code>. Only have the value (a prop) → <code>useDeferredValue</code>.</td></tr>
+  <tr><td>Stale-content pattern</td><td><code>const isStale = value !== deferred</code> → fade the old content instead of replacing it with a skeleton.</td></tr>
+  <tr><td>Suspense</td><td>A boundary that catches "not ready" from its subtree and shows a fallback. The loading twin of an error boundary.</td></tr>
+  <tr><td>"Suspends"</td><td>The component signals it's waiting on a promise (internally, throws it). React unwinds to the nearest boundary, shows the fallback, retries on resolve.</td></tr>
+  <tr><td><code>React.lazy</code></td><td>Wraps a dynamic <code>import()</code>. First render suspends while the chunk downloads, then caches the module. Needs a default export; define at module scope.</td></tr>
+  <tr><td>Suspense for data</td><td>Mechanism is stable; React ships no cache. Get it from a framework, a data library, or <code>use()</code> with a stable promise.</td></tr>
+  <tr><td>Streaming SSR</td><td>Server sends the shell plus fallbacks immediately, streams each Suspense boundary's real HTML as its data resolves. Boundaries = chunks.</td></tr>
+  <tr><td>Selective hydration</td><td>Hydrate per boundary as JS arrives, and jump the queue for whatever the user just clicked, replaying the event.</td></tr>
+  <tr><td>Error boundary catches</td><td>Errors during render, in lifecycle methods, and in constructors — anywhere in the subtree below it.</td></tr>
+  <tr><td>Error boundary does NOT catch</td><td>Event handlers · async code (<code>setTimeout</code>, promises) · SSR · errors in the boundary itself. Principle: if React isn't on the stack, it can't catch it.</td></tr>
+  <tr><td>Why classes</td><td>No hook version of <code>getDerivedStateFromError</code> exists — a hook can't wrap its children's rendering. Use <code>react-error-boundary</code>.</td></tr>
+  <tr><td>The two methods</td><td><code>getDerivedStateFromError</code> = render phase, pure, returns fallback state. <code>componentDidCatch</code> = commit phase, side effects, logging.</td></tr>
+  <tr><td>Catching handler errors</td><td><code>try/catch</code> → store in state → <code>throw</code> during render so the boundary sees it. That's <code>showBoundary()</code>.</td></tr>
+  <tr><td>Portals</td><td><code>createPortal(children, domNode)</code> — different DOM position, same React tree position.</td></tr>
+  <tr><td>Why portals exist</td><td>Ancestors with <code>overflow: hidden</code> clip you; ancestors with <code>transform</code>/<code>opacity</code>/<code>z-index</code> create stacking contexts that trap you.</td></tr>
+  <tr><td>Portal events</td><td>Bubble through the React tree, because React builds the propagation path from the fiber tree, not the DOM. Context and error boundaries follow it too.</td></tr>
+  <tr><td>Portal gotcha</td><td>Native <code>document</code> listeners still follow the real DOM — that's how click-outside handlers break.</td></tr>
+  <tr><td>Portal a11y</td><td>Not included: focus trap, focus restore, <code>role="dialog"</code> + <code>aria-modal</code>, background inert, Esc, scroll lock.</td></tr>
+  <tr><td>HOC</td><td><code>fn(Component) =&gt; Component</code>. Pre-hooks logic sharing. Wrapper hell, prop collisions, opaque prop origins.</td></tr>
+  <tr><td>Render prop</td><td>Pass a function as a prop/children, get called with the data. Fixed collisions, introduced the nesting pyramid.</td></tr>
+  <tr><td>Why hooks won</td><td>Both older patterns worked around "stateful logic must live in a component" by adding components. Hooks removed the limitation. Flat, explicit, no extra tree nodes.</td></tr>
+  <tr><td>HOCs still alive in</td><td><code>React.memo</code>, <code>forwardRef</code>, <code>connect</code>, <code>withErrorBoundary</code>, anything wrapping a class or adding structure a hook can't add from inside.</td></tr>
+</table>
+
+<p style="margin-top:2.4rem;color:var(--ink-faint);font-size:0.95rem;border-top:1px solid var(--rule);padding-top:1.2rem;">One last thing, because it's the thread running through everything above: concurrent rendering, Suspense, streaming, and selective hydration are not four features. They're one capability — <em>React can stop rendering partway through and come back later</em> — pointed at four different problems. If you can trace that connection out loud in an interview, you've said something most candidates can't. 🎯</p>
+
+</div>
+</body>
+</html>

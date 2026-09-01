@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bundlers: Webpack, Vite &amp; What Actually Happens on Build</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --ink: #24232a;
+    --muted: #5d5b68;
+    --rule: #e4e0d8;
+    --accent: #6b4bd6;
+    --accent-soft: #f1ecff;
+    --code-bg: #262433;
+    --code-ink: #e9e6f5;
+    --green: #1f7a4d;
+    --green-soft: #eaf6ef;
+    --red: #b0303a;
+    --red-soft: #fdeeee;
+    --amber: #8a6100;
+    --amber-soft: #fdf4e0;
+    --blue: #1f5f9e;
+    --blue-soft: #ecf3fb;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 56px 22px 120px;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 14px;
+  }
+
+  .standfirst {
+    font-size: 1.16rem;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.22;
+    letter-spacing: -0.017em;
+    margin: 68px 0 6px;
+    padding-top: 22px;
+    border-top: 3px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 1.24rem;
+    line-height: 1.3;
+    margin: 40px 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 28px 0 2px;
+    letter-spacing: 0.01em;
+  }
+
+  p { margin: 16px 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.875em;
+  }
+
+  p code, li code, td code, h3 code, h4 code, summary code {
+    background: #efece5;
+    border-radius: 4px;
+    padding: 1.5px 5px;
+    color: #45306e;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 9px;
+    overflow-x: auto;
+    line-height: 1.6;
+    font-size: 0.93rem;
+    margin: 6px 0 20px;
+  }
+
+  pre code { font-size: 0.88rem; background: none; padding: 0; color: inherit; }
+
+  .cmt { color: #9b96b8; }
+  .str { color: #b6e2a1; }
+  .kw  { color: #f2a0d0; }
+  .fn  { color: #8fd0f5; }
+
+  .label {
+    display: inline-block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 11px;
+    border-radius: 6px 6px 0 0;
+    margin-top: 22px;
+  }
+  .label.bad  { background: var(--red-soft);   color: var(--red);   border: 1px solid #f0cccc; border-bottom: none; }
+  .label.good { background: var(--green-soft); color: var(--green); border: 1px solid #c6e3d2; border-bottom: none; }
+  .label + pre { margin-top: 0; border-top-left-radius: 0; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 4px 20px 6px;
+    margin: 26px 0;
+    border: 1px solid;
+  }
+  .callout > .t {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 14px 0 -6px;
+    letter-spacing: 0.005em;
+  }
+  .callout p { font-size: 0.98rem; }
+
+  .what   { background: var(--blue-soft);  border-color: #cfe0f2; }
+  .what > .t { color: var(--blue); }
+
+  .miscon { background: var(--red-soft);   border-color: #f3d3d3; }
+  .miscon > .t { color: var(--red); }
+
+  .hood   { background: #f2f0ec;           border-color: var(--rule); }
+  .hood > .t { color: #574f66; }
+
+  .iview  { background: var(--accent-soft); border-color: #ddd2fb; }
+  .iview > .t { color: var(--accent); }
+
+  .answer {
+    background: #fff;
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 2px 18px;
+    margin: 14px 0;
+    font-size: 1rem;
+  }
+  .answer .who {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-weight: 700;
+    display: block;
+    margin-top: 14px;
+  }
+
+  .why-lands {
+    font-size: 0.93rem;
+    color: var(--muted);
+    border-top: 1px dashed #d5cbf3;
+    padding-top: 10px;
+    margin-top: 6px;
+  }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 18px;
+    margin: 14px 0;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    font-size: 1rem;
+  }
+  details[open] summary { margin-bottom: 4px; }
+  details p:first-of-type { margin-top: 10px; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 8px 26px 20px;
+    margin: 34px 0 0;
+  }
+  .toc h2 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: none;
+    margin: 18px 0 6px;
+    padding: 0;
+    color: var(--muted);
+  }
+  .toc ol { padding-left: 22px; margin: 0; }
+  .toc li { margin: 5px 0; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  figure { margin: 28px 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.89rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    margin: 22px 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+  .cheat { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 4px 24px 18px; }
+  .cheat dt { font-weight: 700; margin-top: 16px; }
+  .cheat dd { margin: 3px 0 0; color: #37343f; }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+
+  .big-q { font-size: 1.06rem; font-weight: 650; margin-bottom: 0; }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.42rem; }
+    .wrap { padding: 34px 16px 80px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Bundlers: Webpack, Vite &amp; What Actually Happens on Build</h1>
+<p class="standfirst">You type <code>npm run build</code>, a progress bar chugs along, and a <code>dist/</code> folder appears with files named <code>index-a4f9c2b1.js</code>. This guide is about the several thousand things that happened in between — and how to talk about them out loud.</p>
+
+<p>Here's the uncomfortable thing about build tools: almost every frontend developer uses one every single day, and almost none of us can explain what it does. We copied a config from a template three years ago, it worked, and we never looked again.</p>
+
+<p>Interviewers know this. That's <em>exactly</em> why they ask. "What does a bundler actually do?" is a fantastic question precisely because it separates people who've internalised how the web works from people who've memorised commands. And the good news is that the underlying ideas are genuinely simple — much simpler than webpack's config file makes them look.</p>
+
+<p>We're going to build the whole thing up from a web page with no build step at all. By the end you'll be able to hold a real conversation about tree shaking, code splitting, why Vite feels like magic, and why putting your Stripe secret key in a <code>.env</code> file is one of the fastest ways to leak it.</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#why">Life before bundlers (and why we couldn't stay there)</a></li>
+    <li><a href="#four-jobs">The four jobs of a bundler</a></li>
+    <li><a href="#still-need">"But we have HTTP/2 and native modules now…"</a></li>
+    <li><a href="#tree-shaking">Tree shaking, and why CommonJS ruins it</a></li>
+    <li><a href="#code-splitting">Code splitting and dynamic <code>import()</code></a></li>
+    <li><a href="#webpack-vite">Webpack vs Vite: the real difference</a></li>
+    <li><a href="#loaders-plugins">Loaders vs plugins</a></li>
+    <li><a href="#babel">Babel, transpiling, and polyfills</a></li>
+    <li><a href="#source-maps">Source maps</a></li>
+    <li><a href="#env">Environment variables (the one people get wrong)</a></li>
+    <li><a href="#hmr">How HMR actually works</a></li>
+    <li><a href="#federation">Module federation &amp; micro-frontends</a></li>
+    <li><a href="#rust">esbuild, SWC, Turbopack: the native rewrite</a></li>
+    <li><a href="#big-bundle">"Why is my bundle so big?"</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="why">1. Life before bundlers (and why we couldn't stay there)</h2>
+
+<p>Let me show you a real <code>index.html</code> from about 2012. This is not a strawman; this is what a serious app looked like.</p>
+
+<pre><code>&lt;script src="js/jquery.js"&gt;&lt;/script&gt;
+&lt;script src="js/underscore.js"&gt;&lt;/script&gt;
+&lt;script src="js/backbone.js"&gt;&lt;/script&gt;
+&lt;script src="js/utils.js"&gt;&lt;/script&gt;
+&lt;script src="js/models/user.js"&gt;&lt;/script&gt;
+&lt;script src="js/models/cart.js"&gt;&lt;/script&gt;
+&lt;script src="js/views/cart-view.js"&gt;&lt;/script&gt;
+&lt;script src="js/app.js"&gt;&lt;/script&gt;
+&lt;!-- ...and 30 more of these --&gt;</code></pre>
+
+<p>Take a second and look at that. There are four separate problems hiding in it, and I want to name each one properly, because <em>every single feature</em> of a modern bundler exists to solve one of them.</p>
+
+<h3>Problem 1: the ordering is load-bearing and invisible</h3>
+
+<p>Those <code>&lt;script&gt;</code> tags run top to bottom. <code>cart-view.js</code> uses <code>Backbone</code>, so <code>backbone.js</code> has to come first. <code>backbone.js</code> uses <code>_</code>, so <code>underscore.js</code> has to come before <em>that</em>.</p>
+
+<p>The dependency information is real — it exists — but it lives nowhere except in a developer's head and in the ordering of an HTML file. Move one line and you get <code>Uncaught ReferenceError: Backbone is not defined</code> at runtime, in production, on a Friday. There's no compiler checking this. There's no import statement to grep for.</p>
+
+<h3>Problem 2: everything shares one global namespace</h3>
+
+<p>In that world, the only way for <code>cart.js</code> to give something to <code>cart-view.js</code> is to hang it off <code>window</code>:</p>
+
+<pre><code><span class="cmt">// cart.js</span>
+<span class="kw">var</span> Cart = { items: [] };   <span class="cmt">// 👈 this is now window.Cart, globally, forever</span></code></pre>
+
+<p>Two libraries both wanting the name <code>$</code>? One silently overwrites the other. A junior dev writes <code>var utils = ...</code> at the top level of a file? Congratulations, you've just replaced the app's shared utils object. Every file can reach into and clobber every other file's variables. There is no privacy and no encapsulation.</p>
+
+<div class="callout hood">
+  <p class="t">Under the hood: the IIFE workaround</p>
+  <p>People got clever about this before modules existed. You'd wrap a file in an immediately-invoked function expression — <code>(function(){ ... })()</code> — so its variables were trapped inside a function scope instead of leaking globally, and then deliberately export just one name to <code>window</code> at the end. That's the "module pattern". It worked, but it was a convention people had to remember, not something the language enforced.</p>
+</div>
+
+<h3>Problem 3: one HTTP request per file</h3>
+
+<p>Forty script tags is forty round trips to the server. Under HTTP/1.1 browsers only opened about six connections per domain, so those requests queued up in batches. Each one carried its own headers, its own latency. On a phone on 3G, the network round-trip time dwarfed the actual download time — you spent more time saying "hello, may I have utils.js please" than you spent receiving utils.js.</p>
+
+<p>So people wrote build scripts (Grunt, Gulp, or a bash one-liner) that literally concatenated all the files into one <code>app.js</code>. That's the primordial bundler: <code>cat *.js &gt; app.js</code>. It fixed the request count and did absolutely nothing for problems 1 and 2 — in fact it made ordering <em>worse</em>, because now the order lived in a Gruntfile.</p>
+
+<h3>Problem 4: you can't use anything from npm</h3>
+
+<p>This one is the killer. npm has a few million packages. Essentially all of them are written as <em>modules</em> — they say <code>require('lodash')</code> or <code>import React from 'react'</code>. A browser has no idea what <code>'lodash'</code> means. It's not a URL. There's no <code>node_modules</code> folder on the web. Without a tool, the entire npm ecosystem is off-limits.</p>
+
+<h3>Then modules arrived — and only solved half of it</h3>
+
+<p>ES Modules (ESM) landed in the language around 2015 and they're genuinely lovely. Each file gets its own scope. Dependencies are declared explicitly, in the file that needs them:</p>
+
+<pre><code><span class="cmt">// cart-view.js</span>
+<span class="kw">import</span> { formatPrice } <span class="kw">from</span> <span class="str">'./utils.js'</span>;
+<span class="kw">import</span> { cart } <span class="kw">from</span> <span class="str">'./cart.js'</span>;</code></pre>
+
+<p>Problems 1 and 2 — gone. Ordering is now derivable by a machine, and nothing leaks to <code>window</code>.</p>
+
+<p>But hm. Problems 3 and 4 are still sitting right there, and modules actually made problem 3 <em>worse</em>. If every file imports two other files and the browser fetches each one separately as it discovers them, you don't get 40 requests — you get 900, arriving in waves, each wave blocked until the previous one parses. And <code>import React from 'react'</code> is still not a URL a browser can fetch.</p>
+
+<p>That gap — "modules are a beautiful way to write code and a terrible way to ship code" — is the bundler-shaped hole.</p>
+
+<h2 id="four-jobs">2. The four jobs of a bundler</h2>
+
+<p>Here's the mental model I want you to carry around. A bundler is given <strong>one starting file</strong> — the entry point, usually <code>src/main.jsx</code> — and it does this:</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Diagram: an entry file's imports are followed recursively to build a dependency graph, then flattened into output bundles">
+  <rect x="8" y="8" width="684" height="284" rx="10" fill="#ffffff" stroke="#e4e0d8"/>
+
+  <text x="30" y="36" font-family="sans-serif" font-size="12" font-weight="700" fill="#5d5b68">1. WALK THE GRAPH</text>
+
+  <rect x="30" y="52" width="112" height="34" rx="6" fill="#f1ecff" stroke="#6b4bd6"/>
+  <text x="86" y="74" font-family="sans-serif" font-size="12.5" text-anchor="middle" fill="#45306e">main.jsx</text>
+
+  <line x1="142" y1="60" x2="196" y2="40" stroke="#a99ec9" stroke-width="1.6"/>
+  <line x1="142" y1="69" x2="196" y2="105" stroke="#a99ec9" stroke-width="1.6"/>
+  <line x1="142" y1="78" x2="196" y2="168" stroke="#a99ec9" stroke-width="1.6"/>
+
+  <rect x="196" y="24" width="108" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="250" y="44" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">App.jsx</text>
+
+  <rect x="196" y="90" width="108" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="250" y="110" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">react</text>
+
+  <rect x="196" y="153" width="108" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="250" y="173" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">styles.css</text>
+
+  <line x1="304" y1="34" x2="352" y2="34" stroke="#a99ec9" stroke-width="1.6"/>
+  <line x1="304" y1="44" x2="352" y2="76" stroke="#a99ec9" stroke-width="1.6"/>
+  <line x1="304" y1="105" x2="352" y2="120" stroke="#a99ec9" stroke-width="1.6"/>
+
+  <rect x="352" y="19" width="104" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="404" y="39" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">Cart.jsx</text>
+
+  <rect x="352" y="61" width="104" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="404" y="81" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">utils.js</text>
+
+  <rect x="352" y="105" width="104" height="30" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="404" y="125" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">scheduler</text>
+
+  <path d="M470 78 L510 78" stroke="#6b4bd6" stroke-width="2"/>
+  <path d="M503 72 L512 78 L503 84 Z" fill="#6b4bd6"/>
+
+  <text x="530" y="36" font-family="sans-serif" font-size="12" font-weight="700" fill="#5d5b68">2. EMIT</text>
+
+  <rect x="530" y="48" width="140" height="30" rx="6" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="600" y="68" font-family="monospace" font-size="11.5" text-anchor="middle" fill="#1f7a4d">index-a4f9c2.js</text>
+
+  <rect x="530" y="86" width="140" height="30" rx="6" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="600" y="106" font-family="monospace" font-size="11.5" text-anchor="middle" fill="#1f7a4d">vendor-91be07.js</text>
+
+  <rect x="530" y="124" width="140" height="30" rx="6" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="600" y="144" font-family="monospace" font-size="11.5" text-anchor="middle" fill="#1f7a4d">index-3fd1aa.css</text>
+
+  <line x1="30" y1="210" x2="670" y2="210" stroke="#e4e0d8"/>
+  <text x="30" y="236" font-family="sans-serif" font-size="12.5" fill="#37343f">Along the way, for every single module it touches:</text>
+  <text x="42" y="258" font-family="sans-serif" font-size="12.5" fill="#5d5b68">resolve  →  transform  →  add to graph  →  (later) optimise</text>
+  <text x="42" y="278" font-family="sans-serif" font-size="11.5" fill="#8a8598">"where is it?"   "make it JS"      "remember it"      "make it small"</text>
+</svg>
+<figcaption>The bundler starts at one file and follows every import until it runs out of imports.</figcaption>
+</figure>
+
+<p>Let's name the four jobs explicitly, because interviewers love it when you can enumerate them.</p>
+
+<h3>Job 1 — Module resolution</h3>
+
+<p>When the bundler sees <code>import { formatPrice } from './utils'</code>, it has to turn that string into an actual file on disk. Is it <code>./utils.js</code>? <code>./utils.ts</code>? <code>./utils/index.js</code>? And when it sees <code>import React from 'react'</code> — a "bare specifier", with no <code>./</code> — it walks up looking for <code>node_modules/react</code>, opens that package's <code>package.json</code>, and reads fields like <code>main</code>, <code>module</code>, or the modern <code>exports</code> map to decide which file is really the entry point.</p>
+
+<p>This is the job the browser fundamentally cannot do. The browser has no filesystem and no <code>node_modules</code>. <strong>Resolution is the reason you can't just delete your build step.</strong></p>
+
+<h3>Job 2 — Transformation</h3>
+
+<p>Your source files often aren't things a browser understands. JSX isn't JavaScript. TypeScript isn't JavaScript. A <code>.css</code> file isn't JavaScript at all, and neither is that PNG you imported. Each file gets run through whatever transformation it needs on the way into the graph: JSX compiled to function calls, TS types stripped, Sass compiled to CSS, small images inlined as base64 data URLs.</p>
+
+<h3>Job 3 — Bundling</h3>
+
+<p>Now the bundler has a graph of modules in the right order. It flattens them into one or more output files, wrapping each module so it keeps its own scope, and wiring the imports up to actual references. Roughly — <em>very</em> roughly — it produces something with this shape:</p>
+
+<pre><code><span class="cmt">// a wildly simplified picture of bundle output</span>
+<span class="kw">const</span> modules = {
+  <span class="str">'./utils.js'</span>: (exports) =&gt; { exports.formatPrice = (n) =&gt; <span class="str">`$${n}`</span>; },
+  <span class="str">'./cart.js'</span>:  (exports, require) =&gt; {
+    <span class="kw">const</span> { formatPrice } = require(<span class="str">'./utils.js'</span>);  <span class="cmt">// 👈 import became a lookup</span>
+    <span class="cmt">// ...</span>
+  },
+};
+require(<span class="str">'./main.js'</span>);  <span class="cmt">// kick it off at the entry point</span></code></pre>
+
+<p>The key insight: each module ends up inside a function, so its variables stay private. The bundler has recreated module scope using nothing but plain function scope. That's how bundlers shipped ESM semantics to browsers that had never heard of ESM.</p>
+
+<h3>Job 4 — Optimisation</h3>
+
+<p>Finally the output gets squeezed. <strong>Minification</strong> strips whitespace, comments, and shortens things. <strong>Mangling</strong> renames local variables — <code>const currentUserProfile</code> becomes <code>const e</code> — which is safe precisely because module scope guarantees nobody outside can be referencing that name. Dead code is dropped (that's tree shaking, section 4). And each output file gets a <strong>content hash</strong> in its filename.</p>
+
+<div class="callout what">
+  <p class="t">Wait — why the weird hash in the filename?</p>
+  <p>It's for caching, and it's a lovely trick. You tell the CDN "cache <code>index-a4f9c2b1.js</code> forever, it will never change" — because if the contents ever change, the hash changes, so it's a <em>different filename</em>. Users get aggressive caching with zero risk of stale code. If you shipped a plain <code>app.js</code> you'd have to choose between caching it (and serving stale code after a deploy) or not caching it (and re-downloading it every visit). The hash lets you have both. This is called <strong>long-term caching</strong> or <strong>cache busting</strong>, and it's a great thing to mention unprompted.</p>
+</div>
+
+<h2 id="still-need">3. "But we have HTTP/2 and native modules now — do we still need a bundler?"</h2>
+
+<p>This is a genuinely good question and an increasingly common interview probe, because it sounds like a gotcha. Every browser has supported <code>&lt;script type="module"&gt;</code> since 2018. HTTP/2 multiplexes requests over one connection, so the "six connections" limit is gone. So can we just… ship source files?</p>
+
+<p>The honest answer is: <strong>for a small side project, yes, genuinely. For a real app, no — and here's specifically why.</strong></p>
+
+<p>Give five reasons and you've answered better than 90% of candidates:</p>
+
+<ol>
+  <li><strong>npm resolution.</strong> <code>import React from 'react'</code> still isn't a URL. Import maps help, but you'd be hand-maintaining a map of every transitive dependency your dependencies have. Something has to walk <code>node_modules</code>.</li>
+  <li><strong>Non-JS assets.</strong> CSS modules, SVG-as-component, TypeScript, JSX, importing a JSON file. None of that is native.</li>
+  <li><strong>Minification.</strong> Unminified React app source is routinely 3–5× larger over the wire. HTTP/2 doesn't make bytes smaller.</li>
+  <li><strong>Tree shaking.</strong> Only possible when someone analyses the whole graph and drops what's unused. Nothing at runtime does that for you.</li>
+  <li><strong>Request count still matters.</strong> HTTP/2 removed the connection limit, not latency. A thousand small modules means a thousand request/response cycles, each with a discovery step — the browser can't request <code>c.js</code> until it has parsed <code>b.js</code> and seen the import. You get a <strong>waterfall</strong>: a deep dependency chain becomes a deep sequential chain of round trips. Ten levels deep on a 100 ms connection is a full second of doing nothing.</li>
+</ol>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Why do we still need bundlers?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"Bundling started out as a workaround for HTTP/1 request limits, and that specific reason is mostly gone. But four other reasons aren't. Browsers can't resolve <code>node_modules</code>, so something has to turn bare imports into real paths. Browsers can't handle JSX, TypeScript, or CSS imports. Minification and tree shaking need a tool that sees the whole graph. And even on HTTP/2, deep import chains cause a request waterfall, because the browser can only discover a module after parsing the one that imports it. So the <em>reason</em> changed, but the need didn't."</p>
+  </div>
+  <p class="why-lands">Why this lands: you're showing you know the history <em>and</em> that you've reasoned about whether the old justification still holds. The waterfall point in particular signals you understand how the browser discovers modules, not just that "bundling is faster".</p>
+</div>
+
+<h2 id="tree-shaking">4. Tree shaking, and why CommonJS ruins it</h2>
+
+<p>Let's start with the surprise. You import one tiny function:</p>
+
+<pre><code><span class="kw">import</span> _ <span class="kw">from</span> <span class="str">'lodash'</span>;
+
+<span class="kw">const</span> total = _.sumBy(cart.items, <span class="str">'price'</span>);</code></pre>
+
+<p>You used one function. You shipped <strong>about 70 KB minified</strong> of lodash to every user. Meanwhile your colleague wrote this:</p>
+
+<pre><code><span class="kw">import</span> { sumBy } <span class="kw">from</span> <span class="str">'lodash-es'</span>;
+
+<span class="kw">const</span> total = sumBy(cart.items, <span class="str">'price'</span>);</code></pre>
+
+<p>…and shipped about 2 KB. Same library. Same function. Same bundler. Why?</p>
+
+<h3>The name first, because the name is the mental model</h3>
+
+<p>Picture your app as a tree. The entry point is the trunk. Every import branches off it, and those branch further, until you reach leaves — individual functions and constants. Now grab the trunk and <strong>shake it</strong>. Anything still firmly attached — anything actually reachable from the trunk — stays. The dead stuff, the bits not really connected, falls off.</p>
+
+<p>That's it. Tree shaking is dead-code elimination across the whole module graph: <em>if nothing reachable from the entry point uses this export, don't include it in the bundle.</em></p>
+
+<p>(The analogy breaks down in one place worth knowing: a real tree's dead leaves fall because they're weakly attached, whereas the bundler is making a deliberate reachability decision. And unlike a tree, this analysis happens without ever running the code — which turns out to be the whole ballgame.)</p>
+
+<h3>Why it requires ESM — the actual reason</h3>
+
+<p>This is the follow-up interviewers use to sort people, so let's get it precisely right.</p>
+
+<p>ES Module imports are <strong>static</strong>. That's a specific technical claim, not a vibe. It means:</p>
+
+<ul>
+  <li>They can only appear at the top level of a module — never inside an <code>if</code>, never inside a function.</li>
+  <li>The module specifier must be a string literal. You cannot write <code>import x from someVariable</code>.</li>
+  <li>Which names are imported and exported is fixed and knowable <em>before the code runs</em>.</li>
+</ul>
+
+<p>Those restrictions felt annoying when ESM shipped. They're the entire point. Because imports are static, a tool can parse your file, build the complete graph of who-uses-what, and prove that <code>sumBy</code> is used and <code>debounce</code> isn't — <strong>without executing a single line</strong>. That's called static analysis.</p>
+
+<p>Now here's CommonJS, the module system Node invented years before ESM existed and which most of npm still ships:</p>
+
+<pre><code><span class="cmt">// CommonJS — this is all just... normal runtime code</span>
+<span class="kw">const</span> _ = require(<span class="str">'lodash'</span>);
+
+<span class="kw">if</span> (user.isAdmin) {
+  <span class="kw">const</span> admin = require(<span class="str">'./admin-tools'</span>);   <span class="cmt">// 👈 conditional import!</span>
+}
+
+<span class="kw">const</span> name = process.env.WIDGET;
+<span class="kw">const</span> widget = require(<span class="str">`./widgets/${name}`</span>);   <span class="cmt">// 👈 the path is computed at runtime</span></code></pre>
+
+<p><code>require</code> is not syntax. It's <em>a function call</em>. It can be called anywhere, conditionally, in a loop, with a path built from a template string, from a variable, from data fetched off the network. And <code>module.exports</code> is just an object you can mutate at runtime — a module can add exports inside an <code>if</code> statement.</p>
+
+<p>So ask yourself: could a tool look at that third example and tell you which widget files are used? It cannot. It would have to run the program, with the real environment, with all possible inputs, to know. That's not static analysis; that's just… running your app. Which the bundler can't do.</p>
+
+<div class="callout miscon">
+  <p class="t">A common misconception</p>
+  <p>"CommonJS can't be tree-shaken because bundlers didn't bother implementing it." No — it's not a missing feature, it's an <strong>information-theoretic</strong> limitation. The information a bundler needs (which exports are used) genuinely does not exist in a CommonJS file until runtime. Modern bundlers do try heuristic analysis of simple CJS patterns, but they must be conservative: when in doubt they keep everything, because dropping a module that <em>might</em> be needed would break your app. Being safe means being fat.</p>
+</div>
+
+<p>So back to lodash. The <code>lodash</code> package on npm is CommonJS. The bundler sees an opaque blob it can't safely take apart, so it includes the whole thing. <code>lodash-es</code> is the exact same library published as ES Modules — now every function is a separate statically-analysable export, and everything you didn't reference gets shaken out.</p>
+
+<div class="callout what">
+  <p class="t">Wait — what about <code>import { sumBy } from 'lodash'</code> (no <code>-es</code>)?</p>
+  <p>Good instinct, and it's a trap. Writing named-import syntax doesn't magically make the target package ESM. Your bundler will still resolve <code>'lodash'</code> to a CommonJS file and — depending on the bundler and settings — likely pull in the whole thing. The named-import <em>syntax</em> only helps if the <em>package you're importing</em> is ESM. Check the package's <code>package.json</code> for a <code>"module"</code> field or an <code>"exports"</code> map with an <code>"import"</code> condition. That's the real signal.</p>
+</div>
+
+<h3>Why side effects break tree shaking</h3>
+
+<p>Here's the second half of the story, and it's the part people miss.</p>
+
+<p>Suppose you import one function from a module, and that module also does this at the top level:</p>
+
+<pre><code><span class="cmt">// analytics.js</span>
+<span class="kw">export function</span> trackEvent(name) { <span class="cmt">/* ... */</span> }
+
+window.__ANALYTICS_READY__ = <span class="kw">true</span>;   <span class="cmt">// 👈 a side effect</span>
+document.body.classList.add(<span class="str">'analytics-on'</span>);</code></pre>
+
+<p>Now imagine you import <code>trackEvent</code> but never call it. Can the bundler delete this module entirely? <strong>No.</strong> Because merely <em>evaluating</em> the module changes the world outside itself. Deleting it would remove a class from the body. The bundler has no idea whether your app depends on that.</p>
+
+<p>A "side effect" here means exactly that: anything a module does when it's evaluated, beyond defining its exports. Mutating a global. Registering a custom element. Adding a polyfill to <code>Array.prototype</code>. Importing a CSS file (yes — <code>import './styles.css'</code> is <em>pure</em> side effect; it has no exports at all, and that's the point of it).</p>
+
+<p>So bundlers are conservative: if a module might have side effects, it stays. And this is where the package author has to help you:</p>
+
+<pre><code><span class="cmt">// package.json</span>
+{
+  <span class="str">"name"</span>: <span class="str">"@acme/ui-kit"</span>,
+  <span class="str">"sideEffects"</span>: <span class="kw">false</span>    <span class="cmt">// 👈 a promise, not a setting</span>
+}</code></pre>
+
+<p><code>"sideEffects": false</code> is the author saying: <em>"I promise that importing any file in this package and not using its exports does nothing observable. Feel free to delete any of it."</em> It's a contract. If it's a lie, you get bugs that only appear in production builds — the classic "works in dev, broken after build" nightmare, because dev servers usually don't tree-shake.</p>
+
+<p>If a package has <em>some</em> side-effectful files (nearly always CSS), you list them instead of lying:</p>
+
+<pre><code>  <span class="str">"sideEffects"</span>: [<span class="str">"**/*.css"</span>, <span class="str">"./src/polyfills.js"</span>]</code></pre>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Why can't CommonJS be tree-shaken?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"Tree shaking is static analysis — the bundler has to know which exports are used without running the code. ESM makes that possible because imports are syntax: top-level only, string literal specifiers, fixed binding names. CommonJS <code>require</code> is just a function call, so it can be conditional, in a loop, or take a computed path, and <code>module.exports</code> can be mutated at runtime. The bundler can't prove what's unused, and since guessing wrong breaks the app, it keeps everything. That's why <code>lodash</code> bloats a bundle and <code>lodash-es</code> doesn't."</p>
+  </div>
+  <p class="why-lands">Why this lands: the phrase "guessing wrong breaks the app, so it keeps everything" shows you understand <em>why</em> the tool is conservative. That's the difference between recall and reasoning, and it's usually what the interviewer is actually testing here.</p>
+</div>
+
+<details>
+  <summary>Trap: "tree shaking removes unused code" — why that answer gets dinged</summary>
+  <p>It's not wrong, it's just shallow, and it invites the follow-up you can't answer. Two things elevate it. First, name the mechanism: static analysis of ESM imports at build time. Second, name the limits: it only removes <em>module-level</em> exports that are provably unreachable, and side effects block it. It will not remove an unused branch inside a function you do call — that's the minifier's job (and the minifier can only see one file at a time). Knowing the boundary between "tree shaker" and "minifier" is a genuinely senior distinction.</p>
+</details>
+
+<h2 id="code-splitting">5. Code splitting and dynamic <code>import()</code></h2>
+
+<p>We spent section 1 celebrating the fact that a bundler squashes everything into one file. Now let's un-celebrate it a bit.</p>
+
+<p>Imagine an e-commerce app. There's a product listing page, a checkout flow, and an admin dashboard with a heavyweight charting library. All of it goes into one <code>bundle.js</code> that comes out at 1.4 MB.</p>
+
+<p>A user lands on the homepage. Their browser must download all 1.4 MB, then <em>parse and execute</em> all of it, before anything meaningful appears — because your <code>ReactDOM.render</code> call is at the bottom of it. They're waiting on the admin charting library to be parsed in order to see a list of shoes. They will never open the admin dashboard. They don't have an admin account.</p>
+
+<p>That's the problem. The fix is called <strong>code splitting</strong>: instead of one bundle, emit several, and load each one only when it's actually needed.</p>
+
+<h3>The mechanism: <code>import()</code> as a function</h3>
+
+<p>Static <code>import</code> is syntax. There's also a <em>dynamic</em> <code>import()</code>, which looks like a function call and returns a Promise:</p>
+
+<pre><code>button.addEventListener(<span class="str">'click'</span>, <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> { renderChart } = <span class="kw">await</span> import(<span class="str">'./charts.js'</span>);  <span class="cmt">// 👈 a split point</span>
+  renderChart(salesData);
+});</code></pre>
+
+<p>Here's the crucial bit, and it's the thing to say out loud in an interview: <strong><code>import()</code> is a signal to the bundler, not just a runtime feature.</strong> When the bundler walks the graph and hits a dynamic <code>import()</code>, it doesn't inline that module. It says "ah — a split point" and puts <code>charts.js</code> <em>and everything only it depends on</em> into a separate output file, a <strong>chunk</strong>. Then it rewrites your <code>import()</code> into code that injects a <code>&lt;script&gt;</code> tag (or does a native module import) for that chunk on demand and resolves the promise when it's loaded.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram comparing one large bundle against a small initial bundle plus lazily loaded route chunks">
+  <rect x="8" y="8" width="684" height="234" rx="10" fill="#ffffff" stroke="#e4e0d8"/>
+
+  <text x="30" y="36" font-family="sans-serif" font-size="12" font-weight="700" fill="#b0303a">WITHOUT SPLITTING</text>
+  <rect x="30" y="46" width="380" height="34" rx="5" fill="#fdeeee" stroke="#d99"/>
+  <text x="220" y="68" font-family="sans-serif" font-size="12.5" text-anchor="middle" fill="#b0303a">bundle.js — 1.4 MB — blocks first paint</text>
+  <text x="424" y="68" font-family="sans-serif" font-size="12" fill="#8a8598">← user waits for all of it</text>
+
+  <line x1="30" y1="100" x2="670" y2="100" stroke="#e4e0d8"/>
+
+  <text x="30" y="128" font-family="sans-serif" font-size="12" font-weight="700" fill="#1f7a4d">WITH ROUTE SPLITTING</text>
+
+  <rect x="30" y="138" width="118" height="30" rx="5" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="89" y="158" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f7a4d">shell 90 KB</text>
+  <text x="89" y="182" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#8a8598">loads immediately</text>
+
+  <rect x="164" y="138" width="112" height="30" rx="5" fill="#f4f2ee" stroke="#c9c3b7" stroke-dasharray="4 3"/>
+  <text x="220" y="158" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5d5b68">home 120 KB</text>
+  <text x="220" y="182" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#8a8598">on /</text>
+
+  <rect x="292" y="138" width="118" height="30" rx="5" fill="#f4f2ee" stroke="#c9c3b7" stroke-dasharray="4 3"/>
+  <text x="351" y="158" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5d5b68">checkout 210 KB</text>
+  <text x="351" y="182" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#8a8598">on /checkout</text>
+
+  <rect x="426" y="138" width="118" height="30" rx="5" fill="#f4f2ee" stroke="#c9c3b7" stroke-dasharray="4 3"/>
+  <text x="485" y="158" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5d5b68">admin 640 KB</text>
+  <text x="485" y="182" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#8a8598">almost never</text>
+
+  <rect x="560" y="138" width="110" height="30" rx="5" fill="#f1ecff" stroke="#a99ec9"/>
+  <text x="615" y="158" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#45306e">vendor 140 KB</text>
+  <text x="615" y="182" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#8a8598">cached across deploys</text>
+
+  <text x="30" y="218" font-family="sans-serif" font-size="12" fill="#37343f">Same total bytes. Radically different time-to-first-paint.</text>
+</svg>
+<figcaption>Splitting doesn't reduce total code — it defers the code this user may never need.</figcaption>
+</figure>
+
+<h3>Where should you split? Routes, by default.</h3>
+
+<p>"How do you decide where to code-split?" is a common interview question, and the good answer starts with a principle rather than a list: <strong>split at boundaries the user won't cross in a single session, and where the deferred code is large enough that the extra request is worth it.</strong></p>
+
+<p>In practice that ranks like this:</p>
+
+<ol>
+  <li><strong>Routes.</strong> Almost always the right first move, and often the only one you need. A user on <code>/products</code> demonstrably isn't running <code>/admin</code> code. Route boundaries are natural, obvious, and align with navigation, which the user already expects to take a moment.</li>
+  <li><strong>Heavy conditional UI.</strong> A rich text editor inside a modal that opens 5% of the time. A charting library on a tab. A date picker. If it's big and behind an interaction, split it.</li>
+  <li><strong>Vendor chunks.</strong> Separate your <code>node_modules</code> dependencies from your own code. Your app code changes daily; React doesn't. If they share a file, one typo invalidates the content hash and every returning user re-downloads React. Split them and the vendor chunk stays cached for months.</li>
+</ol>
+
+<p>And a caution, because interviewers like to hear that you know where the idea stops being good: <strong>don't split small things.</strong> Each chunk is another request, and — worse — a chunk that is only discovered <em>after</em> its parent has loaded and run creates exactly the waterfall we complained about in section 3. Fifty 4 KB chunks are meaningfully slower than one 200 KB chunk. Splitting has a fixed cost per split; it only pays off when the deferred payload is big.</p>
+
+<h3>React's version: <code>lazy</code> + <code>Suspense</code></h3>
+
+<p>React wraps the dynamic import in an API that fits its rendering model:</p>
+
+<pre><code><span class="kw">import</span> { lazy, Suspense } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">const</span> AdminDashboard = lazy(() =&gt; import(<span class="str">'./AdminDashboard'</span>));
+
+<span class="kw">function</span> App() {
+  <span class="kw">return</span> (
+    &lt;Suspense fallback={&lt;Spinner /&gt;}&gt;      {<span class="cmt">/* 👈 shown while the chunk downloads */</span>}
+      &lt;AdminDashboard /&gt;
+    &lt;/Suspense&gt;
+  );
+}</code></pre>
+
+<p><code>lazy</code> takes a function that returns the import promise. React renders the <code>fallback</code> until that promise resolves, then swaps in the real component. There must be a <code>Suspense</code> boundary <em>somewhere</em> above a lazy component, or React throws — and where you put that boundary determines how much of the screen goes blank during the load. Put it too high and clicking a tab blanks the whole page; put it around just the tab panel and only the panel shows a spinner.</p>
+
+<h3>Preloading: getting the chunk before you need it</h3>
+
+<p>Lazy loading has an obvious downside — the user clicks and <em>then</em> waits for a network request. But you often know what's coming next before the user commits to it. So fetch it early:</p>
+
+<pre><code><span class="cmt">// start downloading the checkout chunk when they hover the button</span>
+&lt;button
+  onMouseEnter={() =&gt; import(<span class="str">'./CheckoutFlow'</span>)}   <span class="cmt">// 👈 warms the cache</span>
+  onClick={goToCheckout}
+&gt;
+  Checkout
+&lt;/button&gt;</code></pre>
+
+<p>Calling <code>import()</code> and throwing away the result still downloads and caches the chunk. By the time the click lands, it's already there. Hover-intent, viewport visibility (via <code>IntersectionObserver</code>), or "idle time after first paint" are all common triggers.</p>
+
+<p>There are also declarative hints the bundler can emit into your HTML: <code>&lt;link rel="preload"&gt;</code> means "I need this for the current page, fetch it at high priority now", while <code>&lt;link rel="prefetch"&gt;</code> means "I'll probably need this for a <em>future</em> navigation, grab it at lowest priority when you're idle". Prefetch is the right one for a route chunk you expect them to visit next.</p>
+
+<h2 id="webpack-vite">6. Webpack vs Vite: the real difference</h2>
+
+<p>If you take one thing from this guide into an interview, make it this section. It's the single most asked build-tool question right now, and there's a crisp answer.</p>
+
+<p>Start with the observation everyone has felt. On a large app, <code>webpack serve</code> takes 40 seconds to start, and saving a file takes 3 seconds to reflect. <code>vite</code> starts in 300 milliseconds and updates instantly. And it stays that way as the app grows. What on earth is going on?</p>
+
+<h3>Webpack's dev server: bundle first, then serve</h3>
+
+<p>Webpack has one strategy and it uses it everywhere. To serve your app in development, it does the full graph walk from section 2 — resolve every module, transform every module, bundle it all — and holds the result in memory. Only <em>then</em> can it answer the browser's first request.</p>
+
+<p>So the startup cost is proportional to the size of your entire app. Two thousand modules? You process two thousand modules before you see anything, even though the page you're looking at uses forty of them.</p>
+
+<p>It's like a restaurant that cooks every dish on the menu before it will let the first customer order.</p>
+
+<h3>Vite's dev server: serve on demand over native ESM</h3>
+
+<p>Vite's insight is that <em>browsers already support modules</em>. So in development, Vite doesn't bundle your source at all. It starts a server, hands the browser an HTML file with <code>&lt;script type="module" src="/src/main.jsx"&gt;</code>, and then waits.</p>
+
+<p>The browser parses <code>main.jsx</code>, sees it imports <code>./App.jsx</code>, and requests <code>/src/App.jsx</code>. Vite receives that request, transforms <em>that one file</em> (JSX → JS), and sends it back. The browser sees App's imports, requests those. And so on.</p>
+
+<p>The browser is doing the graph walking. Vite is a transform-on-demand server. Startup work is essentially zero, and — this is the part to emphasise — <strong>it's independent of app size.</strong> A 50-module app and a 5,000-module app both start instantly, because in both cases Vite has done nothing yet.</p>
+
+<figure>
+<svg viewBox="0 0 700 260" role="img" aria-label="Diagram contrasting webpack bundling everything before serving with Vite transforming files on demand">
+  <rect x="8" y="8" width="684" height="244" rx="10" fill="#ffffff" stroke="#e4e0d8"/>
+
+  <text x="28" y="34" font-family="sans-serif" font-size="12.5" font-weight="700" fill="#5d5b68">WEBPACK DEV</text>
+  <rect x="28" y="46" width="300" height="72" rx="6" fill="#fdf4e0" stroke="#d8b968"/>
+  <text x="178" y="72" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#8a6100">resolve + transform + bundle</text>
+  <text x="178" y="92" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#8a6100">ALL 2,000 modules</text>
+  <text x="178" y="110" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#a08040">(startup grows with app size)</text>
+  <path d="M334 82 L364 82" stroke="#8a6100" stroke-width="2"/>
+  <path d="M357 76 L366 82 L357 88 Z" fill="#8a6100"/>
+  <rect x="372" y="62" width="120" height="40" rx="6" fill="#f4f2ee" stroke="#c9c3b7"/>
+  <text x="432" y="86" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#37343f">serve bundle</text>
+  <path d="M498 82 L528 82" stroke="#8a6100" stroke-width="2"/>
+  <path d="M521 76 L530 82 L521 88 Z" fill="#8a6100"/>
+  <rect x="536" y="62" width="130" height="40" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="601" y="86" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">browser paints</text>
+
+  <line x1="28" y1="136" x2="672" y2="136" stroke="#e4e0d8"/>
+
+  <text x="28" y="162" font-family="sans-serif" font-size="12.5" font-weight="700" fill="#1f7a4d">VITE DEV</text>
+  <rect x="28" y="174" width="150" height="40" rx="6" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="103" y="198" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f7a4d">server up (~200ms)</text>
+  <path d="M184 194 L214 194" stroke="#1f7a4d" stroke-width="2"/>
+  <path d="M207 188 L216 194 L207 200 Z" fill="#1f7a4d"/>
+  <rect x="222" y="174" width="150" height="40" rx="6" fill="#ecf3fb" stroke="#7ba4cf"/>
+  <text x="297" y="198" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f5f9e">browser asks for a file</text>
+  <path d="M378 194 L408 194" stroke="#1f7a4d" stroke-width="2"/>
+  <path d="M401 188 L410 194 L401 200 Z" fill="#1f7a4d"/>
+  <rect x="416" y="174" width="152" height="40" rx="6" fill="#eaf6ef" stroke="#4e9a75"/>
+  <text x="492" y="192" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f7a4d">transform THAT file</text>
+  <text x="492" y="208" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#4e9a75">and only that file</text>
+  <path d="M492 220 L492 238" stroke="#1f7a4d" stroke-width="2"/>
+  <path d="M486 231 L492 240 L498 231 Z" fill="#1f7a4d"/>
+  <text x="512" y="242" font-family="sans-serif" font-size="11" fill="#8a8598">repeat, on demand, forever</text>
+</svg>
+<figcaption>Webpack pays the whole cost up front. Vite pays a tiny cost per file, only for files you actually open.</figcaption>
+</figure>
+
+<h3>The catch Vite had to solve: dependency pre-bundling</h3>
+
+<p>"Just serve everything as native ESM" doesn't quite work, for two reasons — and knowing both of them is what makes you sound like you've actually read about this rather than heard about it.</p>
+
+<p><strong>Reason one: much of npm is still CommonJS.</strong> The browser cannot execute <code>module.exports = ...</code>. If a dependency ships CJS, native ESM serving is dead on arrival.</p>
+
+<p><strong>Reason two: the request explosion.</strong> Some packages are made of hundreds of tiny internal modules. <code>lodash-es</code> is over 600 files. If the browser fetched each one natively, opening your dev server would fire off <em>thousands</em> of requests, and the dev experience would be worse than webpack's.</p>
+
+<p>So Vite splits the world in two. Your <strong>source code</strong> changes constantly and is served on demand, unbundled. Your <strong>dependencies</strong> barely ever change, so Vite bundles them <em>once</em>, on first start, using <a href="#rust">esbuild</a>. That step:</p>
+
+<ul>
+  <li>converts CommonJS packages into ESM the browser can run, and</li>
+  <li>collapses each package into a single file, so <code>lodash-es</code> becomes one request instead of 600.</li>
+</ul>
+
+<p>The result is cached in <code>node_modules/.vite</code> and only redone when your dependency list changes. That's why the <em>first</em> <code>npm run dev</code> after an install takes a few seconds and every one after is instant.</p>
+
+<h3>The nuance interviewers probe: Vite bundles in production</h3>
+
+<p>Ask a candidate "does Vite use a bundler for production?" and a surprising number say no, because they've absorbed "Vite is bundleless". It isn't. <strong>Vite is bundleless in development only.</strong> For <code>vite build</code>, it runs a full production bundle through <strong>Rollup</strong> — code splitting, tree shaking, minification, hashed filenames, CSS extraction, the lot.</p>
+
+<p>Why not serve unbundled in production too, if native ESM is so good? Everything from section 3: the request waterfall on real-world latency, no tree shaking, no minification. Unbundled is great when the server is on <code>localhost</code> with sub-millisecond latency and you're loading a handful of files. It's terrible over a mobile network with hundreds.</p>
+
+<div class="callout miscon">
+  <p class="t">A common misconception: "Vite is fast because it's written in Go/Rust"</p>
+  <p>Partly, but mostly no — and this is a great correction to make out loud. Vite's dev server is Node.js. The speed comes from the <em>architecture</em>: doing almost no work at startup and only transforming files that are actually requested. esbuild (which is Go) is used for dependency pre-bundling and for transpiling individual files quickly, so it contributes — but if Vite bundled your whole app at startup using esbuild, it'd still be slower than not bundling at all. Architecture first, language second.</p>
+</div>
+
+<div class="callout what">
+  <p class="t">Wait — if dev and prod use different pipelines, isn't that risky?</p>
+  <p>Yes, and this is the honest tradeoff you should volunteer rather than wait to be asked. In dev, your code runs unbundled with no tree shaking and no minification. In prod it runs through Rollup with all of it. That means a class of bug exists that <em>only</em> appears in production: a module dropped because of a wrong <code>"sideEffects": false</code>, code that breaks under variable mangling, a subtle difference in module evaluation order, or a dependency whose CJS→ESM interop behaves differently after pre-bundling versus after a Rollup build. Webpack's dev-and-prod both bundle, so it has less of this gap (though not zero — minification is still prod-only). The mitigation is boring and effective: run <code>vite build &amp;&amp; vite preview</code> in CI and smoke-test the real production output before you ship.</p>
+</div>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Why is Vite's dev server so much faster than webpack's?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"They have fundamentally different dev architectures. Webpack bundles the entire app before it serves the first byte, so startup time scales with how many modules you have. Vite doesn't bundle your source in dev at all — it serves files over native ES modules and transforms each file only when the browser actually requests it, so startup is basically constant regardless of app size. The one thing it does pre-bundle is <code>node_modules</code>, using esbuild, because a lot of npm is still CommonJS and because packages like <code>lodash-es</code> would otherwise be hundreds of separate requests. And it's worth saying that for production Vite <em>does</em> bundle, with Rollup — the bundleless part is dev only."</p>
+  </div>
+  <p class="why-lands">Why this lands: you named the architectural difference in one sentence, explained the non-obvious pre-bundling step and <em>why</em> it's needed, and pre-empted the follow-up about production. That last move — answering the next question before it's asked — is what makes an answer feel senior.</p>
+</div>
+
+<h2 id="loaders-plugins">7. Loaders vs plugins</h2>
+
+<p>This is webpack vocabulary, and it's a favourite question because it's a quick check on whether you've ever actually opened a config or just copy-pasted one.</p>
+
+<p>Here's the distinction in one line: <strong>a loader transforms one file; a plugin can do anything, at any point in the build.</strong></p>
+
+<h3>Loaders: a pipeline per file type</h3>
+
+<p>A loader is a function that takes the contents of a file and returns transformed contents. That's it. You configure them by matching a file pattern:</p>
+
+<pre><code>module: {
+  rules: [
+    { test: /\.tsx?$/,  use: <span class="str">'ts-loader'</span> },
+    { test: /\.css$/,   use: [<span class="str">'style-loader'</span>, <span class="str">'css-loader'</span>] },  <span class="cmt">// 👈 note the order</span>
+  ],
+}</code></pre>
+
+<p>The <code>use</code> array is a pipeline, and it runs <strong>right to left</strong> (or bottom to top, if written vertically). That trips everyone up the first time. In the CSS rule: <code>css-loader</code> runs first — it reads the CSS file, resolves any <code>@import</code> and <code>url()</code> references, and turns the result into a JavaScript module. Then <code>style-loader</code> takes that and wraps it in code that injects a <code>&lt;style&gt;</code> tag into the document at runtime.</p>
+
+<p>Why right-to-left? Think of it as function composition: <code>style(css(source))</code>. You read the innermost call first, and that's the one that runs first. Once you see it that way it stops feeling backwards.</p>
+
+<p>Other loaders you'll meet: <code>babel-loader</code> (JSX and modern syntax → older JS), <code>sass-loader</code> (Sass → CSS), <code>svgr</code> (an SVG file → a React component). The pattern is always the same: <em>this file type isn't JavaScript; make it JavaScript.</em></p>
+
+<h3>Plugins: hooks into the whole build</h3>
+
+<p>A plugin isn't scoped to a file. It taps into webpack's <strong>compilation lifecycle</strong> — events like "compilation starting", "all modules resolved", "about to emit output files", "done" — and can do arbitrary work at any of them. It sees the whole build, not one file.</p>
+
+<pre><code>plugins: [
+  <span class="kw">new</span> HtmlWebpackPlugin({ template: <span class="str">'./index.html'</span> }),
+  <span class="kw">new</span> MiniCssExtractPlugin(),
+  <span class="kw">new</span> webpack.DefinePlugin({
+    <span class="str">'process.env.NODE_ENV'</span>: JSON.stringify(<span class="str">'production'</span>),
+  }),
+]</code></pre>
+
+<p>Look at what each of those actually does, because they're wildly different kinds of work — which is the point:</p>
+
+<ul>
+  <li><code>HtmlWebpackPlugin</code> <strong>generates a brand new file</strong> (your <code>index.html</code>) and injects <code>&lt;script&gt;</code> tags for the hashed bundle names. It has to run at the end, because it can't know the hashes until everything is built. No loader could ever do this — a loader only ever sees one input file and returns one output.</li>
+  <li><code>MiniCssExtractPlugin</code> collects all the CSS that <code>css-loader</code> turned into JS modules and <em>pulls it back out</em> into a real <code>.css</code> file, so it can load in parallel with your JS instead of being injected by JavaScript after the fact. It's a cross-module, whole-build operation.</li>
+  <li><code>DefinePlugin</code> does a global find-and-replace of expressions across every module, which is how <code>process.env.NODE_ENV</code> becomes the literal string <code>"production"</code> everywhere (more on that in section 10).</li>
+</ul>
+
+<div class="callout iview">
+  <p class="t">In an interview: "What's the difference between a loader and a plugin?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"Loaders are per-file transformers — they run as a module is imported, matched by a file-pattern rule, and their job is to turn a non-JS file into something webpack can put in the graph. TypeScript, Sass, SVG-to-component, all loaders. They chain right-to-left, like function composition. Plugins are much broader: they hook into the compilation lifecycle and can act on the whole build. HtmlWebpackPlugin emitting an index.html with the hashed script tags injected is the clearest example, because that's something no per-file transformer could do — you don't know the hashes until every module is built."</p>
+  </div>
+  <p class="why-lands">Why this lands: the HtmlWebpackPlugin example proves the distinction rather than restating it. "It needs information that only exists after the whole build" is exactly the reason plugins have to exist as a separate concept.</p>
+</div>
+
+<h2 id="babel">8. Babel, transpiling, and polyfills</h2>
+
+<p>"What does Babel do that a bundler doesn't?" People blur these together constantly, so let's draw the line hard.</p>
+
+<p><strong>A bundler deals with the relationships between files.</strong> Which file imports which, how to find them, how to combine them, what to emit.</p>
+
+<p><strong>A transpiler deals with the contents of a single file.</strong> Given this file's source text, produce equivalent source text using different syntax. It has no idea other files exist.</p>
+
+<p>They're orthogonal, which is why they compose: the bundler calls the transpiler (via <code>babel-loader</code> or Vite's transform step) once per file as it walks the graph.</p>
+
+<h3>What Babel actually does to your code</h3>
+
+<p>Two things, mainly. First, syntax that isn't JavaScript at all:</p>
+
+<pre><code><span class="cmt">// you write JSX</span>
+<span class="kw">const</span> el = &lt;Button onClick={save}&gt;Save&lt;/Button&gt;;
+
+<span class="cmt">// Babel emits plain JS (modern React runtime)</span>
+<span class="kw">const</span> el = _jsx(Button, { onClick: save, children: <span class="str">"Save"</span> });</code></pre>
+
+<p>Second, modern syntax your target browsers don't support:</p>
+
+<pre><code><span class="cmt">// you write</span>
+<span class="kw">const</span> city = user?.address?.city ?? <span class="str">'Unknown'</span>;
+
+<span class="cmt">// Babel emits, for older targets</span>
+<span class="kw">var</span> _user$address;
+<span class="kw">var</span> city = (_user$address = user == <span class="kw">null</span> ? <span class="kw">void</span> 0 : user.address) == <span class="kw">null</span>
+  ? <span class="kw">void</span> 0 : _user$address.city;
+<span class="kw">if</span> (city === <span class="kw">null</span> || city === <span class="kw">void</span> 0) city = <span class="str">'Unknown'</span>;</code></pre>
+
+<p>Same behaviour, uglier, works in more places. That's transpiling.</p>
+
+<h3>The distinction that gets you points: syntax vs APIs</h3>
+
+<p>Here's the follow-up. Babel can rewrite <code>?.</code> into old-style checks because <code>?.</code> is <em>grammar</em> — a way of writing something the old language could already express. But consider:</p>
+
+<pre><code><span class="kw">const</span> hasFreeShipping = cart.items.some(i =&gt; i.freeShipping);
+<span class="kw">const</span> grouped = Object.groupBy(orders, o =&gt; o.status);
+<span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">'/api/cart'</span>);</code></pre>
+
+<p><code>Object.groupBy</code> and <code>fetch</code> aren't syntax. They're <strong>APIs</strong> — functions that either exist on the platform or don't. There's no clever rewriting that makes a missing function appear. Babel can't help; it would have to <em>write an implementation</em> of <code>Object.groupBy</code> and add it to the page.</p>
+
+<p>Which is exactly what a <strong>polyfill</strong> is: real code that defines a missing API at runtime, if it's absent. The standard source is <code>core-js</code>.</p>
+
+<p>So the rule to remember, and it's a clean one to say out loud:</p>
+
+<div class="callout hood">
+  <p class="t">The one-liner</p>
+  <p><strong>Transpiling handles syntax. Polyfills handle APIs.</strong> New syntax gets rewritten at build time and costs you nothing at runtime. Missing APIs need actual implementation code shipped to the browser, which costs bytes. That's also why polyfills should be conditional — you don't want to ship an <code>Object.groupBy</code> implementation to browsers that already have one.</p>
+</div>
+
+<h3>Browserslist: how the tools know what "old" means</h3>
+
+<p>None of this works unless the tooling knows which browsers you care about. That's Browserslist — a shared config that Babel, Autoprefixer, and modern bundlers all read:</p>
+
+<pre><code><span class="cmt">// package.json</span>
+<span class="str">"browserslist"</span>: [<span class="str">"&gt;0.5%"</span>, <span class="str">"last 2 versions"</span>, <span class="str">"not dead"</span>]</code></pre>
+
+<p>Babel's <code>@babel/preset-env</code> takes that list, cross-references a compatibility database, and works out the minimum set of transforms needed. Loosen the targets (drop IE11, drop old Safari) and your bundle genuinely gets smaller and faster, because whole categories of transform and polyfill stop being necessary. Auditing your browserslist is one of the highest-value, lowest-effort bundle wins there is — good thing to mention in a performance conversation.</p>
+
+<div class="callout what">
+  <p class="t">Wait — doesn't TypeScript also compile my code? Do I need Babel too?</p>
+  <p>Often not. There are three ways to strip TypeScript types: <code>tsc</code>, Babel with <code>@babel/preset-typescript</code>, or the fast native tools (esbuild/SWC). Most modern setups use esbuild or SWC and skip Babel entirely. But note something important: <code>tsc</code> is the only one that <em>type-checks</em>. Babel, esbuild, and SWC just delete the type annotations file-by-file — they never look at another file, so they can't know if your types actually agree. That's why so many projects run a separate <code>tsc --noEmit</code> in CI: the build strips types fast, and a separate process verifies them properly.</p>
+</div>
+
+<h2 id="source-maps">9. Source maps</h2>
+
+<p>Let's start with the pain, because it's visceral. You get an error report from production:</p>
+
+<pre><code>TypeError: Cannot read properties of undefined (reading 'id')
+    at t (index-a4f9c2b1.js:1:48210)
+    at o (index-a4f9c2b1.js:1:12904)</code></pre>
+
+<p>One file. One line (minifiers strip newlines). Functions called <code>t</code> and <code>o</code>. This is useless. Your actual code lived in <code>CartSummary.tsx</code> at line 34 in a function called <code>calculateTotal</code>, but every trace of that was destroyed by minification and mangling.</p>
+
+<p>A <strong>source map</strong> is the undo. It's a separate JSON file — <code>index-a4f9c2b1.js.map</code> — that says, in effect: <em>"position 1:48210 in the generated file came from line 34, column 12, of src/components/CartSummary.tsx, and the thing called <code>t</code> was originally called <code>calculateTotal</code>."</em></p>
+
+<p>It's a lookup table from generated positions back to original ones. The positions are stored in a compact encoded string (base64 VLQ) so the file doesn't become enormous — a source map is often larger than the bundle it maps, and would be far worse stored naively.</p>
+
+<p>The generated file points at its map with a comment on the last line:</p>
+
+<pre><code><span class="cmt">//# sourceMappingURL=index-a4f9c2b1.js.map</span></code></pre>
+
+<p>DevTools sees that comment, fetches the map (only when DevTools is open — regular users never download it), and transparently shows you your original source in the Sources panel and in stack traces. The browser is still running the minified code; you're just seeing it through a translation layer.</p>
+
+<div class="callout hood">
+  <p class="t">Under the hood: maps compose</p>
+  <p>Your code goes through several transforms — TS → JS → bundled → minified. Each step produces a map from <em>its</em> output back to <em>its</em> input. The build chains them together so the final map points all the way back to your original <code>.tsx</code>, not just to the previous stage. When source maps are subtly wrong (off by a few lines, or landing you in a compiled intermediate), it's almost always a broken link in this chain.</p>
+</div>
+
+<h3>The devtool options, and the tradeoff</h3>
+
+<p>Webpack exposes about a dozen <code>devtool</code> values, and Vite has a similar (smaller) set. You don't need to memorise the matrix — you need to understand the axis they vary along: <strong>build speed vs. fidelity vs. output size.</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Setting</th><th>What you get</th><th>Use for</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>eval-cheap-module-source-map</code></td>
+      <td>Fast rebuilds. Line-accurate but not column-accurate, mapped back to your original source.</td>
+      <td>Development. The usual default.</td>
+    </tr>
+    <tr>
+      <td><code>source-map</code></td>
+      <td>Full fidelity, separate <code>.map</code> file. Slowest to generate.</td>
+      <td>Production, when you're uploading maps to an error tracker.</td>
+    </tr>
+    <tr>
+      <td><code>hidden-source-map</code></td>
+      <td>Generates the map but omits the <code>sourceMappingURL</code> comment.</td>
+      <td>Production where you want traces decoded server-side but not by anyone with DevTools.</td>
+    </tr>
+    <tr>
+      <td><code>false</code> / none</td>
+      <td>No maps at all. Fastest build.</td>
+      <td>When you truly don't need debuggability.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The "cheap" in those names means "line-only, no column mappings", which is much cheaper to compute. The "module" means "map back to your pre-loader source rather than post-loader output" — without it you'd be debugging Babel's output, which is not what you want. And <code>eval</code> means each module is wrapped in <code>eval()</code> with its map inlined, which makes rebuilds very fast because only changed modules need re-wrapping.</p>
+
+<h3>Should you ship source maps to production?</h3>
+
+<p>This is the interview question, and the correct answer is "it depends, and here's the axis" — not yes or no.</p>
+
+<p><strong>The case against:</strong> a public source map is your original source code, with original filenames, comments, and structure. Anyone can open DevTools and read your entire frontend. That's not a catastrophe — your JS is already public, just obfuscated, and anyone determined can reverse it — but it removes all friction. If your source contains internal API endpoints, feature-flag names, unreleased feature code, or comments like <code>// TODO: the admin check here is bypassable</code>, you've handed that over.</p>
+
+<p><strong>The case for:</strong> without maps, production errors are unreadable, and you will be debugging real incidents blind.</p>
+
+<p><strong>The answer most teams land on:</strong> generate full source maps at build time, upload them to your error tracker (Sentry, Rollbar, Datadog — they all have a CLI step for exactly this), and then <em>delete them from the deployed assets</em> so they're never served publicly. Your stack traces get symbolicated server-side by the tracker, and no visitor can fetch the map. You get the debugging without the exposure.</p>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Would you ship source maps to production?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"I'd always generate them, but I wouldn't usually serve them publicly. The standard setup is to build with full source maps, upload them to the error tracker as part of the deploy, then strip them from what actually ships. That way production stack traces are symbolicated and readable, but visitors can't just open DevTools and read our whole source. If it's an open-source or marketing site where the code isn't sensitive, serving them publicly is fine and makes debugging easier for everyone. The thing I'd never do is turn them off entirely — then you're debugging incidents from minified traces, which is miserable."</p>
+  </div>
+  <p class="why-lands">Why this lands: you gave a default, gave the exception, and named the failure mode of the opposite choice. Interviewers are checking whether you've been on-call for a production frontend — the "upload then strip" workflow is the tell that you have.</p>
+</div>
+
+<h2 id="env">10. Environment variables (the one people get wrong)</h2>
+
+<p>Let me open with the question, because I want you to answer it in your head before you read on.</p>
+
+<p class="big-q">You put <code>STRIPE_SECRET_KEY=sk_live_abc123</code> in a <code>.env</code> file. <code>.env</code> is in <code>.gitignore</code>, so it's never committed. You use it in your React app as <code>process.env.STRIPE_SECRET_KEY</code>. Is that key safe?</p>
+
+<details>
+  <summary>Think about it, then open this.</summary>
+  <p>It is not safe even slightly. That key is now sitting in plain text inside your deployed JavaScript, and anyone can find it in about fifteen seconds by opening DevTools and searching the bundle for <code>sk_live</code>. Keeping <code>.env</code> out of git protected it from your repo. It did nothing at all to protect it from your users, because the build <em>copied the value into the bundle</em>.</p>
+</details>
+
+<h3>Why it happens: inlining</h3>
+
+<p>Here's the mechanical explanation, and once you see it the whole thing is obvious.</p>
+
+<p>There is no <code>process</code> object in a browser. <code>process.env</code> is a Node.js thing. So when your bundler sees <code>process.env.API_URL</code> in browser code, it can't leave it there — the code would throw <code>process is not defined</code>. Instead, at <strong>build time</strong>, it performs a textual substitution:</p>
+
+<pre><code><span class="cmt">// what you write</span>
+<span class="kw">const</span> apiUrl = process.env.REACT_APP_API_URL;
+<span class="kw">if</span> (process.env.NODE_ENV !== <span class="str">'production'</span>) console.log(<span class="str">'debug'</span>);
+
+<span class="cmt">// what is literally in your shipped bundle</span>
+<span class="kw">const</span> apiUrl = <span class="str">"https://api.example.com"</span>;   <span class="cmt">// 👈 baked in as a string literal</span>
+<span class="kw">if</span> (<span class="str">"production"</span> !== <span class="str">'production'</span>) console.log(<span class="str">'debug'</span>);</code></pre>
+
+<p>That's webpack's <code>DefinePlugin</code> (or Vite's <code>define</code>) doing a find-and-replace across every module before bundling. Your environment variable is not <em>read</em> at runtime — it was <em>replaced</em> at build time. The bundle contains the value, not the lookup.</p>
+
+<p>Think of it like a mail merge. You write a template letter that says "Dear [NAME]". The mail-merge program runs once, and out come ten thousand letters that each say "Dear Priya". There's no [NAME] left in the printed letters, and you can't change Priya's name by editing the template afterwards — you'd have to reprint everything.</p>
+
+<p>Two consequences fall straight out of that:</p>
+
+<ol>
+  <li><strong>Anything in a frontend env var is public.</strong> Not "hard to find" — public. It's a string literal in a file you serve to the world. No secrets, ever. Not API secret keys, not database URLs, not private tokens.</li>
+  <li><strong>Changing the value requires a rebuild.</strong> You cannot change your API URL by setting an env var on the server and restarting. The old value is printed into the letters. You must rebuild and redeploy.</li>
+</ol>
+
+<div class="callout hood">
+  <p class="t">Under the hood: this is also a performance feature</p>
+  <p>That second line above became <code>if ("production" !== 'production')</code>. The minifier evaluates that constant comparison, sees it's always false, and deletes the entire branch. This is how all of React's development warnings and prop-type checks vanish from production builds — they're wrapped in <code>if (process.env.NODE_ENV !== 'production')</code>, which inlining turns into dead code that the minifier removes. Inlining isn't just a compatibility hack; it's what makes build-time dead-code elimination possible.</p>
+</div>
+
+<h3>Why the <code>VITE_</code> / <code>NEXT_PUBLIC_</code> / <code>REACT_APP_</code> prefixes exist</h3>
+
+<p>Now the prefix makes sense. Consider what would happen if a build tool inlined <em>every</em> environment variable it could see. Your CI machine's environment contains <code>AWS_SECRET_ACCESS_KEY</code>, <code>NPM_TOKEN</code>, database passwords, deploy keys. Blindly inlining all of that into a public JS file would be a spectacular breach — and it would happen silently.</p>
+
+<p>So these tools default to exposing <strong>nothing</strong>, and only inline variables whose names carry an explicit prefix:</p>
+
+<pre><code><span class="cmt"># .env</span>
+DATABASE_URL=postgres://...        <span class="cmt"># never reaches the browser ✅</span>
+STRIPE_SECRET_KEY=sk_live_abc      <span class="cmt"># never reaches the browser ✅</span>
+
+VITE_API_URL=https://api.example.com   <span class="cmt"># inlined into the bundle</span>
+VITE_SENTRY_DSN=https://...            <span class="cmt"># inlined into the bundle</span></code></pre>
+
+<p>The prefix is a <strong>guardrail, not a security mechanism</strong>. It doesn't encrypt anything or hide anything. It forces you to make an explicit, deliberate, visible choice to publish a value — so leaking a secret requires actively typing <code>VITE_</code> in front of it, rather than happening by accident. Saying exactly that sentence in an interview is a strong signal.</p>
+
+<div class="callout what">
+  <p class="t">Wait — so what <em>can</em> go in there?</p>
+  <p>Anything that's fine for the public to see, which is more than you might think: your public API base URL, a Stripe <em>publishable</em> key (<code>pk_live_...</code> — designed to be public), a Sentry DSN, a Google Analytics ID, a Mapbox public token, feature-flag defaults. The rule of thumb: if you'd be comfortable printing it on a billboard, it can be an env var in a frontend build. If it grants the ability to <em>do</em> something on your behalf, it belongs on a server, behind an endpoint you control.</p>
+</div>
+
+<h3>How to do genuine runtime configuration</h3>
+
+<p>"But I want to build one artifact and deploy it to staging and production with different API URLs" is a real requirement, and inlining fights it. Three real answers:</p>
+
+<p><strong>1. Fetch config at boot.</strong> Before rendering, request a small JSON document from your own server and use it:</p>
+
+<pre><code><span class="kw">const</span> config = <span class="kw">await</span> fetch(<span class="str">'/config.json'</span>).then(r =&gt; r.json());
+<span class="cmt">// → { apiUrl: "https://api.staging.example.com", features: { newCart: true } }</span></code></pre>
+
+<p>Costs you one round trip before the app starts, so keep it tiny and don't put it behind the main bundle.</p>
+
+<p><strong>2. Inject into the HTML at request time.</strong> Your server (or edge function) serves <code>index.html</code> and stamps a small script into it:</p>
+
+<pre><code>&lt;script&gt;window.__APP_CONFIG__ = { apiUrl: <span class="str">"https://api.staging.example.com"</span> };&lt;/script&gt;</code></pre>
+
+<p>The HTML is generated per-request and shouldn't be cached anyway, so this costs nothing extra. This is the most common approach for containerised single-page apps that need to be environment-agnostic.</p>
+
+<p><strong>3. Read it server-side.</strong> In Next.js, Remix, Nuxt and friends, code that runs on the server can read any env var directly, with no prefix and no inlining, because it never ships to the browser. That's the cleanest answer when you have a server: keep the secret on the server and expose a narrow endpoint instead of the key.</p>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Is it safe to put an API key in a .env for a React app?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"No — and the reason matters. In a frontend build, env vars aren't read at runtime; the bundler substitutes them as string literals at build time, so the value is baked into the JavaScript you serve. <code>.gitignore</code> keeps it out of the repo but does nothing about the bundle — anyone can find it with ctrl-F in DevTools. That's exactly why Vite requires a <code>VITE_</code> prefix and Next requires <code>NEXT_PUBLIC_</code>: it's a guardrail forcing you to explicitly opt a value into being public. If something genuinely needs to stay secret, it lives on a server and the client calls an endpoint that uses it. And if I needed the same build to run against different environments, I'd fetch config at boot or inject it into the HTML at request time rather than inlining it."</p>
+  </div>
+  <p class="why-lands">Why this lands: three distinct signals in one answer — you understand build-time vs runtime, you know why the prefix convention exists (rather than just following it), and you have a real solution for the environment-agnostic-build problem instead of just a "no".</p>
+</div>
+
+<h2 id="hmr">11. How HMR actually works</h2>
+
+<p>Hot Module Replacement is the thing that makes modern dev feel good, and almost nobody can explain it. Which makes it a lovely differentiator.</p>
+
+<h3>The model: invalidation and accept boundaries</h3>
+
+<p>The problem is familiar: you're five steps into a checkout form and you nudge a button's padding by 2px. A plain live-reload server calls <code>location.reload()</code> and every bit of that state is gone. HMR's promise is to swap the changed module's code into the <em>already-running</em> app, so component state, scroll position and your half-filled form all survive.</p>
+
+<p>Two pieces make it work.</p>
+
+<p><strong>A live connection.</strong> The dev server injects a client that holds a WebSocket open, and on save sends "the module at <code>/src/Button.jsx</code> changed".</p>
+
+<p><strong>The module graph, walked upward.</strong> The server knows who imports whom. It marks the changed module invalid and asks: <em>does anything know how to handle a new version of this?</em> Modules opt in by registering a callback:</p>
+
+<pre><code><span class="cmt">// Vite's HMR API (webpack's is module.hot.accept, same idea)</span>
+<span class="kw">if</span> (import.meta.hot) {
+  import.meta.hot.accept((newModule) =&gt; {
+    <span class="cmt">// I know how to swap myself out. Don't reload the page.</span>
+    render(newModule.Button);
+  });
+}</code></pre>
+
+<p>A module that does this is an <strong>accept boundary</strong>. When a change happens, the server walks <em>up</em> the import chain from the changed module — Button → Toolbar → Page → App — looking for the nearest ancestor that has accepted. It sends the update to that boundary, and the boundary re-executes with the new code. Everything above the boundary is untouched and keeps its state.</p>
+
+<figure>
+<svg viewBox="0 0 700 200" role="img" aria-label="Diagram showing an HMR update propagating up from a changed module to the nearest accept boundary">
+  <rect x="8" y="8" width="684" height="184" rx="10" fill="#ffffff" stroke="#e4e0d8"/>
+
+  <rect x="42" y="46" width="120" height="34" rx="6" fill="#fdf4e0" stroke="#d8b968"/>
+  <text x="102" y="68" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#8a6100">Button.jsx</text>
+  <text x="102" y="98" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#8a6100">you saved this</text>
+
+  <path d="M168 63 L206 63" stroke="#6b4bd6" stroke-width="2"/>
+  <path d="M199 57 L208 63 L199 69 Z" fill="#6b4bd6"/>
+  <text x="187" y="50" font-family="sans-serif" font-size="10.5" text-anchor="middle" fill="#6b4bd6">bubbles up</text>
+
+  <rect x="214" y="46" width="120" height="34" rx="6" fill="#f4f2ee" stroke="#c9c3b7"/>
+  <text x="274" y="68" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5d5b68">Toolbar.jsx</text>
+  <text x="274" y="98" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#8a8598">no accept handler</text>
+
+  <path d="M340 63 L378 63" stroke="#6b4bd6" stroke-width="2"/>
+  <path d="M371 57 L380 63 L371 69 Z" fill="#6b4bd6"/>
+
+  <rect x="386" y="42" width="150" height="42" rx="6" fill="#eaf6ef" stroke="#1f7a4d" stroke-width="2"/>
+  <text x="461" y="60" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#1f7a4d">CheckoutPage.jsx</text>
+  <text x="461" y="76" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#1f7a4d">ACCEPT BOUNDARY</text>
+  <text x="461" y="102" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#1f7a4d">re-runs with new code</text>
+
+  <path d="M542 63 L578 63" stroke="#c9c3b7" stroke-width="2" stroke-dasharray="4 3"/>
+  <rect x="586" y="46" width="82" height="34" rx="6" fill="#f4f2ee" stroke="#c9c3b7"/>
+  <text x="627" y="68" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5d5b68">App.jsx</text>
+  <text x="627" y="98" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#8a8598">untouched</text>
+
+  <line x1="42" y1="126" x2="668" y2="126" stroke="#e4e0d8"/>
+  <text x="42" y="150" font-family="sans-serif" font-size="12" fill="#37343f">If nothing up the chain accepts, the update reaches the entry point —</text>
+  <text x="42" y="170" font-family="sans-serif" font-size="12" fill="#b0303a">and HMR gives up and does a full page reload.</text>
+</svg>
+<figcaption>An update climbs the import graph until something claims it. If nothing does, you get a refresh.</figcaption>
+</figure>
+
+<h3>Why React needs a special layer: Fast Refresh</h3>
+
+<p>Plain HMR has a gap for UI frameworks. Swapping a module gives you a <em>new</em> component function — and React's state lives in a fiber keyed to component identity, so its natural reaction to "different component type" is to unmount and remount, throwing away exactly the state you were trying to save.</p>
+
+<p><strong>React Fast Refresh</strong> closes that gap. A Babel/SWC plugin registers each component export with a stable identity plus a signature of its hooks, so on update React can swap the implementation <em>in place</em> and reuse the existing fiber. And because it knows the hook signature, it's honest about when it can't: add, remove or reorder hooks and it deliberately remounts rather than corrupting state.</p>
+
+<h3>When HMR gives up and reloads</h3>
+
+<p>Because "why did my page just refresh?" is a daily experience: nothing up the chain accepted the update; the file has module-level side effects that can't be safely re-run; the config changed (<code>vite.config.js</code>, <code>.env</code>) so the server restarted; or the update itself errored and a clean slate is the safe recovery.</p>
+
+<p>One of these is actionable: <strong>a file that exports both a component and something else often forces a reload</strong>, because Fast Refresh can only reliably hot-swap component exports. That's the quiet reason "one component per file" improves your dev loop.</p>
+
+<h2 id="federation">12. Module federation &amp; micro-frontends</h2>
+
+<p>This one only shows up at a certain scale, and it's fine to know it at name-recognition depth. The problem: 200 engineers across eight teams in one React app, where a failing billing test blocks the search team's release and builds take eleven minutes. Splitting into independently deployed apps fixes the org problem but costs you a full page load between apps, and each ships its own React.</p>
+
+<p><strong>Module federation</strong> (a webpack feature, since adopted elsewhere) tries to get the split without those costs — one deployed app imports a module from <em>another separately deployed app, at runtime, over the network</em>:</p>
+
+<pre><code><span class="cmt">// in the "host" app's config — declaring what it consumes</span>
+<span class="kw">new</span> ModuleFederationPlugin({
+  remotes: {
+    checkout: <span class="str">'checkout@https://checkout.example.com/remoteEntry.js'</span>,
+  },
+  shared: { react: { singleton: <span class="kw">true</span> } },   <span class="cmt">// 👈 the interesting part</span>
+});</code></pre>
+
+<pre><code><span class="cmt">// then, in app code — this import crosses a deployment boundary</span>
+<span class="kw">const</span> Checkout = lazy(() =&gt; import(<span class="str">'checkout/CheckoutFlow'</span>));</code></pre>
+
+<p>At runtime the host fetches <code>remoteEntry.js</code> — a manifest describing what the remote exposes — then fetches the actual chunk. The checkout team deploys whenever they like, and the host picks up the new version on the next page load with no rebuild.</p>
+
+<p>The <code>shared</code> config is the clever bit: at runtime, the apps negotiate. If the host already loaded React 18.2, the remote uses that instance instead of downloading its own. That's what makes it different from an iframe or a script tag — you get one React, one context tree, shared state.</p>
+
+<h3>The costs, which are very real</h3>
+
+<p>Say these unprompted. Enthusiasm for federation without awareness of its costs reads as inexperience.</p>
+
+<ul>
+  <li><strong>Shared dependency versioning is genuinely hard.</strong> Host on React 18, remote built against 19 — <code>singleton: true</code> means one wins and the other breaks in untested ways; not-singleton means two copies of React, which breaks hooks and context. Either way you need coordinated cross-team upgrades, which is precisely the coupling you split up to escape.</li>
+  <li><strong>Runtime failure modes a monolith doesn't have.</strong> A remote's CDN goes slow, or ships a breaking change. You need per-remote error boundaries and fallbacks, and integration bugs surface in production instead of at build time.</li>
+  <li><strong>It's an organisational solution, not a technical one.</strong> If you have twelve engineers, you don't have this problem — route-based code splitting gets you most of the loading benefit with none of the cost. Saying that is the answer.</li>
+</ul>
+
+<h2 id="rust">13. esbuild, SWC, Turbopack: the native rewrite</h2>
+
+<p>For a decade, JavaScript tooling was written in JavaScript. Then esbuild appeared and did the same work 10–100× faster, and everything shifted. Why?</p>
+
+<h3>Why Go and Rust win here</h3>
+
+<p>Four reasons, and it's worth being able to name them rather than hand-waving "it's compiled":</p>
+
+<ol>
+  <li><strong>Real parallelism.</strong> Bundling is embarrassingly parallel — hundreds of independent files, each needing parse and transform. Go and Rust use all your CPU cores natively with shared memory. Node is single-threaded by default; worker threads exist but can't cheaply share a complex object graph like an AST, so you pay serialisation costs to move work between threads.</li>
+  <li><strong>No JS VM overhead.</strong> A JS tool has to be parsed, JIT-compiled, and warmed up before it runs at full speed — and a build is short enough that a lot of it runs in the slow, un-optimised tier. Compiled binaries are at full speed from the first instruction.</li>
+  <li><strong>No GC pressure.</strong> Parsing produces enormous numbers of small AST objects. In JS those are all garbage-collected heap objects, and the GC spends real time tracing them. Go and Rust let you lay data out compactly and control allocation — esbuild in particular is written to pass over the AST as few times as possible and reuse memory.</li>
+  <li><strong>Designed for the task, not accumulated.</strong> Some of the win is honestly just that these are fresh rewrites with a decade of hindsight, rather than a language advantage.</li>
+</ol>
+
+<h3>Who uses what</h3>
+
+<table>
+  <thead><tr><th>Tool</th><th>Language</th><th>What it's actually used for</th></tr></thead>
+  <tbody>
+    <tr><td><strong>esbuild</strong></td><td>Go</td><td>Extremely fast bundler and transformer. Vite uses it for dependency pre-bundling and for stripping TS/JSX per file in dev. Also a fine standalone bundler for simpler projects.</td></tr>
+    <tr><td><strong>SWC</strong></td><td>Rust</td><td>A Babel replacement — transpiling and minifying, with a Babel-ish plugin model. Next.js replaced Babel with SWC by default; also what Jest/Vitest often use to transform test files quickly.</td></tr>
+    <tr><td><strong>Turbopack</strong></td><td>Rust</td><td>Vercel's incremental bundler for Next.js. Its distinguishing idea is fine-grained caching of every unit of work, so a rebuild only redoes what genuinely changed.</td></tr>
+    <tr><td><strong>Rolldown</strong></td><td>Rust</td><td>A Rust rewrite of Rollup, intended to become Vite's single engine for both dev and prod — which would close the dev/prod gap we flagged in section 6.</td></tr>
+  </tbody>
+</table>
+
+<h3>The honest tradeoff</h3>
+
+<p>Speed isn't free, and interviewers like hearing the caveat:</p>
+
+<ul>
+  <li><strong>Plugin ecosystems lag.</strong> Webpack and Rollup have a decade of plugins for every conceivable need. A Rust tool's plugins must be written in Rust, or cross a language boundary (WASM, or a JS bridge) that erodes the speed advantage. Migrating a mature webpack config often stalls on one obscure plugin with no equivalent.</li>
+  <li><strong>Edge cases take years to match.</strong> The long tail of weird CommonJS interop, unusual <code>exports</code> maps, decorator semantics, and broken-but-widely-used packages is where mature tools have spent a decade accumulating fixes. New tools rediscover these one bug report at a time.</li>
+  <li><strong>Not everything is equally deep.</strong> esbuild's minifier, for instance, is very fast but historically less aggressive than Terser on some optimisations — a real bytes-vs-build-time tradeoff, not a strict win.</li>
+</ul>
+
+<h2 id="big-bundle">14. "Why is my bundle so big, and how would you find out?"</h2>
+
+<p>This one is worth its own section because it's a favourite closing question — it's open-ended, and it tests whether you <em>measure</em> or <em>guess</em>. The wrong answer starts with a fix. The right answer starts with a measurement.</p>
+
+<p><strong>Step 1: look at it.</strong> Generate a treemap of what's in the bundle. <code>webpack-bundle-analyzer</code>, or <code>rollup-plugin-visualizer</code> for Vite/Rollup. You get a picture where rectangle area is byte size. In my experience the answer is visible within about ten seconds — there's one enormous rectangle you didn't expect. It's usually moment.js with all its locales, or an icon library imported wholesale, or a charting library, or a duplicate copy of a dependency.</p>
+
+<p><strong>Step 2: check for duplicates.</strong> Two versions of the same library is startlingly common — your app depends on <code>date-fns@2</code>, and a UI kit depends on <code>date-fns@3</code>, so both get bundled. <code>npm ls date-fns</code> shows the tree; deduping or aligning versions can cut a lot for very little work.</p>
+
+<p><strong>Step 3: check your import style.</strong> Look for the section-4 problem: whole-package default imports where a named or deep import from an ESM build would tree-shake. Icon libraries are the classic offender — <code>import { FiUser } from 'react-icons/fi'</code> can pull in thousands of icons depending on the build.</p>
+
+<p><strong>Step 4: check what's loading eagerly that shouldn't be.</strong> Is the admin dashboard in the main chunk? The rich-text editor? Anything behind a route or an interaction is a code-splitting candidate.</p>
+
+<p><strong>Step 5: check your browserslist.</strong> If you're still targeting very old browsers you're shipping transforms and polyfills for no one. Modern targets can shave a meaningful chunk.</p>
+
+<p><strong>Step 6: prevent regression.</strong> Add a bundle-size budget to CI that fails the build if the main chunk grows past a threshold. Bundles don't get big in one commit; they get big through fifty commits that each added 8 KB and nobody noticed.</p>
+
+<div class="callout iview">
+  <p class="t">In an interview: "Our bundle is 3 MB. What do you do?"</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"First I'd measure rather than guess — run a bundle analyzer to get a treemap, because usually one or two dependencies dominate and it's obvious on sight. Then I'd check the cheap wins in order: duplicate copies of the same library from mismatched versions, whole-package imports that should be named imports against an ESM build, and anything loading eagerly that could be route-split — an admin area or a heavy editor. After that I'd look at browserslist targets, since old targets add transforms and polyfills. And I'd add a size budget to CI, because bundles grow 10 KB at a time and the real fix is noticing before it's 3 MB."</p>
+  </div>
+  <p class="why-lands">Why this lands: you led with measurement, gave an ordered plan instead of a grab-bag, and finished with prevention. That last part especially reads as someone who has maintained an app rather than just optimised one once.</p>
+</div>
+
+<hr class="soft">
+
+<h2 id="cheatsheet">Interview cheat sheet</h2>
+
+<p>The morning-of version. One crisp line each.</p>
+
+<div class="cheat">
+<dl>
+  <dt>What a bundler does</dt>
+  <dd>Starts at an entry file, walks every import to build a dependency graph, resolves each specifier to a real file, transforms non-JS into JS, and emits optimised files a browser can load. Four jobs: resolution, transformation, bundling, optimisation.</dd>
+
+  <dt>Do we still need one with HTTP/2 + native ESM?</dt>
+  <dd>Yes: browsers can't resolve <code>node_modules</code>, can't handle JSX/TS/CSS imports, don't minify, don't tree-shake, and deep import chains still cause request waterfalls because each module is only discovered after its parent parses.</dd>
+
+  <dt>Tree shaking</dt>
+  <dd>Build-time dead-code elimination across the module graph — drop exports nothing reachable from the entry uses.</dd>
+
+  <dt>Why CommonJS can't be tree-shaken</dt>
+  <dd>Tree shaking is static analysis. ESM imports are syntax — top-level, string-literal, fixed. <code>require</code> is a runtime function call that can be conditional or computed, so the bundler can't prove what's unused, and being wrong breaks the app, so it keeps everything.</dd>
+
+  <dt><code>"sideEffects": false</code></dt>
+  <dd>A package author's promise that importing a file without using its exports does nothing observable, so unused modules can be deleted entirely. Usually written as an array excluding CSS files.</dd>
+
+  <dt>Code splitting</dt>
+  <dd>Dynamic <code>import()</code> returns a promise and tells the bundler to emit a separate chunk loaded on demand. Default strategy: split by route. Don't over-split — each chunk is a request and can create a waterfall.</dd>
+
+  <dt>Where to split</dt>
+  <dd>Route boundaries first, then heavy conditional UI (modals, editors, charts), then a vendor chunk so rarely-changing deps stay cached across deploys.</dd>
+
+  <dt>Webpack vs Vite in dev</dt>
+  <dd>Webpack bundles the whole app before serving, so startup scales with app size. Vite serves source over native ESM and transforms only the file the browser requests, so startup is near-constant.</dd>
+
+  <dt>Vite dependency pre-bundling</dt>
+  <dd>esbuild bundles <code>node_modules</code> once on first run — converts CommonJS to ESM, and collapses packages made of hundreds of files into one request each.</dd>
+
+  <dt>Does Vite bundle for production?</dt>
+  <dd>Yes — Rollup, with tree shaking, splitting, minification and hashed filenames. Bundleless is dev-only. The dev/prod difference is a real tradeoff; run <code>vite build &amp;&amp; vite preview</code> before shipping.</dd>
+
+  <dt>Loader vs plugin</dt>
+  <dd>Loaders transform one file as it's imported, matched by pattern, chained right-to-left. Plugins hook the whole compilation lifecycle — e.g. HtmlWebpackPlugin emits an index.html with hashed script tags, which needs whole-build knowledge no loader has.</dd>
+
+  <dt>Babel vs bundler</dt>
+  <dd>Babel transforms the contents of one file (JSX → JS, modern syntax → older). The bundler handles relationships between files. The bundler invokes the transpiler per module.</dd>
+
+  <dt>Transpiling vs polyfilling</dt>
+  <dd>Transpiling rewrites <em>syntax</em> at build time and costs nothing at runtime. Polyfills ship real implementations of missing <em>APIs</em> (core-js) and cost bytes. Browserslist targets decide how much of each you need.</dd>
+
+  <dt>Source maps</dt>
+  <dd>A mapping from generated positions back to original file/line/column/name, so minified stack traces and the debugger show your real source. Devtool options trade build speed against fidelity.</dd>
+
+  <dt>Ship source maps to prod?</dt>
+  <dd>Generate them always; upload to the error tracker; strip them from deployed assets. Readable production traces without publishing your source.</dd>
+
+  <dt>Env vars in a frontend build</dt>
+  <dd>Inlined as string literals at build time, so they're baked into the bundle and fully public — never a secret, and changing one requires a rebuild.</dd>
+
+  <dt>Why <code>VITE_</code> / <code>NEXT_PUBLIC_</code></dt>
+  <dd>A guardrail, not security: tools expose nothing by default so a CI machine's secrets can't leak in, and publishing a value requires an explicit deliberate prefix.</dd>
+
+  <dt>Real runtime config</dt>
+  <dd>Fetch a small <code>/config.json</code> at boot, inject a config object into the HTML at request time, or read the var server-side and expose a narrow endpoint.</dd>
+
+  <dt>HMR</dt>
+  <dd>WebSocket tells the client which module changed; the update walks up the import graph to the nearest module that registered an accept handler and re-runs from there. No boundary found → full reload.</dd>
+
+  <dt>React Fast Refresh</dt>
+  <dd>A layer above HMR that registers component identities and hook signatures so React can swap a component's implementation in place and keep its state — remounting deliberately if the hook order changed.</dd>
+
+  <dt>Module federation</dt>
+  <dd>Import modules from another independently deployed app at runtime, with negotiated shared dependencies. Solves org-scale coordination; costs you shared-version pain, runtime failure modes, and ops complexity.</dd>
+
+  <dt>esbuild / SWC / Turbopack</dt>
+  <dd>Go/Rust rewrites: true parallelism, no JS VM warm-up, no GC pressure on huge ASTs. esbuild for pre-bundling and fast transforms, SWC as a Babel replacement, Turbopack as Next's incremental bundler. Tradeoff: thinner plugin ecosystems and edge-case gaps.</dd>
+
+  <dt>Diagnosing a big bundle</dt>
+  <dd>Analyzer treemap first, then duplicate versions, then whole-package imports, then eager code that should be split, then browserslist, then a CI size budget so it doesn't regress.</dd>
+</dl>
+</div>
+
+<hr class="soft">
+
+<h2 style="border:none;padding-top:0;">One last thing</h2>
+
+<p>If you remember nothing else, remember this: <strong>almost every build tool feature exists to solve one of the four problems from section 1.</strong> Resolution exists because browsers have no <code>node_modules</code>. Bundling exists because requests have latency. Tree shaking and minification exist because bytes cost time. Content hashes exist because caching is a tradeoff between freshness and speed.</p>
+
+<p>Configs are intimidating because they're a flat list of options with no visible structure. But once you can sort each option into "which of the four problems is this solving?", webpack's config stops being an incantation and becomes something you can reason about. That's the shift interviewers are listening for — and honestly, it's the shift that makes the tools stop being scary at work, too. 🛠️</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TypeScript: Types, Generics &amp; Narrowing</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --fg: #1f2430;
+    --muted: #5a6472;
+    --rule: #e3e0d9;
+    --accent: #2f6fd0;
+    --accent-soft: #eaf1fc;
+    --code-bg: #232936;
+    --code-fg: #e8ecf4;
+    --good: #1f7a4d;
+    --good-soft: #e8f6ee;
+    --bad: #b3261e;
+    --bad-soft: #fdecea;
+    --warn-soft: #fdf5e2;
+    --warn-rule: #e0b84f;
+    --purple: #6b46c1;
+    --purple-soft: #f2edfc;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 48px 22px 120px;
+  }
+
+  header.hero {
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+  }
+
+  h1 {
+    font-size: 2.15rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    margin: 3.2em 0 0.6em;
+    padding-top: 0.4em;
+    border-top: 1px solid var(--rule);
+  }
+
+  h2 .num {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  h3 {
+    font-size: 1.18rem;
+    margin: 2.2em 0 0.5em;
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.8em 0 0.4em;
+  }
+
+  p { margin: 0 0 1.15em; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 1.15em; padding-left: 1.4em; }
+  li { margin-bottom: 0.5em; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.87em;
+    background: #eeece7;
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0 0 1.3em;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .codeblock { margin-bottom: 1.3em; }
+  .codeblock pre { margin-bottom: 0; border-radius: 0 0 8px 8px; }
+
+  .codelabel {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 6px 14px;
+    border-radius: 8px 8px 0 0;
+  }
+  .codelabel.bad { background: var(--bad-soft); color: var(--bad); }
+  .codelabel.good { background: var(--good-soft); color: var(--good); }
+  .codelabel.neutral { background: #e6e3dc; color: var(--muted); }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 0 0 1.4em;
+    font-size: 0.96rem;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+
+  .callout.misconception { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.misconception .label { color: var(--bad); }
+
+  .callout.hood { border-color: var(--warn-rule); background: var(--warn-soft); }
+  .callout.hood .label { color: #8a6a12; }
+
+  .callout.interview { border-color: var(--purple); background: var(--purple-soft); }
+  .callout.interview .label { color: var(--purple); }
+
+  .answer {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--good);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 0 0 1.3em;
+    font-size: 0.97rem;
+  }
+  .answer .label {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--good);
+    margin-bottom: 6px;
+  }
+  .answer p:last-child { margin-bottom: 0; }
+
+  .signal {
+    font-size: 0.9rem;
+    color: var(--muted);
+    border-left: 2px solid var(--rule);
+    padding-left: 14px;
+    margin: -0.4em 0 1.4em;
+  }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 0 1.3em;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  details[open] summary { margin-bottom: 10px; }
+  details > *:last-child { margin-bottom: 0; }
+
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 40px;
+    font-size: 0.94rem;
+  }
+  nav.toc h2 {
+    border: none;
+    margin: 0 0 8px;
+    padding: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  nav.toc ol { padding-left: 1.3em; margin: 0; }
+  nav.toc li { margin-bottom: 3px; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  figure { margin: 0 0 1.6em; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 0 0 1.5em;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  td code { font-size: 0.85em; }
+
+  .cheat {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 6px 22px 18px;
+  }
+
+  .lede {
+    font-size: 1.12rem;
+    color: #333a47;
+  }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 2.6em 0; }
+
+  .kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview prep &middot; Guide 17</p>
+  <h1>TypeScript: Types, Generics &amp; Narrowing</h1>
+  <p class="subtitle">You know JavaScript. You've typed <code>: string</code> a few hundred times and mostly gotten away with it. This guide is about the mental model underneath — the one that makes the confusing parts stop being confusing.</p>
+</header>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#erasure">The one thing you have to believe first</a></li>
+    <li><a href="#interface-type">interface vs type</a></li>
+    <li><a href="#any-unknown">any, unknown, and never</a></li>
+    <li><a href="#generics">Generics, from the problem up</a></li>
+    <li><a href="#structural">Structural typing (why that assignment worked)</a></li>
+    <li><a href="#utility">Utility types: types are values you can transform</a></li>
+    <li><a href="#union-intersection">Union vs intersection &amp; discriminated unions</a></li>
+    <li><a href="#narrowing">Narrowing and type guards</a></li>
+    <li><a href="#optional-nullish">?. and ??</a></li>
+    <li><a href="#react">TypeScript + React</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="erasure"><span class="num">Section 1</span>The one thing you have to believe first</h2>
+
+<p>Let's start with some code that looks completely reasonable and does not work. I want you to look at it and predict what happens.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Doesn't compile</div>
+<pre><code>interface User {
+  name: string;
+  email: string;
+}
+
+function handle(value: unknown) {
+  if (value instanceof User) {   // 👈 what happens here?
+    console.log(value.name);
+  }
+}</code></pre>
+</div>
+
+<p>Take a second with it. There's no typo. <code>User</code> is defined right there, two lines up. And yet:</p>
+
+<pre><code>// → 'User' only refers to a type, but is being used as a value here. ts(2693)</code></pre>
+
+<p>If that error has ever made you feel a bit stupid — good, welcome, that's the correct reaction and it's the reason this guide starts here. The error isn't about <code>instanceof</code>. It's about something much bigger, and once you internalise it, roughly half of TypeScript's weirdness stops being weird.</p>
+
+<p>Here it is:</p>
+
+<p class="lede"><strong>TypeScript is a compile-time-only layer. Every type you write is deleted before your code runs.</strong></p>
+
+<p>Not "mostly deleted". Not "compiled into runtime checks". Deleted. The TypeScript compiler reads your annotations, uses them to shout at you in your editor, and then throws them in the bin and emits plain JavaScript. Here's the whole pipeline:</p>
+
+<figure>
+<svg viewBox="0 0 700 220" role="img" aria-label="Diagram: a TypeScript file passes through the compiler, which checks types and then erases them, emitting plain JavaScript that the browser runs.">
+  <rect x="8" y="30" width="190" height="120" rx="8" fill="#fff" stroke="#c9c4b9"/>
+  <text x="103" y="55" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#1f2430">user.ts</text>
+  <text x="24" y="82" font-family="monospace" font-size="12" fill="#2f6fd0">interface User {…}</text>
+  <text x="24" y="104" font-family="monospace" font-size="12" fill="#1f2430">const u<tspan fill="#2f6fd0">: User</tspan> = {…}</text>
+  <text x="24" y="126" font-family="monospace" font-size="12" fill="#1f2430">send(u)</text>
+
+  <path d="M205 90 L255 90" stroke="#5a6472" stroke-width="2"/>
+  <path d="M249 84 L257 90 L249 96 Z" fill="#5a6472"/>
+
+  <rect x="258" y="42" width="150" height="96" rx="8" fill="#eaf1fc" stroke="#2f6fd0"/>
+  <text x="333" y="72" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#2f6fd0">tsc</text>
+  <text x="333" y="94" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2f6fd0">1. check types</text>
+  <text x="333" y="112" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2f6fd0">2. erase types</text>
+
+  <path d="M415 90 L465 90" stroke="#5a6472" stroke-width="2"/>
+  <path d="M459 84 L467 90 L459 96 Z" fill="#5a6472"/>
+
+  <rect x="468" y="30" width="224" height="120" rx="8" fill="#fff" stroke="#c9c4b9"/>
+  <text x="580" y="55" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#1f2430">user.js — what runs</text>
+  <text x="484" y="82" font-family="monospace" font-size="12" fill="#b0aca4">(nothing — gone)</text>
+  <text x="484" y="104" font-family="monospace" font-size="12" fill="#1f2430">const u = {…}</text>
+  <text x="484" y="126" font-family="monospace" font-size="12" fill="#1f2430">send(u)</text>
+
+  <text x="350" y="185" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a6472">The browser never sees a single type. It cannot. They don't exist by then.</text>
+</svg>
+<figcaption>Types live in the left two boxes only.</figcaption>
+</figure>
+
+<p>So <code>instanceof User</code> fails because at runtime there <em>is</em> no <code>User</code>. There's no variable called <code>User</code>, no constructor, no object — nothing for <code>instanceof</code> to compare against. You wrote a note in the margin and then asked the browser to read your margin.</p>
+
+<h3>The analogy: scaffolding</h3>
+
+<p>TypeScript is scaffolding around a building. While you're constructing, it's everywhere — you walk on it, you lean things against it, it stops you falling off the third floor. Then, on the day the building opens, it all comes down. The finished building has no scaffolding in it. If you designed a room that only stays up because scaffolding is holding it, you have a serious problem, because that scaffolding is leaving.</p>
+
+<p><em>Where the analogy breaks down:</em> scaffolding is passive — it just sits there. TypeScript is more opinionated than that; it actively refuses to let you build things it considers unsound. But the "it's gone before anyone moves in" part is exact, and that's the part that matters.</p>
+
+<h3>The three consequences you'll actually hit</h3>
+
+<p><strong>One: you can't check a type at runtime.</strong> Not with <code>instanceof</code>, not with <code>typeof myUser === 'User'</code>, not with anything. You can only check things that survive erasure — the actual shape of the actual object (<code>typeof x === 'string'</code>, <code>'email' in x</code>, <code>Array.isArray(x)</code>). We'll build real runtime checks in the <a href="#narrowing">narrowing section</a>.</p>
+
+<p><strong>Two: types do not validate data coming in from outside.</strong> This one bites people in production.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Confidently wrong</div>
+<pre><code>const res = await fetch('/api/user');
+const user: User = await res.json();   // 👈 this is a wish, not a check
+
+console.log(user.name.toUpperCase());  // → 💥 if the API returned null
+</code></pre>
+</div>
+
+<p><code>res.json()</code> returns <code>any</code>. Writing <code>: User</code> does not inspect the payload. It just tells the compiler "trust me, it's a User", and the compiler — which has no way to see the network — believes you. If the backend renamed <code>name</code> to <code>fullName</code> last Tuesday, TypeScript will happily let you crash. At every boundary where data enters your program — <code>fetch</code>, <code>localStorage</code>, <code>JSON.parse</code>, URL params, form input, a third-party SDK — you need an actual runtime check (hand-written, or a schema library like Zod). Types on their own stop at the border.</p>
+
+<p><strong>Three: this is exactly why <code>any</code> is dangerous.</strong> Since types are your only safety net and they vanish at runtime, punching a hole in the net doesn't produce a loud failure — it produces silence, until production. More on that in <a href="#any-unknown">section 3</a>.</p>
+
+<div class="callout misconception">
+  <span class="label">A common misconception</span>
+  <p>"TypeScript makes my app safer at runtime." It does not. It makes your <em>development</em> safer, which very often prevents runtime bugs from ever being written — but the shipped JavaScript is exactly as fragile as JavaScript always was. TypeScript catches the class of bug where <em>you</em> misused your own code. It catches none of the class where <em>the world</em> hands you something unexpected.</p>
+</div>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"Does TypeScript make your code safer at runtime?"</strong> — This is a filter question. A surprising number of candidates say yes.</p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer — say this out loud</span>
+  <p>"No, and that's important to be clear about. TypeScript is purely a compile-time layer — every type gets erased before the code runs, so the JavaScript that ships has no type checks in it at all. What it gives me is confidence that my code is internally consistent: I can't call a function with the wrong arguments, I can't read a property that doesn't exist. But anything crossing a boundary — an API response, <code>localStorage</code>, user input — is unvalidated as far as TypeScript is concerned. Annotating <code>res.json()</code> as <code>User</code> is just an assertion; it doesn't inspect anything. So at those boundaries I still do a real runtime check, usually with a schema validator like Zod, and derive the TypeScript type from the schema so the two can't drift apart."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> you've shown you understand erasure, you've named the exact boundary problem, and you've offered the standard professional solution. That last sentence — deriving the type from the schema — is what separates "read the docs" from "shipped this".</p>
+
+<h2 id="interface-type"><span class="num">Section 2</span><code>interface</code> vs <code>type</code></h2>
+
+<p>Almost every TypeScript interview asks this, and almost every answer is a shrug: "they're basically the same, I use whichever." That answer isn't <em>wrong</em>, but it's a wasted opportunity, because the real differences are interesting and knowing them signals that you've read past the tutorial.</p>
+
+<p>Let's start with the 95% case, where they genuinely are interchangeable:</p>
+
+<div class="codeblock">
+<div class="codelabel neutral">Identical in effect</div>
+<pre><code>interface User {
+  name: string;
+  email: string;
+}
+
+type User = {
+  name: string;
+  email: string;
+};</code></pre>
+</div>
+
+<p>Same checking, same errors on misuse, same everything. So what actually differs?</p>
+
+<h3>Difference 1: <code>type</code> can describe things that aren't objects</h3>
+
+<p>An <code>interface</code> describes the shape of an object (or a function, or a class). That's its whole job. A <code>type</code> is an <em>alias</em> — a name you give to any type expression at all. That's a much wider job description:</p>
+
+<pre><code>type Status = 'idle' | 'loading' | 'error';     // union — interface can't
+type ID = string;                                // primitive alias — can't
+type Point = [number, number];                   // tuple — can't
+type Handler = (event: MouseEvent) =&gt; void;      // function (interface can, awkwardly)
+type Nullable&lt;T&gt; = T | null;                     // generic alias over a union — can't</code></pre>
+
+<p>None of the lines marked "can't" have an <code>interface</code> equivalent. There is no way to write "this type is the string <code>'idle'</code> or the string <code>'loading'</code>" using <code>interface</code>. So already: <strong>anything that isn't an object shape has to be a <code>type</code>.</strong> That's not a preference, it's a constraint.</p>
+
+<h3>Difference 2: declaration merging</h3>
+
+<p>This is the one that surprises people. Declare the same interface twice and TypeScript doesn't complain — it merges them:</p>
+
+<pre><code>interface Window {
+  myAnalytics: (event: string) =&gt; void;
+}
+
+interface Window {
+  featureFlags: string[];
+}
+
+// Window now has BOTH. And it also still has every property
+// the DOM lib declared on the built-in Window interface.</code></pre>
+
+<p>Do the same with <code>type</code> and you get <code>Duplicate identifier 'Window'</code>.</p>
+
+<p>Merging sounds like a footgun, and inside your own app it mostly is — two developers accidentally naming two different interfaces <code>Config</code> and silently getting one Frankenstein type is not fun. But it exists for a genuinely good reason: <strong>it's how you extend types you don't own.</strong> That <code>Window</code> example is real. It's how you tell TypeScript about a script tag that stuck something on <code>window</code>, how you add custom properties to Express's <code>Request</code>, how library authors let you augment their types. A <code>type</code> alias is sealed; an <code>interface</code> is open for extension by consumers.</p>
+
+<div class="callout">
+  <span class="label">Wait, what about…</span>
+  <p><strong>"Doesn't that mean a library using <code>interface</code> is less safe?"</strong> — Slightly, in the sense that anyone can bolt things on. But it's a deliberate trade: openness is a <em>feature</em> for a library's public surface, because the alternative is that consumers with a legitimate need are stuck. Inside your own application code, where nobody needs to augment anything, the openness buys you nothing.</p>
+</div>
+
+<h3>Difference 3: <code>extends</code> vs <code>&amp;</code></h3>
+
+<p>Both can combine object types, and they look equivalent:</p>
+
+<pre><code>interface Admin extends User {
+  permissions: string[];
+}
+
+type Admin = User &amp; { permissions: string[] };</code></pre>
+
+<p>They produce the same shape, but they behave differently when things go wrong. <code>extends</code> is a <em>checked</em> relationship: if you extend <code>User</code> and redeclare <code>name</code> as a <code>number</code>, TypeScript stops you immediately with a clear error, because you've claimed to be a valid <code>User</code> and you aren't. An intersection is not a check — it just mashes the two together, and a conflicting property quietly collapses to <code>never</code> (a type with no possible values), so nothing can ever satisfy it. You get no error at the definition, only a baffling one much later at the usage site.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Silently broken</div>
+<pre><code>type Base = { id: string };
+type Broken = Base &amp; { id: number };
+//  id is now (string &amp; number) → never. No error here.
+
+const x: Broken = { id: '1' };  // → Type 'string' is not assignable to type 'never'
+                                //   ...good luck working out why</code></pre>
+</div>
+
+<p>Interfaces also tend to produce nicer error messages and editor tooltips: hover an interface and you see <code>User</code>, hover a big intersection and you can get a wall of expanded structure. And there's a small performance angle — the compiler caches interface relationships, while intersections are recomputed. On a huge codebase that's measurable; on yours it probably isn't.</p>
+
+<h3>So which do you use?</h3>
+
+<p>Here's the guidance, and the reasoning behind it:</p>
+
+<p><strong>Use <code>interface</code> for object shapes. Use <code>type</code> for everything else.</strong></p>
+
+<p>It works because it's mechanical — no judgement call at the keyboard — and it lines up with what each tool is actually built for. Objects get the better errors, the extendability, the compiler caching. Unions, tuples, primitives, function signatures, and anything computed get <code>type</code>, because they have no choice.</p>
+
+<p>The honest caveat: plenty of excellent codebases use <code>type</code> for everything and are completely fine. This is a style question with mild technical grounding, not a correctness question, and you should say so.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"Do you use <code>interface</code> or <code>type</code>?"</strong> — They're testing whether you have <em>reasons</em>, not which one you picked. A candidate who says "type, because it's more flexible, and here's the one case where I'd reach for interface" scores exactly as well as the reverse.</p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"My default rule is <code>interface</code> for object shapes and <code>type</code> for everything else. The main reason is that <code>type</code> is the only one that can express unions, tuples, primitives and mapped types, so those are forced. For objects, interfaces give slightly better error messages, and they support declaration merging, which matters when you need to augment something you don't own — like adding a property to <code>Window</code> or Express's <code>Request</code>. I also prefer <code>extends</code> over an intersection because a conflicting property is caught at the declaration, whereas an intersection silently collapses it to <code>never</code> and you find out much later. That said, it's a convention, not a correctness thing — I'd follow whatever the codebase already does."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> the <code>never</code>-collapse detail is the tell. It's specific, it's true, and it's the kind of thing you only know from having been burned. The closing line about following the codebase shows you're not going to relitigate style in code review.</p>
+
+<h2 id="any-unknown"><span class="num">Section 3</span><code>any</code>, <code>unknown</code>, and <code>never</code></h2>
+
+<p>Here's a small function. It takes something from outside — a parsed JSON blob, say — and pulls a name out of it.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ With any</div>
+<pre><code>function getName(data: any) {
+  return data.user.profile.name.toUpperCase();
+}
+
+getName({ hello: 'world' });   // compiles fine ✅
+                               // → 💥 Cannot read properties of undefined</code></pre>
+</div>
+
+<p>TypeScript let all of that through without a murmur. Not one squiggle. And that's not a bug — it's <code>any</code> doing precisely what it's designed to do, which is <strong>switch type checking off</strong> for that value.</p>
+
+<p>Think of <code>any</code> as a diplomatic passport. Whatever that value does, wherever it goes, nobody's allowed to search its bags. Call it as a function? Fine. Index into it with a random key? Fine. Pass it to something expecting a <code>Date</code>? Absolutely fine.</p>
+
+<p>And here's the part that makes it genuinely dangerous rather than merely permissive: <strong><code>any</code> is contagious.</strong> Anything you pull out of an <code>any</code> is also <code>any</code>. It spreads outward through your code, and because it spreads silently, a single <code>any</code> at an API boundary can quietly disable checking across an entire feature. Half the time when someone says "TypeScript didn't catch it", this is why.</p>
+
+<h3><code>unknown</code>: the same door, but with a lock</h3>
+
+<p><code>unknown</code> is the <em>type-safe</em> version of "I don't know what this is". Like <code>any</code>, it will accept any value. Unlike <code>any</code>, it won't let you <em>do</em> anything with that value until you've proven what it is.</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ With unknown</div>
+<pre><code>function getName(data: unknown) {
+  return data.user.name;   // → 'data' is of type 'unknown'. ts(18046)
+}</code></pre>
+</div>
+
+<p>The error arrives immediately, at the exact line where you made an unfounded assumption. To get past it you have to convince the compiler:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Narrowed, then used</div>
+<pre><code>function getName(data: unknown): string {
+  if (
+    typeof data === 'object' &amp;&amp; data !== null &amp;&amp;
+    'name' in data &amp;&amp; typeof data.name === 'string'
+  ) {
+    return data.name.toUpperCase();   // 👈 data.name is string here. Provably.
+  }
+  return 'Anonymous';
+}</code></pre>
+</div>
+
+<p>Yes, that's more code. That's the entire point — the extra code <em>is</em> the check that was missing, the one that would have prevented the crash. <code>any</code> didn't save you work, it deferred the work to a production incident.</p>
+
+<p>The way I hold these in my head: <strong><code>any</code> means "stop checking". <code>unknown</code> means "check later, but you <em>will</em> check."</strong> Two very different promises.</p>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p>Type theory calls <code>unknown</code> the <em>top type</em> — the set of all possible values. Every type is assignable <em>to</em> it, and it's assignable <em>from</em> nothing except itself and <code>any</code>. <code>never</code> is the <em>bottom type</em> — the empty set, no values at all. It's assignable to everything (vacuously true: a function with no members satisfies every requirement) and nothing is assignable to it. <code>any</code> isn't in this hierarchy at all — it's an escape hatch that pretends to be both ends at once, which is exactly why it's unsound.</p>
+</div>
+
+<h3><code>never</code>, and the exhaustiveness trick</h3>
+
+<p><code>never</code> is the type of a value that can't exist. A function that always throws returns <code>never</code>. An infinite loop returns <code>never</code>. A variable narrowed down until no possibilities remain is <code>never</code>.</p>
+
+<p>That last one is the useful one, and it powers my single favourite TypeScript pattern. Watch:</p>
+
+<pre><code>type Shape =
+  | { kind: 'circle'; radius: number }
+  | { kind: 'square'; size: number };
+
+function area(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle': return Math.PI * shape.radius ** 2;
+    case 'square': return shape.size ** 2;
+    default:
+      const exhaustive: never = shape;   // 👈 the guard
+      throw new Error(`Unhandled shape: ${exhaustive}`);
+  }
+}</code></pre>
+
+<p>In that <code>default</code> branch, TypeScript has eliminated <code>circle</code> and <code>square</code>, so <code>shape</code> is <code>never</code> — nothing is left. Assigning <code>never</code> to <code>never</code> is fine, so today this compiles.</p>
+
+<p>Now a teammate adds <code>{ kind: 'triangle'; base: number; height: number }</code> to <code>Shape</code> and forgets about this file. Suddenly <code>shape</code> in the default branch is the triangle variant, and you can't assign a triangle to <code>never</code>. <strong>The build fails, in the file they forgot, pointing at the exact case they missed.</strong></p>
+
+<p>That's the move: you've turned "someone might forget to update this" into a compile error. Do this in every reducer, every state machine, every place you switch on a union — and mention it in the interview, because it reads as senior in about eight words.</p>
+
+<h3><code>strict</code> mode, and why <code>noImplicitAny</code> is the load-bearing flag</h3>
+
+<p>None of this matters if <code>any</code> is sneaking in without you writing it. Without <code>noImplicitAny</code>, an unannotated parameter is silently <code>any</code>:</p>
+
+<pre><code>function greet(user) {          // user is implicitly any — checking is OFF
+  return user.nmae.trim();      // typo sails right through
+}</code></pre>
+
+<p>Turn on <code>"strict": true</code> in <code>tsconfig.json</code> and you get that flag plus the other big one, <code>strictNullChecks</code>, which stops treating <code>null</code> and <code>undefined</code> as members of every type. Without it, <code>string</code> secretly includes <code>null</code> and TypeScript can't warn you about the most common runtime error in all of JavaScript. Strict mode is not "advanced TypeScript" — it's the difference between TypeScript working and TypeScript performing type safety at you.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"What's the difference between <code>any</code> and <code>unknown</code>? Why is <code>unknown</code> better?"</strong></p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"Both accept any value, but <code>any</code> turns type checking off for that value — you can call it, index it, pass it anywhere, and TypeScript won't say a word. And it's contagious: anything you read off an <code>any</code> is also <code>any</code>, so one of them at an API boundary can silently disable checking across a whole feature. <code>unknown</code> is the type-safe top type. It holds anything, but you can't touch it until you've narrowed it — with <code>typeof</code>, an <code>in</code> check, a type predicate, whatever. So it's the right type for genuinely unknown input, like a caught error or a JSON payload, because it forces the validation to actually happen. I'd only reach for <code>any</code> to unblock an incremental migration, with a comment saying why."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> "contagious" is the word that shows you've felt the pain rather than read the definition. Naming <code>catch (e: unknown)</code> is a nice bonus — since TS 4.4 with <code>useUnknownInCatchVariables</code>, caught errors are <code>unknown</code>, because you genuinely cannot know that someone threw an <code>Error</code>.</p>
+
+<details>
+  <summary>Trap: "any is fine as long as you're careful"</summary>
+  <p>This gets candidates dinged because it misunderstands the failure mode. The danger isn't that <em>you</em> misuse the <code>any</code> value — it's that <code>any</code> propagates to code written by people who never saw the annotation, six months later, in a different file. Carefulness doesn't compose across a team. Say <code>unknown</code> plus a narrowing function instead.</p>
+</details>
+
+<h2 id="generics"><span class="num">Section 4</span>Generics, from the problem up</h2>
+
+<p>Generics are where people bounce off TypeScript. The syntax looks like algebra and every tutorial starts with <code>function identity&lt;T&gt;(arg: T): T</code>, which explains the syntax and none of the point.</p>
+
+<p>So let's not do that. Let's write a function that has a problem, and see what the problem is.</p>
+
+<h3>The problem</h3>
+
+<p>I want <code>first</code> — takes an array, returns the first element.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Attempt 1: any</div>
+<pre><code>function first(arr: any[]): any {
+  return arr[0];
+}
+
+const name = first(['Ada', 'Grace']);
+name.toUpperCase();   // ✅ compiles
+name.toFixed(2);      // ✅ also compiles 😬 → 💥 at runtime</code></pre>
+</div>
+
+<p>The information was <em>right there</em> — I passed an array of strings — and the function threw it away. Everything after this call is unchecked.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Attempt 2: one copy per type</div>
+<pre><code>function firstString(arr: string[]): string { return arr[0]; }
+function firstNumber(arr: number[]): number { return arr[0]; }
+function firstUser(arr: User[]): User { return arr[0]; }
+// ...and one for every type that will ever exist. Forever.</code></pre>
+</div>
+
+<p>Correct, and absurd. Note that these bodies are <em>character-for-character identical</em>. The logic doesn't care about the type at all. The only thing that varies is a type, and we're duplicating an entire function to vary it.</p>
+
+<p>Which is a familiar shape, isn't it? When the only thing that varies is a <em>value</em>, you don't write forty functions — you add a parameter. Generics are that same idea, one level up: <strong>a parameter whose argument is a type.</strong></p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Attempt 3: a type parameter</div>
+<pre><code>function first&lt;T&gt;(arr: T[]): T {
+  return arr[0];
+}</code></pre>
+</div>
+
+<p>Read <code>&lt;T&gt;</code> exactly like you'd read a function's parameter list. <code>function first(arr)</code> says "I need an array; the caller supplies it." <code>function first&lt;T&gt;(...)</code> says "I need a type; the caller supplies it." <code>T</code> is a placeholder that gets filled in at each call site, and <code>: T[]</code> and <code>: T</code> say "whatever they fill in, the input is an array of it and the output is one of it."</p>
+
+<p>The angle brackets are just the syntax for "this parameter list holds types, not values". That's it. That's the whole idea.</p>
+
+<h3>You almost never write the type argument</h3>
+
+<p>Here's the bit that makes generics pleasant instead of noisy — TypeScript <em>infers</em> the type argument from the values you pass:</p>
+
+<pre><code>const names = ['Ada', 'Grace'];
+const firstName = first(names);   // T inferred as string
+firstName.toUpperCase();          // ✅
+firstName.toFixed(2);             // ❌ Property 'toFixed' does not exist on type 'string'
+
+const ages = [31, 45];
+first(ages);                      // T inferred as number — same function
+
+first&lt;string&gt;(names);             // explicit, if you ever need it</code></pre>
+
+<p>One function, full type information preserved through it, zero annotations at the call site. That's the payoff. You've probably been using generics for months without noticing — <code>Array&lt;string&gt;</code>, <code>Promise&lt;User&gt;</code>, <code>Map&lt;string, number&gt;</code>, <code>useState&lt;number&gt;</code> are all exactly this.</p>
+
+<div class="callout">
+  <span class="label">Wait, what about…</span>
+  <p><strong>"Why <code>T</code>?"</strong> — Pure convention (T for Type, then U, V for extras; K for Key, V for Value). Nothing magic about the letter. In real code, please write <code>&lt;TItem&gt;</code> or <code>&lt;TResponse&gt;</code> when there's more than one — <code>&lt;T, U, V, K&gt;</code> is a puzzle nobody wants to solve.</p>
+</div>
+
+<h3>Constraints: "any type, but it must at least…"</h3>
+
+<p>Naked <code>T</code> means <em>literally any type</em>, which means you can't do anything with it — same lock <code>unknown</code> puts on you, and for the same reason. This fails:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Too permissive</div>
+<pre><code>function logLength&lt;T&gt;(item: T) {
+  console.log(item.length);   // → Property 'length' does not exist on type 'T'
+}</code></pre>
+</div>
+
+<p>Correct of it. You said "any type", and <code>number</code> has no <code>.length</code>. So narrow the promise with <code>extends</code>:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Constrained</div>
+<pre><code>function logLength&lt;T extends { length: number }&gt;(item: T) {
+  console.log(item.length);   // ✅ guaranteed to exist
+}
+
+logLength('hello');        // ✅ strings have length
+logLength([1, 2, 3]);      // ✅ arrays do too
+logLength(42);             // ❌ number doesn't satisfy the constraint</code></pre>
+</div>
+
+<p><code>extends</code> here doesn't mean inheritance — read it as "must be <em>at least</em>". A useful pairing is <code>K extends keyof T</code>, which is how you write a type-safe property getter:</p>
+
+<pre><code>function getProp&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const user = { name: 'Ada', age: 36 };
+getProp(user, 'name');   // → string
+getProp(user, 'age');    // → number  👈 different return type, same function
+getProp(user, 'emial');  // ❌ typo caught: not assignable to 'name' | 'age'</code></pre>
+
+<p>Look at what that bought: the return type <em>depends on the argument value</em>. That's not something a non-generic signature can express at all.</p>
+
+<h3>Default type parameters</h3>
+
+<p>Just like default values for value parameters:</p>
+
+<pre><code>interface ApiResponse&lt;TData = unknown&gt; {
+  data: TData;
+  status: number;
+}
+
+const a: ApiResponse = { data: 'anything', status: 200 };        // TData = unknown
+const b: ApiResponse&lt;User[]&gt; = { data: [], status: 200 };        // TData = User[]</code></pre>
+
+<h3>Generics in React</h3>
+
+<p>The two places you'll write them for real. First, a custom hook that keeps the type of whatever it stores:</p>
+
+<pre><code>function useLocalStorage&lt;T&gt;(key: string, initial: T) {
+  const [value, setValue] = useState&lt;T&gt;(() =&gt; {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : initial;   // 👈 assertion — see §8
+  });
+  return [value, setValue] as const;
+}
+
+const [theme, setTheme] = useLocalStorage('theme', 'dark');  // T = string
+const [count, setCount] = useLocalStorage('count', 0);       // T = number</code></pre>
+
+<p>Without the generic you'd return <code>any</code> and every consumer would lose its types. And second, a generic component — a list that doesn't care what it's listing:</p>
+
+<pre><code>type ListProps&lt;T&gt; = {
+  items: T[];
+  renderItem: (item: T) =&gt; React.ReactNode;
+};
+
+function List&lt;T&gt;({ items, renderItem }: ListProps&lt;T&gt;) {
+  return &lt;ul&gt;{items.map((item, i) =&gt; &lt;li key={i}&gt;{renderItem(item)}&lt;/li&gt;)}&lt;/ul&gt;;
+}
+
+&lt;List items={users} renderItem={(u) =&gt; u.name} /&gt;
+//                                    👆 u is User. Inferred from `items`.</code></pre>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"What problem do generics solve?"</strong> — and the follow-up that separates people: <em>"why not just use <code>any</code>?"</em></p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"Generics let a function or type work with many types while keeping the relationship between them. Take a <code>first</code> function that returns an array's first element — without generics I either type it as <code>any[]</code>, which throws away the caller's type and disables checking downstream, or I write one copy per type, which is identical logic duplicated forever. A type parameter <code>&lt;T&gt;</code> is just a parameter whose argument is a type: the caller fills it in, usually by inference, and the signature <code>(arr: T[]) =&gt; T</code> records that the output type is tied to the input type. That's the key thing <code>any</code> can't do — <code>any</code> is a hole, a generic is a <em>link</em>. Then constraints like <code>T extends { length: number }</code> let me require a minimum shape while still staying open."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> "<code>any</code> is a hole, a generic is a link" is a sentence an interviewer will remember. Leading with the concrete broken version instead of a definition shows you can teach, which is most of what senior interviews are actually measuring.</p>
+
+<h2 id="structural"><span class="num">Section 5</span>Structural typing (why that assignment worked)</h2>
+
+<p>Another one to predict. Two types, completely unrelated — neither extends the other, they're declared in different files, they have nothing to do with each other conceptually:</p>
+
+<pre><code>interface Point2D { x: number; y: number; }
+interface Vector2D { x: number; y: number; }
+
+function draw(point: Point2D) { /* … */ }
+
+const velocity: Vector2D = { x: 3, y: 4 };
+draw(velocity);   // 👈 does this compile?</code></pre>
+
+<p>It compiles. Happily. No complaint at all.</p>
+
+<p>If you've come from Java or C#, that should feel wrong, because those languages are <strong>nominally</strong> typed: a type's identity is its <em>name</em>, and a <code>Vector2D</code> is not a <code>Point2D</code> because it isn't called that, full stop.</p>
+
+<p>TypeScript is <strong>structurally</strong> typed. A type's identity is its <em>shape</em>. The question TypeScript asks is never "is this a Point2D?" — it's "does this have everything a Point2D needs?" <code>velocity</code> has an <code>x: number</code> and a <code>y: number</code>. It qualifies. Case closed.</p>
+
+<p>The analogy I like: <strong>nominal typing is a guest list, structural typing is a dress code.</strong> A guest list checks your name against the paper. A dress code checks whether you're wearing a jacket and tie — it doesn't care who you are, and it doesn't care that you also happen to be wearing a hat. <em>Where it breaks down:</em> a real bouncer sees you all at once, whereas TypeScript checks the requirements one at a time and can also check that a <em>function</em> you're carrying has an acceptable signature. But "requirements met, name irrelevant" is exactly right.</p>
+
+<p>This is not an accident or a compromise — it's the correct design for a language layered on top of JavaScript, where objects are built ad hoc from literals, spreads and JSON, and mostly never came from a class at all. Requiring a name would make TypeScript unusable on the language it's describing. It's also why you can pass an object literal to a function without declaring that you implement anything, and why mocks in tests just work.</p>
+
+<h3>Where it bites</h3>
+
+<p>Now the uncomfortable case. Two IDs in your app:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Compiles, ships, breaks</div>
+<pre><code>type UserId = string;
+type OrderId = string;
+
+function cancelOrder(id: OrderId) { /* … */ }
+
+const userId: UserId = 'usr_8321';
+cancelOrder(userId);   // ✅ compiles. Both are string. Structurally identical.</code></pre>
+</div>
+
+<p>Those aliases give you documentation and nothing else. To TypeScript they are both, exactly and only, <code>string</code>. Same for a <code>Meters</code> and a <code>Feet</code> that are both <code>number</code> — and that class of bug has famously destroyed actual spacecraft.</p>
+
+<h3>Branded types: forcing nominal behaviour</h3>
+
+<p>The trick is to make the shapes genuinely different by adding a property that exists only in the type system:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Branded</div>
+<pre><code>type UserId  = string &amp; { readonly __brand: 'UserId' };
+type OrderId = string &amp; { readonly __brand: 'OrderId' };
+
+// The only way in — a checked constructor:
+function toOrderId(raw: string): OrderId {
+  if (!raw.startsWith('ord_')) throw new Error('Bad order id');
+  return raw as OrderId;        // 👈 the single, deliberate assertion
+}
+
+cancelOrder(userId);              // ❌ now a compile error 🎉
+cancelOrder(toOrderId('ord_12')); // ✅</code></pre>
+</div>
+
+<p>At runtime these are still just strings — <code>__brand</code> does not exist, nothing is allocated, there's zero cost. The brand exists purely to make the two shapes incompatible to the checker. You concentrate all the unsafety into one small validated constructor, and everywhere else is safe by construction. Worth it for IDs, currency amounts, units, and anything pre-validated (a <code>SanitizedHtml</code>, an <code>Email</code>).</p>
+
+<h3>Excess property checking (the exception that confuses everyone)</h3>
+
+<p>If shape is all that matters, why does this fail?</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Object literal</div>
+<pre><code>interface Options { url: string; timeout?: number; }
+
+fetchData({ url: '/api', timeuot: 500 });
+// → Object literal may only specify known properties,
+//   but 'timeuot' does not exist in type 'Options'. Did you mean 'timeout'?</code></pre>
+</div>
+
+<p>Structurally that object <em>does</em> satisfy <code>Options</code> — it has a <code>url: string</code>, and extras should be harmless. And they are, when the object arrives via a variable:</p>
+
+<pre><code>const opts = { url: '/api', timeuot: 500 };
+fetchData(opts);   // ✅ no error. Same object!</code></pre>
+
+<p>So why the difference? Because of <em>intent</em>. When you write an object literal directly at the call site, that object has no other purpose — there's no other consumer who might want <code>timeuot</code>. An extra property there is overwhelmingly likely to be a typo or a misremembered API, so TypeScript adds a special extra check for that one case. Once the object lives in a variable, it might legitimately be used elsewhere with more fields, so the check backs off.</p>
+
+<p>It's a deliberate, pragmatic exception to structural typing, aimed squarely at optional-property typos. Knowing <em>why</em> it exists — and that assigning to a variable makes it disappear — is a genuinely good interview detail.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"Why can I pass this object to a function expecting a completely unrelated type?"</strong></p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"Because TypeScript is structurally typed — compatibility is decided by shape, not by name. If an object has all the members the target type requires, it's assignable, even if the two types were declared independently and share no ancestry. That's the right call for a language sitting on top of JavaScript, where most objects come from literals or JSON and never had a nominal type to begin with. The downside is that two aliases like <code>UserId</code> and <code>OrderId</code> that are both <code>string</code> are completely interchangeable, so you can pass the wrong one. When that matters I use a branded type — intersect the primitive with a phantom property so the shapes differ — and funnel creation through one validating function. The brand is erased at runtime, so it's free."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> naming the structural/nominal distinction shows you have vocabulary from outside TypeScript. Following it with branded types shows you know the escape hatch, not just the complaint.</p>
+
+<h2 id="utility"><span class="num">Section 6</span>Utility types: types are values you can transform</h2>
+
+<p>Here's a small thing that changes how you see TypeScript. You have a <code>User</code>:</p>
+
+<pre><code>interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}</code></pre>
+
+<p>Now you need the shape of the half-filled form draft — every field optional while the user is still typing. And the shape you send to the client — everything except the password. And a lookup keyed by user ID.</p>
+
+<p>The instinct is to write three more interfaces. Don't. <strong>Types are values you can compute with.</strong> Just as you'd never copy-paste an array and delete an element by hand, you shouldn't copy-paste a type. You derive it:</p>
+
+<pre><code>type UserDraft  = Partial&lt;User&gt;;              // every field optional
+type PublicUser = Omit&lt;User, 'password'&gt;;     // everything but password
+type UserMap    = Record&lt;string, User&gt;;       // { [id: string]: User }</code></pre>
+
+<p>That's the whole concept, and it's worth more than memorising the list: utility types are <em>functions that take types and return types</em>. Once you see them that way, the payoff is obvious — add a <code>createdAt</code> field to <code>User</code> and all three derived types update themselves. Copy-pasted interfaces drift; derived ones can't.</p>
+
+<h3>The ones you'll actually use</h3>
+
+<p><strong><code>Partial&lt;T&gt;</code></strong> — every property optional. The classic use is a patch/update:</p>
+
+<pre><code>function updateUser(id: string, changes: Partial&lt;User&gt;) { /* … */ }
+updateUser('u1', { email: 'new@example.com' });   // ✅ don't need the rest</code></pre>
+
+<p><strong><code>Required&lt;T&gt;</code></strong> — the inverse; strips the <code>?</code> off everything. Handy after you've filled in defaults, so the rest of the function doesn't have to keep checking for <code>undefined</code>:</p>
+
+<pre><code>function init(opts: Partial&lt;Config&gt;) {
+  const full: Required&lt;Config&gt; = { ...defaults, ...opts };
+  // 👆 from here on, every field is guaranteed present
+}</code></pre>
+
+<p><strong><code>Pick&lt;T, K&gt;</code></strong> and <strong><code>Omit&lt;T, K&gt;</code></strong> — subset by keeping, or by removing. <code>Omit</code> is what you want for a DTO leaving the server; <code>Pick</code> is what you want for a component that only needs two fields:</p>
+
+<pre><code>type UserCardProps = Pick&lt;User, 'name' | 'email'&gt;;
+type PublicUser    = Omit&lt;User, 'password'&gt;;</code></pre>
+
+<p>Rule of thumb: use <code>Pick</code> when the list is short and <code>Omit</code> when the exclusion list is short. There's one real difference — <code>Pick</code>'s keys must exist on <code>T</code>, but <code>Omit</code> tolerates keys that don't, so a rename can silently stop omitting. Mild reason to prefer <code>Pick</code> for anything security-sensitive.</p>
+
+<p><strong><code>Record&lt;K, V&gt;</code></strong> — a dictionary. The second most useful after <code>Partial</code>, and it's especially nice with a union key, because then it's <em>exhaustive</em>:</p>
+
+<pre><code>type Status = 'idle' | 'loading' | 'error';
+
+const labels: Record&lt;Status, string&gt; = {
+  idle: 'Ready',
+  loading: 'Loading…',
+  // ❌ Property 'error' is missing  👈 add a status, this breaks. On purpose.
+};</code></pre>
+
+<p><strong><code>Readonly&lt;T&gt;</code></strong> — all properties non-assignable. Compile-time only, and shallow (nested objects stay mutable), but great for props and config you don't want anyone mutating.</p>
+
+<p><strong><code>ReturnType&lt;F&gt;</code></strong> and <strong><code>Parameters&lt;F&gt;</code></strong> — reach into a function's signature. This is how you avoid re-declaring the shape of something a library already knows:</p>
+
+<pre><code>function createStore() {
+  return { user: null as User | null, cart: [] as Item[] };
+}
+
+type Store = ReturnType&lt;typeof createStore&gt;;   // 👈 no second declaration to keep in sync
+type Args  = Parameters&lt;typeof updateUser&gt;;    // → [string, Partial&lt;User&gt;]</code></pre>
+
+<p>That <code>typeof</code> is TypeScript's type-level <code>typeof</code>, not JavaScript's — in a type position it means "the type of this value". You'll use it constantly.</p>
+
+<p><strong><code>Awaited&lt;T&gt;</code></strong> — unwraps a Promise (recursively, so nested promises flatten). Nearly always paired with <code>ReturnType</code> to get what an async function actually resolves to:</p>
+
+<pre><code>async function fetchUser() { return { id: '1', name: 'Ada' }; }
+
+type FetchedUser = Awaited&lt;ReturnType&lt;typeof fetchUser&gt;&gt;;   // → { id: string; name: string }
+// without Awaited you'd get Promise&lt;{ id: string; name: string }&gt;</code></pre>
+
+<p><strong><code>NonNullable&lt;T&gt;</code></strong> — removes <code>null</code> and <code>undefined</code> from a union. Useful after a filter:</p>
+
+<pre><code>type MaybeUser = User | null | undefined;
+type DefinitelyUser = NonNullable&lt;MaybeUser&gt;;   // → User</code></pre>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p>None of these are compiler magic — they're ordinary TypeScript, written in the standard library using mapped and conditional types. <code>Partial</code> is literally <code>type Partial&lt;T&gt; = { [K in keyof T]?: T[K] }</code>. You can write your own. That's a separate guide, but it's reassuring to know there's no secret layer: it's types all the way down.</p>
+</div>
+
+<h2 id="union-intersection"><span class="num">Section 7</span>Union vs intersection &amp; discriminated unions</h2>
+
+<p>This section contains the single most counterintuitive thing in TypeScript. Let's walk right into it:</p>
+
+<pre><code>type Dog = { name: string; bark: () =&gt; void };
+type Cat = { name: string; meow: () =&gt; void };
+
+type Pet = Dog | Cat;
+
+function greet(pet: Pet) {
+  pet.name;    // ✅ fine
+  pet.bark();  // ❌ Property 'bark' does not exist on type 'Pet'
+}</code></pre>
+
+<p>The union says "Dog <strong>or</strong> Cat", so you'd think you'd get access to both sets of properties. You get <em>fewer</em>. Meanwhile the intersection — "Dog <strong>and</strong> Cat", which sounds narrower — gives you <em>more</em>:</p>
+
+<pre><code>type Chimera = Dog &amp; Cat;
+
+function greet(pet: Chimera) {
+  pet.bark();  // ✅
+  pet.meow();  // ✅ both available
+}</code></pre>
+
+<p>"Or" gives you less, "and" gives you more. That feels backwards, and it trips up nearly everyone — including me, for embarrassingly long. The fix is to stop thinking about properties and start thinking about <strong>sets of values</strong>.</p>
+
+<h3>The mental model: sets, not fields</h3>
+
+<p>A type is a <em>set of all the values that satisfy it</em>. <code>Dog</code> is the set of all objects that have a name and a bark.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Two overlapping circles labelled Dog and Cat. Their union is both circles combined; their intersection is only the overlap.">
+  <g>
+    <text x="175" y="24" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#1f2430">Dog | Cat</text>
+    <circle cx="140" cy="120" r="65" fill="#2f6fd0" fill-opacity="0.30" stroke="#2f6fd0"/>
+    <circle cx="210" cy="120" r="65" fill="#2f6fd0" fill-opacity="0.30" stroke="#2f6fd0"/>
+    <text x="108" y="118" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#1f2430">Dog</text>
+    <text x="242" y="118" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#1f2430">Cat</text>
+    <text x="175" y="212" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a6472">MORE values</text>
+    <text x="175" y="230" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a6472">only <tspan font-family="monospace">name</tspan> is guaranteed</text>
+  </g>
+  <line x1="350" y1="30" x2="350" y2="230" stroke="#e3e0d9" stroke-width="2"/>
+  <g>
+    <text x="525" y="24" text-anchor="middle" font-family="monospace" font-size="14" font-weight="700" fill="#1f2430">Dog &amp; Cat</text>
+    <circle cx="490" cy="120" r="65" fill="none" stroke="#c9c4b9"/>
+    <circle cx="560" cy="120" r="65" fill="none" stroke="#c9c4b9"/>
+    <path d="M525 62 A65 65 0 0 1 525 178 A65 65 0 0 1 525 62 Z" fill="#6b46c1" fill-opacity="0.35" stroke="#6b46c1"/>
+    <text x="458" y="118" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#8a8378">Dog</text>
+    <text x="592" y="118" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#8a8378">Cat</text>
+    <text x="525" y="212" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a6472">FEWER values</text>
+    <text x="525" y="230" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a6472"><tspan font-family="monospace">name</tspan>, <tspan font-family="monospace">bark</tspan> and <tspan font-family="monospace">meow</tspan></text>
+  </g>
+</svg>
+<figcaption>Widen the set of values, and you narrow what's guaranteed about them.</figcaption>
+</figure>
+
+<p><code>Dog | Cat</code> is the <em>union</em> of the two sets — a bigger circle. And here's the key move: <strong>the more values a type can hold, the less you can guarantee about all of them.</strong> Some members of that bigger set are cats, and cats can't bark. So the only properties you're allowed to touch are the ones present in <em>every</em> member: <code>name</code>.</p>
+
+<p><code>Dog &amp; Cat</code> is the <em>overlap</em> — the smaller set of things that are somehow both. A smaller, stricter set means stronger guarantees, so you get everything from both.</p>
+
+<p>Say it as a slogan: <strong>a union widens the values and narrows the capabilities; an intersection narrows the values and widens the capabilities.</strong> Or if you want it even shorter: unions are about the <em>values</em>, intersections are about the <em>constraints</em>. The words "or" and "and" apply to different things than you assumed, which is the whole reason it felt backwards.</p>
+
+<div class="callout">
+  <span class="label">Wait, what about…</span>
+  <p><strong>"So how do I ever use <code>bark</code>?"</strong> — You narrow: prove to the compiler that this particular value is in the Dog part of the set, and inside that block you get Dog's properties back. That's the whole next section, and it's the thing unions are <em>for</em>. A union isn't a limitation to route around — it's a promise you have to check.</p>
+</div>
+
+<h3>Discriminated unions: the best pattern in frontend TypeScript</h3>
+
+<p>If you take one practical technique from this guide, take this one.</p>
+
+<p>Here's how most people model a data fetch:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ The bag of optionals</div>
+<pre><code>interface State {
+  isLoading: boolean;
+  data?: User;
+  error?: Error;
+}</code></pre>
+</div>
+
+<p>Count the states that type permits. Three booleans-ish fields, eight combinations — and most of them are nonsense. <code>isLoading: true</code> with both <code>data</code> and <code>error</code> set. Not loading, no data, no error (what do you even render?). Data <em>and</em> an error at once. Every one of those is representable, so every one of them is something your component has to defend against, forever, with <code>if (state.data)</code> checks scattered through the JSX.</p>
+
+<p>Now the same thing as a <strong>discriminated union</strong> — a union of object types that all share one common literal-typed field, the <em>discriminant</em>:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Impossible states removed</div>
+<pre><code>type RequestState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: User }
+  | { status: 'error'; error: Error };</code></pre>
+</div>
+
+<p>Four states. Exactly four. There is no way to write a value of this type that has both <code>data</code> and <code>error</code>, or that's loading with data attached — <em>the illegal combinations cannot be expressed.</em> You haven't documented the rule, you've made breaking it a compile error.</p>
+
+<p>And the payoff at the point of use is lovely, because TypeScript follows the discriminant:</p>
+
+<pre><code>function render(state: RequestState) {
+  switch (state.status) {
+    case 'idle':    return 'Click to load';
+    case 'loading': return 'Loading…';
+    case 'success': return state.data.name;    // 👈 data exists here. No check needed.
+    case 'error':   return state.error.message; // 👈 and error exists here.
+  }
+}</code></pre>
+
+<p>No optional chaining, no defensive <code>if</code>s, no "this can't be undefined but TypeScript doesn't know that". Inside <code>case 'success'</code>, TypeScript has eliminated the other three members of the union, and <code>data</code> is simply there.</p>
+
+<p>Add the <code>never</code> exhaustiveness check from section 3 in the <code>default</code> branch and you also get: <em>every future variant someone adds will break this switch until they handle it.</em> Combined, that's about as close to correct-by-construction as frontend code gets.</p>
+
+<p>Discriminants must be <em>literal</em> types (<code>'success'</code>, not <code>string</code>) — that's what lets the compiler tell the members apart. The field is conventionally <code>type</code>, <code>kind</code>, or <code>status</code>; the name doesn't matter, consistency does. And you've seen this before: Redux actions are a discriminated union on <code>type</code>. So are <code>useReducer</code> actions. So is basically every well-modelled event system.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"How would you type the state of a request that can be loading, successful, or failed?"</strong> — This is a design question wearing a syntax question's clothes. They want to see whether you reach for the bag of optionals.</p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"I'd use a discriminated union rather than an object with optional fields. Something like a <code>status</code> field that's the literal <code>'idle' | 'loading' | 'success' | 'error'</code>, where the success variant carries <code>data</code> and the error variant carries <code>error</code>. The reason is that the optional-fields version allows combinations that should be impossible — loading and errored at once, or success with no data — so every consumer ends up writing defensive checks for states that shouldn't exist. With a union those states are literally unrepresentable. And switching on the discriminant narrows the type, so inside the success branch <code>data</code> is guaranteed present with no null check. I'd also add a <code>never</code> assertion in the default branch so that if someone adds a variant later, the build fails until every switch handles it."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> "make impossible states unrepresentable" is the phrase that signals you think about type design, not just type syntax. Bringing in the <code>never</code> guard unprompted is the cherry.</p>
+
+<h2 id="narrowing"><span class="num">Section 8</span>Narrowing and type guards</h2>
+
+<p>We've now got several situations where TypeScript knows a value <em>might</em> be one of a few things and won't let you touch it until you commit. Narrowing is how you commit.</p>
+
+<p>The engine behind it is <strong>control-flow analysis</strong>. TypeScript doesn't assign one type to a variable for its whole life — it tracks the type at each <em>point in the program</em>, and each check you write splits the flow and refines what's possible on each branch:</p>
+
+<pre><code>function format(value: string | number | null) {
+  // here: string | number | null
+
+  if (value === null) return 'N/A';
+  // here: string | number     👈 null is gone. Permanently, on this path.
+
+  if (typeof value === 'number') {
+    return value.toFixed(2);   // here: number
+  }
+
+  return value.trim();         // here: string — nothing else is left
+}</code></pre>
+
+<p>Note that last line: no check, no assertion, and TypeScript is certain it's a string. It reasoned its way there by elimination. That's the whole game.</p>
+
+<h3>The narrowing tools, in order of how often you'll use them</h3>
+
+<p><strong><code>typeof</code></strong> — for primitives. Works because <code>typeof</code> is real JavaScript that survives erasure. (Remember <code>typeof null === 'object'</code>; TypeScript knows this quirk and narrows accordingly, which can surprise you.)</p>
+
+<p><strong>Discriminant checks</strong> — <code>if (state.status === 'success')</code>. Covered above; by far the most valuable in app code.</p>
+
+<p><strong>Truthiness</strong> — <code>if (user) { … }</code>. Cheap and everywhere, but be careful: it removes <code>0</code>, <code>''</code>, <code>NaN</code> and <code>false</code> too. If your value is <code>number | undefined</code>, <code>if (count)</code> throws away a legitimate zero. Prefer <code>if (count !== undefined)</code>.</p>
+
+<p><strong><code>instanceof</code></strong> — for actual classes, which do exist at runtime. Great in a <code>catch</code>:</p>
+
+<pre><code>try { await save(); }
+catch (err) {                 // err is unknown
+  if (err instanceof Error) console.error(err.message);   // ✅ narrowed
+  else console.error('Unknown failure', err);
+}</code></pre>
+
+<p><strong><code>in</code></strong> — for object unions with no discriminant. Checks for a property's presence:</p>
+
+<pre><code>function speak(pet: Dog | Cat) {
+  if ('bark' in pet) pet.bark();   // 👈 narrowed to Dog
+  else pet.meow();                 // narrowed to Cat
+}</code></pre>
+
+<p><strong>Equality narrowing</strong> — comparing two union-typed values narrows <em>both</em> to their common members, which is a neat trick people rarely notice:</p>
+
+<pre><code>function compare(a: string | number, b: string | boolean) {
+  if (a === b) {
+    // both narrowed to string — it's the only type they share
+    a.toUpperCase();
+  }
+}</code></pre>
+
+<h3>Type predicates: teaching the compiler your own check</h3>
+
+<p>Built-in narrowing runs out when your check lives in a helper function:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Narrowing doesn't escape the function</div>
+<pre><code>function isUser(value: unknown) {
+  return typeof value === 'object' &amp;&amp; value !== null &amp;&amp; 'email' in value;
+}
+
+if (isUser(data)) {
+  data.email;   // ❌ 'data' is of type 'unknown'
+}</code></pre>
+</div>
+
+<p>Reasonable of it — all TypeScript sees is a function returning <code>boolean</code>. A <code>true</code> tells it nothing about <code>data</code>. So we upgrade the return type from <code>boolean</code> to a <strong>type predicate</strong>: <code>value is User</code>. Read it as "returning true means the argument is a User".</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ With a predicate</div>
+<pre><code>function isUser(value: unknown): value is User {   // 👈 the whole change
+  return (
+    typeof value === 'object' &amp;&amp; value !== null &amp;&amp;
+    'email' in value &amp;&amp; typeof (value as User).email === 'string'
+  );
+}
+
+if (isUser(data)) {
+  data.email.toLowerCase();   // ✅ data is User in here
+}</code></pre>
+</div>
+
+<p>One caveat, and it's a real one: <strong>TypeScript does not verify that your predicate is honest.</strong> You could write <code>return true</code> and it would believe you. A predicate is a promise you're making, and the compiler propagates it on trust. So keep the body small and obviously correct — a predicate is exactly where a subtle lie does the most damage.</p>
+
+<p>A close cousin is the <strong>assertion function</strong>, which throws instead of returning a boolean, and narrows everything after the call:</p>
+
+<pre><code>function assertIsUser(value: unknown): asserts value is User {
+  if (!isUser(value)) throw new Error('Not a user');
+}
+
+assertIsUser(data);
+data.email;   // ✅ narrowed for the rest of the scope</code></pre>
+
+<p>(Assertion functions need an explicit type annotation on the variable holding them — TypeScript can't infer <code>asserts</code> through a <code>const</code>.)</p>
+
+<h3><code>as</code> is a lie to the compiler</h3>
+
+<p>Which brings us to the tool everyone reaches for too early:</p>
+
+<pre><code>const user = data as User;   // "trust me"</code></pre>
+
+<p>A type assertion performs <strong>no check whatsoever</strong>. It generates no code. It doesn't convert anything. It is a note to the compiler saying "stop reasoning, I've got this" — and if you're wrong, you've disabled the one system that would have told you.</p>
+
+<p>Every <code>as</code> is a place you've taken personal responsibility for a guarantee the compiler was providing for free. Sometimes that's the right call. The legitimate cases are narrow:</p>
+
+<ul>
+  <li>Inside a validated boundary — the one line in your branded-type constructor or your predicate, where you've <em>just</em> done the runtime check.</li>
+  <li><code>as const</code>, which isn't really the same thing — it narrows to literal types instead of widening, and it's always safe.</li>
+  <li>Reaching into a DOM API that returns a supertype: <code>document.getElementById('email') as HTMLInputElement</code>. TypeScript can't know your HTML.</li>
+  <li>Test fixtures where you deliberately want a partial mock.</li>
+</ul>
+
+<p>The illegitimate case — and it is most of them — is "the error was annoying and this made it go away". If <code>as</code> is how you resolve type errors, you've built a codebase with the syntax of TypeScript and the guarantees of JavaScript. Also worth knowing: <code>as any as Something</code> (the double assertion) exists to force casts TypeScript refuses outright, and its appearance in a diff should always start a conversation.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"When is a type assertion acceptable?"</strong> — They're probing whether you treat <code>as</code> as a tool or as a painkiller.</p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"I treat <code>as</code> as telling the compiler to stop checking — it does no runtime conversion and no validation, it just overrides the inference. So it's acceptable when I genuinely know something the compiler can't: right after a runtime check inside a type guard or a branded-type constructor, or with DOM queries where TypeScript can't see my HTML and returns <code>HTMLElement</code>. What I avoid is using it to silence an error I don't understand, because at that point the type is a claim nobody has verified. My default is a user-defined type predicate instead — same ergonomics at the call site, but the assertion is confined to one small function I've actually reviewed."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> "does no runtime conversion" preempts the classic misconception that <code>as</code> casts like <code>(int)</code> in C. Offering predicates as the alternative shows you know what to do <em>instead</em>, which is what they're really asking.</p>
+
+<h2 id="optional-nullish"><span class="num">Section 9</span><code>?.</code> and <code>??</code></h2>
+
+<p>Two small operators, one very common bug.</p>
+
+<h3>Optional chaining: <code>?.</code></h3>
+
+<p>The old defensive pyramid:</p>
+
+<pre><code>const city = user &amp;&amp; user.address &amp;&amp; user.address.city;</code></pre>
+
+<p>becomes:</p>
+
+<pre><code>const city = user?.address?.city;   // → the city, or undefined</code></pre>
+
+<p>The mechanic that matters: <code>?.</code> <strong>short-circuits the entire chain</strong>. If <code>user</code> is <code>null</code> or <code>undefined</code>, evaluation stops right there and the whole expression is <code>undefined</code> — it does not go on to look at <code>.address</code> and explode. And note it's <code>undefined</code> even when the left side was <code>null</code>. That's deliberate: <code>?.</code> normalises "nothing here" to a single value.</p>
+
+<p>It works in three positions, and the second two are easy to forget:</p>
+
+<pre><code>user?.name             // property
+users?.[0]             // index — note the dot before the bracket
+user.save?.()          // call — only if save exists</code></pre>
+
+<p>That last one is lovely for optional callbacks: <code>props.onClose?.()</code> instead of <code>if (props.onClose) props.onClose()</code>.</p>
+
+<div class="callout misconception">
+  <span class="label">A common misconception</span>
+  <p><code>?.</code> is not a general "don't crash" operator. It guards against <code>null</code> and <code>undefined</code> only. <code>user?.address.city</code> still throws if <code>user</code> exists but <code>address</code> is missing — you need a <code>?.</code> at each link that might be nullish. It's also easy to over-apply: if <code>user</code> is typed as non-optional, writing <code>user?.name</code> is noise that quietly hides a bug where <code>user</code> genuinely shouldn't be missing.</p>
+</div>
+
+<h3>Nullish coalescing: <code>??</code> — and the bug</h3>
+
+<p>Here's the one. Guess what this logs:</p>
+
+<pre><code>const settings = { volume: 0, username: '' };
+
+const volume = settings.volume || 50;
+const name   = settings.username || 'Anonymous';
+
+console.log(volume, name);   // → ?</code></pre>
+
+<details>
+  <summary>Reveal the answer</summary>
+  <p><code>50 'Anonymous'</code> — and both are wrong. The user explicitly muted their audio and it just got reset to 50%.</p>
+</details>
+
+<p><code>||</code> checks for <strong>falsiness</strong>, and JavaScript's falsy set includes <code>0</code>, <code>''</code>, <code>NaN</code> and <code>false</code> alongside <code>null</code> and <code>undefined</code>. So "give me a default when there's no value" silently becomes "give me a default when the value is zero, or empty, or off". Any time a legitimate value happens to be falsy, <code>||</code> eats it.</p>
+
+<p><code>??</code> checks only for <strong>nullish</strong> — <code>null</code> or <code>undefined</code>, nothing else:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>const volume = settings.volume ?? 50;         // → 0    ✅ zero survives
+const name   = settings.username ?? 'Anon';   // → ''   ✅ empty string survives</code></pre>
+</div>
+
+<p>My rule: <strong>if the fallback is for a <em>missing</em> value, use <code>??</code>. Use <code>||</code> only when you actually mean "or any falsy thing"</strong> — which, for numbers, strings and booleans, you almost never do. For a value that can only be an object or nullish, they're equivalent, but <code>??</code> still communicates intent better.</p>
+
+<p>They pair naturally with <code>?.</code>, since <code>?.</code> produces <code>undefined</code> and <code>??</code> catches exactly that:</p>
+
+<pre><code>const city = user?.address?.city ?? 'Unknown';</code></pre>
+
+<p>And there's the assignment form, <code>??=</code>, which assigns only if the target is currently nullish:</p>
+
+<pre><code>config.retries ??= 3;    // sets it only if null/undefined — a 0 is respected
+config.retries ||= 3;    // ❌ would overwrite a deliberate 0</code></pre>
+
+<p>One syntax gotcha: you can't mix <code>??</code> with <code>||</code> or <code>&amp;&amp;</code> without parentheses — <code>a || b ?? c</code> is a syntax error. That's intentional, because the precedence would be ambiguous to a reader and the language would rather you say which you meant.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"<code>??</code> vs <code>||</code>?"</strong> — a two-second question with a right and a wrong answer. The wrong answer is "they're basically the same".</p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"<code>||</code> falls back on any falsy value, <code>??</code> only on <code>null</code> or <code>undefined</code>. That matters whenever <code>0</code> or an empty string is a legitimate value — <code>volume || 50</code> resets a deliberately muted volume back to 50, whereas <code>volume ?? 50</code> keeps the zero. So I use <code>??</code> for defaults on anything numeric, string, or boolean, and reserve <code>||</code> for when I genuinely mean 'or anything falsy'. Same distinction with <code>??=</code> versus <code>||=</code>."</p>
+</div>
+
+<h2 id="react"><span class="num">Section 10</span>TypeScript + React</h2>
+
+<p>Everything so far, applied where you'll actually use it.</p>
+
+<h3>Typing props</h3>
+
+<p>A props type is just an object type. That's genuinely all it is:</p>
+
+<pre><code>interface ButtonProps {
+  label: string;
+  onClick: () =&gt; void;
+  variant?: 'primary' | 'secondary';   // 👈 optional, and only two valid strings
+  children?: React.ReactNode;
+}
+
+function Button({ label, onClick, variant = 'primary' }: ButtonProps) {
+  return &lt;button className={variant} onClick={onClick}&gt;{label}&lt;/button&gt;;
+}</code></pre>
+
+<p>Two things worth noticing. That <code>variant</code> union means an interviewer's favourite typo — <code>variant="primari"</code> — is a compile error, which is one of the highest-value-per-character things you can do in a React codebase. And the return type is inferred as <code>JSX.Element</code>; you don't need to annotate it.</p>
+
+<h4>Why <code>React.FC</code> fell out of favour</h4>
+
+<p>You'll see this in older code:</p>
+
+<pre><code>const Button: React.FC&lt;ButtonProps&gt; = ({ label }) =&gt; { … };</code></pre>
+
+<p>It's not <em>broken</em>, and React 18's types fixed its worst sin, but the community moved off it and you should know why:</p>
+
+<ul>
+  <li><strong>It used to add <code>children</code> implicitly.</strong> Every <code>React.FC</code> component accepted children whether or not it rendered them, so an <code>&lt;Avatar&gt;oops&lt;/Avatar&gt;</code> typechecked and silently dropped the text. React 18 removed the implicit children — which meant a huge amount of code that <em>relied</em> on it broke on upgrade. So it's been both too loose and, later, a migration headache.</li>
+  <li><strong>It's awkward with generics.</strong> A generic component is much cleaner as a plain function declaration; with <code>React.FC</code> you're fighting the annotation.</li>
+  <li><strong>It buys you almost nothing.</strong> The return type was already inferred. You're adding an import and an indirection for a guarantee you had.</li>
+  <li><strong>It types the variable, not the function</strong>, which makes some inference and overload scenarios worse.</li>
+</ul>
+
+<p>The modern default is a plain function with a typed props parameter, and declaring <code>children: React.ReactNode</code> explicitly when the component actually takes children. Explicit beats implicit, and it's self-documenting at the call site.</p>
+
+<p>On <code>ReactNode</code>: it's the widest "anything renderable" type — elements, strings, numbers, arrays, <code>null</code>, <code>undefined</code>, booleans. That's what you want for <code>children</code> 95% of the time. <code>ReactElement</code> is narrower (a JSX element specifically, not a string), and <code>JSX.Element</code> is what a component returns.</p>
+
+<h3><code>useState</code>: when inference is enough, and when it isn't</h3>
+
+<p>Most of the time you write nothing, because the initial value tells TypeScript everything:</p>
+
+<pre><code>const [count, setCount] = useState(0);           // number
+const [name, setName] = useState('');            // string
+const [isOpen, setIsOpen] = useState(false);     // boolean</code></pre>
+
+<p>Inference falls short in exactly two situations. First, when the initial value is <code>null</code> or <code>undefined</code> but the eventual value isn't:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Inferred too narrowly</div>
+<pre><code>const [user, setUser] = useState(null);   // inferred: null
+setUser(fetchedUser);                      // ❌ User is not assignable to null</code></pre>
+</div>
+<div class="codeblock">
+<div class="codelabel good">✅ Tell it the full type</div>
+<pre><code>const [user, setUser] = useState&lt;User | null&gt;(null);</code></pre>
+</div>
+
+<p>Second, when the initial value is a widened version of what you mean — an empty array, or a string that should be a union:</p>
+
+<pre><code>const [items, setItems] = useState&lt;CartItem[]&gt;([]);       // else: never[]
+const [status, setStatus] = useState&lt;Status&gt;('idle');     // else: string</code></pre>
+
+<p>That second one is important: without the annotation, <code>'idle'</code> widens to <code>string</code>, and you've lost the exhaustiveness you were trying to buy. And of course the best version of all of this is one state variable holding a discriminated union rather than four booleans — section 7 applies directly here.</p>
+
+<h3>Typing events</h3>
+
+<p>React's synthetic events are generic over the element that fired them. Getting the element right is what gives you <code>e.target.value</code>:</p>
+
+<pre><code>function handleChange(e: React.ChangeEvent&lt;HTMLInputElement&gt;) {
+  setName(e.target.value);   // ✅ string, because the element is an input
+}
+
+function handleClick(e: React.MouseEvent&lt;HTMLButtonElement&gt;) {
+  e.preventDefault();
+}
+
+function handleSubmit(e: React.FormEvent&lt;HTMLFormElement&gt;) {
+  e.preventDefault();
+}</code></pre>
+
+<p>Handy shortcut: if you write the handler <em>inline</em>, you don't need any of this — the event is inferred from the JSX attribute.</p>
+
+<pre><code>&lt;input onChange={(e) =&gt; setName(e.target.value)} /&gt;
+//                 👆 already ChangeEvent&lt;HTMLInputElement&gt;. Free.</code></pre>
+
+<p>Which gives you a nice discovery trick: write it inline, hover to see the type your editor infers, then copy that into the extracted handler's signature.</p>
+
+<h3>Refs</h3>
+
+<p>Two flavours, and mixing them up is a classic:</p>
+
+<pre><code>// A DOM ref you hand to React — must be initialised to null, and is read-only
+const inputRef = useRef&lt;HTMLInputElement&gt;(null);
+inputRef.current?.focus();   // 👈 ?. because it's null before mount
+
+// A mutable box for a value that isn't state
+const timerRef = useRef&lt;number | null&gt;(null);
+timerRef.current = window.setTimeout(…);   // ✅ writable</code></pre>
+
+<p>The rule: <code>useRef&lt;T&gt;(null)</code> gives you a <code>RefObject</code> whose <code>current</code> is read-only (React owns it), while <code>useRef&lt;T | null&gt;(null)</code> gives you a writable <code>MutableRefObject</code>. And <code>current</code> is nullish until after mount, so <code>?.</code> is doing real work there — not being paranoid.</p>
+
+<h3><code>as const</code></h3>
+
+<p>Not really React-specific, but it shows up constantly in React code. By default TypeScript <em>widens</em> literals, because it assumes you'll reassign:</p>
+
+<pre><code>const config = { theme: 'dark', retries: 3 };
+// inferred: { theme: string; retries: number }   👈 'dark' widened away
+
+const config = { theme: 'dark', retries: 3 } as const;
+// inferred: { readonly theme: 'dark'; readonly retries: 3 }</code></pre>
+
+<p><code>as const</code> says "freeze this at its most specific — every property readonly, every literal exact". Three places it earns its keep:</p>
+
+<pre><code>// 1. Deriving a union from a runtime array — one source of truth
+const STATUSES = ['idle', 'loading', 'error'] as const;
+type Status = typeof STATUSES[number];   // → 'idle' | 'loading' | 'error'
+
+// 2. Returning a tuple from a hook, so destructuring keeps positions typed
+return [value, setValue] as const;   // → [T, Dispatch&lt;SetStateAction&lt;T&gt;&gt;]
+                                     //   without it: (T | Dispatch&lt;…&gt;)[]
+
+// 3. Keeping a literal narrow enough to satisfy a union prop
+const variant = 'primary' as const;   // 'primary', not string</code></pre>
+
+<p>That first one is genuinely great: the array exists at runtime so you can <code>.map()</code> over it to render options, <em>and</em> the type is derived from it, so they can never disagree.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"Why do people avoid <code>React.FC</code> now?"</strong></p>
+</div>
+
+<div class="answer">
+  <span class="label">Model answer</span>
+  <p>"Mainly because it used to implicitly add <code>children</code> to every component's props, so a component that doesn't render children would still accept them and silently drop whatever you passed. React 18's types removed that implicit <code>children</code>, which then broke a lot of code that had been depending on it — so it's been awkward in both directions. It also plays badly with generic components, and it doesn't really buy anything: the return type was already inferred from the JSX. So the standard now is a plain function with a typed props parameter, declaring <code>children: React.ReactNode</code> explicitly when the component actually takes children."</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> knowing the React 18 change dates you correctly — it says you've upgraded a real codebase, not just read a blog post from 2019.</p>
+
+<hr class="soft">
+
+<h2 id="cheatsheet"><span class="num">Section 11</span>Interview cheat sheet</h2>
+
+<p>Read this on the train. One crisp line each.</p>
+
+<div class="cheat">
+
+<h4>The foundation</h4>
+<ul>
+  <li><strong>Erasure</strong> — every type is deleted before the code runs; TypeScript is a compile-time layer only.</li>
+  <li><strong>Runtime safety</strong> — no. TypeScript checks that <em>your</em> code is internally consistent; it validates nothing coming in from the network, storage, or users.</li>
+  <li><strong>Boundaries</strong> — validate at runtime where data enters (Zod or a hand-written guard), and derive the type from the schema so they can't drift.</li>
+</ul>
+
+<h4>Declaring types</h4>
+<ul>
+  <li><strong><code>interface</code> vs <code>type</code></strong> — interface for object shapes, type for everything else. Only <code>type</code> can do unions, tuples, primitives, mapped types. Only <code>interface</code> can declaration-merge.</li>
+  <li><strong><code>extends</code> vs <code>&amp;</code></strong> — <code>extends</code> errors on a conflicting property; an intersection silently collapses it to <code>never</code>.</li>
+</ul>
+
+<h4>The special types</h4>
+<ul>
+  <li><strong><code>any</code></strong> — checking off, and contagious. <strong><code>unknown</code></strong> — holds anything, but you must narrow first. Default to <code>unknown</code>.</li>
+  <li><strong><code>never</code></strong> — no possible values. Assign a narrowed variable to <code>never</code> in a <code>default</code> branch to force exhaustiveness at compile time.</li>
+  <li><strong><code>strict: true</code></strong> — turns on <code>noImplicitAny</code> and <code>strictNullChecks</code>. Non-negotiable; without it half of this doesn't work.</li>
+</ul>
+
+<h4>Generics</h4>
+<ul>
+  <li><strong>What they solve</strong> — reuse without losing type information. <code>any</code> is a hole; a generic is a <em>link</em> between input and output types.</li>
+  <li><strong>Syntax</strong> — <code>&lt;T&gt;</code> is a parameter list for types; the caller fills it in, usually via inference.</li>
+  <li><strong>Constraints</strong> — <code>&lt;T extends { id: string }&gt;</code> means "any type, but at least this shape". <code>K extends keyof T</code> for type-safe property access.</li>
+</ul>
+
+<h4>Structural typing</h4>
+<ul>
+  <li><strong>Shape, not name</strong> — unrelated types with matching members are assignable. Right for a JS-shaped world.</li>
+  <li><strong>The risk</strong> — <code>UserId</code> and <code>OrderId</code> as string aliases are interchangeable. Fix with branded types (<code>string &amp; { __brand: 'UserId' }</code>), erased at runtime, free.</li>
+  <li><strong>Excess property checking</strong> — extra-fields error applies only to object literals at the assignment site, to catch typos; assigning through a variable skips it.</li>
+</ul>
+
+<h4>Composing types</h4>
+<ul>
+  <li><strong>Utility types</strong> — types are values you can transform. Derive, never copy-paste: <code>Partial</code>, <code>Required</code>, <code>Pick</code>, <code>Omit</code>, <code>Record</code>, <code>Readonly</code>, <code>ReturnType</code>, <code>Parameters</code>, <code>Awaited</code>, <code>NonNullable</code>.</li>
+  <li><strong>Union vs intersection</strong> — a union widens the set of values and narrows what's guaranteed; an intersection narrows the values and widens the capabilities.</li>
+  <li><strong>Discriminated union</strong> — a shared literal field across variants. Model loading/error/success this way to make impossible states unrepresentable.</li>
+</ul>
+
+<h4>Narrowing</h4>
+<ul>
+  <li><strong>Tools</strong> — <code>typeof</code>, <code>instanceof</code>, <code>in</code>, truthiness, equality, discriminant checks. Control-flow analysis tracks the type per branch.</li>
+  <li><strong>Type predicate</strong> — <code>function isUser(v: unknown): v is User</code>. TypeScript trusts it without verifying, so keep it small.</li>
+  <li><strong><code>as</code></strong> — no runtime check, no conversion; it overrides the compiler. Fine right after a real validation or for DOM queries; not for silencing errors.</li>
+</ul>
+
+<h4>Operators &amp; React</h4>
+<ul>
+  <li><strong><code>?.</code></strong> — short-circuits the whole chain to <code>undefined</code> on <code>null</code>/<code>undefined</code>. Works for props, <code>?.[i]</code>, and <code>?.()</code>.</li>
+  <li><strong><code>??</code> vs <code>||</code></strong> — <code>??</code> falls back only on nullish; <code>||</code> falls back on any falsy value, so it eats a legitimate <code>0</code> or <code>''</code>.</li>
+  <li><strong>Props</strong> — plain function with a typed props parameter. Avoid <code>React.FC</code>: implicit <code>children</code> historically, poor with generics, adds nothing.</li>
+  <li><strong><code>useState</code></strong> — annotate when the initial value is <code>null</code>, <code>[]</code>, or a literal that would widen (<code>useState&lt;Status&gt;('idle')</code>).</li>
+  <li><strong>Events</strong> — <code>React.ChangeEvent&lt;HTMLInputElement&gt;</code>, <code>React.MouseEvent&lt;HTMLButtonElement&gt;</code>. Inline handlers infer for free.</li>
+  <li><strong>Refs</strong> — <code>useRef&lt;HTMLInputElement&gt;(null)</code> for DOM (read-only <code>current</code>), <code>useRef&lt;T | null&gt;(null)</code> for a mutable box.</li>
+  <li><strong><code>as const</code></strong> — freeze literals and readonly-ify. Use for hook tuples and deriving a union from a runtime array.</li>
+</ul>
+
+</div>
+
+<h3>The one-liner if you only remember one thing</h3>
+
+<p>TypeScript is a conversation you have with a very literal colleague who reads all your code, forgets everything the moment you hit deploy, and is never wrong about the things you actually told it. Tell it the truth, narrow before you use, validate at the border — and it will catch a genuinely startling number of your mistakes before anyone else sees them.</p>
+
+<p>Good luck out there. 🎯</p>
+
+</div>
+</body>
+</html>

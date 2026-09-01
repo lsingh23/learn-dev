@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modules, Memory &amp; Browser Storage</title>
+<style>
+  :root{
+    --bg:#fdfcfa;
+    --fg:#24262e;
+    --muted:#5d6474;
+    --rule:#e7e2da;
+    --accent:#6d3fd4;
+    --accent-soft:#f2ecff;
+    --accent-line:#d9c9ff;
+    --code-bg:#20222f;
+    --code-fg:#e9e7f4;
+    --code-dim:#8b90ab;
+    --good:#0d7f57;
+    --good-bg:#edfaf4;
+    --good-line:#a9e2c8;
+    --bad:#bf3030;
+    --bad-bg:#fdf1ef;
+    --bad-line:#f3c4bd;
+    --warn:#96650a;
+    --warn-bg:#fdf6e6;
+    --warn-line:#eddcb0;
+    --info-bg:#eef4fd;
+    --info-line:#c3d8f5;
+    --info:#1d5aa8;
+  }
+
+  *{box-sizing:border-box}
+
+  html{ -webkit-text-size-adjust:100%; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size:18px;
+    line-height:1.7;
+  }
+
+  .wrap{
+    max-width:750px;
+    margin:0 auto;
+    padding:48px 22px 120px;
+  }
+
+  code, pre, .mono{
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  /* ---------- headings ---------- */
+  h1{
+    font-size:2.35rem;
+    line-height:1.15;
+    letter-spacing:-0.02em;
+    margin:0 0 12px;
+  }
+  .subtitle{
+    font-size:1.12rem;
+    color:var(--muted);
+    margin:0 0 40px;
+  }
+  h2{
+    font-size:1.75rem;
+    line-height:1.2;
+    letter-spacing:-0.015em;
+    margin:72px 0 6px;
+    padding-top:26px;
+    border-top:3px solid var(--accent-line);
+  }
+  h3{
+    font-size:1.3rem;
+    line-height:1.3;
+    margin:44px 0 4px;
+  }
+  h4{
+    font-size:1.05rem;
+    margin:30px 0 2px;
+  }
+  .kicker{
+    display:inline-block;
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+    color:var(--accent);
+    background:var(--accent-soft);
+    padding:3px 9px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+
+  p{margin:18px 0}
+
+  a{color:var(--accent)}
+
+  strong{font-weight:650}
+
+  ul,ol{padding-left:24px}
+  li{margin:9px 0}
+
+  hr{
+    border:0;
+    border-top:1px solid var(--rule);
+    margin:44px 0;
+  }
+
+  /* ---------- inline code ---------- */
+  p code, li code, td code, th code, summary code, h3 code, h4 code, figcaption code{
+    background:#efece7;
+    border:1px solid #e2ddd5;
+    border-radius:5px;
+    padding:1px 5px;
+    font-size:.87em;
+  }
+
+  /* ---------- code blocks ---------- */
+  .code{
+    margin:24px 0;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid #1a1c27;
+  }
+  .code .label{
+    font-size:.78rem;
+    font-weight:650;
+    padding:7px 14px;
+    background:#2b2e40;
+    color:#c3c7de;
+    letter-spacing:.02em;
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .code.bad .label{ background:#4a2222; color:#ffc9c2; }
+  .code.good .label{ background:#123c2d; color:#a7e9cb; }
+  .code.bad{ border-color:#4a2222; }
+  .code.good{ border-color:#123c2d; }
+  pre{
+    margin:0;
+    background:var(--code-bg);
+    color:var(--code-fg);
+    padding:16px 18px;
+    overflow-x:auto;
+    font-size:.86rem;
+    line-height:1.65;
+  }
+  pre code{background:none;border:0;padding:0;font-size:inherit}
+  .cm{color:var(--code-dim)}          /* comment */
+  .out{color:#9ee6b8}                 /* output comment */
+  .hl{color:#ffd479}                  /* pointed-at line */
+
+  /* ---------- callouts ---------- */
+  .box{
+    margin:28px 0;
+    padding:18px 20px 4px;
+    border-radius:10px;
+    border:1px solid var(--rule);
+    background:#fff;
+  }
+  .box .t{
+    display:block;
+    font-size:.79rem;
+    font-weight:750;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    margin-bottom:2px;
+  }
+  .box p{margin:10px 0 14px}
+  .box .code{margin:16px 0}
+
+  .wait{background:var(--info-bg);border-color:var(--info-line)}
+  .wait .t{color:var(--info)}
+
+  .myth{background:var(--bad-bg);border-color:var(--bad-line)}
+  .myth .t{color:var(--bad)}
+
+  .hood{background:#f4f2ef;border-color:#e0dbd3}
+  .hood .t{color:var(--muted)}
+
+  .iv{background:var(--accent-soft);border-color:var(--accent-line)}
+  .iv .t{color:var(--accent)}
+
+  .trap{background:var(--warn-bg);border-color:var(--warn-line)}
+  .trap .t{color:var(--warn)}
+
+  /* ---------- spoken model answer ---------- */
+  .say{
+    margin:22px 0;
+    padding:18px 20px;
+    background:#fff;
+    border:2px solid var(--accent-line);
+    border-radius:10px;
+    position:relative;
+  }
+  .say .t{
+    display:block;
+    font-size:.79rem;
+    font-weight:750;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:8px;
+  }
+  .say p{
+    margin:10px 0;
+    font-size:1.03rem;
+  }
+  .say .why{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--accent-line);
+    font-size:.92rem;
+    color:var(--muted);
+  }
+
+  /* ---------- follow-ups (details) ---------- */
+  details{
+    margin:12px 0;
+    border:1px solid var(--rule);
+    border-radius:9px;
+    background:#fff;
+    padding:0 18px;
+  }
+  details[open]{ padding-bottom:6px; border-color:var(--accent-line); }
+  summary{
+    cursor:pointer;
+    padding:13px 0;
+    font-weight:620;
+    list-style:none;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{
+    content:"▸";
+    color:var(--accent);
+    font-size:.9em;
+    line-height:1.75;
+    flex:none;
+  }
+  details[open] summary::before{content:"▾"}
+  details p:first-of-type{margin-top:2px}
+
+  /* ---------- table ---------- */
+  .tablewrap{overflow-x:auto;margin:26px 0;border:1px solid var(--rule);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;background:#fff;min-width:620px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+  thead th{background:#f5f2ee;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  tbody th{font-weight:620;background:#faf8f5;width:26%}
+  tr:last-child td, tr:last-child th{border-bottom:0}
+
+  /* ---------- figures ---------- */
+  figure{margin:30px 0;text-align:center}
+  figure svg{max-width:100%;height:auto}
+  figcaption{
+    font-size:.85rem;
+    color:var(--muted);
+    margin-top:10px;
+    text-align:center;
+  }
+  .svgbox{
+    border:1px solid var(--rule);
+    border-radius:10px;
+    background:#fff;
+    padding:14px 8px;
+  }
+
+  /* ---------- TOC ---------- */
+  nav.toc{
+    background:#fff;
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:20px 24px 22px;
+    margin:0 0 20px;
+  }
+  nav.toc h2{
+    all:unset;
+    display:block;
+    font-size:.79rem;
+    font-weight:750;
+    letter-spacing:.11em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  nav.toc ol{margin:0;padding-left:20px;font-size:.94rem}
+  nav.toc li{margin:5px 0}
+  nav.toc a{text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+
+  /* ---------- cheat sheet ---------- */
+  .cheat{
+    background:#fff;
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:6px 20px;
+    margin:24px 0;
+  }
+  .cheat dl{margin:0}
+  .cheat dt{
+    font-weight:680;
+    margin-top:18px;
+    font-size:.97rem;
+  }
+  .cheat dd{
+    margin:4px 0 0;
+    color:#33363f;
+    font-size:.95rem;
+  }
+  .cheat dd:last-child{margin-bottom:18px}
+
+  .pull{
+    font-size:1.12rem;
+    line-height:1.55;
+    border-left:4px solid var(--accent);
+    padding:2px 0 2px 18px;
+    margin:28px 0;
+    color:#33363f;
+  }
+
+  @media (max-width:520px){
+    body{font-size:17px}
+    .wrap{padding:32px 16px 90px}
+    h1{font-size:1.9rem}
+    h2{font-size:1.45rem}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Modules, Memory &amp; Browser Storage</h1>
+<p class="subtitle">Three things that all answer the same question — <em>where does my stuff live, and who's holding onto it?</em> Modules decide where your code lives. Garbage collection decides how long your objects live. Storage decides what survives a refresh.</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#modules">The module problem (and how we got to ESM)</a></li>
+    <li><a href="#syntax">Import/export vs require/module.exports</a></li>
+    <li><a href="#static">Static vs dynamic: the idea that explains everything</a></li>
+    <li><a href="#treeshaking">Tree shaking, and why CommonJS can't have it</a></li>
+    <li><a href="#dynamic-import">Dynamic <code>import()</code> and code splitting</a></li>
+    <li><a href="#circular">Circular dependencies</a></li>
+    <li><a href="#interop">The practical mess: <code>.mjs</code>, <code>type: module</code>, dual packages</a></li>
+    <li><a href="#modules-interview">Interview layer: modules</a></li>
+    <li><a href="#gc">How garbage collection actually works</a></li>
+    <li><a href="#leaks">The four classic leaks</a></li>
+    <li><a href="#react-leaks">Leaks in React</a></li>
+    <li><a href="#diagnose">Finding a leak with DevTools</a></li>
+    <li><a href="#memory-interview">Interview layer: memory</a></li>
+    <li><a href="#weakmap">WeakMap and WeakSet</a></li>
+    <li><a href="#storage">localStorage vs sessionStorage vs cookies</a></li>
+    <li><a href="#jwt">Where do you store an auth token?</a></li>
+    <li><a href="#storage-interview">Interview layer: storage</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<p>I want to start with a bug. Not a definition — a bug, from the era before any of this existed, because every single design decision in the rest of this guide is a reaction to it.</p>
+
+<h2 id="modules">1. The module problem (and how we got to ESM)</h2>
+<span class="kicker">Tier 2 · asked constantly</span>
+
+<p>Here's a web page from about 2009. Two scripts, written by two different people.</p>
+
+<div class="code">
+  <div class="label">index.html</div>
+<pre><code>&lt;script src="carousel.js"&gt;&lt;/script&gt;
+&lt;script src="analytics.js"&gt;&lt;/script&gt;</code></pre>
+</div>
+
+<div class="code">
+  <div class="label">carousel.js</div>
+<pre><code>var config = { speed: 300 };
+
+function init() {
+  console.log('carousel at', config.speed);
+}</code></pre>
+</div>
+
+<div class="code">
+  <div class="label">analytics.js</div>
+<pre><code>var config = { endpoint: '/track' }; <span class="cm">// 👈 uh oh</span>
+
+function init() {
+  fetch(config.endpoint);
+}</code></pre>
+</div>
+
+<p>What do you think happens when the carousel calls <code>init()</code>?</p>
+
+<p>It sends an analytics request. Then it crashes, because <code>config.speed</code> is <code>undefined</code>.</p>
+
+<p>Here's why. A classic <code>&lt;script&gt;</code> tag doesn't create a private world for its file. Every <code>var</code> and every <code>function</code> declared at the top level of any script lands in <strong>one single shared namespace</strong> — the global object, which in a browser is <code>window</code>. Both files declared <code>config</code>. Both declared <code>init</code>. The second file loaded, and it simply overwrote the first. No error, no warning. The browser thinks this is completely normal, because as far as it's concerned, both files are just… more lines of the same program.</p>
+
+<p class="pull">Two script tags on a page aren't two programs. They're one program, split across two files, sharing one enormous global drawer that anyone can reach into.</p>
+
+<p>This is <strong>global scope pollution</strong>, and in a codebase of any size it's genuinely unmanageable. You can't rename a variable safely because you don't know who else reads it. You can't tell what a file depends on without reading every other file. And load order becomes load-bearing: move a script tag and the app breaks.</p>
+
+<h3>Attempt one: hide things inside a function (the IIFE)</h3>
+
+<p>JavaScript has always had one reliable way to make a private space: a function body. Variables declared inside a function aren't visible outside it. So people wrapped entire files in a function and immediately called it. That pattern got a name — the <strong>IIFE</strong>, or Immediately Invoked Function Expression.</p>
+
+<div class="code good">
+  <div class="label">✅ carousel.js, wrapped</div>
+<pre><code>var Carousel = (function () {
+  var config = { speed: 300 };   <span class="cm">// private — nobody outside can see this</span>
+
+  function init() {
+    console.log('carousel at', config.speed);
+  }
+
+  return { init: init };         <span class="cm">// 👈 the only thing we expose</span>
+})();</code></pre>
+</div>
+
+<p>Now <code>config</code> is sealed inside. The only global we create is <code>Carousel</code>, and we chose that name deliberately. This is the whole idea of a module in miniature: <strong>everything is private by default, and you explicitly publish the small part you want others to use.</strong></p>
+
+<p>It's a real improvement, and it's still not enough. We still have to pick global names and hope nobody collides. We still have to order our script tags by hand — if <code>analytics.js</code> needs <code>Carousel</code>, it must come after it. And nothing in <code>analytics.js</code> <em>says</em> that it needs <code>Carousel</code>; the dependency exists only in the head of whoever wrote the HTML.</p>
+
+<h3>Attempt two: make dependencies explicit (CommonJS)</h3>
+
+<p>The missing piece is <em>declaring what you need</em>. Two solutions appeared. One, <strong>AMD</strong> (RequireJS), was built for the browser and used a callback that fired once your listed dependencies had downloaded — you'll see it in old code, and that's all you need to know about it.</p>
+
+<p>The one that mattered was <strong>CommonJS</strong>, built for Node, where "fetching a file" means reading local disk — fast enough to do synchronously, mid-line:</p>
+
+<div class="code">
+  <div class="label">CommonJS — the Node answer</div>
+<pre><code>const analytics = require('./analytics');  <span class="cm">// blocks until loaded, then continues</span>
+
+function init() { analytics.track('open'); }
+
+module.exports = { init };</code></pre>
+</div>
+
+<p>CommonJS won by force of ecosystem: npm was built on it, and npm ate the world. But it was designed for a server reading local files. In a browser, "stop everything and synchronously fetch this file over the network" is not an option. So we bolted on <strong>bundlers</strong> — Browserify, then webpack — tools that read your <code>require</code> calls ahead of time, follow the whole dependency graph, and glue everything into one file the browser can load with a single script tag.</p>
+
+<div class="box hood">
+  <span class="t">Under the hood</span>
+  <p>A CommonJS module isn't magic. Node wraps every file in a function before running it, roughly like this:</p>
+  <div class="code">
+<pre><code>function (exports, require, module, __filename, __dirname) {
+  <span class="cm">// ...your file's code goes here...</span>
+}</code></pre>
+  </div>
+  <p>That's why <code>require</code>, <code>module</code>, and <code>exports</code> appear out of nowhere in every file — they're just function parameters. And it's why top-level <code>var</code> in a Node file isn't global: it's a local inside that wrapper. CommonJS <em>is</em> the IIFE pattern, formalised and automated. That's a genuinely useful thing to say out loud in an interview.</p>
+</div>
+
+<h3>Attempt three: put it in the language (ESM)</h3>
+
+<p>Everything so far was a <em>convention</em> — patterns built on top of plain functions and objects. <code>require</code> is just a function somebody wrote. The language itself had no idea modules existed.</p>
+
+<p>ES2015 changed that. <strong>ES Modules</strong> (ESM) added <code>import</code> and <code>export</code> as real syntax, understood by the parser, with rules baked into the language spec. Today it works natively in every browser (<code>&lt;script type="module"&gt;</code>) and in Node, and it's what every bundler is optimised for.</p>
+
+<p>And because it's syntax rather than a function call, it can do something CommonJS structurally cannot. That's the next section, and it's the part interviewers care most about.</p>
+
+<h2 id="syntax">2. <code>import</code>/<code>export</code> vs <code>require</code>/<code>module.exports</code></h2>
+
+<p>Let's get the mechanics down before the theory. ESM has two kinds of export.</p>
+
+<p><strong>Named exports</strong> — as many as you like per file, each with a name that both sides must agree on:</p>
+
+<div class="code">
+  <div class="label">cart.js</div>
+<pre><code>export const TAX_RATE = 0.2;
+
+export function subtotal(items) {
+  return items.reduce((sum, item) =&gt; sum + item.price, 0);
+}
+
+<span class="cm">// or gather them at the bottom, which is the same thing:</span>
+<span class="cm">// export { TAX_RATE, subtotal };</span></code></pre>
+</div>
+
+<div class="code">
+  <div class="label">checkout.js</div>
+<pre><code>import { subtotal, TAX_RATE } from './cart.js';
+import { subtotal as cartSubtotal } from './cart.js';   <span class="cm">// renaming is allowed</span>
+import * as cart from './cart.js';                      <span class="cm">// grab everything as one object</span></code></pre>
+</div>
+
+<p><strong>Default exports</strong> — at most one per file, and the importing side picks whatever name it likes:</p>
+
+<div class="code">
+  <div class="label">Button.js  /  App.js</div>
+<pre><code><span class="cm">// Button.js</span>
+export default function Button(props) { /* ... */ }
+
+<span class="cm">// App.js — no braces, and the name is entirely up to me</span>
+import Button from './Button.js';
+import LiterallyAnything from './Button.js';   <span class="cm">// also works. that's the problem.</span></code></pre>
+</div>
+
+<p>So which should you use? The honest tradeoff:</p>
+
+<p><strong>Named exports are better most of the time.</strong> The name is fixed, so grep and "find all references" actually work; your editor can auto-import them by name; a typo in the import is caught immediately rather than silently giving you <code>undefined</code>; and refactoring tools can rename across the codebase. Named exports also play best with tree shaking, which we'll get to shortly.</p>
+
+<p><strong>Default exports</strong> read nicely when a file has exactly one obvious thing in it — a React component, a config object. The cost is that every import site can spell the name differently, so in a large codebase the same component ends up imported under four names. Many teams (and most style guides I've worked with) ban default exports for this reason. Both are fine; just be able to <em>say</em> why you'd pick one.</p>
+
+<p>CommonJS has no such distinction. There's just one thing, <code>module.exports</code>, and it's an ordinary object you mutate or replace:</p>
+
+<div class="code">
+  <div class="label">CommonJS</div>
+<pre><code>exports.TAX_RATE = 0.2;              <span class="cm">// add a property (a "named export")</span>
+exports.subtotal = subtotal;
+
+module.exports = subtotal;           <span class="cm">// or replace the whole thing (a "default export")</span>
+
+<span class="cm">// consuming side:</span>
+const { subtotal } = require('./cart');   <span class="cm">// this is just object destructuring!</span></code></pre>
+</div>
+
+<div class="box wait">
+  <span class="t">Wait, what about <code>exports</code> vs <code>module.exports</code>?</span>
+  <p><code>exports</code> starts out as a shortcut variable pointing at the same object as <code>module.exports</code>. Adding properties to it works fine. But <code>exports = something</code> just repoints the local variable and exports nothing — because what actually gets returned to the caller is <code>module.exports</code>. This has confused every Node developer at least once. Rule of thumb: assign to <code>module.exports</code>, always.</p>
+</div>
+
+<h2 id="static">3. Static vs dynamic — the idea that explains everything else</h2>
+
+<p>Here's the sentence to memorise, and then we'll earn it:</p>
+
+<p class="pull"><strong>ESM is static.</strong> Imports are resolved when the file is <em>parsed</em>, before a single line runs. <strong>CommonJS is dynamic.</strong> <code>require()</code> is a function call that happens <em>while</em> your code runs.</p>
+
+<p>Watch what that means in practice. This is legal CommonJS:</p>
+
+<div class="code">
+  <div class="label">Perfectly valid CommonJS</div>
+<pre><code>if (user.isAdmin) {
+  const admin = require('./admin-panel');   <span class="cm">// conditional!</span>
+  admin.mount();
+}
+
+const plugin = require('./plugins/' + pluginName);  <span class="cm">// computed path!</span></code></pre>
+</div>
+
+<p>And this is a syntax error in ESM — it won't even parse:</p>
+
+<div class="code bad">
+  <div class="label">❌ Illegal in ESM</div>
+<pre><code>if (user.isAdmin) {
+  import admin from './admin-panel.js';   <span class="cm">// SyntaxError</span>
+}</code></pre>
+</div>
+
+<p>In ESM, <code>import</code> statements must be at the top level of the file, and the path must be a plain string literal. You can't compute it, you can't wrap it in an <code>if</code>, you can't put it in a function. That feels like a restriction — and it is — but it's a restriction with a purpose. It means a tool can read your file <em>without running it</em> and know, with certainty, the complete list of what it imports and exports. Hold that thought.</p>
+
+<p>Imports are also <strong>hoisted</strong>: they're processed before any other code in the file, so this works fine:</p>
+
+<div class="code">
+<pre><code>greet();                       <span class="cm">// → "hi" — the import already ran</span>
+import { greet } from './greetings.js';</code></pre>
+</div>
+
+<p>(You shouldn't <em>write</em> it that way. But it explains why an import at the bottom of a file still works.)</p>
+
+<h3>Live bindings vs copies</h3>
+
+<p>Now the part that actually shows up in interviews. Take a guess at what each of these logs.</p>
+
+<div class="code">
+  <div class="label">counter.js  (ESM)</div>
+<pre><code>export let count = 0;
+export function increment() { count += 1; }</code></pre>
+</div>
+
+<div class="code">
+  <div class="label">main.js  (ESM)</div>
+<pre><code>import { count, increment } from './counter.js';
+
+console.log(count);   <span class="out">// → 0</span>
+increment();
+console.log(count);   <span class="out">// → 1   👈 it changed. I never reassigned it.</span></code></pre>
+</div>
+
+<p>Now the CommonJS version of exactly the same program:</p>
+
+<div class="code">
+  <div class="label">counter.cjs  (CommonJS)</div>
+<pre><code>let count = 0;
+function increment() { count += 1; }
+
+module.exports = { count, increment };</code></pre>
+</div>
+
+<div class="code">
+  <div class="label">main.cjs  (CommonJS)</div>
+<pre><code>const counter = require('./counter.cjs');
+
+console.log(counter.count);   <span class="out">// → 0</span>
+counter.increment();
+console.log(counter.count);   <span class="out">// → 0   👈 still zero!</span></code></pre>
+</div>
+
+<p>Same logic, different answer. Why?</p>
+
+<p>Because in CommonJS, <code>module.exports = { count, increment }</code> built an ordinary object, and <code>count: 0</code> copied the <em>value</em> <code>0</code> into a property of that object. When <code>increment()</code> later changes the module's internal <code>count</code> variable, it has no idea that some object out there once took a photocopy of its value. The photocopy doesn't update.</p>
+
+<p>In ESM, <code>import { count }</code> doesn't copy anything. It creates a <strong>live binding</strong> — a read-only window onto the variable in the other module. When the variable changes, everyone looking through the window sees the new value immediately.</p>
+
+<figure>
+<div class="svgbox">
+<svg viewBox="0 0 680 300" role="img" aria-label="Diagram contrasting an ESM live binding with a CommonJS copy">
+  <text x="10" y="22" font-size="13" font-weight="700" fill="#6d3fd4" font-family="system-ui, sans-serif">ESM — live binding</text>
+
+  <rect x="10" y="36" width="180" height="86" rx="8" fill="#f2ecff" stroke="#d9c9ff"/>
+  <text x="24" y="58" font-size="12" fill="#5d6474" font-family="ui-monospace, monospace">counter.js</text>
+  <rect x="24" y="68" width="150" height="38" rx="6" fill="#fff" stroke="#d9c9ff"/>
+  <text x="36" y="92" font-size="14" fill="#24262e" font-family="ui-monospace, monospace">count = 1</text>
+
+  <line x1="190" y1="88" x2="300" y2="88" stroke="#6d3fd4" stroke-width="2"/>
+  <polygon points="300,88 291,83 291,93" fill="#6d3fd4"/>
+  <text x="196" y="79" font-size="11" fill="#6d3fd4" font-family="system-ui, sans-serif">a window, not a value</text>
+
+  <rect x="302" y="36" width="200" height="86" rx="8" fill="#f2ecff" stroke="#d9c9ff"/>
+  <text x="316" y="58" font-size="12" fill="#5d6474" font-family="ui-monospace, monospace">main.js</text>
+  <rect x="316" y="68" width="170" height="38" rx="6" fill="#fff" stroke="#d9c9ff" stroke-dasharray="4 3"/>
+  <text x="328" y="92" font-size="14" fill="#24262e" font-family="ui-monospace, monospace">count → 1</text>
+  <text x="516" y="94" font-size="11" fill="#0d7f57" font-family="system-ui, sans-serif">always current</text>
+
+  <line x1="10" y1="150" x2="670" y2="150" stroke="#e7e2da"/>
+
+  <text x="10" y="184" font-size="13" font-weight="700" fill="#bf3030" font-family="system-ui, sans-serif">CommonJS — a copy taken at require() time</text>
+
+  <rect x="10" y="198" width="180" height="86" rx="8" fill="#fdf1ef" stroke="#f3c4bd"/>
+  <text x="24" y="220" font-size="12" fill="#5d6474" font-family="ui-monospace, monospace">counter.cjs</text>
+  <rect x="24" y="230" width="150" height="38" rx="6" fill="#fff" stroke="#f3c4bd"/>
+  <text x="36" y="254" font-size="14" fill="#24262e" font-family="ui-monospace, monospace">count = 1</text>
+
+  <line x1="190" y1="250" x2="300" y2="250" stroke="#bf3030" stroke-width="2" stroke-dasharray="5 4"/>
+  <polygon points="300,250 291,245 291,255" fill="#bf3030"/>
+  <text x="198" y="241" font-size="11" fill="#bf3030" font-family="system-ui, sans-serif">photocopied once</text>
+
+  <rect x="302" y="198" width="200" height="86" rx="8" fill="#fdf1ef" stroke="#f3c4bd"/>
+  <text x="316" y="220" font-size="12" fill="#5d6474" font-family="ui-monospace, monospace">main.cjs</text>
+  <rect x="316" y="230" width="170" height="38" rx="6" fill="#fff" stroke="#f3c4bd"/>
+  <text x="328" y="254" font-size="14" fill="#24262e" font-family="ui-monospace, monospace">count: 0</text>
+  <text x="516" y="256" font-size="11" fill="#bf3030" font-family="system-ui, sans-serif">stale forever</text>
+</svg>
+</div>
+<figcaption>An ESM import is a window onto someone else's variable. A CommonJS <code>require</code> hands you a photocopy of an object.</figcaption>
+</figure>
+
+<div class="box hood">
+  <span class="t">The analogy, and where it breaks</span>
+  <p>Think of a CommonJS <code>require</code> as photocopying a page from a colleague's notebook, and an ESM <code>import</code> as looking through a window into their office. If they scribble a new number on the page, your photocopy still shows the old one — but through the window you'd see it change.</p>
+  <p><strong>Where it breaks down:</strong> if the exported thing is an <em>object</em> rather than a number or string, CommonJS copies the <em>reference</em>, so mutations to that object <em>are</em> visible on both sides. <code>counter.state.value = 5</code> would work fine in CJS. The difference only bites on <em>reassignment</em> of the exported variable itself. And ESM's window is read-only from your side: <code>count = 5</code> in the importing file is a TypeError. Only the owning module can change it.</p>
+</div>
+
+<div class="box myth">
+  <span class="t">A common misconception</span>
+  <p>"ESM imports are just syntactic sugar for <code>require</code>." They really aren't, and this answer gets candidates dinged. <code>require</code> returns a value at runtime; <code>import</code> establishes a binding at link time, before execution. That's why one supports tree shaking and top-level await and cycles-with-function-declarations, and the other doesn't.</p>
+</div>
+
+<h2 id="treeshaking">4. Tree shaking, and why CommonJS structurally can't have it</h2>
+
+<p>You import one tiny helper from a big utility library:</p>
+
+<div class="code">
+<pre><code>import { formatCurrency } from './utils.js';   <span class="cm">// utils.js exports 40 functions</span></code></pre>
+</div>
+
+<p>Should your bundle contain all 40 functions, or just one? Obviously just one. <strong>Tree shaking</strong> is the bundler's job of walking your module graph and deleting every export nobody imports. (The name is the picture: shake the dependency tree, and the dead leaves fall off.)</p>
+
+<p>Now — <em>how</em> can a bundler know which leaves are dead? It has to be certain. Delete a function that turns out to be needed and you've shipped a broken app.</p>
+
+<p>With ESM, it can be certain, because of the restriction we complained about earlier. Every import is a top-level statement with a literal path and a fixed set of names. The bundler reads the source text — <strong>without executing it</strong> — and builds the complete graph: this file exports these 40 names; across the whole app, exactly three of them are ever imported; the other 37 are unreachable; delete them.</p>
+
+<p>Now try to do the same with CommonJS:</p>
+
+<div class="code bad">
+  <div class="label">❌ Statically un-analysable</div>
+<pre><code>const utils = require('./utils');
+
+const fnName = getUserPreference();   <span class="cm">// runtime value</span>
+utils[fnName]();                      <span class="cm">// 👈 which export is this? nobody knows.</span>
+
+if (isProduction) {
+  module.exports.logger = require('./noop');   <span class="cm">// exports change at runtime!</span>
+}</code></pre>
+</div>
+
+<p>The bundler would have to <em>run your program</em>, with every possible input, to know which exports are used. That's not a hard problem — it's an undecidable one. <code>module.exports</code> is a plain object; it can be mutated, reassigned, spread, passed around, and indexed with a computed string. Any of the 40 functions might be reached in a way no static analysis can see. So a correct bundler must keep them all.</p>
+
+<p class="pull">Tree shaking isn't a feature ESM added. It's a capability that falls out of ESM being static — you get it for free the moment the dependency graph is knowable without running the code.</p>
+
+<div class="box wait">
+  <span class="t">Wait — so why doesn't my bundle shrink?</span>
+  <p>Two very common reasons, both worth knowing.</p>
+  <p><strong>Side effects.</strong> If a module does something on import — mutates a global, registers a polyfill, injects CSS — the bundler can't safely drop it even if nothing imports its exports. That's what the <code>"sideEffects": false</code> field in <code>package.json</code> is for: it's you promising the bundler "importing my files does nothing observable, feel free to delete unused ones."</p>
+  <p><strong>The library ships CommonJS.</strong> Plenty of npm packages still publish CJS as their main entry point. If you <code>import</code> from one, your bundler transparently handles it — but it's still CJS underneath, so it can't be shaken. This is why libraries ship an ESM build alongside (the <code>module</code> or <code>exports</code> field), and why "does it have an ESM build?" is a real criterion when picking a dependency.</p>
+</div>
+
+<h2 id="dynamic-import">5. Dynamic <code>import()</code> and code splitting</h2>
+
+<p>Static imports are great for analysis and terrible for one specific thing: sometimes you genuinely don't want to load code until you need it. Your app has a giant PDF-export module that 2% of users ever touch. Shipping it in the initial bundle makes the first page load slower for everyone.</p>
+
+<p>So ESM has an escape hatch: <code>import()</code> as a <strong>function call</strong> rather than a statement. It returns a promise for the module.</p>
+
+<div class="code good">
+  <div class="label">✅ Load it only when the user asks for it</div>
+<pre><code>exportButton.addEventListener('click', async () =&gt; {
+  const { generatePdf } = await import('./pdf-export.js');   <span class="cm">// 👈 fetched now, not at startup</span>
+  generatePdf(invoice);
+});</code></pre>
+</div>
+
+<p>Note the shape: <code>await import(...)</code> resolves to the <strong>module namespace object</strong> — the same thing you'd get from <code>import * as mod</code>. So named exports come off it as properties, and a default export is on <code>.default</code>:</p>
+
+<div class="code">
+<pre><code>const mod = await import('./Chart.js');
+mod.render;     <span class="cm">// a named export</span>
+mod.default;    <span class="cm">// 👈 the default export lives here. easy to forget.</span></code></pre>
+</div>
+
+<p>When a bundler sees a dynamic <code>import()</code>, it doesn't inline that module — it splits it into a separate file (a "chunk") that gets fetched over the network on demand. That's <strong>code splitting</strong>, and it's the single highest-leverage bundle-size technique there is. In React it's wrapped up as <code>React.lazy(() =&gt; import('./Dashboard'))</code> plus a <code>&lt;Suspense&gt;</code> boundary for the loading state, and route-based splitting (one chunk per route) is the standard first move.</p>
+
+<div class="box wait">
+  <span class="t">Wait — doesn't <code>import()</code> ruin static analysis?</span>
+  <p>Partly, and deliberately. The bundler can still analyse it <em>if</em> the path is a literal string — that's how it knows to make a chunk. If you write <code>import('./pages/' + name + '.js')</code>, the bundler can't know which file, so it does something pragmatic: it bundles <em>every</em> file matching that pattern into chunks and picks at runtime. That works, but it can quietly pull in far more than you expected. Keep dynamic import paths as literal as you can.</p>
+</div>
+
+<h2 id="circular">6. Circular dependencies</h2>
+
+<p><code>a.js</code> imports <code>b.js</code>, and <code>b.js</code> imports <code>a.js</code>. This happens more often than you'd think in real codebases — usually via a shared types file or a barrel <code>index.js</code>. It doesn't crash outright in either system, but it goes wrong differently in each, and knowing the difference is a nice depth signal.</p>
+
+<p><strong>In CommonJS</strong>, the loader keeps a cache of modules it's currently building. When <code>a</code> requires <code>b</code>, and <code>b</code> requires <code>a</code> right back, the loader doesn't re-run <code>a</code> — it hands <code>b</code> whatever <code>a.module.exports</code> happens to contain <em>at that exact moment</em>. Which is usually a half-finished object:</p>
+
+<div class="code bad">
+  <div class="label">❌ CommonJS cycle: silently undefined</div>
+<pre><code><span class="cm">// a.cjs</span>
+const b = require('./b.cjs');
+module.exports.name = 'A';
+
+<span class="cm">// b.cjs</span>
+const a = require('./a.cjs');
+console.log(a.name);   <span class="out">// → undefined  (a hasn't reached its assignment yet)</span></code></pre>
+</div>
+
+<p>No error. Just <code>undefined</code>, showing up somewhere far away, at 4pm on a Friday.</p>
+
+<p><strong>In ESM</strong>, loading happens in phases: first the whole graph is fetched and parsed, then all the bindings are linked, and only then does code execute. Because bindings are hoisted and linked before execution, <code>function</code> declarations across a cycle work fine — they're hoisted too. But a <code>const</code> or <code>let</code> that hasn't been evaluated yet is in the <strong>temporal dead zone</strong>, so you get a loud, immediate <code>ReferenceError: Cannot access 'name' before initialization</code>.</p>
+
+<p>Which is better? ESM's, unambiguously — an error at the point of the mistake beats <code>undefined</code> leaking through your app. But the real answer for both is: <strong>break the cycle.</strong> Usually by extracting the shared thing into a third module that both depend on.</p>
+
+<h2 id="interop">7. The practical mess: <code>.mjs</code>, <code>type: module</code>, and dual packages</h2>
+
+<p><em>Recognition, not mastery.</em> Nobody will ask you to recite Node's resolution algorithm. They might ask "have you felt this pain?", and the answer should be yes — so here's the shape of it in one pass.</p>
+
+<p>Node supports twenty years of CommonJS <em>and</em> ESM in one runtime, and a <code>.js</code> file doesn't say which it is. So the file's meaning depends on config: <code>"type": "module"</code> in <code>package.json</code> makes <code>.js</code> mean ESM, otherwise it means CommonJS — and <code>.mjs</code>/<code>.cjs</code> are unambiguous overrides that ignore the setting entirely.</p>
+
+<p>Two consequences you'll actually hit. In ESM, Node demands <strong>full file extensions</strong> in relative imports (<code>'./cart.js'</code>, not <code>'./cart'</code>) — bundlers are lenient, Node isn't, which is a classic works-locally-breaks-in-production trap. And <code>require()</code>-ing an ES module used to be flatly impossible (<code>ERR_REQUIRE_ESM</code>), because <code>require</code> is synchronous and ESM loading isn't; recent Node has loosened this, but you'll still meet the error in the wild.</p>
+
+<p>The one term worth remembering is the <strong>dual package hazard</strong>: a library shipping both a CJS and an ESM build can end up loaded <em>twice</em> in one app — once via each — giving you two independent module instances. If the library holds any state (a singleton, a registry, a cache), it now exists twice, and the bugs are baffling. It's why many maintainers now ship ESM only.</p>
+
+<h2 id="modules-interview">8. Interview layer: modules</h2>
+
+<div class="box iv">
+  <span class="t">How this gets asked</span>
+  <p>"What's the difference between ESM and CommonJS?" · "Why can't you tree shake CommonJS?" · "What's a live binding?" · "How would you reduce this app's bundle size?" · "What does <code>import()</code> return?" · "Why does this package have a <code>.mjs</code> file?"</p>
+  <p>The first one is a <em>recall</em> question with a <em>depth</em> trapdoor. Almost everyone says "different syntax, one's browser one's Node." If you get to static-vs-dynamic in your first three sentences, you've separated yourself from the pack.</p>
+</div>
+
+<div class="say">
+  <span class="t">Say something like this</span>
+  <p>"The syntax difference is the surface; the real difference is that ESM is static and CommonJS is dynamic. In ESM, imports are resolved at parse time — they have to be top-level with literal paths — so a tool can build the full dependency graph without executing anything. That's what makes tree shaking and code splitting possible. CommonJS <code>require</code> is just a function call at runtime, so it can be conditional or computed, and <code>module.exports</code> is a mutable object — a bundler can't prove which exports are unused, so it has to keep them all. The other consequence is live bindings: an ESM import is a read-only view of the exporter's variable, so if it changes you see the change, whereas <code>require</code> gives you a snapshot of the value at require time."</p>
+  <div class="why"><strong>Why this lands:</strong> it explains a <em>capability</em> (tree shaking) in terms of a <em>design property</em> (staticness), which is what senior reasoning sounds like. It also pre-answers the follow-up they were about to ask.</div>
+</div>
+
+<h4>Follow-ups</h4>
+
+<details>
+<summary>"Why exactly is tree shaking impossible with CommonJS?"</summary>
+<p>Because determining which exports are used would require running the program. <code>require()</code> can take a computed path and can be called inside a conditional; the object it returns can be indexed with a runtime string like <code>utils[name]()</code>; and <code>module.exports</code> can be reassigned or mutated at any point during execution. A bundler doing static analysis can't rule out that any given export is reached, so removing one risks breaking the app. It's not that tooling authors haven't got around to it — it's that the information genuinely isn't there in the source text. ESM's restrictions (top-level only, literal paths, fixed export names) are what make the information available.</p>
+</details>
+
+<details>
+<summary>"What's a live binding — show me where it matters?"</summary>
+<p>An ESM import isn't a copy of a value, it's a reference to the exporting module's variable. If the module reassigns that variable, importers immediately see the new value; the importer can't write to it. Where it matters practically: a module that exports a mutable <code>currentUser</code> or a lazily-initialised <code>config</code> object works with ESM but silently goes stale with CommonJS, because <code>require</code> copied the value. It also makes ESM circular dependencies survivable — the binding exists before it has a value, rather than the importer holding a snapshot of a half-built exports object.</p>
+</details>
+
+<details>
+<summary>"Why not just use dynamic <code>import()</code> everywhere, then? It's more flexible."</summary>
+<p>Because you'd give up everything static analysis buys you. Every module becomes its own network request resolved at runtime, so the bundler can't hoist, can't shake, can't inline, and can't preload — and you'd turn synchronous code paths asynchronous throughout your app, which is a large refactor for no gain. Dynamic import is a targeted tool for things that are genuinely optional or deferred: routes, heavy modals, an editor, a charting library. Static imports should be your default and dynamic ones the exception you can justify.</p>
+</details>
+
+<details>
+<summary>"Are named or default exports better?"</summary>
+<p>I default to named. The name is fixed at both ends, so search, "find all references", auto-import, and automated renames all work; a typo fails loudly at import rather than giving you <code>undefined</code>; and it's the friendliest shape for tree shaking. Default exports are fine when a file has one obvious thing in it — a component, say — but every import site can name it differently, which in a large codebase means the same module appears under several aliases. It's a consistency call more than a correctness one, so the important thing is that the team picks one and lints it.</p>
+</details>
+
+<details>
+<summary>"Do circular imports break things?"</summary>
+<p>They don't hard-crash, but they degrade differently. In CommonJS you get whatever the partially-populated <code>exports</code> object contained at the moment the cycle closed — usually <code>undefined</code> properties, failing silently far from the cause. In ESM, bindings are hoisted and linked before execution, so function declarations across a cycle are fine, but touching a <code>const</code>/<code>let</code> that hasn't been evaluated throws a temporal-dead-zone <code>ReferenceError</code> right at the offending line. I prefer ESM's behaviour because it fails loudly, but either way the fix is to extract the shared piece into a third module rather than to work around the cycle.</p>
+</details>
+
+<details>
+<summary>"Why do bundlers still exist if browsers support ESM natively?"</summary>
+<p>Because native ESM in the browser means one network request per module, and a real app has thousands. Even over HTTP/2 that's a lot of round-trips and a deep dependency waterfall — the browser can't discover a module's imports until it has fetched and parsed it. Bundlers also do things the browser won't: tree shaking, minification, deliberate code splitting with preload hints, transpiling, and resolving bare specifiers like <code>'react'</code> (which browsers only handle via import maps). Native ESM is genuinely great in development, which is exactly what Vite exploits — unbundled dev, bundled production.</p>
+</details>
+
+<div class="box trap">
+  <span class="t">Traps</span>
+  <p><strong>"ESM is for the browser, CommonJS is for Node."</strong> Outdated by years. Node has supported ESM since v12, and bundlers happily consume CommonJS for the browser. Say "historically" if you mention it at all.</p>
+  <p><strong>"Tree shaking removes unused code."</strong> Close but imprecise, and interviewers notice. It removes <em>unused exports from the module graph</em>. It won't remove an unused function inside a module you did import (that's the minifier's dead-code elimination), and it won't remove anything from a module with unmarked side effects.</p>
+</div>
+
+<h2 id="gc">9. How garbage collection actually works</h2>
+<span class="kicker">Tier 2 · the "do you understand the runtime" question</span>
+
+<p>Let's start with a question that sounds trivial and isn't. Here's some code:</p>
+
+<div class="code">
+<pre><code>function loadProfile() {
+  const user = { name: 'Ada', avatar: /* a 2MB blob */ };
+  render(user);
+}
+
+loadProfile();   <span class="cm">// what happens to `user` now?</span></code></pre>
+</div>
+
+<p>You know the answer is "it gets cleaned up." But <em>how does the engine know</em>? Nobody told it. There's no <code>free()</code>. The function just… ended.</p>
+
+<p>The mechanism is <strong>reachability</strong>, and it's genuinely elegant. The engine keeps a set of <strong>roots</strong> — starting points that are always considered alive:</p>
+
+<ul>
+  <li>the global object (<code>window</code> / <code>globalThis</code>) and everything hanging off it</li>
+  <li>the current call stack: every local variable in every function that's currently executing, plus its closure scopes</li>
+  <li>a handful of engine-held things — pending timers, live DOM nodes attached to the document, in-flight promises</li>
+</ul>
+
+<p>Periodically, the collector starts at the roots and walks every reference it can follow, painting each object it reaches as "reachable." That's the <strong>mark</strong> phase. Then it goes through the heap and frees everything it never painted. That's the <strong>sweep</strong> phase. Hence <strong>mark-and-sweep</strong>.</p>
+
+<p>So the answer to our question: while <code>loadProfile</code> is running, its stack frame is a root, so <code>user</code> is reachable. When the function returns, the frame is gone. Nothing points at that object any more. The next time the collector runs, the object isn't painted, and its 2MB goes back to the heap.</p>
+
+<p class="pull">An object isn't freed when you're "done with it." It's freed when it becomes <strong>unreachable from the roots</strong>. Those are very different conditions, and every memory leak in JavaScript lives in the gap between them.</p>
+
+<figure>
+<div class="svgbox">
+<svg viewBox="0 0 680 290" role="img" aria-label="Diagram of garbage collection reachability from roots, with an unreachable cycle">
+  <rect x="14" y="96" width="106" height="62" rx="9" fill="#f2ecff" stroke="#6d3fd4" stroke-width="2"/>
+  <text x="67" y="121" font-size="13" font-weight="700" fill="#6d3fd4" text-anchor="middle" font-family="system-ui, sans-serif">ROOTS</text>
+  <text x="67" y="140" font-size="10" fill="#5d6474" text-anchor="middle" font-family="system-ui, sans-serif">globals + stack</text>
+
+  <line x1="120" y1="115" x2="176" y2="82" stroke="#0d7f57" stroke-width="2"/>
+  <polygon points="176,82 167,82 172,90" fill="#0d7f57"/>
+  <line x1="120" y1="140" x2="176" y2="176" stroke="#0d7f57" stroke-width="2"/>
+  <polygon points="176,176 167,168 167,177" fill="#0d7f57"/>
+
+  <circle cx="204" cy="72" r="27" fill="#edfaf4" stroke="#0d7f57" stroke-width="2"/>
+  <text x="204" y="77" font-size="13" fill="#0d7f57" text-anchor="middle" font-family="ui-monospace, monospace">app</text>
+
+  <circle cx="204" cy="196" r="27" fill="#edfaf4" stroke="#0d7f57" stroke-width="2"/>
+  <text x="204" y="201" font-size="13" fill="#0d7f57" text-anchor="middle" font-family="ui-monospace, monospace">user</text>
+
+  <line x1="231" y1="72" x2="286" y2="104" stroke="#0d7f57" stroke-width="2"/>
+  <polygon points="286,104 277,97 275,106" fill="#0d7f57"/>
+  <circle cx="314" cy="122" r="27" fill="#edfaf4" stroke="#0d7f57" stroke-width="2"/>
+  <text x="314" y="127" font-size="12" fill="#0d7f57" text-anchor="middle" font-family="ui-monospace, monospace">cart</text>
+
+  <text x="150" y="255" font-size="11" fill="#0d7f57" font-family="system-ui, sans-serif">reachable → kept alive</text>
+
+  <line x1="418" y1="26" x2="418" y2="264" stroke="#e7e2da" stroke-dasharray="5 5"/>
+
+  <circle cx="500" cy="98" r="28" fill="#f4f2ef" stroke="#a9a49c" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="500" y="103" font-size="12" fill="#7b766e" text-anchor="middle" font-family="ui-monospace, monospace">nodeA</text>
+
+  <circle cx="600" cy="176" r="28" fill="#f4f2ef" stroke="#a9a49c" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="600" y="181" font-size="12" fill="#7b766e" text-anchor="middle" font-family="ui-monospace, monospace">nodeB</text>
+
+  <path d="M523,113 Q560,120 578,158" fill="none" stroke="#a9a49c" stroke-width="2"/>
+  <polygon points="578,158 570,151 568,160" fill="#a9a49c"/>
+  <path d="M583,192 Q545,190 512,126" fill="none" stroke="#a9a49c" stroke-width="2"/>
+  <polygon points="512,126 512,136 520,130" fill="#a9a49c"/>
+
+  <text x="440" y="245" font-size="11" fill="#7b766e" font-family="system-ui, sans-serif">they point at each other — but nothing</text>
+  <text x="440" y="261" font-size="11" fill="#7b766e" font-family="system-ui, sans-serif">points at them. Unreachable → collected.</text>
+</svg>
+</div>
+<figcaption>Mark-and-sweep only cares about one thing: can I get here from a root?</figcaption>
+</figure>
+
+<div class="box myth">
+  <span class="t">A common misconception: "JavaScript uses reference counting"</span>
+  <p>Lots of people believe the engine keeps a counter on each object and frees it at zero. It doesn't — and this belief leads straight to a wrong answer on a favourite follow-up question.</p>
+  <p>Reference counting has a fatal flaw: <strong>cycles</strong>. If <code>a.partner = b</code> and <code>b.partner = a</code>, each object's count is 1 forever, even after nothing else in your program can reach either of them. Under reference counting, that pair leaks permanently. Old IE had exactly this problem where DOM nodes and JS objects referenced each other across two separately-managed heaps, and it leaked memory notoriously.</p>
+  <p>Mark-and-sweep doesn't care about counts at all. It asks a completely different question: <em>can I walk to this object starting from a root?</em> Two objects pointing at each other in an isolated island are never painted during the mark phase, so they get swept like anything else. <strong>Circular references do not leak in modern JavaScript.</strong> Say that plainly when asked.</p>
+</div>
+
+<div class="box hood">
+  <span class="t">Under the hood — one sentence of depth, if you want it</span>
+  <p>Real engines don't do one naive pass over the whole heap, because that would freeze the page. V8 is <strong>generational</strong> (most objects die young, so new ones go in a small nursery collected cheaply and often; survivors get promoted to a rarely-collected old generation) and does much of its marking <strong>concurrently and incrementally</strong> so pauses stay short. "Generational, incremental, concurrent mark-and-sweep" is a nice phrase to have ready — but reachability is the part that changes how you write code.</p>
+</div>
+
+<div class="box wait">
+  <span class="t">Wait — can I force a collection?</span>
+  <p>No, by design; the engine decides. Which means <code>bigThing = null</code> doesn't free anything — it drops <em>one reference</em>, which may or may not make the object unreachable, which may or may not be noticed on the next cycle. So it's worth doing when the variable is long-lived (a module-level cache, a closure that outlives the work), and pointless for a local in a function that's about to return anyway.</p>
+</div>
+
+<h2 id="leaks">10. The four classic leaks</h2>
+
+<p>A leak, given the model above, has exactly one shape: <strong>something long-lived is still holding a reference to something you're finished with.</strong> That's it. Every leak below is a variation on that sentence, and the fix is always "let go of the reference."</p>
+
+<h3>Leak 1: timers that never stop</h3>
+
+<div class="code bad">
+  <div class="label">❌ Buggy</div>
+<pre><code>function startPolling(dashboard) {
+  setInterval(() =&gt; {
+    dashboard.refresh();     <span class="cm">// closure keeps `dashboard` alive</span>
+  }, 5000);
+}
+
+startPolling(bigDashboard);
+<span class="cm">// user navigates away. the interval keeps running. forever.</span></code></pre>
+</div>
+
+<p>A pending timer is a <em>root</em>. The browser must keep the callback alive to run it later, and the callback's closure holds <code>dashboard</code>, and <code>dashboard</code> holds its data and its DOM references. Nothing here can ever be collected while the interval lives — and an interval lives until you clear it or the page unloads. In a single-page app, "the page unloads" might be hours away.</p>
+
+<div class="code good">
+  <div class="label">✅ Fixed</div>
+<pre><code>function startPolling(dashboard) {
+  const id = setInterval(() =&gt; dashboard.refresh(), 5000);
+  return () =&gt; clearInterval(id);     <span class="cm">// 👈 hand back a way to stop</span>
+}
+
+const stop = startPolling(bigDashboard);
+<span class="cm">// later, when the view is torn down:</span>
+stop();</code></pre>
+</div>
+
+<p>The pattern to internalise: <strong>anything that starts something should return the way to stop it.</strong> That single habit prevents most of this category.</p>
+
+<h3>Leak 2: detached DOM nodes</h3>
+
+<p>This is the one most specific to frontend, and the one interviewers love.</p>
+
+<div class="code bad">
+  <div class="label">❌ Buggy</div>
+<pre><code>const rowCache = [];
+
+function renderRow(data) {
+  const row = document.createElement('tr');
+  row.innerHTML = template(data);
+  rowCache.push(row);                     <span class="cm">// 👈 we keep a reference...</span>
+  table.appendChild(row);
+}
+
+function clearTable() {
+  table.innerHTML = '';                   <span class="cm">// ...and this doesn't remove it</span>
+}</code></pre>
+</div>
+
+<p>Removing a node from the document does not delete it. It just detaches it from the tree. The node is now a plain JavaScript object floating in memory — and because <code>rowCache</code> still points at it, it's reachable, so it stays.</p>
+
+<p>Worse: DOM nodes hold references to their children and their parent. So keeping one reference to one detached row keeps that row's <em>entire subtree</em> alive. Hold a reference to a detached table and you've retained every cell in it. This is why a slow SPA that re-renders a big list a hundred times can be sitting on tens of thousands of invisible DOM nodes.</p>
+
+<figure>
+<div class="svgbox">
+<svg viewBox="0 0 660 240" role="img" aria-label="Diagram of a detached DOM subtree retained by a JavaScript array">
+  <rect x="20" y="20" width="270" height="196" rx="10" fill="#fff" stroke="#e7e2da"/>
+  <text x="34" y="42" font-size="12" font-weight="700" fill="#5d6474" font-family="system-ui, sans-serif">the live document</text>
+  <rect x="110" y="58" width="90" height="30" rx="6" fill="#edfaf4" stroke="#0d7f57"/>
+  <text x="155" y="78" font-size="12" fill="#0d7f57" text-anchor="middle" font-family="ui-monospace, monospace">&lt;body&gt;</text>
+  <line x1="155" y1="88" x2="155" y2="112" stroke="#0d7f57" stroke-width="2"/>
+  <rect x="110" y="112" width="90" height="30" rx="6" fill="#edfaf4" stroke="#0d7f57"/>
+  <text x="155" y="132" font-size="12" fill="#0d7f57" text-anchor="middle" font-family="ui-monospace, monospace">&lt;table&gt;</text>
+  <text x="155" y="176" font-size="11" fill="#5d6474" text-anchor="middle" font-family="system-ui, sans-serif">(rows removed with</text>
+  <text x="155" y="192" font-size="11" fill="#5d6474" text-anchor="middle" font-family="system-ui, sans-serif">innerHTML = '')</text>
+
+  <rect x="330" y="20" width="310" height="196" rx="10" fill="#fdf1ef" stroke="#f3c4bd" stroke-dasharray="6 4"/>
+  <text x="344" y="42" font-size="12" font-weight="700" fill="#bf3030" font-family="system-ui, sans-serif">detached — but not collected</text>
+
+  <rect x="352" y="56" width="80" height="28" rx="6" fill="#fff" stroke="#bf3030"/>
+  <text x="392" y="75" font-size="11" fill="#bf3030" text-anchor="middle" font-family="ui-monospace, monospace">&lt;tr&gt;</text>
+  <line x1="392" y1="84" x2="392" y2="106" stroke="#bf3030" stroke-width="2"/>
+  <rect x="340" y="106" width="52" height="26" rx="5" fill="#fff" stroke="#bf3030"/>
+  <text x="366" y="124" font-size="10" fill="#bf3030" text-anchor="middle" font-family="ui-monospace, monospace">&lt;td&gt;</text>
+  <rect x="402" y="106" width="52" height="26" rx="5" fill="#fff" stroke="#bf3030"/>
+  <text x="428" y="124" font-size="10" fill="#bf3030" text-anchor="middle" font-family="ui-monospace, monospace">&lt;td&gt;</text>
+
+  <rect x="486" y="146" width="132" height="42" rx="8" fill="#f2ecff" stroke="#6d3fd4" stroke-width="2"/>
+  <text x="552" y="172" font-size="12" fill="#6d3fd4" text-anchor="middle" font-family="ui-monospace, monospace">rowCache[]</text>
+  <path d="M492,150 Q450,120 436,84" fill="none" stroke="#6d3fd4" stroke-width="2"/>
+  <polygon points="436,84 431,93 441,92" fill="#6d3fd4"/>
+  <text x="470" y="212" font-size="11" fill="#6d3fd4" text-anchor="middle" font-family="system-ui, sans-serif">one reference retains the whole subtree</text>
+</svg>
+</div>
+<figcaption>Detach a node and it leaves the screen, not the heap. It leaves the heap when the last JS reference to it goes.</figcaption>
+</figure>
+
+<h3>Leak 3: event listeners that are never removed</h3>
+
+<div class="code bad">
+  <div class="label">❌ Buggy</div>
+<pre><code>class Tooltip {
+  constructor(el) {
+    this.el = el;
+    window.addEventListener('resize', () =&gt; this.reposition());   <span class="cm">// 👈</span>
+  }
+  destroy() {
+    this.el.remove();   <span class="cm">// the listener is still on window, holding `this`</span>
+  }
+}</code></pre>
+</div>
+
+<p><code>window</code> lives as long as the page does, and it's holding your arrow function, which closes over <code>this</code>, which is the whole tooltip instance, which holds <code>this.el</code>. Create and "destroy" a thousand tooltips and you have a thousand live instances and a thousand detached elements.</p>
+
+<div class="code good">
+  <div class="label">✅ Fixed</div>
+<pre><code>class Tooltip {
+  constructor(el) {
+    this.el = el;
+    this.onResize = () =&gt; this.reposition();       <span class="cm">// keep a stable reference</span>
+    window.addEventListener('resize', this.onResize);
+  }
+  destroy() {
+    window.removeEventListener('resize', this.onResize);   <span class="cm">// 👈 the important line</span>
+    this.el.remove();
+  }
+}</code></pre>
+</div>
+
+<p>Note the detail that trips people up: <code>removeEventListener</code> needs the <em>same function reference</em> you added. Passing a fresh inline arrow removes nothing and fails silently. (The modern alternative is <code>AbortController</code>: pass <code>{ signal }</code> to every <code>addEventListener</code> and call <code>controller.abort()</code> once to remove them all — much harder to get wrong.)</p>
+
+<div class="box wait">
+  <span class="t">Wait — if I remove the element, doesn't its listener go away?</span>
+  <p>A listener attached to a node that becomes unreachable does get collected along with the node — that part is fine. The leak is specifically about listeners on <strong>long-lived targets</strong>: <code>window</code>, <code>document</code>, <code>body</code>, a WebSocket, an event bus, a store. Those targets outlive your component, so the handler (and everything it closes over) outlives it too.</p>
+</div>
+
+<h3>Leak 4: unbounded caches and greedy closures</h3>
+
+<div class="code bad">
+  <div class="label">❌ Buggy</div>
+<pre><code>const cache = new Map();
+
+async function getUser(id) {
+  if (!cache.has(id)) cache.set(id, await fetchUser(id));
+  return cache.get(id);   <span class="cm">// grows forever. nothing is ever evicted.</span>
+}</code></pre>
+</div>
+
+<p>A cache with no eviction policy isn't a cache, it's a memory leak with good intentions. In a long-lived SPA or a Node server this grows without limit. The fix is a bound: an LRU with a max size, a TTL, or — when the key is an object — a <code>WeakMap</code>, which is exactly where we're headed in the next section.</p>
+
+<p>The subtler cousin is the greedy closure, where a function keeps something alive that you'd never guess it needed:</p>
+
+<div class="code bad">
+  <div class="label">❌ Buggy — the closure keeps far more than it uses</div>
+<pre><code>function makeFormatter() {
+  const hugeDataset = loadTenMegabytesOfStuff();
+  const currency = hugeDataset.settings.currency;   <span class="cm">// all we actually need</span>
+
+  return (amount) =&gt; format(amount, currency);
+}
+<span class="cm">// depending on the engine's optimisations, `hugeDataset` may stay alive</span>
+<span class="cm">// for as long as the returned formatter does.</span></code></pre>
+</div>
+
+<p>Engines do try to only capture what a closure references, but it's not something to rely on — especially if anything in the scope uses <code>eval</code> or a debugger is attached. If a closure is going to be long-lived, extract the small value you need and let the big thing fall out of scope.</p>
+
+<h2 id="react-leaks">11. Leaks in React specifically</h2>
+
+<p>React doesn't have a separate memory model — it's all the same reachability rules — but it has a specific place where the "start something / stop something" pairing lives: the <strong>effect cleanup function</strong>.</p>
+
+<div class="code bad">
+  <div class="label">❌ Buggy</div>
+<pre><code>useEffect(() =&gt; {
+  const id = setInterval(() =&gt; setTick(t =&gt; t + 1), 1000);
+  window.addEventListener('scroll', handleScroll);
+  const sub = priceFeed.subscribe(setPrice);
+}, []);   <span class="cm">// 👈 nothing returned. nothing is ever torn down.</span></code></pre>
+</div>
+
+<div class="code good">
+  <div class="label">✅ Fixed</div>
+<pre><code>useEffect(() =&gt; {
+  const id = setInterval(() =&gt; setTick(t =&gt; t + 1), 1000);
+  window.addEventListener('scroll', handleScroll);
+  const sub = priceFeed.subscribe(setPrice);
+
+  return () =&gt; {                          <span class="cm">// 👈 runs on unmount and before every re-run</span>
+    clearInterval(id);
+    window.removeEventListener('scroll', handleScroll);
+    sub.unsubscribe();
+  };
+}, []);</code></pre>
+</div>
+
+<p>The mental rule: <strong>if an effect starts anything that outlives the render, it must return a function that stops it.</strong> Timers, listeners, subscriptions, observers (<code>IntersectionObserver</code>, <code>ResizeObserver</code>, <code>MutationObserver</code>), WebSockets, animation frames — all the same shape.</p>
+
+<p>And note the second half of that comment: cleanup doesn't only run at unmount. It runs before <em>every</em> re-run of the effect. So an effect with a changing dependency that subscribes without cleaning up doesn't leak one subscription — it leaks one per render.</p>
+
+<h3>The fetch-after-unmount case (with a nuance worth knowing)</h3>
+
+<div class="code good">
+  <div class="label">✅ Cancel the work, not just the state update</div>
+<pre><code>useEffect(() =&gt; {
+  const controller = new AbortController();
+
+  fetch(`/api/users/${id}`, { signal: controller.signal })
+    .then(r =&gt; r.json())
+    .then(setUser)
+    .catch(err =&gt; { if (err.name !== 'AbortError') setError(err); });
+
+  return () =&gt; controller.abort();   <span class="cm">// 👈 cancels the request itself</span>
+}, [id]);</code></pre>
+</div>
+
+<p>You may remember an old React warning: <em>"Can't perform a React state update on an unmounted component. This is a no-op, but it indicates a memory leak."</em> Here's the honest version, and saying it well is a strong signal: <strong>that warning was misleading and React removed it.</strong> Calling <code>setState</code> after unmount doesn't itself leak — React just ignores it.</p>
+
+<p>What <em>does</em> leak is the thing that was still running: the in-flight request holding your response, the subscription still pushing values, the interval still ticking. So the fix isn't an <code>isMounted</code> flag to suppress the warning (that's a code smell that hides the problem) — it's aborting or unsubscribing so the work actually stops. Same fix, much better reasoning behind it.</p>
+
+<div class="box wait">
+  <span class="t">Wait — does <code>useState</code> or <code>useRef</code> leak?</span>
+  <p>Not on their own. When a component unmounts, React drops its fiber, and everything hanging off it becomes unreachable in the normal way. Leaks come from references held <em>outside</em> React's tree: a module-level array, a global cache, a listener on <code>window</code>, a store subscription. If the only thing pointing at your data is React, unmounting is enough.</p>
+</div>
+
+<h2 id="diagnose">12. Finding a leak with DevTools</h2>
+
+<p>"How would you find a memory leak?" is a process question. They want to hear a repeatable method, not a tool name. Here's the one I'd describe.</p>
+
+<p><strong>Step 1: confirm it's actually a leak.</strong> Memory going up isn't a leak — caches fill, GC hasn't run yet. Open the <strong>Performance monitor</strong> (or record a Performance trace with "Memory" ticked) and look at the JS heap over time while you repeat an action. Healthy memory looks like a sawtooth: up, then a sharp drop when GC runs. A leak looks like a staircase — each sawtooth bottoms out higher than the last. That rising floor is the signal.</p>
+
+<p><strong>Step 2: find a reproduction loop.</strong> A leak you can trigger on demand is a leak you can find. "Open the modal, close it, ten times." "Navigate to the dashboard and back." Keep it short and repeatable.</p>
+
+<p><strong>Step 3: the three-snapshot technique.</strong> In the <strong>Memory</strong> panel, take a <em>Heap snapshot</em>. Taking one forces a garbage collection first, which is exactly what you want — it means everything left in the snapshot genuinely survived collection. Then:</p>
+
+<ol>
+  <li>Snapshot 1 — baseline, before doing anything.</li>
+  <li>Run your repro loop 10 times.</li>
+  <li>Snapshot 2.</li>
+  <li>Run the loop 10 more times, then Snapshot 3.</li>
+</ol>
+
+<p>Now switch the view to <strong>Comparison</strong> and compare snapshot 3 against snapshot 2. Sort by "Delta" — the count of objects that were created and never freed. Anything whose count climbs steadily with each round of the loop, in lockstep, is your leak. One constructor name usually stands out immediately: <code>Detached HTMLDivElement</code>, or your own <code>Tooltip</code>, or closures.</p>
+
+<p><strong>Step 4: for DOM leaks, filter for detached nodes.</strong> In the snapshot's filter box, type <code>Detached</code>. Chrome groups nodes that are no longer in the document but still retained in memory. If you see thousands of them after ten modal opens, you've found it. (Newer Chrome versions also expose a "Detached elements" view that does this in one click.)</p>
+
+<p><strong>Step 5: read the Retainers pane.</strong> This is the payoff and the part people skip. Select the leaking object and look at the <strong>Retainers</strong> (or "Retained by") panel at the bottom. It shows the actual chain of references keeping the object alive, all the way back to a root — something like <code>window → app → tooltipRegistry → [3] → this.el</code>. That chain <em>is</em> your bug. Somewhere along it is a line of code you need to delete.</p>
+
+<div class="box hood">
+  <span class="t">Shallow size vs retained size</span>
+  <p>Two columns in the snapshot that confuse everyone. <strong>Shallow size</strong> is the memory the object itself occupies — usually tiny. <strong>Retained size</strong> is how much memory would be freed if that object went away, including everything only it keeps alive. Always sort by retained size when hunting: an array with a shallow size of 200 bytes can retain 40MB.</p>
+</div>
+
+<h2 id="memory-interview">13. Interview layer: memory</h2>
+
+<div class="box iv">
+  <span class="t">How this gets asked</span>
+  <p>"How does garbage collection work in JavaScript?" · "Do circular references cause leaks?" · "What are common causes of memory leaks in a SPA?" · "This page gets slower the longer you use it — how would you debug that?" · "Why do you need to return a cleanup function from <code>useEffect</code>?"</p>
+  <p>The GC question is testing <em>recall</em>. The debugging question is testing <em>depth</em> — they want a method, and they're listening for whether you've ever actually opened the Memory panel.</p>
+</div>
+
+<div class="say">
+  <span class="t">Say something like this (GC)</span>
+  <p>"JavaScript engines use mark-and-sweep based on reachability, not reference counting. There's a set of roots — the global object, the current call stack and its closures, plus things the engine holds like pending timers and attached DOM nodes. The collector walks out from the roots marking everything it can reach, then sweeps whatever it didn't mark. The practical consequence is that an object isn't freed when you stop needing it, it's freed when nothing can reach it — so every leak is really 'something long-lived is still holding a reference.' It also means circular references are fine: two objects pointing at each other with nothing pointing at them are unreachable, so they get collected."</p>
+  <div class="why"><strong>Why this lands:</strong> you name the model, then immediately translate it into the rule that governs real code. Volunteering the cycles point pre-empts their next question and quietly demonstrates you know why reference counting isn't the answer.</div>
+</div>
+
+<h4>Follow-ups</h4>
+
+<details>
+<summary>"Do circular references leak in JavaScript?"</summary>
+<p>No. That's a reference-counting problem, and JS engines use reachability instead. If <code>a</code> and <code>b</code> point at each other but no root can reach either, the mark phase never visits them and they're swept normally. The historical reason people believe otherwise is old IE, where the DOM and the JS engine had separately managed heaps and a cycle spanning both couldn't be resolved — that genuinely leaked, and the folklore outlived the bug by twenty years.</p>
+</details>
+
+<details>
+<summary>"How would you actually find a memory leak?"</summary>
+<p>First I'd confirm it is one: record the JS heap in the Performance panel while repeating an action and look for a rising baseline between GCs rather than a flat sawtooth. Then I'd find a tight repro — open and close the modal ten times. Then heap snapshots in the Memory panel: one baseline, one after ten iterations, one after ten more, and compare the last two by delta to find objects whose count grows in lockstep with the loop. For DOM leaks I filter the snapshot for "Detached". The key step is the Retainers pane on the leaking object — it shows the exact reference chain back to a root, which tells you the line of code holding on. In practice it's nearly always a listener on <code>window</code>, an uncleared interval, or a cache with no eviction.</p>
+</details>
+
+<details>
+<summary>"Why not just set things to <code>null</code> when you're done?"</summary>
+<p>It's occasionally useful but it's not a general strategy. Nulling a reference doesn't free memory — it removes one edge in the object graph, and the object is collected only if that was the last path from a root. For a local variable in a function that's about to return it's pure noise, since the whole frame disappears anyway. It's worth doing when the holder is long-lived: clearing a module-level cache entry, or dropping a reference to a big object held by a closure that will outlive it. The higher-leverage habit is not creating the long-lived reference in the first place.</p>
+</details>
+
+<details>
+<summary>"Is a memory leak always a bug worth fixing?"</summary>
+<p>It depends on lifetime and rate. On a page a user has open for thirty seconds, a small leak is invisible. On a dashboard someone leaves open all day, or a Node process running for weeks, the same leak takes the process down. Frontend leaks also don't just show up as memory — they show up as slowness, because every leaked listener still fires and every detached subtree still costs GC time to traverse. So I'd triage by the app's usage pattern, and treat a leak that grows per user interaction as much more urgent than a fixed one-time retention.</p>
+</details>
+
+<details>
+<summary>"What's the difference between a leak and just high memory usage?"</summary>
+<p>High usage is a level; a leak is a slope. Loading a 50MB dataset uses a lot of memory but releases it when you're done. A leak means memory retained by a completed operation is never released, so usage grows monotonically with time or interaction count. The diagnostic difference is exactly what you look for in the heap timeline: high-but-flat with clean sawteeth versus a baseline that climbs after every GC.</p>
+</details>
+
+<h2 id="weakmap">14. <code>WeakMap</code> and <code>WeakSet</code></h2>
+<span class="kicker">Tier 3 · the "have you thought about this" question</span>
+
+<p>Everything in the last section was about accidentally holding references. This section is about a data structure designed specifically to <em>not</em> hold one.</p>
+
+<p>Here's the problem. I want to attach some bookkeeping to DOM nodes — say, how many times each one has been clicked — without touching the elements themselves. Natural first attempt:</p>
+
+<div class="code bad">
+  <div class="label">❌ Buggy — this is a leak</div>
+<pre><code>const clickCounts = new Map();
+
+function trackClick(element) {
+  clickCounts.set(element, (clickCounts.get(element) ?? 0) + 1);
+}</code></pre>
+</div>
+
+<p>Works perfectly. And it leaks every element you ever track.</p>
+
+<p>Why? Because <code>clickCounts</code> is a long-lived module-level object — a root, effectively — and a <code>Map</code> holds <strong>strong</strong> references to its keys. When those elements are removed from the DOM, the Map is still pointing at them. Detached, invisible, un-collectable, forever. Our metadata store has quietly become the thing keeping the data alive.</p>
+
+<p>And there's no good fix with a <code>Map</code>. You'd have to manually <code>delete</code> each entry at exactly the moment the element is removed — which means writing teardown code everywhere, and getting it wrong once means the leak is back.</p>
+
+<p>Change one word:</p>
+
+<div class="code good">
+  <div class="label">✅ Fixed</div>
+<pre><code>const clickCounts = new WeakMap();   <span class="cm">// 👈 that's the entire fix</span>
+
+function trackClick(element) {
+  clickCounts.set(element, (clickCounts.get(element) ?? 0) + 1);
+}</code></pre>
+</div>
+
+<p>A <code>WeakMap</code> holds its keys <strong>weakly</strong>. A weak reference is one the garbage collector <em>ignores</em> when deciding reachability. So if the only thing left pointing at an element is a WeakMap key, the element counts as unreachable, gets collected — and the entry vanishes from the WeakMap along with it. Automatically. No cleanup code.</p>
+
+<div class="box hood">
+  <span class="t">The analogy, and where it breaks</span>
+  <p>A normal <code>Map</code> key is a hand gripping the object. A <code>WeakMap</code> key is a sticky note with the object's address written on it: useful while the object exists, but it doesn't stop the object from being demolished, and when it is, the note is thrown away too.</p>
+  <p><strong>Where it breaks down:</strong> a sticky note with a stale address is still a note you could read and get confused by. A WeakMap entry disappears <em>atomically</em> with the object — you can never observe a WeakMap key pointing at something collected. That guarantee is the whole point, and it's what the next bit depends on.</p>
+</div>
+
+<h3>Why WeakMaps aren't iterable (this <em>is</em> asked)</h3>
+
+<p>A <code>WeakMap</code> has exactly four methods: <code>get</code>, <code>set</code>, <code>has</code>, <code>delete</code>. No <code>.size</code>, no <code>forEach</code>, no <code>for...of</code>. That looks like an unfinished API, and the reason it isn't makes a great short answer.</p>
+
+<p>To list the keys, the WeakMap would have to tell you which ones still exist — which depends on <em>whether the garbage collector has run yet</em>. So <code>weakMap.size</code> could return 3, then return 1 a moment later with your program having done nothing at all. That would make GC timing observable, and the same code would behave differently across runs and browsers. Keeping WeakMaps opaque is what lets the collector stay invisible.</p>
+
+<p>The practical version: <strong>a WeakMap is a lookup table, not a collection.</strong> It's only useful when you already have the key. Need to enumerate? You need a <code>Map</code>, and you need an eviction policy.</p>
+
+<h3>Where you'd actually use one</h3>
+
+<p>Three places, and they're all the same shape — <em>data whose lifetime should match an object you don't control</em>:</p>
+
+<ul>
+  <li><strong>Metadata on objects you don't own</strong> — the click counter above; libraries attaching internal state to a DOM node or a user-supplied object without mutating it.</li>
+  <li><strong>Per-object caching</strong> — <code>layoutCache.set(element, expensiveMeasure(element))</code>. This cache can never grow unboundedly, because each entry dies with its element. Compare the <code>Map</code> cache from the leaks section, which needed explicit eviction.</li>
+  <li><strong>Private data</strong> — <code>privates.set(this, { balance })</code> inside a class, the classic pre-<code>#private</code> pattern. Worth recognising in older code; modern code uses <code>#balance</code>.</li>
+</ul>
+
+<p><strong><code>WeakSet</code></strong> is the same thing without values — just "have I seen this object before?", without keeping it alive.</p>
+
+<p>One constraint: keys must be objects (or unregistered symbols), never strings or numbers. That's inherent rather than arbitrary — weakness is about identity and lifetime, and <code>'user-42'</code> isn't an allocated thing that can become unreachable.</p>
+
+<div class="box hood">
+  <span class="t">Name-recognition: <code>WeakRef</code> and <code>FinalizationRegistry</code></span>
+  <p>ES2021 added a weak reference to a single object (<code>.deref()</code> gives it back, or <code>undefined</code> if collected) and a post-collection callback. Both are explicitly non-deterministic and shouldn't drive program logic. Knowing they exist — and knowing to reach for <code>WeakMap</code> first — is the whole answer.</p>
+</div>
+
+<div class="box iv">
+  <span class="t">How this gets asked</span>
+  <p>"What's a WeakMap and when would you use one?" · "Why WeakMap over Map?" · "Why can't you iterate a WeakMap?" · "How would you attach data to a DOM node without leaking?"</p>
+</div>
+
+<div class="say">
+  <span class="t">Say something like this</span>
+  <p>"A <code>Map</code> holds strong references to its keys, so anything you use as a key can never be garbage collected while the Map is alive. If I'm using DOM nodes or component instances as keys in a long-lived Map, I'm building a leak — every node I ever touched stays in memory after it's removed from the page. A <code>WeakMap</code> holds keys weakly: the collector ignores those references, so once nothing else points at the key, the object is collected and the entry disappears on its own. That's why it's the right tool for metadata or per-object caching. The tradeoff is that it isn't iterable and has no size — which has to be true, because reporting its contents would expose GC timing to your program and make behaviour non-deterministic."</p>
+  <div class="why"><strong>Why this lands:</strong> you frame it as a leak-prevention tool rather than "a Map with weird limitations," and you explain the non-iterability as a necessary consequence rather than a missing feature. That's the difference between having read the docs and having understood the design.</div>
+</div>
+
+<h2 id="storage">15. localStorage vs sessionStorage vs cookies</h2>
+<span class="kicker">Tier 2 · nearly guaranteed</span>
+
+<p>Now we move from "how long does my object live in memory" to "what survives a refresh." Same family of question, different timescale.</p>
+
+<p>Cookies came first, in 1994, and their original purpose was not storage — it was <strong>telling the server who you are</strong>. HTTP is stateless: every request arrives with no memory of the last one. A cookie fixes that by being <em>automatically attached to every request</em> to its domain. That single design decision explains almost everything about how cookies behave, and every problem they have.</p>
+
+<p>The trouble is that people started using cookies for client-side data too, and they're terrible at it: about 4KB each, and every byte gets uploaded with every request — including every image, script, and API call. Storing a user's theme preference in a cookie means shipping that string to your server thousands of times a day for no reason.</p>
+
+<p>So HTML5 added <strong>Web Storage</strong>: <code>localStorage</code> and <code>sessionStorage</code>. Purely client-side key/value stores, never sent anywhere, with roughly 5–10MB of room. Same tiny API:</p>
+
+<div class="code">
+<pre><code>localStorage.setItem('theme', 'dark');
+localStorage.getItem('theme');     <span class="out">// → 'dark'</span>
+localStorage.getItem('missing');   <span class="out">// → null  (not undefined)</span>
+localStorage.removeItem('theme');
+
+localStorage.setItem('user', JSON.stringify(user));   <span class="cm">// 👈 strings only!</span>
+const user = JSON.parse(localStorage.getItem('user'));</code></pre>
+</div>
+
+<p>Let's go through the axes an interviewer probes, one at a time, because "just memorise the table" is exactly how you fail the follow-up.</p>
+
+<h4>Lifetime — when does it disappear?</h4>
+<p><code>localStorage</code> persists indefinitely: across refreshes, tab closes, browser restarts, reboots. It's gone only when your code removes it or the user clears site data. <code>sessionStorage</code> lives as long as the <em>tab</em> — close the tab, it's gone. A cookie's lifetime is whatever you set: with <code>Expires</code> or <code>Max-Age</code> it persists to that date; without either it's a "session cookie" that dies when the browser closes.</p>
+
+<h4>Scope — who can see it?</h4>
+<p>This is the axis people get wrong most often, and it splits in two directions.</p>
+
+<p><code>localStorage</code> is scoped to the <strong>origin</strong> — scheme + host + port. <code>https://app.example.com</code> and <code>https://www.example.com</code> are different origins, so they have completely separate localStorage. Every tab and window on the same origin shares the same store.</p>
+
+<p><code>sessionStorage</code> is scoped to origin <em>and</em> the browsing context — effectively per tab. Two tabs on the same site have separate sessionStorage that cannot see each other. (One wrinkle: duplicating a tab copies the sessionStorage into the new tab, whereas opening a fresh tab to the same URL starts empty.)</p>
+
+<p><strong>Cookies don't use origins at all</strong>, because they predate the concept. They're scoped by <em>domain and path</em>. A cookie set with <code>Domain=example.com</code> is sent to <code>example.com</code> <em>and every subdomain</em> — which is how single sign-on across <code>app.</code>, <code>www.</code>, and <code>api.</code> works, and something localStorage simply cannot do. Cookies also ignore port. This mismatch matters: two apps on the same host but different ports share cookies while having separate localStorage.</p>
+
+<h4>Sent with requests?</h4>
+<p>Cookies: yes, automatically, on every matching request, whether you wanted it or not. Web Storage: never — the browser doesn't know it exists from a networking standpoint; if you want it on the server you attach it yourself in a header or body.</p>
+
+<p>That automatic attachment is a double-edged thing. It's why cookies can authenticate a plain <code>&lt;img&gt;</code> request or a form post. It's also the entire basis of <strong>CSRF</strong>: if evil.com can make your browser send a request to yourbank.com, the cookie rides along and the request looks authenticated. Hence <code>SameSite</code>, below.</p>
+
+<h4>Synchronous or not?</h4>
+<p><code>localStorage</code> and <code>sessionStorage</code> are <strong>fully synchronous</strong>, and they hit disk. Every <code>getItem</code> blocks the main thread — no rendering, no input handling, until it returns. For a few small keys that's microseconds and irrelevant. Writing a 3MB JSON blob on every keystroke will visibly jank your app. They're also unavailable in web workers for exactly this reason. <code>document.cookie</code> is synchronous too, and worse: it hands you one big string you have to parse yourself. <code>IndexedDB</code> is asynchronous, works in workers, and is the right answer at scale.</p>
+
+<h4>Accessible to JavaScript?</h4>
+<p>Web Storage: always, by definition — it's a JS API. Cookies: <em>only if you let them be.</em> This is the one genuine security capability in this whole comparison. A cookie set by the server with the <strong><code>HttpOnly</code></strong> flag is invisible to <code>document.cookie</code>. Your JavaScript cannot read it, and therefore neither can any script an attacker injects.</p>
+
+<p>Three cookie flags to know cold:</p>
+<ul>
+  <li><strong><code>HttpOnly</code></strong> — JS can't read it. Blunts XSS token theft.</li>
+  <li><strong><code>Secure</code></strong> — only sent over HTTPS. Blocks network eavesdropping.</li>
+  <li><strong><code>SameSite</code></strong> — controls whether the cookie goes on cross-site requests. <code>Strict</code> means never; <code>Lax</code> (the modern default) means only on top-level navigations, not on background requests or form posts from other sites; <code>None</code> means always, and requires <code>Secure</code>. This is the primary defence against CSRF.</li>
+</ul>
+
+<p>Now — and only now — the table.</p>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th></th><th>localStorage</th><th>sessionStorage</th><th>Cookies</th></tr>
+  </thead>
+  <tbody>
+    <tr><th>Capacity</th><td>~5–10MB per origin</td><td>~5–10MB per origin/tab</td><td>~4KB each, ~50 per domain</td></tr>
+    <tr><th>Lifetime</th><td>Until explicitly cleared</td><td>Until the tab closes</td><td><code>Expires</code>/<code>Max-Age</code>, else browser close</td></tr>
+    <tr><th>Scope</th><td>Origin (scheme+host+port), shared across tabs</td><td>Origin <em>and</em> tab — not shared</td><td>Domain + path; shared with subdomains, ignores port</td></tr>
+    <tr><th>Sent to server</th><td>Never</td><td>Never</td><td>Automatically, on every matching request</td></tr>
+    <tr><th>API</th><td>Synchronous, blocks main thread</td><td>Synchronous, blocks main thread</td><td>Synchronous string parsing, or set by server</td></tr>
+    <tr><th>Readable by JS</th><td>Always</td><td>Always</td><td>Only if not <code>HttpOnly</code></td></tr>
+    <tr><th>In web workers</th><td>No</td><td>No</td><td>No (but <code>fetch</code> sends them)</td></tr>
+    <tr><th>Data type</th><td>Strings only</td><td>Strings only</td><td>Strings only</td></tr>
+    <tr><th>Best for</th><td>Theme, drafts, non-sensitive cached data</td><td>Per-tab wizard state, one-tab flows</td><td>Auth/session, anything the server needs</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box wait">
+  <span class="t">Wait — what about IndexedDB?</span>
+  <p>When you outgrow 5MB of strings, that's the answer. IndexedDB is a real transactional database in the browser: asynchronous (so it doesn't block rendering), works in web workers and service workers, stores structured data — objects, arrays, <code>Blob</code>s, <code>File</code>s, <code>ArrayBuffer</code>s — without <code>JSON.stringify</code>, supports indexes and queries, and has quotas in the hundreds of megabytes or more. Its raw API is famously unpleasant, so people use a wrapper like <code>idb</code> or Dexie. Use it for offline-first apps, cached API responses at volume, media, and anything a service worker needs to touch. Mentioning IndexedDB unprompted in the storage question is a small, reliable way to sound like you've shipped something.</p>
+</div>
+
+<h3>The cross-tab, incognito, and subdomain questions</h3>
+
+<p>These get asked as quick checks, so have crisp answers.</p>
+
+<p><strong>Across tabs.</strong> localStorage is shared by every tab on the origin, and there's a bonus: writing to it fires a <code>storage</code> event in the <em>other</em> tabs (never in the one that wrote it). That's the classic way to sync logout across tabs:</p>
+
+<div class="code">
+<pre><code>window.addEventListener('storage', (event) =&gt; {
+  if (event.key === 'authToken' &amp;&amp; event.newValue === null) {
+    redirectToLogin();   <span class="cm">// another tab logged out — follow it</span>
+  }
+});</code></pre>
+</div>
+
+<p>(<code>BroadcastChannel</code> is the modern, purpose-built alternative for cross-tab messaging.) sessionStorage does none of this — it's per-tab, so there's nothing to sync.</p>
+
+<p><strong>In incognito / private browsing.</strong> localStorage works normally, with two catches: it's a <em>separate, empty</em> store from the normal session, and it's destroyed when the last private window closes. So it behaves like sessionStorage with a longer leash. Quotas are sometimes smaller. Don't design around it — but do handle it, because storage can also throw: Safari's stricter privacy modes and browsers with site data blocked can make <code>setItem</code> throw a <code>QuotaExceededError</code>, and it throws when you exceed the quota anywhere. <strong>Always wrap storage writes in try/catch.</strong> An unhandled throw here has taken down more apps than it should have.</p>
+
+<p><strong>Across subdomains.</strong> localStorage: not shared, full stop — different origin, different store, and there's no <code>Domain</code>-style opt-in. If <code>app.example.com</code> and <code>shop.example.com</code> need shared client state, you either use a cookie with <code>Domain=example.com</code>, or do the hidden-iframe-plus-<code>postMessage</code> dance (increasingly blocked by browsers' third-party storage partitioning), or keep the state on the server. Cookies, by contrast, share across subdomains happily — which is a feature for SSO and a liability if a subdomain gets compromised.</p>
+
+<h2 id="jwt">16. Where do you store an auth token?</h2>
+
+<p>This is the storage question interviewers actually care about, and it's a trap dressed as a lookup. There's no clean answer, and the signal they're looking for is whether you know that.</p>
+
+<p>The two candidates come with two different attacks.</p>
+
+<p><strong>Put the JWT in <code>localStorage</code></strong>, and you're exposed to <strong>XSS</strong> (cross-site scripting — an attacker gets script running on your page, via a dependency, a user-generated content hole, an ad). That script can read localStorage in one line and exfiltrate the token. Now the attacker has your token on <em>their</em> machine and can use it at leisure, long after the user closed the tab.</p>
+
+<p><strong>Put it in a cookie</strong> with <code>HttpOnly</code>, and JavaScript can't read it — so XSS can't steal it. But the browser now attaches it automatically to every request to your domain, which opens <strong>CSRF</strong>: a malicious page can cause the user's browser to fire off a request to your API, and the cookie rides along. Mitigated well by <code>SameSite=Lax</code> or <code>Strict</code>, plus a CSRF token for state-changing requests.</p>
+
+<p>So: XSS risk versus CSRF risk. Here's the honest senior read on it.</p>
+
+<p><strong>The cookie is the better default.</strong> CSRF has a mature, well-understood defence — <code>SameSite</code> plus a token — that's largely handled by frameworks. XSS token theft from localStorage has no defence at the storage layer at all; if the attacker's script runs, the token is simply readable.</p>
+
+<p><strong>But be honest about the limits of that.</strong> If an attacker has XSS on your origin, <code>HttpOnly</code> doesn't save you — they can't <em>read</em> the token, but they don't need to. They can just make authenticated requests from your page, with the cookie attached automatically, doing whatever the user could do. <code>HttpOnly</code> downgrades "permanent token theft" to "session hijack while the tab is open." That's a meaningful improvement, not a cure. Saying this out loud is what separates a memorised answer from an understood one.</p>
+
+<p><strong>So the real answer is that XSS prevention is the actual control</strong> — a strict Content Security Policy, escaping output, framework auto-escaping, avoiding <code>innerHTML</code> and <code>dangerouslySetInnerHTML</code>, and auditing dependencies. Storage choice is defence in depth on top of that.</p>
+
+<div class="say">
+  <span class="t">Say something like this</span>
+  <p>"It's a tradeoff rather than a right answer. localStorage is trivially readable by any script on the page, so an XSS anywhere in the app — including in a dependency — means the token is exfiltrated and usable indefinitely. An <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite</code> cookie can't be read by JavaScript, which closes that off, but it's sent automatically so you take on CSRF, which you handle with <code>SameSite=Lax</code> or <code>Strict</code> plus a CSRF token on state-changing requests. I'd default to the cookie, because CSRF has a well-understood fix and XSS-reading-localStorage doesn't. The pattern I'd actually reach for is a short-lived access token held in memory only, with a long-lived refresh token in an <code>HttpOnly</code> cookie scoped to the refresh endpoint. And I'd be clear that if you have XSS, the attacker can make authenticated requests from the page regardless — so the real control is preventing XSS with a CSP and proper escaping. Storage choice is defence in depth."</p>
+  <div class="why"><strong>Why this lands:</strong> you name both threats and both mitigations, commit to a recommendation instead of hedging, and then acknowledge its limit. Interviewers are specifically listening for candidates who claim <code>HttpOnly</code> "solves XSS" — declining that trap is the highest-value moment in the answer.</div>
+</div>
+
+<h2 id="storage-interview">17. Interview layer: storage</h2>
+
+<div class="box iv">
+  <span class="t">How this gets asked</span>
+  <p>"Difference between localStorage, sessionStorage and cookies?" · "Where would you store a JWT?" · "Is localStorage secure?" · "How do you share state between tabs?" · "What happens to localStorage in incognito?" · "When would you use IndexedDB?"</p>
+  <p>The first is pure recall — get it out fast and structured, don't ramble. The JWT one is the depth question, and it's really a security question wearing a storage costume.</p>
+</div>
+
+<div class="say">
+  <span class="t">Say something like this (the comparison)</span>
+  <p>"They differ on lifetime, scope, and whether they touch the network. localStorage is per-origin, persists until you clear it, is shared across all tabs, and is never sent to the server. sessionStorage is the same API but scoped to a single tab and wiped when that tab closes. Cookies are much smaller, around 4KB, but they're attached automatically to every request to the domain — that's their whole purpose, server state — and they're scoped by domain and path rather than origin, so they're shared across subdomains. The security difference that matters is that only cookies can be made <code>HttpOnly</code>, which hides them from JavaScript. And both Web Storage APIs are synchronous and block the main thread, so for anything large or structured I'd use IndexedDB."</p>
+  <div class="why"><strong>Why this lands:</strong> you organise by axes instead of reciting three unrelated paragraphs, and you volunteer <code>HttpOnly</code>, the synchronous cost, and IndexedDB — three things that show you've hit these in production rather than in a blog post.</div>
+</div>
+
+<h4>Follow-ups</h4>
+
+<details>
+<summary>"Is localStorage secure?"</summary>
+<p>No, and it's important to be precise about what that means. It's not encrypted, it's plain text on disk, and — the part that actually matters — any JavaScript running on the origin can read all of it. That includes every third-party script and every transitive npm dependency you've shipped. So it's fine for a theme preference or a draft, and wrong for anything sensitive: tokens, personal data, anything you'd mind seeing exfiltrated by one compromised package. It <em>is</em> protected by the same-origin policy, so another site can't read it — but that's a much weaker guarantee than people assume it to be.</p>
+</details>
+
+<details>
+<summary>"Why not just put everything in localStorage? It's simpler."</summary>
+<p>Three reasons. It's synchronous and disk-backed, so every read and write blocks the main thread — fine for a few small keys, a jank source for anything big or frequent. It's strings only, so you're paying <code>JSON.parse</code> and <code>stringify</code> on every access and losing types like Date. And there's a hard ~5MB ceiling per origin, where exceeding it throws rather than degrading. It's also unavailable in web workers. Once your data is more than a handful of small values, IndexedDB gives you async access, structured data, and far more room.</p>
+</details>
+
+<details>
+<summary>"What happens to localStorage across tabs, and how would you sync them?"</summary>
+<p>All tabs on the same origin share one store, so a write in one tab is immediately visible to the others — but they won't know unless you tell them. The <code>storage</code> event fires in every <em>other</em> tab on the origin when a key changes, deliberately not in the tab that made the change. That's the classic mechanism for syncing logout: clear the token, and the other tabs see the event and redirect. For richer cross-tab messaging I'd use <code>BroadcastChannel</code>, which is purpose-built and doesn't abuse storage as a message bus. sessionStorage doesn't participate at all, since each tab has its own.</p>
+</details>
+
+<details>
+<summary>"What about incognito mode?"</summary>
+<p>localStorage still works, but it's a separate empty store from the normal session and it's destroyed when the last private window closes — so it effectively behaves like sessionStorage with a longer life. Quotas can be smaller, and some privacy configurations make <code>setItem</code> throw immediately. That's the real lesson: storage writes can throw — from quota, from private modes, from users blocking site data — so I always wrap them in try/catch and degrade gracefully rather than letting an exception take out a render.</p>
+</details>
+
+<details>
+<summary>"Can app.example.com and shop.example.com share localStorage?"</summary>
+<p>No. localStorage is keyed by full origin — scheme, host, and port — and there's no way to widen that. Cookies can, because they use a <code>Domain</code> attribute: set <code>Domain=example.com</code> and the cookie goes to every subdomain, which is how cross-subdomain SSO works. If you need shared client-side state across subdomains without cookies, the options are keeping it server-side, or a hidden iframe on a shared origin with <code>postMessage</code> — and that second one is increasingly unreliable as browsers partition third-party storage. Worth noting the flip side: cookie sharing across subdomains means a compromised subdomain can affect the others.</p>
+</details>
+
+<details>
+<summary>"When does a cookie beat localStorage, apart from auth?"</summary>
+<p>Whenever the server needs the value <em>on the very first request</em>. Classic cases are theme or locale for server-rendered pages: if the preference lives in localStorage, the server renders the default and JavaScript corrects it after hydration, which is a visible flash. A cookie arrives with the initial HTML request, so the server can render the right thing immediately. Same logic for A/B test buckets and feature flags that affect the initial HTML. The cost is that every byte rides along on every request, so keep it tiny.</p>
+</details>
+
+<div class="box trap">
+  <span class="t">Traps</span>
+  <p><strong>"Cookies are less secure than localStorage."</strong> Backwards, and it gets flagged instantly. Cookies are the only one of the three that can be hidden from JavaScript via <code>HttpOnly</code>.</p>
+  <p><strong>"HttpOnly protects against XSS."</strong> It protects against token <em>theft</em> via XSS. It does not stop an injected script from making authenticated requests from the page. Say the precise version.</p>
+  <p><strong>"localStorage is 5MB."</strong> It's approximately 5–10MB and varies by browser, and it's per origin. Say "around 5 megabytes, browser-dependent" — false precision on a number you can't be sure of is a worse look than a range.</p>
+  <p><strong>Forgetting it's strings only.</strong> <code>localStorage.setItem('user', user)</code> stores the literal string <code>"[object Object]"</code>. It's a real bug people ship, and mentioning it shows hands-on experience.</p>
+</div>
+
+<h2 id="cheatsheet">18. Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're in good shape.</p>
+
+<div class="cheat">
+<dl>
+  <dt>Why modules exist</dt>
+  <dd>Script tags share one global scope, so files silently overwrite each other's variables and load order becomes load-bearing. IIFEs gave privacy; CommonJS and AMD added explicit dependencies; ESM put it in the language.</dd>
+
+  <dt>ESM vs CommonJS, in one line</dt>
+  <dd>ESM is static — resolved at parse time, imports are live read-only bindings. CommonJS is dynamic — <code>require()</code> is a runtime function call returning a snapshot object.</dd>
+
+  <dt>Live binding</dt>
+  <dd>An ESM import is a window onto the exporter's variable, so reassignments are visible to importers. A CJS <code>require</code> copies the value at require time and goes stale.</dd>
+
+  <dt>Why CommonJS can't tree shake</dt>
+  <dd>Because you'd have to run the program to know which exports are used — <code>require</code> can be conditional or computed, and <code>module.exports</code> is a mutable object indexable by a runtime string.</dd>
+
+  <dt>Dynamic <code>import()</code></dt>
+  <dd>A function call returning a promise for the module namespace object. It's the escape hatch from staticness, and it's what bundlers turn into separate chunks — i.e. code splitting.</dd>
+
+  <dt>Circular deps</dt>
+  <dd>CJS gives you a half-built exports object and silent <code>undefined</code>. ESM hoists bindings, so functions work but touching an uninitialised <code>const</code> throws a TDZ ReferenceError. Fix by extracting a third module.</dd>
+
+  <dt>Node interop</dt>
+  <dd><code>"type": "module"</code> switches <code>.js</code> to ESM; <code>.mjs</code>/<code>.cjs</code> force it either way. ESM needs full file extensions and has no <code>__dirname</code>. Dual packages risk loading two copies with two sets of state.</dd>
+
+  <dt>Garbage collection</dt>
+  <dd>Mark-and-sweep from roots (globals, call stack + closures, pending timers, attached DOM). Reachable = kept. Not reference counting — so cycles are collected fine.</dd>
+
+  <dt>What a leak actually is</dt>
+  <dd>Something long-lived still holds a reference to something you're done with. Four sources: uncleared timers, detached DOM still referenced, listeners on long-lived targets, unbounded caches/closures.</dd>
+
+  <dt>Finding a leak</dt>
+  <dd>Confirm a rising baseline in the heap timeline, find a repro loop, take three heap snapshots and compare deltas, filter for <code>Detached</code>, then read the Retainers pane for the reference chain back to a root.</dd>
+
+  <dt>React cleanup</dt>
+  <dd>If an effect starts something that outlives the render, return a function that stops it. Cleanup runs before every re-run, not just on unmount. <code>setState</code> after unmount isn't the leak — the un-aborted work is.</dd>
+
+  <dt>WeakMap vs Map</dt>
+  <dd>Map keys are strong and block collection; WeakMap keys are weak, so entries vanish when the key object is collected. Keys must be objects. Not iterable and no <code>.size</code>, because exposing contents would leak GC timing into your program.</dd>
+
+  <dt>Storage in one line each</dt>
+  <dd>localStorage: per origin, forever, all tabs, never sent. sessionStorage: per tab, dies with the tab. Cookies: ~4KB, auto-sent on every request, scoped by domain+path so shared with subdomains, and the only one that can be <code>HttpOnly</code>.</dd>
+
+  <dt>Auth token</dt>
+  <dd>localStorage → XSS steals it permanently. <code>HttpOnly</code> cookie → safe from reading, exposed to CSRF, fixed with <code>SameSite</code> + CSRF token. Prefer the cookie; best is a short-lived in-memory access token plus an <code>HttpOnly</code> refresh cookie; and remember XSS beats both, so the real control is CSP and escaping.</dd>
+
+  <dt>Is localStorage secure?</dt>
+  <dd>No — plain text, readable by any script on the origin including every dependency. Same-origin policy protects it from other sites, and nothing else.</dd>
+
+  <dt>Edge cases</dt>
+  <dd>Incognito: works, separate store, wiped when the last private window closes. Tabs: shared, and the <code>storage</code> event fires in the other tabs. Subdomains: not shared (use a <code>Domain</code> cookie). Always try/catch your writes.</dd>
+</dl>
+</div>
+
+<hr>
+
+<p>One last thought to tie the three topics together, because they really are the same question at three timescales. Modules ask <em>where does this code live and who can see it</em>. Garbage collection asks <em>who is still holding this object</em>. Storage asks <em>what survives when the page goes away</em>. In all three, the bugs come from the same place: something is being held onto longer, or seen more widely, than you intended.</p>
+
+<p>If you find yourself stuck on a question in any of these areas, fall back to that. Ask out loud: <em>what's holding a reference to this, and for how long?</em> It's a genuinely good question, and thinking through it in front of an interviewer looks a lot better than a memorised definition. 🙂</p>
+
+</div>
+</body>
+</html>

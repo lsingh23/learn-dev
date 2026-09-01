@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Types, Coercion, Equality &amp; Copying — a frontend interview guide</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --surface: #ffffff;
+    --text: #22201d;
+    --muted: #6b6560;
+    --rule: #e6e1da;
+    --accent: #b4531a;
+    --accent-soft: #fdf3ec;
+    --code-bg: #2b2a28;
+    --code-text: #f2ece4;
+    --code-comment: #9a9288;
+    --good: #1d7a4c;
+    --good-bg: #edf8f1;
+    --bad: #b02a2a;
+    --bad-bg: #fdeeee;
+    --info: #2b5fa8;
+    --info-bg: #eef3fb;
+    --purple: #6b4aa8;
+    --purple-bg: #f3effa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161514;
+      --surface: #1e1d1b;
+      --text: #e9e4dd;
+      --muted: #a29a91;
+      --rule: #34322f;
+      --accent: #e0873f;
+      --accent-soft: #2a221b;
+      --code-bg: #0f0f0e;
+      --code-text: #e9e4dd;
+      --code-comment: #7d766d;
+      --good: #6fd39b;
+      --good-bg: #16261d;
+      --bad: #f08a8a;
+      --bad-bg: #2a1a1a;
+      --info: #86b4f0;
+      --info-bg: #17202e;
+      --purple: #b9a1ea;
+      --purple-bg: #211c2e;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 6rem;
+  }
+
+  h1 {
+    font-size: 2.3rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0 0 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.7rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.5rem 0 0.25rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+    margin: 2.5rem 0 0.5rem;
+  }
+
+  h4 {
+    font-size: 1.05rem;
+    margin: 1.75rem 0 0.4rem;
+  }
+
+  p { margin: 1rem 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+  }
+
+  p code, li code, td code, h2 code, h3 code, h4 code, .callout code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1rem 1.1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 1.1rem 0;
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: 0.85rem;
+    white-space: pre;
+  }
+
+  pre .c { color: var(--code-comment); font-style: italic; }
+  pre .hl { color: #ffd479; }
+
+  .codeblock { margin: 1.4rem 0; }
+  .codeblock pre { margin: 0; border-radius: 0 0 8px 8px; }
+
+  .codelabel {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.4rem 1.1rem;
+    border-radius: 8px 8px 0 0;
+  }
+  .codelabel.bad { background: var(--bad-bg); color: var(--bad); }
+  .codelabel.good { background: var(--good-bg); color: var(--good); }
+
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.75rem 0;
+    border-left: 4px solid;
+    font-size: 0.97rem;
+  }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+  }
+
+  .callout.wait { background: var(--info-bg); border-color: var(--info); }
+  .callout.wait .label { color: var(--info); }
+
+  .callout.myth { background: var(--bad-bg); border-color: var(--bad); }
+  .callout.myth .label { color: var(--bad); }
+
+  .callout.hood { background: var(--purple-bg); border-color: var(--purple); }
+  .callout.hood .label { color: var(--purple); }
+
+  .callout.iv { background: var(--accent-soft); border-color: var(--accent); }
+  .callout.iv .label { color: var(--accent); }
+
+  .answer {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+  }
+  .answer .label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--good);
+    margin-bottom: 0.35rem;
+  }
+  .answer .say { font-style: italic; }
+  .answer .why {
+    margin-top: 0.75rem;
+    font-size: 0.92rem;
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5rem 0;
+    font-size: 0.93rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .tablewrap { overflow-x: auto; }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1.1rem 1.4rem;
+    font-size: 0.95rem;
+  }
+  .toc h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+    padding: 0;
+    border: none;
+  }
+  .toc ol { margin: 0; padding-left: 1.3rem; }
+  .toc li { margin: 0.25rem 0; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  details {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 0.75rem 1.1rem;
+    margin: 1.25rem 0;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 0.5rem; }
+
+  figure { margin: 2rem 0; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+  .cheat td:first-child { white-space: nowrap; font-weight: 600; }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 2.5rem 0;
+  }
+
+  .big-q {
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin: 2rem 0 0.5rem;
+  }
+  .big-q::before {
+    content: "Q ";
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Types, Coercion, Equality &amp; Copying</h1>
+<p class="subtitle">Why <code>[1,2,3] === [1,2,3]</code> is <code>false</code>, why <code>[] == false</code> is <code>true</code>, and why React keeps telling you not to mutate things.</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#foundation">The foundation: primitives and objects</a></li>
+    <li><a href="#references">Values vs. references (the big one)</a></li>
+    <li><a href="#triple">What <code>===</code> actually does</a></li>
+    <li><a href="#double">What <code>==</code> actually does</a></li>
+    <li><a href="#toprimitive">ToPrimitive: where the weirdness comes from</a></li>
+    <li><a href="#truthy">Truthiness and the falsy list</a></li>
+    <li><a href="#nullundef"><code>null</code> vs <code>undefined</code></a></li>
+    <li><a href="#nullish"><code>??</code> vs <code>||</code></a></li>
+    <li><a href="#copying">Copying: shallow vs. deep</a></li>
+    <li><a href="#freeze"><code>Object.freeze</code> and real immutability</a></li>
+    <li><a href="#react">Why React cares so much</a></li>
+    <li><a href="#compare">Comparing two objects</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<p>Let me start with four lines of JavaScript. Look at them and, before you scroll, decide what each one prints. No cheating — actually commit to an answer in your head.</p>
+
+<div class="codeblock">
+<pre><code>console.log([1, 2, 3] === [1, 2, 3]);
+console.log([] == false);
+console.log(null == undefined);
+console.log(null == 0);</code></pre>
+</div>
+
+<details>
+<summary>Show me the answers</summary>
+<pre><code>false   <span class="c">// two different arrays, even though they look identical</span>
+true    <span class="c">// ...what?</span>
+true    <span class="c">// fine, they're both "empty", sure</span>
+false   <span class="c">// wait, but null is falsy and 0 is falsy?!</span></code></pre>
+<p>If those last three feel arbitrary and mean-spirited: same. But they're not arbitrary. By the end of this guide every one of them will feel <em>inevitable</em>.</p>
+</details>
+
+<p>Here's my promise: I'm not going to hand you a table of "weird JavaScript facts" to memorize. Memorized tables fall out of your head under interview pressure. Instead we're going to build one small mental model — really just two ideas — and then all of this stuff derives from it.</p>
+
+<p>And the payoff is bigger than trivia. The second half of this guide is about copying objects, and it turns out copying objects and comparing objects are <em>the same topic wearing two hats</em>. Once you see that, a huge amount of React — why you spread state instead of pushing into it, why your <code>useEffect</code> fires every render, why <code>React.memo</code> did nothing — stops being folklore and becomes obvious.</p>
+
+<h2 id="foundation">1. The foundation: primitives and objects</h2>
+
+<p>Everything in JavaScript is one of two kinds of thing. Not "sort of two kinds" — genuinely two, and the line between them is the single most important line in the language.</p>
+
+<p>On one side you have <strong>primitives</strong>. These are the simple, atomic values. There are seven of them:</p>
+
+<div class="tablewrap">
+<table>
+  <tr><th>Type</th><th>Example</th><th>What it's for</th></tr>
+  <tr><td><code>string</code></td><td><code>'hello'</code></td><td>Text</td></tr>
+  <tr><td><code>number</code></td><td><code>42</code>, <code>3.14</code>, <code>NaN</code>, <code>Infinity</code></td><td>All numbers — no separate int/float</td></tr>
+  <tr><td><code>boolean</code></td><td><code>true</code>, <code>false</code></td><td>Yes/no</td></tr>
+  <tr><td><code>undefined</code></td><td><code>undefined</code></td><td>"No value has been assigned here"</td></tr>
+  <tr><td><code>null</code></td><td><code>null</code></td><td>"Deliberately nothing"</td></tr>
+  <tr><td><code>symbol</code></td><td><code>Symbol('id')</code></td><td>Unique keys that can't collide</td></tr>
+  <tr><td><code>bigint</code></td><td><code>9007199254740993n</code></td><td>Integers too big for <code>number</code></td></tr>
+</table>
+</div>
+
+<p>You'll hear people say "seven-ish" because <code>symbol</code> and <code>bigint</code> are newer and rarely come up in day-to-day app code. For interviews, know that they exist and that they're primitives; nobody's going to grill you on <code>bigint</code>.</p>
+
+<p>On the other side you have <strong>objects</strong>. And "object" here is a much bigger tent than you might expect. Plain objects are objects, obviously — but so are arrays, functions, dates, regular expressions, <code>Map</code>, <code>Set</code>, class instances, DOM nodes. If it isn't in that table of seven, it's an object.</p>
+
+<div class="codeblock">
+<pre><code>typeof 'hello'        <span class="c">// → 'string'</span>
+typeof 42             <span class="c">// → 'number'</span>
+typeof true           <span class="c">// → 'boolean'</span>
+typeof undefined      <span class="c">// → 'undefined'</span>
+
+typeof { a: 1 }       <span class="c">// → 'object'</span>
+typeof [1, 2, 3]      <span class="c">// → 'object'   👈 arrays are objects</span>
+typeof new Date()     <span class="c">// → 'object'</span>
+typeof function () {} <span class="c">// → 'function' 👈 the one special case</span></code></pre>
+</div>
+
+<p>Functions <em>are</em> objects — you can put properties on them, they're passed around by reference like objects — but <code>typeof</code> gives them their own label as a convenience, because "is this callable?" is a question people ask a lot.</p>
+
+<p>And then there's the famous one:</p>
+
+<div class="codeblock">
+<pre><code>typeof null           <span class="c">// → 'object'   👈 this is a bug. an old, permanent one.</span></code></pre>
+</div>
+
+<p>We'll come back to <em>why</em> in <a href="#nullundef">section 7</a>, because the reason is a genuinely fun piece of history and it comes up in interviews constantly. For now: <code>null</code> is a primitive, <code>typeof</code> lies about it, and that's that.</p>
+
+<h3>What actually separates the two groups?</h3>
+
+<p>Two things, and they're connected.</p>
+
+<p><strong>First: primitives are immutable.</strong> Not "you shouldn't change them" — you <em>cannot</em>. There is no operation in JavaScript that modifies the number <code>5</code> or the string <code>'hello'</code>. String methods look like they mutate, but they don't:</p>
+
+<div class="codeblock">
+<pre><code>const greeting = 'hello';
+greeting.toUpperCase();   <span class="c">// → 'HELLO'  (a brand new string)</span>
+console.log(greeting);    <span class="c">// → 'hello'  (the original, untouched)</span></code></pre>
+</div>
+
+<p>Objects, by contrast, are mutable. You can add, change, and delete their properties all day long, and it's still the same object.</p>
+
+<p><strong>Second — and this is the one that matters — is how they're stored and passed around.</strong> That deserves its own section.</p>
+
+<h2 id="references">2. Values vs. references</h2>
+
+<p>Here's the mental model. I want you to actually picture this, because everything downstream depends on it.</p>
+
+<p>Imagine your program has two storage areas.</p>
+
+<p>The first is a wall of <strong>labelled boxes</strong> — one box per variable. The box is small. It fits a number, a boolean, a short piece of text. When you write <code>const age = 30</code>, the value <code>30</code> is physically written inside the box labelled <code>age</code>.</p>
+
+<p>The second area is a big warehouse floor where you keep things too big for a box: objects, arrays, functions. When you create an object, it gets put down somewhere on the warehouse floor and given an address — like <code>#8891</code>. And then what goes in the little labelled box isn't the object. It's a <strong>sticky note with the address written on it</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Diagram showing variables holding primitive values directly, and object variables holding addresses that point into a heap">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b4531a"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="26" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#6b6560">THE BOXES (variables)</text>
+  <text x="420" y="26" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#6b6560">THE WAREHOUSE (objects)</text>
+
+  <rect x="20" y="42" width="250" height="230" rx="8" fill="none" stroke="#e6e1da" stroke-width="2"/>
+  <rect x="400" y="42" width="280" height="230" rx="8" fill="none" stroke="#e6e1da" stroke-width="2"/>
+
+  <!-- primitive boxes -->
+  <rect x="40" y="62" width="210" height="42" rx="5" fill="#fdf3ec" stroke="#b4531a" stroke-width="1.5"/>
+  <text x="52" y="88" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">age</text>
+  <line x1="130" y1="62" x2="130" y2="104" stroke="#b4531a" stroke-width="1.5"/>
+  <text x="145" y="88" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">30</text>
+
+  <rect x="40" y="116" width="210" height="42" rx="5" fill="#fdf3ec" stroke="#b4531a" stroke-width="1.5"/>
+  <text x="52" y="142" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">name</text>
+  <line x1="130" y1="116" x2="130" y2="158" stroke="#b4531a" stroke-width="1.5"/>
+  <text x="145" y="142" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">'Ada'</text>
+
+  <!-- reference boxes -->
+  <rect x="40" y="182" width="210" height="42" rx="5" fill="#eef3fb" stroke="#2b5fa8" stroke-width="1.5"/>
+  <text x="52" y="208" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">user</text>
+  <line x1="130" y1="182" x2="130" y2="224" stroke="#2b5fa8" stroke-width="1.5"/>
+  <text x="145" y="208" font-family="ui-monospace, monospace" font-size="13" fill="#2b5fa8">→ #8891</text>
+
+  <rect x="40" y="236" width="210" height="42" rx="5" fill="#eef3fb" stroke="#2b5fa8" stroke-width="1.5"/>
+  <text x="52" y="262" font-family="ui-monospace, monospace" font-size="14" fill="#22201d">admin</text>
+  <line x1="130" y1="236" x2="130" y2="278" stroke="#2b5fa8" stroke-width="1.5"/>
+  <text x="145" y="262" font-family="ui-monospace, monospace" font-size="13" fill="#2b5fa8">→ #8891</text>
+
+  <!-- heap object -->
+  <rect x="440" y="150" width="210" height="80" rx="6" fill="#ffffff" stroke="#2b5fa8" stroke-width="2"/>
+  <text x="455" y="146" font-family="ui-monospace, monospace" font-size="12" fill="#2b5fa8">#8891</text>
+  <text x="458" y="178" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">{ name: 'Ada',</text>
+  <text x="458" y="204" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">&#160;&#160;role: 'admin' }</text>
+
+  <path d="M255 203 C 340 203, 350 190, 435 190" stroke="#b4531a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M255 257 C 340 257, 350 200, 435 194" stroke="#b4531a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>Two variables. One object. <code>user</code> and <code>admin</code> hold the same address.</figcaption>
+</figure>
+
+<p>You'll hear these two areas called <strong>the stack</strong> and <strong>the heap</strong>. That's the real terminology, and it's roughly accurate — though real JS engines are cleverer than this (they do things like storing small integers inline and interning strings). The analogy breaks down if you push it into performance territory. But as a model of <em>behaviour</em>, it's exactly right, and behaviour is what we care about.</p>
+
+<h3>Assignment copies the box, not the warehouse</h3>
+
+<p>Here's the rule that falls out of the picture. When you write <code>b = a</code>, JavaScript copies <em>what's in the box</em>. Always. No exceptions.</p>
+
+<p>For a primitive, what's in the box is the value itself, so you get a real, independent copy:</p>
+
+<div class="codeblock">
+<pre><code>let score = 10;
+let highScore = score;   <span class="c">// copies the value 10</span>
+
+score = 99;
+console.log(highScore);  <span class="c">// → 10   ✅ unaffected</span></code></pre>
+</div>
+
+<p>For an object, what's in the box is an <em>address</em>. So you copy the address. Both variables now hold sticky notes pointing at the same spot on the warehouse floor:</p>
+
+<div class="codeblock">
+<pre><code>const user = { name: 'Ada', role: 'admin' };
+const admin = user;      <span class="c">// copies the address, NOT the object</span>
+
+admin.role = 'superadmin';
+console.log(user.role);  <span class="c">// → 'superadmin'  😬</span></code></pre>
+</div>
+
+<p>Nothing was copied here except a scrap of paper with an address on it. There is still exactly one object in the whole program.</p>
+
+<div class="callout myth">
+  <span class="label">A common misconception</span>
+  <p>"JavaScript passes primitives by value and objects by reference."</p>
+  <p>This is the phrasing everyone uses, and it's close enough that you'll be understood — but the precise version is better and interviewers notice it: <strong>JavaScript is always pass-by-value. It's just that the value of an object variable <em>is</em> a reference.</strong></p>
+  <p>Why does the distinction matter? Because true pass-by-reference would let a function reassign the caller's variable, and JS can't do that:</p>
+  <pre><code>function replace(obj) {
+  obj = { name: 'Grace' };   <span class="c">// reassigns the local sticky note only</span>
+}
+const person = { name: 'Ada' };
+replace(person);
+console.log(person.name);    <span class="c">// → 'Ada'  (unchanged!)</span>
+
+function rename(obj) {
+  obj.name = 'Grace';        <span class="c">// follows the address, edits the warehouse</span>
+}
+rename(person);
+console.log(person.name);    <span class="c">// → 'Grace'</span></code></pre>
+  <p>Mutating through the reference reaches the caller. Reassigning the parameter doesn't. That's exactly what "pass-by-value, where the value is a reference" predicts. Some people call this <em>call-by-sharing</em>.</p>
+</div>
+
+<h3>And now: <code>[1,2,3] === [1,2,3]</code></h3>
+
+<p>We have everything we need. Let's go back to the very first line.</p>
+
+<div class="codeblock">
+<pre><code>[1, 2, 3] === [1, 2, 3]   <span class="c">// → false</span></code></pre>
+</div>
+
+<p>Two array literals appear in that line, which means JavaScript builds <strong>two separate arrays</strong> — two distinct places on the warehouse floor, at two distinct addresses. Say <code>#4400</code> and <code>#4401</code>.</p>
+
+<p>Then <code>===</code> compares them. And for objects, <code>===</code> doesn't look at the contents at all. It compares the addresses. <code>#4400</code> is not <code>#4401</code>. Therefore: <code>false</code>.</p>
+
+<p>The analogy I like: two identical twins. Same DNA, same haircut, same clothes. Ask "are these the same person?" and the answer is no — there are two of them. <code>===</code> on objects asks "same person?", never "same appearance?".</p>
+
+<div class="codeblock">
+<pre><code>const a = [1, 2, 3];
+const b = [1, 2, 3];
+const c = a;
+
+a === b   <span class="c">// → false   two arrays, two addresses</span>
+a === c   <span class="c">// → true    one array, one address, two labels</span>
+
+<span class="c">// contrast with primitives:</span>
+'abc' === 'abc'   <span class="c">// → true    the value IS the content</span>
+5 === 5           <span class="c">// → true</span></code></pre>
+</div>
+
+<p>This is worth sitting with for a second, because it is <em>the</em> load-bearing fact for the rest of this guide. There is no such thing as "two objects that are equal" in JavaScript's built-in comparison. There's only "the same object" or "not the same object."</p>
+
+<div class="callout wait">
+  <span class="label">Wait, what about…</span>
+  <p><strong>"So how do I check whether two objects have the same contents?"</strong> You write that yourself, or you use a library. We'll build it in <a href="#compare">section 12</a>. The fact that JS gives you no built-in for it surprises everyone at first, and it's a great interview question.</p>
+</div>
+
+<h2 id="triple">3. What <code>===</code> actually does</h2>
+
+<p><code>===</code> is called <strong>strict equality</strong>, and its algorithm is refreshingly short. Two steps:</p>
+
+<ol>
+  <li>If the two operands have different types → <code>false</code>. Done. No conversions, no negotiation.</li>
+  <li>Same type? Compare them:
+    <ul>
+      <li>Objects: same address?</li>
+      <li>Primitives: same value?</li>
+    </ul>
+  </li>
+</ol>
+
+<p>That's it. Which is why <code>'5' === 5</code> is <code>false</code> — string and number, different types, stop.</p>
+
+<p>There is exactly one wrinkle, and it's <code>NaN</code>.</p>
+
+<div class="codeblock">
+<pre><code>NaN === NaN   <span class="c">// → false</span>
+NaN !== NaN   <span class="c">// → true    the only value not equal to itself</span></code></pre>
+</div>
+
+<p><code>NaN</code> means "Not a Number" and it's what you get from a numeric operation that has no sensible numeric answer: <code>0/0</code>, <code>Math.sqrt(-1)</code>, <code>parseInt('hello')</code>, <code>undefined + 1</code>.</p>
+
+<p>The reason it isn't equal to itself: <code>NaN</code> isn't a value so much as an <em>error marker</em>. Think of it like a "RETURNED TO SENDER" stamp on an envelope. Two envelopes both stamped "returned to sender" didn't fail for the same reason and aren't the same letter. Asking whether they're equal is asking a question that has no meaningful answer, so IEEE-754 (the floating point standard JS numbers follow, which predates JS by a decade) says: just answer <code>false</code> to everything.</p>
+
+<p>Practically, this means you can never test for <code>NaN</code> with equality. Use <code>Number.isNaN()</code>:</p>
+
+<div class="codeblock">
+<pre><code>const price = Number('not a price');   <span class="c">// → NaN</span>
+
+price === NaN            <span class="c">// → false  ❌ always false, useless</span>
+Number.isNaN(price)      <span class="c">// → true   ✅</span>
+Object.is(price, NaN)    <span class="c">// → true   ✅ also works</span></code></pre>
+</div>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p><code>Object.is()</code> is "<code>===</code> with the two historical warts fixed": it says <code>NaN</code> equals <code>NaN</code>, and it says <code>0</code> does <em>not</em> equal <code>-0</code> (whereas <code>0 === -0</code> is <code>true</code>). You will almost never write it directly — but React uses it internally to decide whether state actually changed, which is why it's worth recognizing. And the old <code>isNaN()</code> global is a trap: it coerces first, so <code>isNaN('hello')</code> is <code>true</code> even though a string isn't <code>NaN</code>. Always the <code>Number.</code> one.</p>
+</div>
+
+<h2 id="double">4. What <code>==</code> actually does</h2>
+
+<p><code>==</code> is <strong>loose equality</strong>, or in the spec, <em>abstract</em> equality. And here's the thing people get wrong about it: <code>==</code> is not random. It's not "JavaScript guesses." It follows a completely deterministic procedure. It's just that the procedure was designed in 1995 in about ten days with the goal of being forgiving to beginners, and forgiving turned out to mean unpredictable.</p>
+
+<p>The one-sentence version: <strong><code>==</code> tries to make the two sides the same type, then compares.</strong></p>
+
+<p>The useful version — the one you can actually reason with — is five rules, applied in order. If the types already match, <code>==</code> behaves exactly like <code>===</code> and we're done. So all of these are about what happens when the types <em>differ</em>:</p>
+
+<div class="tablewrap">
+<table>
+  <tr><th>#</th><th>Situation</th><th>What happens</th></tr>
+  <tr><td>1</td><td><code>null</code> vs <code>undefined</code></td><td><strong><code>true</code></strong>. Special-cased. They equal each other and nothing else.</td></tr>
+  <tr><td>2</td><td>number vs string</td><td>The string becomes a number.</td></tr>
+  <tr><td>3</td><td>boolean on either side</td><td>The boolean becomes a number first (<code>true</code>→<code>1</code>, <code>false</code>→<code>0</code>), then start over.</td></tr>
+  <tr><td>4</td><td>object vs primitive</td><td>The object becomes a primitive (see next section), then start over.</td></tr>
+  <tr><td>5</td><td>anything else</td><td><code>false</code>.</td></tr>
+</table>
+</div>
+
+<p>Notice rules 3 and 4 say "then start over." <code>==</code> is a loop. It keeps simplifying until both sides are the same type, then does a direct comparison. Let's run the notorious cases through it.</p>
+
+<h3>Case 1: <code>null == undefined</code> is <code>true</code>, but <code>null == 0</code> is <code>false</code></h3>
+
+<p>This one trips people because they reason "both are falsy, so they should be loosely equal." But falsiness is a <em>different system</em> — it's about how values behave in an <code>if</code>. It has nothing to do with <code>==</code>.</p>
+
+<p><code>null == undefined</code> hits rule 1. It's hardcoded. The language designers decided the two "absence" values should be interchangeable when you're loosely checking for absence, which — honestly — is the one genuinely good decision in the whole <code>==</code> design.</p>
+
+<p><code>null == 0</code> also hits rule 1's clause, which says <code>null</code> is loosely equal to <code>undefined</code> <strong>and to nothing else</strong>. There is no rule that converts <code>null</code> to a number in the <code>==</code> algorithm. So we fall through to rule 5: <code>false</code>.</p>
+
+<div class="codeblock">
+<pre><code>null == undefined   <span class="c">// → true   (rule 1)</span>
+null == 0           <span class="c">// → false  (no rule applies → false)</span>
+null == false       <span class="c">// → false  (nope)</span>
+null == ''          <span class="c">// → false  (nope)</span>
+undefined == 0      <span class="c">// → false  (same deal)</span>
+
+<span class="c">// but, infuriatingly:</span>
+null &gt;= 0           <span class="c">// → true   👈 relational operators DO convert null to 0</span></code></pre>
+</div>
+
+<p>That last line is the punchline that shows <code>==</code> isn't just "convert and compare" — it has its own special rules that <code>&gt;=</code> doesn't share. Nobody expects you to know this in an interview; I include it because it's the cleanest proof that <code>==</code> is a hand-written list of cases rather than a principled system.</p>
+
+<h3>Case 2: <code>'' == 0</code> is <code>true</code></h3>
+
+<p>Rule 2: string vs number, so the string converts to a number. And the empty string converts to <code>0</code>. (Why? Because <code>Number('')</code> is <code>0</code> — the spec says an empty or whitespace-only string numifies to zero.) So we end up with <code>0 == 0</code> → <code>true</code>.</p>
+
+<div class="codeblock">
+<pre><code>'' == 0        <span class="c">// → true    Number('') is 0</span>
+'  ' == 0      <span class="c">// → true    whitespace-only also numifies to 0</span>
+'0' == 0       <span class="c">// → true</span>
+'1' == true    <span class="c">// → true    true→1, then '1'→1</span>
+'abc' == 0     <span class="c">// → false   Number('abc') is NaN, and NaN equals nothing</span></code></pre>
+</div>
+
+<h3>Case 3: <code>[] == false</code> is <code>true</code></h3>
+
+<p>This is the famous one, and it's a three-step chain. Watch it unfold:</p>
+
+<div class="codeblock">
+<pre><code><span class="c">// start:</span>       [] == false
+<span class="c">// rule 3:</span>      [] == 0          <span class="c">// boolean → number</span>
+<span class="c">// rule 4:</span>      '' == 0          <span class="c">// object → primitive: [] stringifies to ''</span>
+<span class="c">// rule 2:</span>       0 == 0          <span class="c">// string → number</span>
+<span class="c">// result:</span>     true</code></pre>
+</div>
+
+<p>Every individual step is defensible. The composition is madness. This is the single best argument against ever using <code>==</code>: not that any one rule is crazy, but that they <em>chain</em>, and no human tracks three coercions in their head while reading a pull request.</p>
+
+<p>The step that probably needs explaining is rule 4 — how does <code>[]</code> become <code>''</code>? That's <code>ToPrimitive</code>, and it deserves its own section.</p>
+
+<h2 id="toprimitive">5. ToPrimitive: where the weirdness comes from</h2>
+
+<p>Objects can't be compared to numbers or strings directly, so whenever JavaScript needs a primitive and you've handed it an object, it runs an internal procedure called <strong>ToPrimitive</strong>. It's not magic — it's a phone call.</p>
+
+<p>Picture it like this: JavaScript rings up the object and says <em>"I need you as a simple value. What have you got?"</em> The object has two people who can answer that phone: <code>valueOf()</code> and <code>toString()</code>. Every object inherits both.</p>
+
+<p>Which one JS calls first depends on what it's hoping for — the spec calls this the <em>hint</em>:</p>
+
+<ul>
+  <li><strong>Hint "number"</strong> (arithmetic, <code>==</code> against a number, <code>&lt;</code>): try <code>valueOf()</code> first. If it returns a primitive, use it. Otherwise fall back to <code>toString()</code>.</li>
+  <li><strong>Hint "string"</strong> (template literals, using the object as a property key): try <code>toString()</code> first, then <code>valueOf()</code>.</li>
+  <li><strong>Hint "default"</strong> (the <code>+</code> operator, <code>==</code> generally): behaves like "number" for almost everything. Dates are the exception — they prefer string.</li>
+</ul>
+
+<p>Now, the key fact: <strong>for plain objects and arrays, <code>valueOf()</code> just returns the object itself.</strong> Which isn't a primitive. Which means it's useless, and JS falls through to <code>toString()</code> every single time.</p>
+
+<div class="codeblock">
+<pre><code>[].valueOf()          <span class="c">// → []          not a primitive, keep going</span>
+[].toString()         <span class="c">// → ''          👈 this is what gets used</span>
+
+[1, 2].toString()     <span class="c">// → '1,2'       arrays join with commas</span>
+[5].toString()        <span class="c">// → '5'</span>
+
+({}).valueOf()        <span class="c">// → {}          not a primitive</span>
+({}).toString()       <span class="c">// → '[object Object]'</span></code></pre>
+</div>
+
+<p>Array's <code>toString</code> is just <code>join(',')</code>. An empty array joins to an empty string. That's the whole trick behind <code>[] == false</code> — no mystery, just a method call you didn't know was happening.</p>
+
+<p>Once you have that, a bunch of "cursed JavaScript" tweets decode instantly:</p>
+
+<div class="codeblock">
+<pre><code>[] == ''         <span class="c">// → true    '' == ''</span>
+[5] == 5         <span class="c">// → true    '5' == 5 → 5 == 5</span>
+[1,2] == '1,2'   <span class="c">// → true    '1,2' == '1,2'</span>
+
+[] == []         <span class="c">// → false   👈 both objects! no coercion happens at all,</span>
+                 <span class="c">//            it's just an address comparison</span>
+
+{} + []          <span class="c">// → 0 in a REPL, '[object Object]' in an expression</span>
+                 <span class="c">//   (this one's about parsing, not coercion — ignore it)</span></code></pre>
+</div>
+
+<p>That <code>[] == []</code> line is my favourite, because it shows the rules are consistent. Coercion only kicks in when the types <em>differ</em>. Object vs object? Straight to address comparison, same as <code>===</code>.</p>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p>Some built-in objects override <code>valueOf</code> to return something genuinely useful, and that's when ToPrimitive stops looking silly:</p>
+  <pre><code>const d = new Date('2026-01-01');
+d.valueOf()      <span class="c">// → 1767225600000  (a real primitive: ms since epoch)</span>
+d - 0            <span class="c">// → 1767225600000  works! subtraction hints "number"</span>
+`${d}`           <span class="c">// → 'Thu Jan 01 2026...'  template literal hints "string"</span></code></pre>
+  <p>You can define your own too, via <code>valueOf</code>, <code>toString</code>, or the modern <code>Symbol.toPrimitive</code> method which takes the hint as an argument and overrides both. This is how libraries make objects that behave like numbers.</p>
+</div>
+
+<h3>So: the practical rule</h3>
+
+<p><strong>Use <code>===</code> everywhere. Always. Full stop.</strong></p>
+
+<p>Not because <code>==</code> is evil, but because <code>===</code> has one rule and <code>==</code> has a decision tree with recursion in it. Code is read far more than it's written, and <code>===</code> means the reader never has to run an algorithm in their head. Every mainstream linter config (<code>eqeqeq</code>) enforces this by default.</p>
+
+<p>But there is <strong>one</strong> place <code>==</code> is genuinely idiomatic, and knowing it is a small green flag in interviews:</p>
+
+<div class="codeblock">
+<pre><code>if (user.middleName == null) {
+  <span class="c">// runs for BOTH null and undefined, and nothing else</span>
+}
+
+<span class="c">// exactly equivalent to:</span>
+if (user.middleName === null || user.middleName === undefined) { }</code></pre>
+</div>
+
+<p>Because rule 1 says <code>null</code> is loosely equal to <code>undefined</code> and to <em>nothing else</em>, <code>x == null</code> is a precise, safe "is this nullish?" check. It will not fire for <code>0</code>, <code>''</code>, <code>false</code>, or <code>NaN</code>. It's the one coercion in the language that's tight enough to trust, and you'll see it all over well-written libraries. Some style guides even carve out an exception for it (<code>eqeqeq: ['error', 'always', { null: 'ignore' }]</code>).</p>
+
+<p>That said — if your codebase bans <code>==</code> outright, <code>x === null || x === undefined</code> is fine, and <code>x ?? fallback</code> often removes the need entirely. Don't die on this hill; just know the reasoning.</p>
+
+<h2 id="truthy">6. Truthiness and the falsy list</h2>
+
+<p>Separate system, easily confused with <code>==</code>, so let's nail it down.</p>
+
+<p>When a value lands somewhere that needs a boolean — an <code>if</code>, a <code>while</code>, a <code>&amp;&amp;</code>, a <code>!</code> — JavaScript runs <code>ToBoolean</code> on it. That algorithm is beautifully simple: <strong>there is a short list of falsy values, and everything else is truthy.</strong></p>
+
+<p>The complete list. There are eight, and two are exotic:</p>
+
+<div class="codeblock">
+<pre><code>false
+0
+-0
+0n          <span class="c">// BigInt zero</span>
+''          <span class="c">// empty string (all quote styles)</span>
+null
+undefined
+NaN</code></pre>
+</div>
+
+<p>That's the entire list. Memorizing it is genuinely worth it — it takes thirty seconds and it comes up constantly. Everything not on it is truthy, including several things people guess wrong:</p>
+
+<div class="codeblock">
+<pre><code>Boolean([])          <span class="c">// → true   👈 empty array is TRUTHY</span>
+Boolean({})          <span class="c">// → true   👈 empty object is TRUTHY</span>
+Boolean('0')         <span class="c">// → true   non-empty string</span>
+Boolean('false')     <span class="c">// → true   non-empty string</span>
+Boolean(' ')         <span class="c">// → true   a space is a character</span>
+Boolean(-1)          <span class="c">// → true   only ZERO is falsy, not "negative"</span>
+Boolean(function(){})<span class="c">// → true</span></code></pre>
+</div>
+
+<div class="callout myth">
+  <span class="label">A common misconception</span>
+  <p>"<code>[]</code> is falsy — that's why <code>[] == false</code> is true."</p>
+  <p>Nope, and this is the mix-up I see most. <code>[]</code> is <strong>truthy</strong>. You can prove it in one line: <code>if ([]) console.log('yep')</code> logs. The reason <code>[] == false</code> is <code>true</code> is the coercion chain we traced earlier — it never asks whether <code>[]</code> is truthy. Two different algorithms, two different answers, and they happen to disagree. If you say this in an interview, correcting yourself with "actually, <code>[]</code> is truthy — the <code>==</code> result comes from <code>toString</code>" is a strong recovery.</p>
+</div>
+
+<h3>The <code>if (count)</code> bug</h3>
+
+<p>Here's the falsy list ruining someone's afternoon. Realistic setup: a shopping cart badge.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>function CartBadge({ itemCount }) {
+  if (!itemCount) {
+    return 'Your cart is empty';
+  }
+  return `${itemCount} items`;
+}</code></pre>
+</div>
+
+<p>Looks fine. Ships. Then a bug report: "the badge says 'Your cart is empty' when I have zero items." Well… yes? That's correct. Okay, different report: a dashboard.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>function UnreadCount({ count }) {
+  if (!count) return null;              <span class="c">// hide the badge</span>
+  return &lt;span&gt;{count}&lt;/span&gt;;
+}
+
+<span class="c">// count = 5      → shows "5"        ✅</span>
+<span class="c">// count = 0      → hides           ✅ (intended!)</span>
+<span class="c">// count = undefined (still loading) → hides  ✅ (also intended!)</span></code></pre>
+</div>
+
+<p>So far so good — this is actually one of the cases where truthiness does what you want. The bug appears the moment <code>0</code> is a <em>meaningful</em> value rather than an empty one:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>function TempReading({ celsius }) {
+  if (!celsius) return 'No reading available';
+  return `${celsius}°C`;
+}
+
+<span class="c">// celsius = 0  →  "No reading available"   👈 WRONG. 0°C is a reading!</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>function TempReading({ celsius }) {
+  if (celsius == null) return 'No reading available';   <span class="c">// null or undefined only</span>
+  return `${celsius}°C`;
+}
+
+<span class="c">// celsius = 0          →  "0°C"                    ✅</span>
+<span class="c">// celsius = undefined  →  "No reading available"   ✅</span></code></pre>
+</div>
+
+<p>Same bug class, different disguise, in JSX:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>{cart.items.length &amp;&amp; &lt;CartList items={cart.items} /&gt;}
+
+<span class="c">// empty cart → length is 0 → the whole expression evaluates to 0</span>
+<span class="c">// → React renders a literal "0" on your page. 🎉</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>{cart.items.length &gt; 0 &amp;&amp; &lt;CartList items={cart.items} /&gt;}</code></pre>
+</div>
+
+<p>The rule to internalize: <strong>truthiness checks are fine when "empty" and "missing" should behave the same. The moment <code>0</code> or <code>''</code> is a legitimate value in your domain, switch to an explicit check.</strong> Prices, counts, coordinates, temperatures, form inputs, ratings — all classic victims.</p>
+
+<h2 id="nullundef">7. <code>null</code> vs <code>undefined</code></h2>
+
+<p>Most languages get by with one "nothing" value. JavaScript has two, which sounds like a design flaw but there's actually a real distinction underneath — it just gets muddied in practice.</p>
+
+<p>The intended semantics:</p>
+
+<ul>
+  <li><strong><code>undefined</code> = "nobody has put anything here."</strong> It's the <em>absence of assignment</em>. It's the language's default, produced automatically.</li>
+  <li><strong><code>null</code> = "I am deliberately telling you there's nothing here."</strong> It's an <em>intentional empty</em>. A human wrote it.</li>
+</ul>
+
+<p>The analogy: <code>undefined</code> is an unlabelled, unopened box in the warehouse — nobody's touched it. <code>null</code> is a box with a note inside saying "intentionally left empty — signed, the developer." Both are empty. Only one is a decision.</p>
+
+<p>You almost never write <code>undefined</code> yourself. JavaScript hands it to you in five situations:</p>
+
+<div class="codeblock">
+<pre><code>let cachedUser;
+cachedUser;                     <span class="c">// → undefined   1. declared, not assigned</span>
+
+const user = { name: 'Ada' };
+user.email;                     <span class="c">// → undefined   2. missing property</span>
+
+const scores = [10, 20];
+scores[7];                      <span class="c">// → undefined   3. out-of-range index</span>
+
+function greet(name) { }
+greet();                        <span class="c">// name is undefined   4. missing argument</span>
+
+function noReturn() { }
+noReturn();                     <span class="c">// → undefined   5. no return statement</span></code></pre>
+</div>
+
+<p><code>null</code>, by contrast, only ever exists because somebody put it there — you, an API response, or a DOM method telling you it found nothing (<code>document.querySelector('.nope')</code> → <code>null</code>).</p>
+
+<h3>Why <code>typeof null === 'object'</code></h3>
+
+<p>This is pure history and it's a great story to have ready.</p>
+
+<p>In the very first JavaScript engine (1995), values were stored as a chunk of memory where the low bits acted as a <strong>type tag</strong>. Tag <code>000</code> meant "this is an object — the rest of the bits are a pointer." Other tags marked integers, strings, booleans.</p>
+
+<p>The null pointer was represented as all-zero bits. Which means its type tag was… <code>000</code>. Object. So <code>typeof</code>, which just reads the tag, dutifully reported <code>'object'</code>.</p>
+
+<p>It was fixed in a proposal for ES6 — <code>typeof null</code> would return <code>'null'</code> — and it was <strong>rejected</strong>, because too much code on the live web does <code>typeof x === 'object'</code> as a stand-in for "is this a reference type." Changing it would have broken real websites. So it's permanent. It's not a feature; it's a fossil.</p>
+
+<p>Practically, this means <code>typeof</code> alone can't tell you if something is a real object:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>function isObject(value) {
+  return typeof value === 'object';
+}
+isObject(null);   <span class="c">// → true   😬</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>function isObject(value) {
+  return typeof value === 'object' &amp;&amp; value !== null;
+}
+<span class="c">// (add !Array.isArray(value) if you want to exclude arrays too)</span></code></pre>
+</div>
+
+<h3>Default parameters only fire on <code>undefined</code></h3>
+
+<p>Here's a place the distinction has teeth. Default parameter values trigger when the argument is <code>undefined</code> — and <em>only</em> then. <code>null</code> is treated as a real value you chose to pass.</p>
+
+<div class="codeblock">
+<pre><code>function createUser(name, role = 'member') {
+  return { name, role };
+}
+
+createUser('Ada');              <span class="c">// → { name: 'Ada', role: 'member' }  ✅ default fires</span>
+createUser('Ada', undefined);   <span class="c">// → { name: 'Ada', role: 'member' }  ✅ default fires</span>
+createUser('Ada', null);        <span class="c">// → { name: 'Ada', role: null }      👈 no default!</span>
+createUser('Ada', '');          <span class="c">// → { name: 'Ada', role: '' }        no default (correctly)</span></code></pre>
+</div>
+
+<p>This bites when data comes from a database. SQL's empty is <code>NULL</code>, which serializes to JSON <code>null</code>, which arrives in your JS as <code>null</code> — and blows straight past every default you wrote. Destructuring defaults have the identical rule:</p>
+
+<div class="codeblock">
+<pre><code>const { theme = 'light' } = { theme: null };
+theme;   <span class="c">// → null, not 'light'</span></code></pre>
+</div>
+
+<h3>JSON treats them completely differently</h3>
+
+<p><code>null</code> is a real JSON type. <code>undefined</code> isn't in the JSON spec at all — so <code>JSON.stringify</code> has to do something, and what it does depends on where the <code>undefined</code> is:</p>
+
+<div class="codeblock">
+<pre><code>JSON.stringify({ a: 1, b: undefined, c: null });
+<span class="c">// → '{"a":1,"c":null}'      👈 the key `b` is GONE entirely</span>
+
+JSON.stringify([1, undefined, 3]);
+<span class="c">// → '[1,null,3]'            👈 in an array it becomes null (positions must hold)</span>
+
+JSON.stringify(undefined);
+<span class="c">// → undefined               👈 not a string! not '"undefined"'! just undefined</span>
+
+JSON.stringify({ save: function () {} });
+<span class="c">// → '{}'                    functions vanish the same way</span></code></pre>
+</div>
+
+<p>Silent key removal is a genuinely nasty source of bugs — you PATCH an object to your API expecting to clear a field, and the field just isn't in the payload, so the server leaves it alone. If you mean "clear this," send <code>null</code>.</p>
+
+<h2 id="nullish">8. <code>??</code> vs <code>||</code></h2>
+
+<p>You've probably written this to supply a fallback:</p>
+
+<div class="codeblock">
+<pre><code>const pageSize = userPreference || 20;</code></pre>
+</div>
+
+<p><code>||</code> returns the left side if it's <strong>truthy</strong>, otherwise the right side. Which means it doesn't fall back on "missing" — it falls back on <em>the entire falsy list</em>. And we just learned that list includes <code>0</code> and <code>''</code>.</p>
+
+<p>So the moment a user legitimately chooses zero, you silently overrule them:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>const settings = { fontSize: 0, username: '', notifications: false };
+
+const fontSize = settings.fontSize || 16;        <span class="c">// → 16     👈 user wanted 0</span>
+const username = settings.username || 'Anon';    <span class="c">// → 'Anon' 👈 user cleared it on purpose</span>
+const notify = settings.notifications || true;   <span class="c">// → true   👈 user opted OUT. we opted them in.</span></code></pre>
+</div>
+
+<p>That third line is the scary one. It is impossible for that expression to ever return <code>false</code>. You've written a setting that can't be turned off.</p>
+
+<p><code>??</code> — the <strong>nullish coalescing</strong> operator — fixes this by narrowing the trigger from "falsy" to "nullish", meaning <code>null</code> or <code>undefined</code> and nothing else:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>const fontSize = settings.fontSize ?? 16;        <span class="c">// → 0</span>
+const username = settings.username ?? 'Anon';    <span class="c">// → ''</span>
+const notify = settings.notifications ?? true;   <span class="c">// → false</span>
+
+<span class="c">// and it still does the job it was hired for:</span>
+undefined ?? 'fallback'   <span class="c">// → 'fallback'</span>
+null ?? 'fallback'        <span class="c">// → 'fallback'</span></code></pre>
+</div>
+
+<p>Think of it as: <code>??</code> asks "is this <em>missing</em>?" while <code>||</code> asks "is this <em>empty-ish</em>?" — and empty-ish is a much bigger, blurrier net than you usually want.</p>
+
+<p>My rule: <strong>reach for <code>??</code> by default.</strong> Use <code>||</code> only when you genuinely want empty string and zero to trigger the fallback — for example <code>const label = title.trim() || 'Untitled'</code>, where an all-whitespace title really should become "Untitled."</p>
+
+<div class="callout wait">
+  <span class="label">Wait, what about…</span>
+  <p><strong>"Why does <code>a ?? b || c</code> throw a syntax error?"</strong> Because mixing <code>??</code> with <code>||</code> or <code>&amp;&amp;</code> without parentheses is <em>deliberately</em> illegal. The precedence would be ambiguous to readers, so the spec authors made you disambiguate: <code>(a ?? b) || c</code>. It's a rare case of a language forcing clarity, and I love it.</p>
+  <p>Related: <code>??=</code> exists too. <code>options.retries ??= 3</code> assigns only if <code>retries</code> is null or undefined.</p>
+</div>
+
+<h2 id="copying">9. Copying: shallow vs. deep</h2>
+
+<p>Back to the warehouse. We established that <code>=</code> copies the sticky note, not the object. So how do we make an actual copy?</p>
+
+<p>The standard tools are <strong>spread</strong> (<code>...</code>) and <strong>Object.assign</strong>:</p>
+
+<div class="codeblock">
+<pre><code>const original = { name: 'Ada', role: 'admin' };
+
+const copy = { ...original };                    <span class="c">// spread</span>
+const copy2 = Object.assign({}, original);       <span class="c">// same thing, older syntax</span>
+
+copy.role = 'guest';
+console.log(original.role);   <span class="c">// → 'admin'  ✅ the original is safe</span>
+console.log(copy === original); <span class="c">// → false   ✅ genuinely a different object</span></code></pre>
+</div>
+
+<p>For arrays it's the same idea: <code>[...list]</code>, or <code>list.slice()</code>, or <code>Array.from(list)</code>.</p>
+
+<p>This works. It really did make a new object. But it made a <strong>shallow</strong> copy, and the word "shallow" is doing a lot of load-bearing work.</p>
+
+<h3>What "shallow" actually means</h3>
+
+<p>A shallow copy walks the object's own keys and copies each value into a new object. And remember what "the value" is for a nested object: <em>an address</em>. So nested objects aren't copied — their sticky notes are.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>const user = {
+  name: 'Ada',
+  settings: { theme: 'dark', fontSize: 14 }   <span class="c">// 👈 a nested object</span>
+};
+
+const copy = { ...user };
+copy.settings.theme = 'light';                <span class="c">// reaching THROUGH the copy...</span>
+
+console.log(user.settings.theme);             <span class="c">// → 'light'  😱 the original changed</span>
+console.log(copy.settings === user.settings); <span class="c">// → true     same object!</span></code></pre>
+</div>
+
+<figure>
+<svg viewBox="0 0 700 260" role="img" aria-label="Diagram of a shallow copy: two top-level objects, each with their own name property, but both pointing at the same nested settings object">
+  <defs>
+    <marker id="arrow2" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b02a2a"/>
+    </marker>
+  </defs>
+
+  <rect x="20" y="30" width="220" height="90" rx="6" fill="#ffffff" stroke="#2b5fa8" stroke-width="2"/>
+  <text x="32" y="24" font-family="ui-monospace, monospace" font-size="12" fill="#2b5fa8">user  #100</text>
+  <text x="36" y="58" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">name: 'Ada'</text>
+  <text x="36" y="86" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">settings:</text>
+  <text x="130" y="86" font-family="ui-monospace, monospace" font-size="13" fill="#b02a2a">→ #250</text>
+
+  <rect x="20" y="150" width="220" height="90" rx="6" fill="#ffffff" stroke="#2b5fa8" stroke-width="2"/>
+  <text x="32" y="144" font-family="ui-monospace, monospace" font-size="12" fill="#2b5fa8">copy  #101</text>
+  <text x="36" y="178" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">name: 'Ada'</text>
+  <text x="36" y="206" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">settings:</text>
+  <text x="130" y="206" font-family="ui-monospace, monospace" font-size="13" fill="#b02a2a">→ #250</text>
+
+  <rect x="430" y="90" width="240" height="90" rx="6" fill="#fdeeee" stroke="#b02a2a" stroke-width="2"/>
+  <text x="442" y="84" font-family="ui-monospace, monospace" font-size="12" fill="#b02a2a">#250 — shared!</text>
+  <text x="448" y="120" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">theme: 'dark'</text>
+  <text x="448" y="148" font-family="ui-monospace, monospace" font-size="13" fill="#22201d">fontSize: 14</text>
+
+  <path d="M225 82 C 330 82, 340 118, 425 122" stroke="#b02a2a" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+  <path d="M225 202 C 330 202, 340 150, 425 143" stroke="#b02a2a" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+</svg>
+<figcaption>A shallow copy duplicates the top layer only. Everything below is shared.</figcaption>
+</figure>
+
+<p>The analogy I use: you photocopy a document, and the document has a <em>URL</em> on it. The photocopy has its own paper — you can scribble on it without marking the original. But the URL on the copy points at the same web page. Edit that page and both documents now "say" something different.</p>
+
+<p>Shallow copies are not bad. They're the right tool most of the time, especially in React where you usually update one level at a time. The failure mode is specifically <strong>reaching through a copy to mutate something nested</strong>. If you never do that — if instead you copy each level you're changing — you're fine:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>const copy = {
+  ...user,
+  settings: { ...user.settings, theme: 'light' }   <span class="c">// 👈 copy that level too</span>
+};
+
+console.log(user.settings.theme);   <span class="c">// → 'dark'  ✅ safe</span></code></pre>
+</div>
+
+<p>This nested-spread pattern is the bread and butter of React state updates. It's a bit ugly three levels deep, which is exactly why libraries like Immer exist — but you should be able to write it by hand.</p>
+
+<h3>Deep copy option 1: <code>structuredClone</code> (the modern answer)</h3>
+
+<p>Since roughly 2022, browsers and Node ship a built-in deep clone. It's global; you don't import anything.</p>
+
+<div class="codeblock">
+<pre><code>const user = { name: 'Ada', settings: { theme: 'dark' }, tags: ['a', 'b'] };
+const clone = structuredClone(user);
+
+clone.settings.theme = 'light';
+user.settings.theme;                    <span class="c">// → 'dark'  ✅ fully independent</span>
+clone.settings === user.settings;       <span class="c">// → false   ✅</span></code></pre>
+</div>
+
+<p>It handles all the things the JSON trick can't: <code>Date</code> objects stay Dates, <code>Map</code> and <code>Set</code> survive, typed arrays survive, <code>NaN</code> and <code>Infinity</code> survive, and — the good one — <strong>circular references work</strong>.</p>
+
+<div class="codeblock">
+<pre><code>const node = { id: 1 };
+node.self = node;                   <span class="c">// 👈 points at itself</span>
+
+structuredClone(node);              <span class="c">// ✅ works fine</span>
+JSON.stringify(node);               <span class="c">// ❌ TypeError: Converting circular structure to JSON</span></code></pre>
+</div>
+
+<p>Its limits, which you should be able to name: it <strong>throws</strong> on functions, on DOM nodes, and on class instances' prototypes — meaning a cloned class instance comes back as a plain object with the right data but no methods and no <code>instanceof</code>. It also drops getters/setters (it copies the resulting value) and ignores property descriptors like non-enumerability.</p>
+
+<div class="codeblock">
+<pre><code>structuredClone({ save: () =&gt; {} });   <span class="c">// ❌ DataCloneError</span>
+
+class Cart { constructor() { this.items = []; } total() { return 0; } }
+const cloned = structuredClone(new Cart());
+cloned instanceof Cart;                <span class="c">// → false</span>
+cloned.total;                          <span class="c">// → undefined  (methods live on the prototype)</span></code></pre>
+</div>
+
+<p>Notice that throwing is arguably a <em>feature</em>. It fails loudly rather than silently mangling your data — which is exactly what the next option does.</p>
+
+<h3>Deep copy option 2: <code>JSON.parse(JSON.stringify(x))</code> — and its casualties</h3>
+
+<p>This is the trick everyone learns first. Serialize the object to a JSON string, parse it back into a fresh object. Since strings are primitives with no references in them, the round trip severs every connection to the original. It genuinely does deep-copy.</p>
+
+<div class="codeblock">
+<pre><code>const deepCopy = JSON.parse(JSON.stringify(original));</code></pre>
+</div>
+
+<p>It's also a shredder. JSON can only represent objects, arrays, strings, numbers, booleans, and <code>null</code> — so anything else is either destroyed or, worse, quietly transformed into something that looks fine until it doesn't.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ What it silently destroys</div>
+<pre><code>const state = {
+  createdAt: new Date('2026-01-01'),
+  onSave: () =&gt; {},
+  middleName: undefined,
+  tags: new Set(['a', 'b']),
+  index: new Map([['a', 1]]),
+  score: NaN,
+  budget: Infinity,
+};
+
+JSON.parse(JSON.stringify(state));
+<span class="c">// → {</span>
+<span class="c">//     createdAt: '2026-01-01T00:00:00.000Z',  👈 a STRING now. .getTime() explodes.</span>
+<span class="c">//     tags: {},                               👈 empty object. data gone.</span>
+<span class="c">//     index: {},                              👈 empty object. data gone.</span>
+<span class="c">//     score: null,                            👈 NaN became null</span>
+<span class="c">//     budget: null,                           👈 Infinity became null</span>
+<span class="c">//   }</span>
+<span class="c">//   onSave: key removed entirely</span>
+<span class="c">//   middleName: key removed entirely</span>
+
+<span class="c">// and two things don't degrade quietly — they throw:</span>
+JSON.stringify({ id: 123n });      <span class="c">// ❌ TypeError: BigInt not serializable</span>
+JSON.stringify(circularObject);    <span class="c">// ❌ TypeError: circular structure</span></code></pre>
+</div>
+
+<p>Rank the damage by how long it takes to notice:</p>
+
+<ol>
+  <li><strong>Circular references throw immediately.</strong> Loud, instant, easy to fix. Fine.</li>
+  <li><strong>Functions and <code>undefined</code> disappear.</strong> You notice when something stops working.</li>
+  <li><strong><code>Map</code>/<code>Set</code> become <code>{}</code>.</strong> Total silent data loss. Nasty.</li>
+  <li><strong><code>Date</code> becomes a string.</strong> The absolute worst, because it <em>keeps working</em>. It prints correctly, it sorts correctly (ISO strings sort chronologically!), it survives your tests — and then three weeks later something calls <code>.getFullYear()</code> on it in production and you get <code>is not a function</code>.</li>
+</ol>
+
+<p>Also worth knowing: it's slow. Serializing to a string and re-parsing burns CPU on large structures. And it respects <code>toJSON()</code> methods, which is exactly why Dates come back as strings — <code>Date.prototype.toJSON</code> exists and returns an ISO string.</p>
+
+<p>So when <em>is</em> it acceptable? When your data is genuinely plain JSON — which, to be fair, describes most API responses. If you're cloning something that came straight from <code>await res.json()</code> and hasn't been touched, the round trip is lossless by definition. Just say that out loud in an interview rather than pretending the technique is fine in general.</p>
+
+<h3>Deep copy option 3: <code>lodash.cloneDeep</code></h3>
+
+<p>The pre-<code>structuredClone</code> industry standard, still the most capable option:</p>
+
+<div class="codeblock">
+<pre><code>import cloneDeep from 'lodash/cloneDeep';
+const clone = cloneDeep(state);</code></pre>
+</div>
+
+<p>It handles everything <code>structuredClone</code> does, plus it preserves prototypes (class instances stay <code>instanceof</code>) and copies functions by reference rather than throwing. The cost is a dependency and bundle weight (import the single module, not all of lodash). Reach for it when you're cloning class instances or objects with methods; otherwise <code>structuredClone</code> is free and built in.</p>
+
+<div class="tablewrap">
+<table>
+  <tr><th></th><th>Spread <code>{...x}</code></th><th>JSON round-trip</th><th><code>structuredClone</code></th><th><code>cloneDeep</code></th></tr>
+  <tr><td>Nested objects</td><td>shared ❌</td><td>copied ✅</td><td>copied ✅</td><td>copied ✅</td></tr>
+  <tr><td><code>Date</code></td><td>shared ref</td><td>→ string ❌</td><td>Date ✅</td><td>Date ✅</td></tr>
+  <tr><td><code>Map</code>/<code>Set</code></td><td>shared ref</td><td>→ <code>{}</code> ❌</td><td>preserved ✅</td><td>preserved ✅</td></tr>
+  <tr><td>Functions</td><td>kept</td><td>dropped ❌</td><td>throws ⚠️</td><td>kept ✅</td></tr>
+  <tr><td><code>undefined</code> values</td><td>kept</td><td>dropped ❌</td><td>kept ✅</td><td>kept ✅</td></tr>
+  <tr><td><code>NaN</code>/<code>Infinity</code></td><td>kept</td><td>→ <code>null</code> ❌</td><td>kept ✅</td><td>kept ✅</td></tr>
+  <tr><td>Circular refs</td><td>n/a</td><td>throws ❌</td><td>handled ✅</td><td>handled ✅</td></tr>
+  <tr><td>Class prototypes</td><td>kept</td><td>lost ❌</td><td>lost ❌</td><td>kept ✅</td></tr>
+  <tr><td>Cost</td><td>free, fastest</td><td>free, slow</td><td>free, fast</td><td>dependency</td></tr>
+</table>
+</div>
+
+<h2 id="freeze">10. <code>Object.freeze</code> and real immutability</h2>
+
+<p>If mutation is the problem, can't we just ban it? <code>Object.freeze</code> is JavaScript's attempt:</p>
+
+<div class="codeblock">
+<pre><code>const config = Object.freeze({ apiUrl: '/api', retries: 3 });
+
+config.retries = 5;        <span class="c">// silently does nothing (throws in strict mode / modules)</span>
+config.timeout = 1000;     <span class="c">// can't add either</span>
+delete config.apiUrl;      <span class="c">// can't delete either</span>
+
+console.log(config.retries);   <span class="c">// → 3</span>
+Object.isFrozen(config);       <span class="c">// → true</span></code></pre>
+</div>
+
+<p>Two things to know, and both are interview bait.</p>
+
+<p><strong>First: it's shallow.</strong> Same word, same problem as copying. Freeze locks the top-level keys; nested objects are untouched.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>const config = Object.freeze({
+  api: { url: '/api', key: 'secret' }
+});
+
+config.api = {};                <span class="c">// ❌ blocked — good</span>
+config.api.url = '/hacked';     <span class="c">// ✅ allowed — the nested object isn't frozen!</span>
+console.log(config.api.url);    <span class="c">// → '/hacked'</span></code></pre>
+</div>
+
+<p>The lock is on the <em>front door</em>, not on the individual rooms. To lock everything you recurse — a "deep freeze":</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>function deepFreeze(obj) {
+  for (const value of Object.values(obj)) {
+    if (value &amp;&amp; typeof value === 'object') deepFreeze(value);
+  }
+  return Object.freeze(obj);
+}</code></pre>
+</div>
+
+<p><strong>Second: <code>const</code> and <code>freeze</code> protect different things,</strong> and confusing them is extremely common. Go back to the boxes-and-warehouse picture:</p>
+
+<ul>
+  <li><code>const</code> locks <strong>the box</strong>. You can't put a different sticky note in it — no reassignment.</li>
+  <li><code>Object.freeze</code> locks <strong>the thing in the warehouse</strong>. You can't rearrange its contents.</li>
+</ul>
+
+<div class="codeblock">
+<pre><code>const list = [1, 2, 3];
+list.push(4);        <span class="c">// ✅ fine! we didn't reassign `list`, we mutated the array</span>
+list = [];           <span class="c">// ❌ TypeError: Assignment to constant variable</span>
+
+const frozen = Object.freeze([1, 2, 3]);
+frozen.push(4);      <span class="c">// ❌ TypeError: Cannot add property 3</span></code></pre>
+</div>
+
+<p>So: is <code>Object.freeze</code> "enough for immutability"? For a small config object at module level, sure. For application state, no — it's shallow, it fails silently in sloppy mode (making bugs hard to spot), it has a real performance cost if you freeze large structures on every update, and it doesn't stop anyone from swapping the whole reference. In practice teams get immutability from <em>discipline plus tooling</em> — always creating new objects, with Immer or a linter enforcing it — rather than from freezing.</p>
+
+<h2 id="react">11. Why React cares so much</h2>
+
+<p>Everything above converges here, so let's connect it explicitly. This is self-contained — you don't need to know React deeply to follow it.</p>
+
+<p>React's core job is deciding <em>when to re-render</em>. Comparing two big state objects property-by-property, on every update, for every component, would be brutally slow. So React does the cheap thing instead: it compares <strong>references</strong>, using <code>Object.is</code> (essentially <code>===</code>).</p>
+
+<p>"Is the new state the same object as the old state? Yes → nothing changed, skip. No → something changed, re-render."</p>
+
+<p>That's fast — comparing two addresses is a single machine instruction. But it comes with a contract: <strong>if you change data, you must also change the reference.</strong> Mutate in place and the address stays the same, so React looks, sees the same address, and concludes nothing happened.</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ Buggy</div>
+<pre><code>const [todos, setTodos] = useState([]);
+
+function addTodo(text) {
+  todos.push({ text, done: false });   <span class="c">// mutates the existing array</span>
+  setTodos(todos);                     <span class="c">// same address as before...</span>
+}
+<span class="c">// React: "todos === todos? Yep. Nothing to do." → UI never updates 😤</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Fixed</div>
+<pre><code>function addTodo(text) {
+  setTodos([...todos, { text, done: false }]);   <span class="c">// brand new array, new address</span>
+}
+<span class="c">// React: "different reference → re-render." ✅</span></code></pre>
+</div>
+
+<p>The maddening part is that mutation sometimes <em>appears</em> to work, because an unrelated state update triggers a re-render and your mutated data shows up late. That's the worst kind of bug: intermittent, and it makes you doubt the framework instead of the code.</p>
+
+<p>The same reference check drives three other things you'll be asked about:</p>
+
+<div class="codeblock">
+<pre><code><span class="c">// 1. useEffect dependencies — compared with Object.is</span>
+useEffect(() =&gt; {
+  fetchResults(filters);
+}, [filters]);
+<span class="c">// if `filters` is an object rebuilt inline on every render, it's a new address</span>
+<span class="c">// every time → the effect fires every render → infinite loop territory.</span>
+
+<span class="c">// 2. React.memo — shallow-compares props by reference</span>
+&lt;UserCard user={{ name: 'Ada' }} /&gt;
+<span class="c">// new object literal each render → memo never helps.</span>
+
+<span class="c">// 3. useMemo / useCallback exist precisely to keep a reference STABLE</span>
+const filters = useMemo(() =&gt; ({ status, sort }), [status, sort]);</code></pre>
+</div>
+
+<p>So the whole memoization story in React is: reference equality is cheap, references change whenever you build a new object, and <code>useMemo</code>/<code>useCallback</code> are tools for holding a reference still across renders. It's the same one idea from section 2, wearing a hat.</p>
+
+<h2 id="compare">12. Comparing two objects</h2>
+
+<p>We keep hitting "but what if I want to compare contents?" Let's answer it properly. There are three levels.</p>
+
+<p><strong>Reference equality</strong> — <code>a === b</code>. Same object? Instant. This is what React uses.</p>
+
+<p><strong>Shallow equality</strong> — same keys, and each value passes <code>===</code>. One level deep. This is what <code>React.memo</code> does to props.</p>
+
+<div class="codeblock">
+<pre><code>function shallowEqual(a, b) {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== 'object' || a === null) return false;
+  if (typeof b !== 'object' || b === null) return false;
+
+  const keysA = Object.keys(a);
+  if (keysA.length !== Object.keys(b).length) return false;
+
+  return keysA.every((key) =&gt; Object.is(a[key], b[key]));
+}
+
+shallowEqual({ a: 1 }, { a: 1 });          <span class="c">// → true</span>
+shallowEqual({ a: { b: 1 } }, { a: { b: 1 } });  <span class="c">// → false  👈 nested objects differ by ref</span></code></pre>
+</div>
+
+<p><strong>Deep equality</strong> — recurse all the way down. In production, use <code>lodash.isEqual</code> or <code>fast-deep-equal</code>. But be able to sketch one, because it's a classic whiteboard question:</p>
+
+<div class="codeblock">
+<pre><code>function deepEqual(a, b) {
+  if (Object.is(a, b)) return true;                      <span class="c">// primitives + same ref + NaN</span>
+  if (typeof a !== 'object' || a === null) return false;
+  if (typeof b !== 'object' || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+
+  return keys.every((key) =&gt;
+    Object.prototype.hasOwnProperty.call(b, key) &amp;&amp; deepEqual(a[key], b[key])
+  );
+}</code></pre>
+</div>
+
+<p>Mention the limitations before the interviewer does — it doesn't handle <code>Date</code>, <code>Map</code>, <code>Set</code>, or circular references (which would infinitely recurse; a real implementation keeps a <code>WeakMap</code> of visited pairs). Naming your own gaps reads as senior.</p>
+
+<div class="callout myth">
+  <span class="label">A common misconception</span>
+  <p>"You can compare objects with <code>JSON.stringify(a) === JSON.stringify(b)</code>."</p>
+  <p>Tempting, and it works for simple flat data — but it's <strong>key-order sensitive</strong>, which makes it wrong far more often than people realize:</p>
+  <pre><code>JSON.stringify({ a: 1, b: 2 }) === JSON.stringify({ b: 2, a: 1 });
+<span class="c">// → false  👈 same data, different insertion order</span></code></pre>
+  <p>Plus it inherits every JSON casualty from section 9 (<code>undefined</code> keys vanish, Dates stringify, <code>Map</code>s empty out) and it throws on circular refs. Fine for a quick <code>console.log</code> comparison; never in shipped logic.</p>
+</div>
+
+<h2 id="interview">13. The interview layer</h2>
+
+<p>These topics are asked <em>constantly</em> — <code>==</code> vs <code>===</code> is probably the single most common JS interview question in existence, and the copying question is right behind it. The good news is that the bar for a great answer is low, because most candidates recite "<code>==</code> does type coercion" and stop. Going one level deeper is easy signal.</p>
+
+<h3>How this gets asked</h3>
+
+<p>The literal phrasings you'll hear:</p>
+
+<ul>
+  <li>"What's the difference between <code>==</code> and <code>===</code>?"</li>
+  <li>"Explain type coercion in JavaScript."</li>
+  <li>"What are the falsy values?"</li>
+  <li>"What's the difference between <code>null</code> and <code>undefined</code>?"</li>
+  <li>"What's the difference between a shallow copy and a deep copy?"</li>
+  <li>"How would you deep clone an object?"</li>
+  <li>"Why does React tell you not to mutate state?"</li>
+  <li>Or, most often, they just write <code>[] == false</code> on the board and watch your face.</li>
+</ul>
+
+<p>Recall vs. depth: the falsy list and "<code>===</code> checks type too" are <strong>recall</strong> — answer fast and move on, lingering makes you look junior. Coercion chains, deep-clone tradeoffs, and the React connection are <strong>depth</strong> questions — that's where you slow down and show your reasoning.</p>
+
+<h3>Model answer: <code>==</code> vs <code>===</code></h3>
+
+<div class="answer">
+  <span class="label">Say this out loud</span>
+  <p class="say">"<code>===</code> checks type and value with no conversion — if the types differ, it's immediately false. <code>==</code> tries to coerce the operands to a common type first, following a specific algorithm: booleans become numbers, strings compared to numbers become numbers, and objects get converted to primitives via <code>valueOf</code> then <code>toString</code>. That chaining is why you get things like <code>[] == false</code> being true — the array stringifies to empty string, which numifies to zero, and false is also zero. I use <code>===</code> everywhere because it has one rule instead of a decision tree. The one exception is <code>x == null</code>, which is a clean way to check for null <em>or</em> undefined in a single comparison."</p>
+  <p class="why"><strong>Why it lands:</strong> you named the actual mechanism (ToPrimitive) rather than saying "it does weird stuff," you traced one notorious case, you gave a practical stance, and the <code>== null</code> exception shows you've formed an opinion rather than memorized a rule. That last bit is what separates a 3 from a 4.</p>
+</div>
+
+<h3>Model answer: shallow vs. deep copy</h3>
+
+<div class="answer">
+  <span class="label">Say this out loud</span>
+  <p class="say">"Objects are held by reference, so assignment just copies the pointer — both variables point at the same object. Spread or <code>Object.assign</code> gives you a real new object, but only one level deep: nested objects are still shared by reference, so mutating <code>copy.settings.theme</code> also changes the original. For a genuine deep copy I'd reach for <code>structuredClone</code> — it's built in, handles Dates, Maps, Sets and circular references, and throws on functions instead of silently dropping them. I'd avoid <code>JSON.parse(JSON.stringify())</code> for anything but plain JSON, because it turns Dates into strings and Maps into empty objects without telling you."</p>
+  <p class="why"><strong>Why it lands:</strong> you started from the reference model instead of jumping to techniques, you gave a concrete failure case, and you named a specific silent-corruption example. Interviewers are listening for whether you understand <em>why</em> shallow is shallow, not whether you can list clone methods.</p>
+</div>
+
+<hr>
+
+<h3>Follow-ups (this is the valuable part)</h3>
+
+<p class="big-q">"When would you ever actually use <code>==</code>?"</p>
+<p>One place: <code>x == null</code>, to check for null-or-undefined in a single comparison. It's safe precisely <em>because</em> the loose-equality rules special-case <code>null</code> and <code>undefined</code> to equal each other and nothing else — it won't fire for <code>0</code>, <code>''</code>, or <code>false</code>. Beyond that, no. If a codebase bans it entirely I'd use <code>=== null || === undefined</code>, or restructure so <code>??</code> handles it.</p>
+
+<p class="big-q">"Why not just use <code>==</code> everywhere? It's more forgiving."</p>
+<p>Forgiving is the problem. With <code>===</code>, a reader knows the answer by looking. With <code>==</code>, they have to mentally execute a multi-step conversion — and the steps compose, so <code>[] == false</code> takes three of them. Forgiving also hides real bugs: if you're comparing a string to a number, something upstream probably didn't parse correctly, and <code>===</code> surfaces that instead of papering over it.</p>
+
+<p class="big-q">"Why is <code>typeof null</code> <code>'object'</code>?"</p>
+<p>A bug from the original 1995 implementation. Values carried a type tag in their low bits, <code>000</code> meant "object pointer," and the null pointer was all zeros — so it read as an object tag. It was proposed for a fix in ES6 and rejected because too much existing code relies on the current behaviour. So it's permanent. Practically, an <code>isObject</code> check needs <code>typeof x === 'object' &amp;&amp; x !== null</code>.</p>
+
+<p class="big-q">"How do you deep clone an object?"</p>
+<p><code>structuredClone(obj)</code> is the modern built-in answer — it handles nested structures, Dates, Maps, Sets, typed arrays, and circular references, and it's available in all current browsers and Node 17+. It throws on functions and loses class prototypes, so if I need those I'd use lodash's <code>cloneDeep</code>. If the data is guaranteed plain JSON, the <code>JSON.parse(JSON.stringify())</code> round trip is lossless, but I wouldn't use it as a general tool. And often the honest answer is that I don't need a deep clone at all — I need to copy the one path I'm changing, with nested spreads.</p>
+
+<p class="big-q">"What's wrong with <code>JSON.parse(JSON.stringify(x))</code>?"</p>
+<p>It only round-trips things JSON can represent. Functions and <code>undefined</code> properties get dropped, <code>Map</code> and <code>Set</code> become empty objects, <code>NaN</code> and <code>Infinity</code> become <code>null</code>, BigInt throws, and circular references throw. The most dangerous one is <code>Date</code>, which becomes an ISO string — it still prints and sorts correctly, so it passes review and tests, and then fails in production the first time something calls a Date method on it. It's also slow, since you're serializing and re-parsing.</p>
+
+<p class="big-q">"<code>??</code> vs <code>||</code> — when does the difference actually bite?"</p>
+<p>Whenever a falsy value is legitimate data. <code>||</code> falls back on the entire falsy list, so <code>fontSize || 16</code> overrides a user's deliberate <code>0</code>, <code>name || 'Anon'</code> overrides a deliberately cleared field, and <code>enabled || true</code> is an expression that can literally never return <code>false</code> — a setting nobody can switch off. <code>??</code> triggers only on <code>null</code> and <code>undefined</code>, which is almost always the intent. I default to <code>??</code> and use <code>||</code> only when I explicitly want empty-string-or-zero to fall through.</p>
+
+<p class="big-q">"Why does React need me to not mutate state?"</p>
+<p>React decides whether to re-render by comparing the old and new state with <code>Object.is</code> — a reference comparison, because comparing deeply on every update would be too slow. If you mutate an object in place, the reference doesn't change, so React sees identical addresses and skips the render. The same reference check drives <code>useEffect</code> dependency arrays and <code>React.memo</code>, which is also why rebuilding an object inline on every render makes memoization useless and can make effects fire in a loop. It's one mechanism showing up in three places.</p>
+
+<p class="big-q">"How do you compare two objects for equality?"</p>
+<p><code>===</code> only tells you if they're the same object, so you pick a level. Reference equality is what React uses. Shallow equality — same keys, values compared with <code>===</code> — is what <code>React.memo</code> does to props and it's usually enough. Deep equality means recursing, which I'd do with <code>lodash.isEqual</code> or <code>fast-deep-equal</code> rather than hand-rolling, though I can write a basic version. What I wouldn't do is compare <code>JSON.stringify</code> output, because it's sensitive to key order — <code>{a:1,b:2}</code> and <code>{b:2,a:1}</code> come out different.</p>
+
+<p class="big-q">"Is <code>Object.freeze</code> enough for immutability?"</p>
+<p>Not on its own. It's shallow — it locks the top-level properties but nested objects stay mutable, so you'd need a recursive deep-freeze. It also fails silently outside strict mode, so a mutation just quietly does nothing rather than erroring. And freezing large structures on every state update costs real time. In practice I'd treat it as a guard rail for constants or something you turn on in development, and get actual immutability from always creating new objects — with Immer or a lint rule enforcing it if the codebase needs help.</p>
+
+<p class="big-q">"Is <code>const</code> the same as immutable?"</p>
+<p>No, and they're the classic mix-up. <code>const</code> prevents <em>reassigning the variable</em> — you can't point it at a different object. It says nothing about the object itself, so <code>const list = []; list.push(1)</code> is completely legal. <code>const</code> locks the label; <code>Object.freeze</code> locks the contents.</p>
+
+<p class="big-q">"Why isn't <code>NaN</code> equal to itself?"</p>
+<p>It comes from IEEE-754, the floating point standard, not from JavaScript. <code>NaN</code> represents "this computation had no meaningful numeric result," and two failed computations aren't meaningfully the same value, so the standard defines every comparison involving <code>NaN</code> as false. The practical consequence is you can't test for it with <code>===</code> — you use <code>Number.isNaN()</code>, not the old global <code>isNaN()</code>, which coerces its argument first and reports <code>true</code> for any non-numeric string.</p>
+
+<p class="big-q">"What does <code>{...obj}</code> not copy?"</p>
+<p>Nested objects — those are shared by reference. It also only copies <em>own, enumerable</em> properties, so inherited prototype properties and non-enumerable ones don't come along, and getters are evaluated and copied as plain values rather than staying getters. For arrays, <code>[...arr]</code> has the same shallowness: the array is new, the objects inside it are the originals.</p>
+
+<h3>Traps — the answers that get people dinged</h3>
+
+<div class="tablewrap">
+<table>
+  <tr><th>❌ Don't say</th><th>✅ Say instead</th></tr>
+  <tr>
+    <td>"<code>==</code> compares value, <code>===</code> compares value and type."</td>
+    <td>Technically fine but it's the answer everyone gives. Add the mechanism: coercion order, ToPrimitive, and a traced example.</td>
+  </tr>
+  <tr>
+    <td>"<code>==</code> is unpredictable / random."</td>
+    <td>"It's fully deterministic, just hard to read because the conversions chain."</td>
+  </tr>
+  <tr>
+    <td>"<code>[]</code> is falsy."</td>
+    <td>"<code>[]</code> is truthy. <code>[] == false</code> is true for a different reason — coercion, not truthiness."</td>
+  </tr>
+  <tr>
+    <td>"Objects are passed by reference."</td>
+    <td>"JS is always pass-by-value; for objects the value is a reference — which is why reassigning a parameter doesn't affect the caller."</td>
+  </tr>
+  <tr>
+    <td>"Use <code>JSON.parse(JSON.stringify())</code> to deep clone."</td>
+    <td>Name <code>structuredClone</code> first, then mention the JSON trick <em>with</em> its casualties.</td>
+  </tr>
+  <tr>
+    <td>"<code>const</code> makes it immutable."</td>
+    <td>"<code>const</code> prevents reassignment, not mutation."</td>
+  </tr>
+  <tr>
+    <td>"Spread creates a copy." (full stop)</td>
+    <td>"Spread creates a shallow copy — nested objects are still shared."</td>
+  </tr>
+  <tr>
+    <td>Reciting the falsy list slowly, counting on fingers.</td>
+    <td>Say it in one breath: "false, 0, -0, 0n, empty string, null, undefined, NaN." Then move on.</td>
+  </tr>
+</table>
+</div>
+
+<h2 id="cheat">14. Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<div class="tablewrap">
+<table class="cheat">
+  <tr><td>Primitives</td><td>string, number, boolean, undefined, null, symbol, bigint. Immutable, copied by value.</td></tr>
+  <tr><td>Objects</td><td>Everything else (arrays, functions, dates, Map, Set). Mutable, held by reference.</td></tr>
+  <tr><td><code>===</code></td><td>Different types → false. Same type → same value, or for objects, same reference.</td></tr>
+  <tr><td><code>==</code></td><td>Coerces first: null/undefined special-cased together, booleans → numbers, strings vs numbers → numbers, objects → primitives.</td></tr>
+  <tr><td>ToPrimitive</td><td><code>valueOf()</code> then <code>toString()</code>. Plain objects/arrays have a useless <code>valueOf</code>, so <code>toString</code> wins. <code>[].toString()</code> is <code>''</code>.</td></tr>
+  <tr><td><code>[] == false</code></td><td>true. <code>[]</code> → <code>''</code> → <code>0</code>, and <code>false</code> → <code>0</code>.</td></tr>
+  <tr><td><code>[] == []</code></td><td>false. Same types → no coercion → reference comparison.</td></tr>
+  <tr><td><code>null == 0</code></td><td>false. <code>null</code> loosely equals only <code>undefined</code>.</td></tr>
+  <tr><td><code>NaN === NaN</code></td><td>false. Use <code>Number.isNaN()</code>.</td></tr>
+  <tr><td>Falsy (8)</td><td><code>false 0 -0 0n '' null undefined NaN</code>. Everything else truthy — including <code>[]</code>, <code>{}</code>, <code>'0'</code>.</td></tr>
+  <tr><td><code>typeof null</code></td><td><code>'object'</code> — a 1995 type-tag bug, unfixable for compat reasons.</td></tr>
+  <tr><td><code>undefined</code></td><td>Nothing assigned. Produced by the language.</td></tr>
+  <tr><td><code>null</code></td><td>Deliberately empty. Written by a human.</td></tr>
+  <tr><td>Default params</td><td>Fire on <code>undefined</code> only. <code>null</code> sails past them.</td></tr>
+  <tr><td><code>??</code></td><td>Falls back on null/undefined only. Prefer it.</td></tr>
+  <tr><td><code>||</code></td><td>Falls back on all falsy values. Kills legitimate <code>0</code>, <code>''</code>, <code>false</code>.</td></tr>
+  <tr><td>JSON + <code>undefined</code></td><td>Key dropped in objects, becomes <code>null</code> in arrays.</td></tr>
+  <tr><td><code>b = a</code></td><td>Copies the value in the box — for objects that's an address, not the object.</td></tr>
+  <tr><td>Shallow copy</td><td><code>{...obj}</code>, <code>Object.assign</code>, <code>[...arr]</code>, <code>slice()</code>. Top level only.</td></tr>
+  <tr><td>Deep copy</td><td><code>structuredClone()</code> first. <code>lodash.cloneDeep</code> if you need functions or prototypes.</td></tr>
+  <tr><td>JSON clone kills</td><td>functions, <code>undefined</code>, Date→string, Map/Set→<code>{}</code>, NaN/Infinity→null, circular→throw.</td></tr>
+  <tr><td><code>Object.freeze</code></td><td>Shallow, silent in sloppy mode. Locks contents; <code>const</code> locks the variable.</td></tr>
+  <tr><td>React + mutation</td><td>Re-render is decided by <code>Object.is</code> on references. Mutate → same reference → no render.</td></tr>
+  <tr><td>Object equality</td><td>No built-in. Reference / shallow / deep. Never <code>JSON.stringify</code> — key order matters.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<p>One last thing, and it's the thing I'd actually want you to walk away with. Almost everything in this guide is one idea in different costumes: <strong>a variable holds a value, and for objects that value is an address.</strong></p>
+
+<p>Copying is that idea (you copy the address, not the thing). Equality is that idea (you compare addresses, not contents). React's rendering is that idea (a new address means new data). <code>const</code> vs <code>freeze</code> is that idea (locking the box vs. locking the warehouse).</p>
+
+<p>If you get asked something in an interview that this guide didn't cover, draw the boxes and the warehouse in your head and reason forward from there. It'll be right far more often than a memorized table would be. 🎯</p>
+
+</div>
+
+<script>
+  // Progressive enhancement only: nothing here is required to read the guide.
+  // Smooth-scroll the table of contents.
+  document.querySelectorAll('.toc a').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      var target = document.querySelector(link.getAttribute('href'));
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.replaceState(null, '', link.getAttribute('href'));
+    });
+  });
+</script>
+</body>
+</html>

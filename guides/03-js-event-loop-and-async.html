@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Event Loop, Promises &amp; Async/Await</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #1f2430;
+    --ink-soft: #4a5265;
+    --bg: #fbfaf8;
+    --card: #ffffff;
+    --rule: #e4e0d8;
+    --accent: #6b4df6;
+    --accent-soft: #f0ecff;
+    --green: #16794a;
+    --green-soft: #e8f6ee;
+    --red: #b3243c;
+    --red-soft: #fdecef;
+    --amber: #8a5a00;
+    --amber-soft: #fdf3dd;
+    --slate: #33506b;
+    --slate-soft: #eaf1f8;
+    --code-bg: #262b3a;
+    --code-ink: #e8e6f0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  header.hero {
+    padding: 68px 0 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 38px;
+  }
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  header.hero h1 {
+    font-size: 2.45rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 14px;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.24;
+    letter-spacing: -0.018em;
+    margin: 3.1rem 0 0.5rem;
+    padding-top: 0.6rem;
+    scroll-margin-top: 16px;
+  }
+  h3 {
+    font-size: 1.22rem;
+    line-height: 1.35;
+    margin: 2.2rem 0 0.4rem;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 16px;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.6rem 0 0.3rem;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0 0 1.05rem; }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.87em;
+  }
+
+  p > code, li > code, td > code, summary > code, h3 > code, h4 > code, dt > code {
+    background: #efeceb;
+    border: 1px solid #e2ddda;
+    border-radius: 5px;
+    padding: 0.08em 0.34em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    line-height: 1.62;
+    margin: 0 0 1.15rem;
+  }
+  pre code { font-size: 14.4px; background: none; border: none; padding: 0; }
+
+  .snippet { margin: 0 0 1.15rem; }
+  .snippet pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .snippet .label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+  }
+  .snippet.bad .label { background: var(--red-soft); color: var(--red); }
+  .snippet.good .label { background: var(--green-soft); color: var(--green); }
+  .snippet.plain .label { background: #ecebe8; color: var(--ink-soft); }
+
+  ul, ol { margin: 0 0 1.1rem; padding-left: 1.35rem; }
+  li { margin-bottom: 0.42rem; }
+
+  blockquote {
+    margin: 1.4rem 0;
+    padding: 2px 0 2px 20px;
+    border-left: 3px solid var(--accent);
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* ---- callouts ---- */
+  .box {
+    border-radius: 10px;
+    padding: 16px 20px 4px;
+    margin: 1.7rem 0;
+    border: 1px solid transparent;
+  }
+  .box .box-title {
+    font-size: 0.79rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+  }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 1rem; }
+
+  .wait   { background: var(--slate-soft);  border-color: #d3e0ee; }
+  .wait .box-title { color: var(--slate); }
+  .myth   { background: var(--red-soft);    border-color: #f6d5dc; }
+  .myth .box-title { color: var(--red); }
+  .hood   { background: #f1efec;            border-color: #e3ded8; }
+  .hood .box-title { color: #6a6357; }
+  .iview  { background: var(--accent-soft); border-color: #ddd4ff; }
+  .iview .box-title { color: var(--accent); }
+  .trap   { background: var(--amber-soft);  border-color: #f0e0b8; }
+  .trap .box-title { color: var(--amber); }
+
+  .say {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 1rem 0 1.1rem;
+  }
+  .say .who {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 750;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+  .say p { margin: 0 0 0.6rem; }
+  .say p:last-child { margin-bottom: 0; }
+
+  /* ---- toc ---- */
+  nav.toc {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 24px 20px;
+    margin-bottom: 2.6rem;
+  }
+  nav.toc h2 {
+    font-size: 0.79rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 10px;
+    padding: 0;
+    color: var(--ink-soft);
+  }
+  nav.toc ol { margin: 0; padding-left: 1.25rem; }
+  nav.toc li { margin-bottom: 0.18rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* ---- details / reveal ---- */
+  details {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 18px;
+    margin: 0 0 1.3rem;
+  }
+  details > summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--accent);
+    list-style-position: outside;
+  }
+  details[open] > summary { margin-bottom: 0.8rem; }
+  details pre { margin-bottom: 0.8rem; }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x: auto; margin: 0 0 1.4rem; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.93rem;
+    background: var(--card);
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f4f2ef; font-weight: 700; }
+
+  figure { margin: 2rem 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: 3.2rem 0 0; }
+
+  .cheat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 6px 24px 14px; }
+  .cheat dt { font-weight: 700; margin-top: 0.9rem; }
+  .cheat dd { margin: 0.1rem 0 0; color: var(--ink-soft); }
+
+  .step {
+    counter-reset: none;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 16px 22px 6px;
+    margin: 1.4rem 0;
+  }
+  .step ol { padding-left: 1.3rem; }
+  .step li { margin-bottom: 0.55rem; }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    header.hero h1 { font-size: 1.95rem; }
+    .wrap { padding: 0 16px 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview prep · Guide 03</p>
+  <h1>The Event Loop, Promises &amp; Async/Await</h1>
+  <p>How JavaScript does several things at once while only ever doing one thing at a time — and how to talk about it without freezing up.</p>
+</header>
+
+<p>I want to start with a puzzle, because this whole topic is best learned by getting something wrong first.</p>
+
+<div class="snippet plain">
+  <div class="label">What does this print?</div>
+<pre><code>console.log('A');
+
+setTimeout(() =&gt; console.log('B'), 0);
+
+Promise.resolve().then(() =&gt; console.log('C'));
+
+console.log('D');</code></pre>
+</div>
+
+<p>Take a real guess. Say it out loud, or type it somewhere. Most people who've written JavaScript for a year say <code>A B C D</code> or <code>A D B C</code>. Both are wrong.</p>
+
+<p>The answer is <code>A D C B</code>. That <code>setTimeout</code> with a delay of <em>zero milliseconds</em> loses a race to a promise that also has nothing to wait for. If you can explain exactly why, in about ninety seconds, you have already passed the most commonly-asked JavaScript interview question in the industry.</p>
+
+<p>By the end of this guide you'll be able to. But I'm not going to hand you a rule to memorise — rules evaporate under interview pressure. I'm going to build you a <em>picture</em>, and then the answer falls out of the picture every time.</p>
+
+<nav class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#single-threaded">"JavaScript is single-threaded" — what that actually means</a></li>
+    <li><a href="#machinery">The four pieces of machinery</a></li>
+    <li><a href="#diagram">The diagram (the one to draw on the whiteboard)</a></li>
+    <li><a href="#algorithm">The loop algorithm, precisely</a></li>
+    <li><a href="#macro-micro">Macrotasks vs microtasks</a></li>
+    <li><a href="#puzzle-1">Puzzle 1, solved step by step</a></li>
+    <li><a href="#settimeout-zero">Why <code>setTimeout(fn, 0)</code> is never 0ms</a></li>
+    <li><a href="#starvation">Microtask starvation</a></li>
+    <li><a href="#blocking">Blocking the event loop (why interviewers care)</a></li>
+    <li><a href="#promises">Promises, from first principles</a></li>
+    <li><a href="#chaining">Chaining: every <code>.then</code> makes a new promise</a></li>
+    <li><a href="#errors">Errors, <code>.catch</code>, <code>.finally</code>, unhandled rejections</a></li>
+    <li><a href="#async-await">async / await: sugar over the same machine</a></li>
+    <li><a href="#puzzle-2">Puzzle 2, the hard one</a></li>
+    <li><a href="#parallel">Awaiting in a loop (the mistake everyone makes)</a></li>
+    <li><a href="#combinators"><code>all</code> vs <code>allSettled</code> vs <code>race</code> vs <code>any</code></a></li>
+    <li><a href="#evolution">Callback hell → promises → async/await</a></li>
+    <li><a href="#implement-all">Implementing <code>Promise.all</code> yourself</a></li>
+    <li><a href="#cancel">Can you cancel a promise? (AbortController)</a></li>
+    <li><a href="#interview">The interview layer: model answers &amp; follow-ups</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="single-threaded">1. "JavaScript is single-threaded" — what that actually means</h2>
+
+<p>You've heard this sentence. It gets repeated so often that it's become a kind of incantation people say without inspecting. And it causes a very specific confusion, which goes like this:</p>
+
+<blockquote>If JavaScript can only do one thing at a time, how does <code>setTimeout</code> work? Something has to be counting while my code keeps running. And how do I download three files at once?</blockquote>
+
+<p>Great question. The confusion comes from a sloppy sentence. Here's the precise version:</p>
+
+<p><strong>There is exactly one thread that executes your JavaScript.</strong> One. At any given instant, exactly one line of your JS is running, and nothing else in your JS runs until that line finishes.</p>
+
+<p>That's it. That's the whole claim. Notice what it does <em>not</em> say:</p>
+
+<ul>
+  <li>It does <strong>not</strong> say the browser is single-threaded. Chrome is a huge multi-threaded program. There are threads for networking, threads for parsing images, threads for compositing pixels onto your screen, threads for timers.</li>
+  <li>It does <strong>not</strong> say your program can only do one thing at a time. Three HTTP requests can absolutely be in flight simultaneously — the network stack handles them, and the network stack is not JavaScript.</li>
+  <li>It does <strong>not</strong> say JavaScript can never use more than one core. Web Workers give you genuinely parallel JS — but each worker has its own separate single thread and its own memory, and they communicate by passing messages, never by sharing variables.</li>
+</ul>
+
+<p>Here's the analogy I want you to carry through this whole guide.</p>
+
+<div class="box hood">
+  <p class="box-title">The one-cook kitchen</p>
+  <p>Picture a small restaurant with <strong>one cook</strong>. The cook is the JS thread. The cook can only do one thing at a time — chop, stir, plate. Nothing gets done in the kitchen unless the cook does it.</p>
+  <p>But the restaurant has <strong>appliances</strong>: an oven, a kettle, a delivery driver who fetches ingredients. The cook puts a tray in the oven and sets a timer, then <em>walks away and does something else</em>. The oven does not need the cook to stand there. When the timer dings, the cook doesn't drop the knife mid-chop — the ding goes onto a <strong>ticket spike</strong>, and the cook picks it up when they finish the current task.</p>
+  <p>The oven, kettle and driver are the browser's other threads. The ticket spike is a queue. The rule "finish the current task before picking up the next ticket" is the event loop.</p>
+  <p><em>Where the analogy breaks:</em> a real cook can glance at the oven and abandon a task halfway. The JS thread genuinely cannot. It runs a task to <strong>completion</strong>, no exceptions, no interruptions. Hold onto that — it's the source of every surprise in this topic.</p>
+</div>
+
+<p>So: <strong>concurrency, not parallelism.</strong> JavaScript is concurrent (many things in progress at once) without being parallel (many things executing at once). That distinction is worth a lot of points in an interview and it costs you one sentence to say.</p>
+
+<div class="box myth">
+  <p class="box-title">A common misconception</p>
+  <p>"<code>setTimeout</code> spawns a thread that runs my callback." No. Your callback is <em>always</em> run by the one JS thread. The browser's timer thread only does the counting; when the time is up it does nothing more dramatic than <strong>push your callback onto a queue</strong>. Your callback then waits its turn like everybody else.</p>
+</div>
+
+<h2 id="machinery">2. The four pieces of machinery</h2>
+
+<p>To predict output order you need four things in your head. Let me build them one at a time, and I promise not to use any of them before I've explained it.</p>
+
+<h3>2a. The call stack</h3>
+
+<p>When you call a function, JS pushes a <strong>frame</strong> onto a stack: a little record of "I am inside this function, and here's where to return to." When the function returns, that frame is popped off.</p>
+
+<div class="snippet plain">
+  <div class="label">Stack in slow motion</div>
+<pre><code>function formatPrice(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+function renderTotal(cart) {
+  return 'Total: ' + formatPrice(cart.totalCents);
+}
+
+renderTotal({ totalCents: 4250 });  // → "Total: $42.50"</code></pre>
+</div>
+
+<p>At the deepest moment, the stack is: <code>renderTotal</code> on the bottom, <code>formatPrice</code> on top. <code>formatPrice</code> returns, its frame pops. <code>renderTotal</code> returns, its frame pops. Stack is empty again.</p>
+
+<p><strong>"The stack is empty" is the single most important state in this whole guide.</strong> It's the moment the cook has plated the dish and is free. Everything asynchronous happens at that moment and never before it.</p>
+
+<h3>2b. Web APIs (the host environment)</h3>
+
+<p>Here's something that surprises people: <code>setTimeout</code> is <em>not part of JavaScript</em>. Neither is <code>fetch</code>, or <code>addEventListener</code>, or <code>localStorage</code>. Open the JavaScript language spec and you will not find them. They're provided by the <strong>host environment</strong> — the browser, or Node, or Deno.</p>
+
+<p>The language itself gives you objects, functions, <code>Math</code>, <code>JSON</code>, promises. Everything that touches the outside world — time, network, screen, disk — is a capability the host lends you. And crucially, those capabilities are implemented in the host's own code, running on the host's own threads, <em>not</em> on the JS thread.</p>
+
+<p>So when you write <code>setTimeout(saveDraft, 3000)</code>, what happens is: JS hands a function reference and a number to the browser, and the browser says "cool, I'll take it from here" and JS immediately moves on. The browser has a timer thread doing the counting.</p>
+
+<h3>2c. The task queue (a.k.a. the macrotask queue, callback queue)</h3>
+
+<p>When the browser finishes a job you asked for — the 3000ms elapsed, the HTTP response arrived, the user clicked — it can't just run your callback. The JS thread might be busy. So it puts the callback in a line: the <strong>task queue</strong>.</p>
+
+<p>It's a FIFO queue — first in, first out. Fair, orderly, boring. That's the ticket spike from the kitchen.</p>
+
+<h3>2d. The microtask queue</h3>
+
+<p>There is a <strong>second</strong> queue, and it is not equal to the first. It's a VIP line. Promise callbacks go here, and so do <code>queueMicrotask()</code> callbacks and <code>MutationObserver</code> callbacks.</p>
+
+<p>The microtask queue has one rule that changes everything: <strong>it gets drained completely</strong>, right down to empty, before the event loop is allowed to take a single item from the task queue. And if draining it adds <em>more</em> microtasks, those get drained too, in the same pass.</p>
+
+<p>That's the whole reason <code>C</code> beat <code>B</code> in the opening puzzle. Now let's see all four pieces in one picture.</p>
+
+<h2 id="diagram">3. The diagram</h2>
+
+<p>Draw this on the whiteboard when they ask. Seriously — reach for the pen. Interviewers love a candidate who diagrams, because it shows you're reasoning from a model rather than reciting.</p>
+
+<figure>
+<svg viewBox="0 0 720 470" role="img" aria-label="Diagram of the call stack, Web APIs, task queue, microtask queue and the event loop connecting them">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b4df6"/>
+    </marker>
+    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8578"/>
+    </marker>
+  </defs>
+
+  <style>
+    .lbl { font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; fill: #1f2430; }
+    .lbl-sm { font: 500 11.5px -apple-system, "Segoe UI", Roboto, sans-serif; fill: #4a5265; }
+    .mono { font: 500 12px ui-monospace, Menlo, Consolas, monospace; fill: #1f2430; }
+    .ttl { font: 700 12px -apple-system, "Segoe UI", Roboto, sans-serif; fill: #4a5265; letter-spacing: .06em; }
+    .card { fill: #ffffff; stroke: #d9d4cc; stroke-width: 1.5; }
+    .frame { fill: #eae5ff; stroke: #c4b7fb; stroke-width: 1.2; }
+    .tsk { fill: #eaf1f8; stroke: #b9cfe4; stroke-width: 1.2; }
+    .mic { fill: #e8f6ee; stroke: #a8d9bf; stroke-width: 1.2; }
+    .flow { stroke: #6b4df6; stroke-width: 2; fill: none; marker-end: url(#ah); }
+    .flow2 { stroke: #8a8578; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; marker-end: url(#ah2); }
+  </style>
+
+  <!-- CALL STACK -->
+  <rect class="card" x="14" y="34" width="200" height="190" rx="10"/>
+  <text class="ttl" x="28" y="56">CALL STACK</text>
+  <text class="lbl-sm" x="28" y="73">one at a time · LIFO</text>
+  <rect class="frame" x="30" y="86" width="168" height="28" rx="5"/>
+  <text class="mono" x="42" y="105">formatPrice()</text>
+  <rect class="frame" x="30" y="120" width="168" height="28" rx="5"/>
+  <text class="mono" x="42" y="139">renderTotal()</text>
+  <rect class="frame" x="30" y="154" width="168" height="28" rx="5"/>
+  <text class="mono" x="42" y="173">&lt;script&gt; / task</text>
+  <text class="lbl-sm" x="30" y="205">↑ pops when done</text>
+
+  <!-- WEB APIS -->
+  <rect class="card" x="440" y="34" width="266" height="190" rx="10"/>
+  <text class="ttl" x="456" y="56">WEB APIs / HOST</text>
+  <text class="lbl-sm" x="456" y="73">the browser's own threads</text>
+  <rect x="456" y="86" width="234" height="26" rx="5" fill="#fdf3dd" stroke="#e8d6a8" stroke-width="1.2"/>
+  <text class="mono" x="466" y="104">timers  ·  setTimeout / setInterval</text>
+  <rect x="456" y="118" width="234" height="26" rx="5" fill="#fdf3dd" stroke="#e8d6a8" stroke-width="1.2"/>
+  <text class="mono" x="466" y="136">network  ·  fetch / XHR</text>
+  <rect x="456" y="150" width="234" height="26" rx="5" fill="#fdf3dd" stroke="#e8d6a8" stroke-width="1.2"/>
+  <text class="mono" x="466" y="168">DOM events  ·  clicks, keys</text>
+  <text class="lbl-sm" x="456" y="196">these run in parallel with your JS</text>
+
+  <!-- stack -> web apis -->
+  <path class="flow" d="M 216 108 L 436 108"/>
+  <text class="lbl-sm" x="252" y="100">hand off the job</text>
+
+  <!-- MICROTASK QUEUE -->
+  <rect class="card" x="252" y="248" width="454" height="76" rx="10"/>
+  <text class="ttl" x="266" y="270">MICROTASK QUEUE  ·  drained ENTIRELY</text>
+  <rect class="mic" x="266" y="280" width="128" height="28" rx="5"/>
+  <text class="mono" x="276" y="299">.then cb</text>
+  <rect class="mic" x="400" y="280" width="128" height="28" rx="5"/>
+  <text class="mono" x="410" y="299">await resume</text>
+  <rect class="mic" x="534" y="280" width="158" height="28" rx="5"/>
+  <text class="mono" x="544" y="299">queueMicrotask</text>
+
+  <!-- TASK QUEUE -->
+  <rect class="card" x="252" y="344" width="454" height="76" rx="10"/>
+  <text class="ttl" x="266" y="366">TASK (MACROTASK) QUEUE  ·  ONE per turn</text>
+  <rect class="tsk" x="266" y="376" width="128" height="28" rx="5"/>
+  <text class="mono" x="276" y="395">timer cb</text>
+  <rect class="tsk" x="400" y="376" width="128" height="28" rx="5"/>
+  <text class="mono" x="410" y="395">click handler</text>
+  <rect class="tsk" x="534" y="376" width="158" height="28" rx="5"/>
+  <text class="mono" x="544" y="395">fetch settled</text>
+
+  <!-- web apis -> queues -->
+  <path class="flow2" d="M 573 228 L 573 240"/>
+  <path class="flow2" d="M 706 130 C 736 200 736 330 712 378"/>
+  <text class="lbl-sm" x="600" y="240">when ready →</text>
+
+  <!-- EVENT LOOP -->
+  <circle cx="130" cy="336" r="62" fill="#f0ecff" stroke="#6b4df6" stroke-width="2"/>
+  <text class="lbl" x="130" y="326" text-anchor="middle">EVENT</text>
+  <text class="lbl" x="130" y="344" text-anchor="middle">LOOP</text>
+  <text class="lbl-sm" x="130" y="362" text-anchor="middle">↻ forever</text>
+
+  <!-- loop -> stack -->
+  <path class="flow" d="M 118 272 C 110 250 108 240 108 230"/>
+  <text class="lbl-sm" x="14" y="252">push onto stack</text>
+  <text class="lbl-sm" x="14" y="266">only if EMPTY</text>
+
+  <!-- queues -> loop -->
+  <path class="flow" d="M 248 288 L 196 306"/>
+  <path class="flow" d="M 248 382 L 190 358"/>
+
+  <text class="lbl-sm" x="252" y="440">1st priority: microtasks (all of them) — 2nd: exactly one macrotask</text>
+</svg>
+<figcaption>The stack hands jobs to the host. The host puts finished callbacks in queues. The event loop moves them back onto the stack — but only when the stack is empty, and only microtasks-first.</figcaption>
+</figure>
+
+<h2 id="algorithm">4. The loop algorithm, precisely</h2>
+
+<p>Here is the actual cycle. Learn these five lines and you can answer almost any ordering question by hand-simulating them.</p>
+
+<div class="step">
+  <ol>
+    <li><strong>Run the current task to completion.</strong> The JS on the stack runs until the stack is empty. Nothing preempts it. (The very first "task" is the initial evaluation of your <code>&lt;script&gt;</code>.)</li>
+    <li><strong>Drain the entire microtask queue.</strong> Pull microtasks off one by one and run each to completion. If running one adds new microtasks, they go on the end of the same queue and also get run, in this same pass. Keep going until the queue is genuinely empty.</li>
+    <li><strong>Maybe render.</strong> If the browser thinks it's time to paint a frame (roughly 60 times a second), it now runs <code>requestAnimationFrame</code> callbacks, recalculates styles, does layout, and paints. This is the only window in which the screen can update.</li>
+    <li><strong>Take exactly ONE task</strong> from the task queue and run it.</li>
+    <li><strong>Go back to step 2.</strong> Forever.</li>
+  </ol>
+</div>
+
+<p>Read step 2 and step 4 next to each other. That asymmetry — <em>all</em> the microtasks, but <em>one</em> macrotask — is the engine of every trick question on this topic.</p>
+
+<div class="box wait">
+  <p class="box-title">Wait — why the asymmetry? Why not drain both?</p>
+  <p>Because of step 3. The browser wants to get back to rendering as often as it can, so the screen stays responsive. If it drained the whole task queue every turn, a burst of a hundred click events or timers would lock the UI until every last one had run.</p>
+  <p>Taking one macrotask per turn means the browser gets a chance to paint between them. Microtasks are treated as "the rest of the thing you were just doing" — the leftover crumbs of the current task — so it finishes them all first to reach a consistent state before showing anything to the user. A half-resolved promise chain is not a state you want to paint.</p>
+</div>
+
+<h2 id="macro-micro">5. Macrotasks vs microtasks</h2>
+
+<p>Time to sort things into buckets. This is one of the few places where a table genuinely beats prose, because it's reference material you'll want to skim the morning of the interview.</p>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th>Macrotasks (tasks)</th><th>Microtasks</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>setTimeout</code> callbacks</td>
+      <td><code>.then</code> / <code>.catch</code> / <code>.finally</code> callbacks</td>
+    </tr>
+    <tr>
+      <td><code>setInterval</code> callbacks</td>
+      <td>the code after an <code>await</code></td>
+    </tr>
+    <tr>
+      <td>DOM/UI events: <code>click</code>, <code>keydown</code>, <code>scroll</code></td>
+      <td><code>queueMicrotask(fn)</code></td>
+    </tr>
+    <tr>
+      <td>I/O completion (in Node), <code>setImmediate</code> (Node)</td>
+      <td><code>MutationObserver</code> callbacks</td>
+    </tr>
+    <tr>
+      <td>the initial <code>&lt;script&gt;</code> evaluation</td>
+      <td><code>process.nextTick</code> (Node — even higher priority)</td>
+    </tr>
+    <tr>
+      <td><strong>One per loop turn.</strong> Browser may render between them.</td>
+      <td><strong>All of them, every turn.</strong> No render until the queue is empty.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box wait">
+  <p class="box-title">Wait — where does <code>fetch</code> go?</p>
+  <p>Both, in a sense, and this trips people up. The arrival of the network response is a <strong>task</strong> — the browser queues a macrotask that resolves the promise. But your <code>.then(...)</code> callback attached to that promise is a <strong>microtask</strong>, which runs during the drain immediately after that task. So a <code>fetch</code> costs you one macrotask turn to settle, then your handlers run as microtasks.</p>
+</div>
+
+<p>One more thing worth stating plainly, because interviewers ask it: <strong>"microtask" doesn't mean "small" and "macrotask" doesn't mean "big."</strong> The names are about <em>priority and scheduling</em>, not size. A microtask that runs a million-iteration loop will block everything just as hard as a macrotask doing the same.</p>
+
+<h2 id="puzzle-1">6. Puzzle 1, solved step by step</h2>
+
+<p>Back to where we started. Now we have the machine, let's run it by hand.</p>
+
+<div class="snippet plain">
+  <div class="label">The opening puzzle</div>
+<pre><code>console.log('A');
+setTimeout(() =&gt; console.log('B'), 0);
+Promise.resolve().then(() =&gt; console.log('C'));
+console.log('D');</code></pre>
+</div>
+
+<div class="step">
+  <ol>
+    <li>The whole script is <strong>one macrotask</strong>. It starts running on the stack.</li>
+    <li><code>console.log('A')</code> → prints <strong>A</strong>.</li>
+    <li><code>setTimeout(fn, 0)</code> → JS hands <code>fn</code> and <code>0</code> to the browser's timer service and immediately continues. Nothing is printed. The browser will put <code>fn</code> in the <em>task</em> queue once the timer fires.</li>
+    <li><code>Promise.resolve()</code> creates an already-fulfilled promise. Calling <code>.then(fn)</code> on an already-fulfilled promise schedules <code>fn</code> onto the <em>microtask</em> queue right now. Still nothing printed.</li>
+    <li><code>console.log('D')</code> → prints <strong>D</strong>.</li>
+    <li>Script ends. Stack is empty. <strong>The task is complete.</strong></li>
+    <li>Step 2 of the loop: drain microtasks. There's one — the <code>C</code> callback. Prints <strong>C</strong>. Queue is now empty.</li>
+    <li>Step 4: take one macrotask. The timer's callback is sitting there. Prints <strong>B</strong>.</li>
+  </ol>
+</div>
+
+<p><strong><code>A D C B</code></strong>. And notice you never had to memorise a rule — you just walked the machine.</p>
+
+<p>Let's push on the edges with a nastier one that tests whether you really understood "drain <em>entirely</em>, including newly-added."</p>
+
+<div class="snippet plain">
+  <div class="label">Puzzle 1b — predict before you open the answer</div>
+<pre><code>setTimeout(() =&gt; {
+  console.log('timeout 1');
+  Promise.resolve().then(() =&gt; console.log('micro in timeout 1'));
+}, 0);
+
+setTimeout(() =&gt; console.log('timeout 2'), 0);
+
+Promise.resolve().then(() =&gt; {
+  console.log('micro 1');
+  Promise.resolve().then(() =&gt; console.log('micro 2'));
+});
+
+console.log('sync');</code></pre>
+</div>
+
+<details>
+  <summary>Reveal the answer and the walkthrough</summary>
+<pre><code>sync
+micro 1
+micro 2
+timeout 1
+micro in timeout 1
+timeout 2</code></pre>
+  <p>Both timers get queued. The <code>.then</code> gets queued as a microtask. <code>sync</code> prints, script task ends.</p>
+  <p><strong>Drain microtasks:</strong> <code>micro 1</code> runs and — this is the bit — <em>adds another microtask</em>. We do not stop. The queue isn't empty, so we keep going: <code>micro 2</code> runs. Now it's empty.</p>
+  <p><strong>One macrotask:</strong> <code>timeout 1</code> runs and queues a microtask. That task finishes, so we're back at step 2 — drain microtasks — and <code>micro in timeout 1</code> runs <em>before</em> the second timer, even though the second timer was queued long before it existed.</p>
+  <p>Then, finally, the next macrotask: <code>timeout 2</code>.</p>
+</details>
+
+<p>The takeaway to say out loud in an interview: <em>"After every single macrotask, the microtask queue is drained again. Microtasks always jump the line."</em></p>
+
+<h2 id="settimeout-zero">7. Why <code>setTimeout(fn, 0)</code> is never actually 0ms</h2>
+
+<p>Three separate reasons, and a good answer names at least two.</p>
+
+<p><strong>1. It's a minimum, not a promise.</strong> The delay says "don't queue this callback <em>before</em> 0ms have passed." It says nothing about when it will run. If the stack is busy for 5 seconds, your 0ms timer fires after 5 seconds. The browser physically cannot interrupt running JS.</p>
+
+<div class="snippet plain">
+  <div class="label">A 0ms timer taking 2 seconds</div>
+<pre><code>setTimeout(() =&gt; console.log('finally!'), 0);
+
+const start = Date.now();
+while (Date.now() - start &lt; 2000) {}  // 👈 blocking the thread
+
+console.log('done blocking');
+// → done blocking
+// → finally!      (about 2 seconds later)</code></pre>
+</div>
+
+<p><strong>2. The spec mandates a 4ms floor for nested timers.</strong> If you chain <code>setTimeout</code> inside <code>setTimeout</code> five levels deep, browsers clamp any delay below 4ms up to 4ms. It's an old anti-runaway-loop protection. So a naive <code>setTimeout(loop, 0)</code> recursion runs at roughly 250 iterations per second, not as fast as possible.</p>
+
+<p><strong>3. Background tabs get throttled hard.</strong> Move the tab to the background and browsers clamp timers to about once per second, sometimes far less for deeply backgrounded tabs.</p>
+
+<div class="box wait">
+  <p class="box-title">Wait — so what <em>is</em> <code>setTimeout(fn, 0)</code> good for?</p>
+  <p>It means "run this after the current task and its microtasks are completely finished, and after the browser has had a chance to render." It's a yield. Classic uses: letting the browser paint a loading spinner before you start heavy work, or breaking a long computation into chunks so the UI stays alive. If all you want is "after the current synchronous code but <em>before</em> rendering", use <code>queueMicrotask</code> instead — it's more precise and doesn't cost you a frame.</p>
+</div>
+
+<h2 id="starvation">8. Microtask starvation</h2>
+
+<p>"Drain the microtask queue entirely" has a dark side. What if it never empties?</p>
+
+<div class="snippet bad">
+  <div class="label">❌ Freezes the page, permanently</div>
+<pre><code>function loop() {
+  queueMicrotask(loop);  // 👈 each one schedules another
+}
+loop();</code></pre>
+</div>
+
+<p>The loop reaches step 2, starts draining, and every microtask it runs adds another. The queue never empties. The event loop never reaches step 3 (render) or step 4 (next task). Your page is frozen forever — clicks do nothing, animations stop, the tab has to be killed. There's no escape hatch, because "drain entirely" has no budget or timeout.</p>
+
+<p>Compare with the macrotask version:</p>
+
+<div class="snippet good">
+  <div class="label">✅ Runs forever, but the page stays alive</div>
+<pre><code>function loop() {
+  setTimeout(loop, 0);  // 👈 one per loop turn
+}
+loop();</code></pre>
+</div>
+
+<p>Here each iteration is one macrotask, so between every iteration the browser gets to render and process input. Wasteful, but not fatal.</p>
+
+<p>This is a lovely thing to bring up unprompted, because it proves you understand the <em>consequence</em> of the drain rule rather than just having memorised it.</p>
+
+<h2 id="blocking">9. Blocking the event loop — the practical reason anyone cares</h2>
+
+<p>Here's the thing to understand about the browser: <strong>rendering and JavaScript share the same thread.</strong> Look at step 3 of the algorithm — the paint happens <em>between</em> tasks, never during one. So while your JS is running, the screen is frozen. Not "slow." Frozen.</p>
+
+<div class="snippet bad">
+  <div class="label">❌ The UI dies for 3 seconds</div>
+<pre><code>button.addEventListener('click', () =&gt; {
+  const results = [];
+  for (let i = 0; i &lt; 50_000_000; i++) {
+    results.push(expensiveScore(i));   // 👈 ~3 seconds of pure JS
+  }
+  render(results);
+});</code></pre>
+</div>
+
+<p>During those three seconds: CSS animations stop mid-motion. Hover states don't change. The user clicks again — the click is <em>queued</em>, not lost, so it fires later and they get a double submission. Text can't be selected. Chrome may show "Page unresponsive."</p>
+
+<p>This is why interviewers care. It isn't trivia. It's the difference between an app that feels snappy and one that feels broken. And the fixes all come straight from the model:</p>
+
+<ul>
+  <li><strong>Chunk it.</strong> Do 1,000 items, then <code>setTimeout(..., 0)</code> to yield so the browser can paint, then do the next 1,000.</li>
+  <li><strong>Move it off-thread.</strong> A <code>Web Worker</code> runs on a genuinely separate thread with its own event loop. It can't touch the DOM, but it can crunch numbers and <code>postMessage</code> the result back. This is the real answer for heavy CPU work.</li>
+  <li><strong>Don't do it at all.</strong> Paginate, virtualise the list, or ask the server to do the aggregation.</li>
+</ul>
+
+<div class="box myth">
+  <p class="box-title">A common misconception</p>
+  <p>"I'll wrap the heavy loop in a promise / an <code>async</code> function and it won't block." It absolutely will. Promises don't create threads — they only control <em>when</em> your code runs, never <em>where</em>. A 3-second synchronous loop inside a <code>.then</code> blocks the thread for 3 seconds, exactly like everywhere else. Only a Worker gets you off the main thread.</p>
+</div>
+
+<h2 id="promises">10. Promises, from first principles</h2>
+
+<p>Let's put the loop down for a moment and build promises properly, because half of the event-loop questions are really promise questions in disguise.</p>
+
+<p>A promise is <strong>an object representing a value that isn't here yet</strong>. That's it. It's a receipt. You hand it around, you attach instructions to it — "when the value shows up, do this" — and at some point it gets filled in.</p>
+
+<div class="box hood">
+  <p class="box-title">The coat check ticket</p>
+  <p>You give your coat to the attendant and get a numbered ticket. The ticket is not the coat. But it <em>will</em> get you the coat, and you can hand it to a friend, or put it in your pocket and forget about it, or write on the back "when you collect this, also grab my umbrella."</p>
+  <p>Two things can happen: the coat comes back (fulfilled) or the attendant tells you there was a fire and it's gone (rejected). Either way, once the ticket is settled, that's it — it's settled forever. You can't un-collect a coat.</p>
+  <p><em>Where it breaks:</em> a real ticket is single-use. A promise can be "cashed in" any number of times — attach ten <code>.then</code>s and all ten fire, and you can attach one an hour after it settled and it'll still fire immediately.</p>
+</div>
+
+<h3>The three states</h3>
+
+<ul>
+  <li><strong>pending</strong> — nothing has happened yet. The starting state.</li>
+  <li><strong>fulfilled</strong> — it worked; there's a value.</li>
+  <li><strong>rejected</strong> — it failed; there's a reason (conventionally an <code>Error</code>).</li>
+</ul>
+
+<p>Two words that make you sound precise: a promise that is either fulfilled or rejected is <strong>settled</strong>. And <code>resolved</code> is subtly different from <code>fulfilled</code> — a promise is "resolved" once its fate is locked in, which might mean it's locked to <em>another</em> promise and is still pending. Don't over-index on that, but knowing it exists is a nice signal.</p>
+
+<p>The crucial property: <strong>state transitions are one-way and permanent.</strong> Pending → fulfilled, or pending → rejected. Never back to pending, never fulfilled → rejected. Once settled, the value is frozen.</p>
+
+<div class="snippet plain">
+  <div class="label">Only the first settle counts</div>
+<pre><code>const order = new Promise((resolve, reject) =&gt; {
+  resolve('pizza');
+  reject(new Error('kitchen fire'));  // 👈 completely ignored
+  resolve('salad');                   // 👈 also ignored
+});
+
+order.then(console.log);  // → pizza</code></pre>
+</div>
+
+<p>This immutability is exactly what makes promises safe to pass around. Callbacks had no such guarantee — a badly-written library could call your callback twice, or call it with both an error <em>and</em> a result. Promises make that structurally impossible.</p>
+
+<h3>Creating one</h3>
+
+<p>Most of the time you don't — <code>fetch</code> and friends hand you promises already. But you write the constructor when wrapping an old callback-based API:</p>
+
+<div class="snippet plain">
+  <div class="label">Promisifying a callback API</div>
+<pre><code>function wait(ms) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(resolve, ms);
+  });
+}
+
+function readFile(path) {
+  return new Promise((resolve, reject) =&gt; {
+    fs.readFile(path, 'utf8', (err, data) =&gt; {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
+}</code></pre>
+</div>
+
+<p>One detail people miss: <strong>the function you pass to <code>new Promise</code> runs synchronously, immediately.</strong> It's called the <em>executor</em>. It is not deferred, not queued. Only the <code>.then</code> callbacks are asynchronous. This shows up in ordering puzzles constantly.</p>
+
+<h2 id="chaining">11. Chaining: every <code>.then</code> makes a brand new promise</h2>
+
+<p>This is the idea that unlocks promises, and it's the one most tutorials rush past.</p>
+
+<p><strong><code>.then()</code> does not modify the promise you called it on. It returns a completely new promise.</strong></p>
+
+<p>That's why chains work. Each link is a fresh promise whose fate depends on what the previous callback did. And there are exactly three things your callback can do:</p>
+
+<h4>1. Return a plain value</h4>
+<p>The new promise fulfills with that value.</p>
+
+<div class="snippet plain">
+  <div class="label">Return a value</div>
+<pre><code>Promise.resolve(5)
+  .then((n) =&gt; n * 2)      // returns 10 → new promise fulfills with 10
+  .then((n) =&gt; n + 1)      // returns 11
+  .then(console.log);      // → 11</code></pre>
+</div>
+
+<p>Return nothing, and the new promise fulfills with <code>undefined</code>. That's the source of a very common bug — forgetting the <code>return</code> in a chain and getting <code>undefined</code> downstream.</p>
+
+<h4>2. Return a promise</h4>
+<p>Now the magic: the new promise <strong>waits for yours</strong> and adopts its outcome. This is called <em>unwrapping</em> or <em>assimilation</em>, and it's what makes chains flat instead of nested.</p>
+
+<div class="snippet plain">
+  <div class="label">Return a promise — the chain waits</div>
+<pre><code>fetch('/api/user/42')
+  .then((response) =&gt; response.json())   // 👈 returns a promise; chain waits for it
+  .then((user) =&gt; fetch(`/api/orders?u=${user.id}`))
+  .then((response) =&gt; response.json())
+  .then((orders) =&gt; console.log(orders.length));</code></pre>
+</div>
+
+<p>You never get a promise-of-a-promise. If a <code>.then</code> callback returns a promise, the outer one flattens onto it. It's a bit like how a nested array in <code>flat()</code> collapses — one level of "promise-ness" disappears.</p>
+
+<div class="box trap">
+  <p class="box-title">Trap: forgetting to return</p>
+  <p>Write <code>.then((r) =&gt; { r.json(); })</code> with braces and no <code>return</code>, and you've silently produced a promise for <code>undefined</code>. The chain doesn't wait for the JSON, and the next handler gets <code>undefined</code>. This is one of the most common real-world promise bugs, and mentioning it unprompted signals that you've actually shipped code.</p>
+</div>
+
+<h4>3. Throw</h4>
+<p>The new promise <strong>rejects</strong> with whatever you threw. A <code>throw</code> inside a <code>.then</code> is exactly equivalent to returning a rejected promise.</p>
+
+<div class="snippet plain">
+  <div class="label">Throw → rejection</div>
+<pre><code>fetch('/api/user/42')
+  .then((response) =&gt; {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);  // 👈
+    return response.json();
+  })
+  .then((user) =&gt; console.log(user.name))
+  .catch((err) =&gt; console.error('Failed:', err.message));</code></pre>
+</div>
+
+<p>That's worth pausing on. <code>fetch</code> only rejects on <em>network</em> failure — a 404 or a 500 is a perfectly successful HTTP round-trip as far as <code>fetch</code> is concerned, so <code>response.ok</code> is false but the promise fulfils. Checking <code>response.ok</code> and throwing is how you fold HTTP errors into the rejection path. Interviewers love this one.</p>
+
+<h2 id="errors">12. Errors, <code>.catch</code>, <code>.finally</code>, and unhandled rejections</h2>
+
+<p>Here's the mental model: a promise chain has <strong>two tracks</strong>, a success track and a failure track. A value flows down the success track. A rejection flows down the failure track. <code>.then</code> handlers are stations on the success track — a rejection <em>skips straight past them</em> until it finds a <code>.catch</code>, which is a station on the failure track.</p>
+
+<div class="snippet plain">
+  <div class="label">Rejections skip .then handlers</div>
+<pre><code>Promise.reject(new Error('boom'))
+  .then(() =&gt; console.log('never runs'))
+  .then(() =&gt; console.log('also never runs'))
+  .catch((err) =&gt; console.log('caught:', err.message))
+  .then(() =&gt; console.log('back on the happy track'));
+
+// → caught: boom
+// → back on the happy track</code></pre>
+</div>
+
+<p>Notice that last line. <strong><code>.catch</code> handles the error and returns to the success track</strong>, exactly like a <code>try/catch</code> block in synchronous code. If you don't want to recover, re-throw inside the catch.</p>
+
+<p>And <code>.catch(fn)</code> is literally just sugar for <code>.then(undefined, fn)</code> — nothing more. Which explains a subtle gotcha:</p>
+
+<div class="snippet bad">
+  <div class="label">❌ The second argument doesn't catch its own sibling</div>
+<pre><code>somePromise.then(
+  (value) =&gt; { throw new Error('handler blew up'); },
+  (err) =&gt; console.log('this will NOT see it')   // 👈 same .then, can't catch
+);</code></pre>
+</div>
+
+<div class="snippet good">
+  <div class="label">✅ A separate .catch sees everything upstream</div>
+<pre><code>somePromise
+  .then((value) =&gt; { throw new Error('handler blew up'); })
+  .catch((err) =&gt; console.log('caught it'));      // → caught it</code></pre>
+</div>
+
+<p>Rule of thumb: <strong>put <code>.catch</code> at the end of the chain</strong>, so it covers every link above it.</p>
+
+<h3><code>.finally</code></h3>
+
+<p><code>.finally(fn)</code> runs whether the chain succeeded or failed. It's for cleanup — hiding a spinner, closing a connection. Two things make it different from just adding a <code>.then</code>:</p>
+
+<ul>
+  <li>Its callback receives <strong>no arguments</strong>. It doesn't know or care what happened.</li>
+  <li>It is <strong>transparent</strong>: it passes the value or the rejection straight through untouched. Returning something from <code>finally</code> doesn't change the chain's value (unless you throw, or return a rejected promise — those <em>do</em> take over).</li>
+</ul>
+
+<div class="snippet plain">
+  <div class="label">Cleanup that can't accidentally swallow the result</div>
+<pre><code>setLoading(true);
+
+fetchUser(id)
+  .then((user) =&gt; render(user))
+  .catch((err) =&gt; showError(err))
+  .finally(() =&gt; setLoading(false));   // 👈 always runs, changes nothing</code></pre>
+</div>
+
+<h3>Unhandled rejections</h3>
+
+<p>What happens if a promise rejects and nobody ever attached a <code>.catch</code>?</p>
+
+<p>In the browser, the rejection is silent at first — the engine can't know you won't attach a handler a moment later. But once the microtask queue has drained and no handler has appeared, the environment fires a global <code>unhandledrejection</code> event and typically logs a scary red error to the console. The rest of your app keeps running, so the failure is <em>quiet</em>, which is worse: a request failed, the spinner spins forever, and nothing tells you.</p>
+
+<p>In Node, unhandled rejections have <strong>crashed the process</strong> since Node 15. So on the server, forgetting a <code>.catch</code> can take down your service.</p>
+
+<div class="snippet plain">
+  <div class="label">A global safety net (not a substitute for real handling)</div>
+<pre><code>window.addEventListener('unhandledrejection', (event) =&gt; {
+  reportToSentry(event.reason);
+  event.preventDefault();   // 👈 stops the default console error
+});</code></pre>
+</div>
+
+<div class="box wait">
+  <p class="box-title">Wait — does attaching <code>.catch</code> late still work?</p>
+  <p>Yes for handling, no for the warning. A promise keeps its settled value forever, so attaching a handler an hour later still fires it immediately. But if the microtask queue drained with no handler attached, the "unhandled rejection" warning has already gone out. You'll see a console error <em>and</em> your handler will run. Slightly confusing, entirely by design.</p>
+</div>
+
+<h2 id="async-await">13. async / await — sugar over the exact same machine</h2>
+
+<p>Now the good part. <code>async</code>/<code>await</code> is not a new concurrency mechanism. It is <strong>syntax that compiles down to promises and microtasks</strong>. Nothing new happens at runtime. If you're solid on the previous two sections, you already understand it.</p>
+
+<h3>Rule 1: an <code>async</code> function always returns a promise</h3>
+
+<p>Always. No exceptions. Even if the body has no <code>await</code> and returns a number.</p>
+
+<div class="snippet plain">
+  <div class="label">async wraps the return value</div>
+<pre><code>async function getTotal() {
+  return 42;               // 👈 not a number to the caller
+}
+
+console.log(getTotal());          // → Promise { 42 }
+getTotal().then(console.log);     // → 42</code></pre>
+</div>
+
+<p>Why must it? Because the function might suspend at an <code>await</code>. The caller needs <em>something</em> back immediately — it can't be made to wait, that would block the thread. So the caller gets a receipt, and the receipt is filled in later. For consistency, that's true even when the function never suspends.</p>
+
+<p>Two corollaries that fall out of this: <code>return value</code> fulfils the promise; <code>throw err</code> inside an <code>async</code> function <strong>rejects</strong> it rather than propagating a synchronous exception. So you can't wrap an async call in a plain synchronous <code>try/catch</code> and expect to catch its failure — the function already returned a (later-rejecting) promise by then.</p>
+
+<h3>Rule 2: <code>await</code> means "pause here, resume in a microtask"</h3>
+
+<p>This is the sentence to memorise. When execution hits <code>await somePromise</code>:</p>
+
+<ol>
+  <li>The <code>async</code> function <strong>suspends</strong>. Its frame comes off the stack, but its state is saved.</li>
+  <li>Control returns to whoever called it, which keeps running normally.</li>
+  <li>When the awaited promise settles, <strong>the rest of the async function is scheduled as a microtask</strong>.</li>
+  <li>Once the stack empties and the drain begins, the function resumes right where it left off, with the awaited value.</li>
+</ol>
+
+<p>Here's the desugaring, side by side. These two are essentially the same program:</p>
+
+<div class="snippet plain">
+  <div class="label">async/await</div>
+<pre><code>async function loadDashboard(id) {
+  const user = await fetchUser(id);
+  const orders = await fetchOrders(user.id);
+  return { user, orders };
+}</code></pre>
+</div>
+
+<div class="snippet plain">
+  <div class="label">…is roughly this</div>
+<pre><code>function loadDashboard(id) {
+  return fetchUser(id).then((user) =&gt; {
+    return fetchOrders(user.id).then((orders) =&gt; {
+      return { user, orders };
+    });
+  });
+}</code></pre>
+</div>
+
+<p>Everything after an <code>await</code> is "the callback." That's the whole trick. The compiler is doing the <code>.then</code> nesting for you, and giving you back straight-line code that you can read top to bottom.</p>
+
+<div class="box hood">
+  <p class="box-title">Under the hood (skippable)</p>
+  <p>Under the hood, an <code>async</code> function is a state machine, essentially a generator driven by a runner. Each <code>await</code> is a <code>yield</code> point; the runner attaches a <code>.then</code> to the yielded promise and resumes the generator with the value when it settles. That's why the function can "pause" without blocking — pausing a generator is just returning, with the local variables preserved in a closure-like frame.</p>
+  <p>One nuance worth knowing: <code>await</code> of a non-promise value (like <code>await 5</code> or <code>await null</code>) still costs you <strong>exactly one microtask tick</strong>. It doesn't run synchronously. Modern engines optimised this from three ticks down to one back in 2018, which is why some old blog posts give different puzzle answers than your browser does.</p>
+</div>
+
+<h3>Rule 3: <code>try/catch</code> works again</h3>
+
+<p>Because <code>await</code> re-throws a rejection as a real exception at the await point, ordinary <code>try/catch</code> just works — and this is the single biggest ergonomic win over <code>.then</code> chains.</p>
+
+<div class="snippet good">
+  <div class="label">✅ Familiar error handling</div>
+<pre><code>async function loadDashboard(id) {
+  try {
+    const user = await fetchUser(id);
+    const orders = await fetchOrders(user.id);
+    return { user, orders };
+  } catch (err) {
+    logError(err);           // catches EITHER fetch failing
+    return { user: null, orders: [] };
+  } finally {
+    setLoading(false);
+  }
+}</code></pre>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap: the un-awaited call</p>
+  <p>If you <em>forget</em> the <code>await</code>, <code>try/catch</code> silently stops working. <code>try { doThing(); } catch {}</code> where <code>doThing</code> is async catches nothing — <code>doThing()</code> returns a pending promise without throwing, the <code>try</code> block completes successfully, and the rejection arrives later with nobody listening. You get an unhandled rejection and a <code>catch</code> block that looks fine in code review.</p>
+</div>
+
+<h3>What happens if you forget to <code>await</code>?</h3>
+
+<p>Three distinct problems, and naming all three is a strong answer:</p>
+
+<ol>
+  <li><strong>You get the promise, not the value.</strong> <code>const user = fetchUser(id)</code> gives you a <code>Promise</code>, so <code>user.name</code> is <code>undefined</code> and <code>user.id</code> is <code>undefined</code>. Everything downstream quietly corrupts.</li>
+  <li><strong>Ordering breaks.</strong> Code that assumed the write finished runs before it did. Classic in tests and in "save then redirect" flows.</li>
+  <li><strong>Errors become unhandled rejections.</strong> As above — nothing catches them, and in Node the process may die.</li>
+</ol>
+
+<p>The fix, beyond being careful, is tooling: TypeScript plus the <code>no-floating-promises</code> ESLint rule catches essentially all of these. And when you genuinely want fire-and-forget, say so explicitly with <code>void doThing()</code> or attach a <code>.catch</code>, so the next reader knows it was deliberate.</p>
+
+<h2 id="puzzle-2">14. Puzzle 2 — the hard one</h2>
+
+<p>Now let's combine everything. This is very close to what actually gets put on a whiteboard. Work it out before opening the answer; use the five-step algorithm.</p>
+
+<div class="snippet plain">
+  <div class="label">Predict the output</div>
+<pre><code>console.log('script start');
+
+setTimeout(() =&gt; console.log('setTimeout'), 0);
+
+async function greet() {
+  console.log('greet start');
+  await null;                     // 👈 still yields!
+  console.log('greet end');
+}
+
+greet();
+
+new Promise((resolve) =&gt; {
+  console.log('promise executor');
+  resolve();
+}).then(() =&gt; console.log('promise then'));
+
+console.log('script end');</code></pre>
+</div>
+
+<details>
+  <summary>Reveal the answer and the walkthrough</summary>
+<pre><code>script start
+greet start
+promise executor
+script end
+greet end
+promise then
+setTimeout</code></pre>
+  <ol>
+    <li><code>script start</code> — plain sync log.</li>
+    <li><code>setTimeout</code> handed to the browser. Its callback will land in the <strong>task</strong> queue. Nothing printed.</li>
+    <li><code>greet()</code> is called. <strong>An async function's body runs synchronously until the first <code>await</code></strong> — so <code>greet start</code> prints immediately.</li>
+    <li><code>await null</code>. Even though <code>null</code> isn't a promise, the function suspends and the remainder is queued as a <strong>microtask</strong>. Control returns to the top level.</li>
+    <li><code>new Promise(...)</code> — the executor runs <strong>synchronously</strong>, so <code>promise executor</code> prints. Then <code>resolve()</code> settles it. The <code>.then</code> callback goes onto the microtask queue, <em>behind</em> the greet continuation.</li>
+    <li><code>script end</code> prints. The script task is done; the stack is empty.</li>
+    <li><strong>Drain microtasks in order:</strong> <code>greet end</code>, then <code>promise then</code>.</li>
+    <li><strong>One macrotask:</strong> <code>setTimeout</code>.</li>
+  </ol>
+  <p>The two lines that catch people: async bodies run synchronously up to the first <code>await</code>, and promise executors run synchronously too.</p>
+</details>
+
+<h2 id="parallel">15. Awaiting in a loop — the mistake everyone makes</h2>
+
+<p><code>await</code> is so readable that it seduces you into writing accidentally sequential code.</p>
+
+<div class="snippet bad">
+  <div class="label">❌ 3 seconds — each request waits for the last</div>
+<pre><code>async function loadAll(userIds) {
+  const users = [];
+  for (const id of userIds) {
+    users.push(await fetchUser(id));   // 👈 blocks the loop each time
+  }
+  return users;
+}
+// 3 users × ~1s each = ~3 seconds</code></pre>
+</div>
+
+<p>Read it literally: "start request 1, <em>wait for it</em>, then start request 2." The requests never overlap. If each takes a second, three users take three seconds — even though the network could easily have handled all three at once.</p>
+
+<p>The fix is to <strong>start all the work first, then await</strong>. Separating "kick it off" from "wait for it" is the key move:</p>
+
+<div class="snippet good">
+  <div class="label">✅ ~1 second — all in flight at once</div>
+<pre><code>async function loadAll(userIds) {
+  const promises = userIds.map((id) =&gt; fetchUser(id));  // 👈 all started NOW
+  return Promise.all(promises);
+}
+// 3 users in parallel = ~1 second</code></pre>
+</div>
+
+<p>The moment you <em>call</em> <code>fetchUser(id)</code>, the request is on the wire. <code>await</code> doesn't start anything; it only decides when you look at the result. So calling three functions and awaiting them afterwards gives you overlap for free.</p>
+
+<p>The same fix without <code>Promise.all</code>, which sometimes reads more clearly for a fixed set:</p>
+
+<div class="snippet good">
+  <div class="label">✅ Start both, then await both</div>
+<pre><code>async function loadPage(userId) {
+  const userPromise = fetchUser(userId);      // 👈 both requests
+  const feedPromise = fetchFeed(userId);      // 👈 are already running
+
+  const user = await userPromise;
+  const feed = await feedPromise;
+  return { user, feed };
+}</code></pre>
+</div>
+
+<div class="box wait">
+  <p class="box-title">Wait — is sequential <em>always</em> wrong?</p>
+  <p>No, and saying so is a mark of seniority. Await in a loop is correct when: request N+1 <em>depends</em> on the result of request N (pagination cursors, for instance); or you're deliberately rate-limiting so you don't hammer an API with 500 simultaneous requests; or ordering matters because of side effects. The bug isn't sequential code — it's sequential code you didn't intend. If it's deliberate, leave a comment saying so.</p>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap: <code>await</code> inside <code>.forEach</code></p>
+  <p><code>ids.forEach(async (id) =&gt; { await save(id); })</code> does not wait for anything. <code>forEach</code> ignores the returned promises entirely, so the surrounding function moves on immediately and you get zero error handling. Use <code>for...of</code> with await (sequential) or <code>map</code> + <code>Promise.all</code> (parallel). This is a favourite interview snippet.</p>
+</div>
+
+<h2 id="combinators">16. <code>all</code> vs <code>allSettled</code> vs <code>race</code> vs <code>any</code></h2>
+
+<p>Four static methods, all taking an iterable of promises and returning one promise. The differences are entirely about <em>when they settle</em> and <em>what they settle with</em>.</p>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th></th><th>Fulfils when…</th><th>Rejects when…</th><th>Fulfils with</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Promise.all</code></td>
+      <td><strong>all</strong> fulfil</td>
+      <td><strong>any one</strong> rejects (immediately)</td>
+      <td>array of values, <em>in input order</em></td>
+    </tr>
+    <tr>
+      <td><code>Promise.allSettled</code></td>
+      <td><strong>all</strong> settle, either way</td>
+      <td>never</td>
+      <td>array of <code>{status, value}</code> / <code>{status, reason}</code></td>
+    </tr>
+    <tr>
+      <td><code>Promise.race</code></td>
+      <td>the <strong>first</strong> to settle fulfils</td>
+      <td>the <strong>first</strong> to settle rejects</td>
+      <td>that one value</td>
+    </tr>
+    <tr>
+      <td><code>Promise.any</code></td>
+      <td>the <strong>first</strong> to fulfil</td>
+      <td><strong>all</strong> reject</td>
+      <td>that one value</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3><code>Promise.all</code> — "I need everything, or nothing"</h3>
+
+<div class="snippet plain">
+  <div class="label">All-or-nothing</div>
+<pre><code>const [user, settings, perms] = await Promise.all([
+  fetchUser(id),
+  fetchSettings(id),
+  fetchPermissions(id),
+]);
+// Any one failing → the whole await throws.</code></pre>
+</div>
+
+<p>Use it when the page is meaningless without every piece. Note the results come back <strong>in input order</strong>, not completion order — that's what makes destructuring safe. And it <strong>fails fast</strong>: the returned promise rejects the instant the first input rejects, without waiting for the rest.</p>
+
+<div class="box wait">
+  <p class="box-title">Wait — do the other requests get cancelled when one fails?</p>
+  <p>No! This is a great follow-up and most candidates get it wrong. The other requests keep running to completion; <code>Promise.all</code> just stops <em>listening</em>. Promises have no cancellation built in. If those other requests reject later with nobody watching, you can even get unhandled rejection warnings. Cancelling requires <code>AbortController</code> — see section 19.</p>
+</div>
+
+<h3><code>Promise.allSettled</code> — "tell me how each one went"</h3>
+
+<div class="snippet plain">
+  <div class="label">Partial success is fine</div>
+<pre><code>const results = await Promise.allSettled(
+  widgets.map((w) =&gt; fetchWidgetData(w.id))
+);
+
+results.forEach((result, i) =&gt; {
+  if (result.status === 'fulfilled') renderWidget(widgets[i], result.value);
+  else                               renderWidgetError(widgets[i], result.reason);
+});</code></pre>
+</div>
+
+<p><strong>The all-vs-allSettled tradeoff is the thing to nail.</strong> Say it like this:</p>
+
+<blockquote><code>all</code> is for when the results are a <em>package</em> — a checkout page needs the cart, the address and the payment methods, and two out of three is a broken page, so failing fast and showing one error is correct. <code>allSettled</code> is for when the results are <em>independent</em> — a dashboard of six widgets, where one analytics service being down shouldn't blank the other five.</blockquote>
+
+<p>The cost of <code>allSettled</code>: it never fails fast, so you always wait for the slowest one, even if the first thing errored instantly. And you can't destructure comfortably — every result is wrapped in an envelope you must unwrap.</p>
+
+<h3><code>Promise.race</code> — "whoever finishes first, good or bad"</h3>
+
+<div class="snippet plain">
+  <div class="label">Timeouts, the classic use</div>
+<pre><code>function withTimeout(promise, ms) {
+  const timeout = new Promise((_, reject) =&gt;
+    setTimeout(() =&gt; reject(new Error('Timed out')), ms)
+  );
+  return Promise.race([promise, timeout]);  // 👈 first to settle wins
+}
+
+const user = await withTimeout(fetchUser(id), 5000);</code></pre>
+</div>
+
+<p>The subtlety worth mentioning: <code>race</code> settles on the first thing to <em>settle</em>, including rejecting. So if your fastest promise fails, race rejects even if a slower one would have succeeded. If you want "first success", that's <code>any</code>, not <code>race</code>.</p>
+
+<h3><code>Promise.any</code> — "first one that works"</h3>
+
+<div class="snippet plain">
+  <div class="label">Redundant sources</div>
+<pre><code>const price = await Promise.any([
+  fetchFromPrimaryCDN(sku),
+  fetchFromBackupCDN(sku),
+  fetchFromOriginServer(sku),
+]);
+// If ALL reject → throws an AggregateError with an .errors array</code></pre>
+</div>
+
+<p>Use it for redundancy: several mirrors, and you want whichever answers first successfully. If every single one rejects, you get an <code>AggregateError</code> whose <code>.errors</code> property holds every individual failure — a nice detail to know.</p>
+
+<h2 id="evolution">17. Callback hell → promises → async/await</h2>
+
+<p>Interviewers sometimes ask "why do promises exist?" — and the honest answer is a story. Telling it well shows you understand the <em>motivation</em>, not just the API.</p>
+
+<h4>Act 1: callbacks</h4>
+
+<div class="snippet bad">
+  <div class="label">❌ The pyramid of doom</div>
+<pre><code>getUser(userId, (err, user) =&gt; {
+  if (err) return handleError(err);
+  getOrders(user.id, (err, orders) =&gt; {
+    if (err) return handleError(err);
+    getShipping(orders[0].id, (err, shipping) =&gt; {
+      if (err) return handleError(err);
+      render(user, orders, shipping);
+    });
+  });
+});</code></pre>
+</div>
+
+<p>Everyone points at the indentation, but the shape is the least of the problems. The real ones:</p>
+
+<ul>
+  <li><strong>Error handling is manual and repeated</strong> at every level, and one forgotten <code>if (err)</code> silently swallows a failure.</li>
+  <li><strong>You can't use <code>try/catch</code></strong>, because by the time the callback runs, the <code>try</code> block has long since exited the stack.</li>
+  <li><strong>Inversion of control.</strong> You hand your callback to someone else's function and <em>trust</em> them to call it exactly once, with sensible arguments, at a sensible time. A buggy library can call it twice, or never.</li>
+  <li><strong>Combining is painful.</strong> "Run these three in parallel and continue when all are done" means hand-rolling a counter every single time.</li>
+</ul>
+
+<h4>Act 2: promises (ES2015)</h4>
+
+<div class="snippet plain">
+  <div class="label">Flat, with one error path</div>
+<pre><code>getUser(userId)
+  .then((user) =&gt; getOrders(user.id))
+  .then((orders) =&gt; getShipping(orders[0].id))
+  .then((shipping) =&gt; render(shipping))
+  .catch(handleError);          // 👈 one handler for the whole chain</code></pre>
+</div>
+
+<p>Control is inverted <em>back</em>: the function hands <em>you</em> an object, and you decide what to do with it. State transitions are guaranteed one-way, so double-calls are impossible. Errors propagate down one path. And because a promise is a value, you can put promises in arrays and hand them to <code>Promise.all</code> — combinators become trivial.</p>
+
+<p>What promises still didn't fix: you're writing callbacks. Sharing a variable between the first and third <code>.then</code> means hoisting it out of the chain or nesting again. Loops and conditionals over async work stay awkward.</p>
+
+<h4>Act 3: async/await (ES2017)</h4>
+
+<div class="snippet good">
+  <div class="label">✅ Reads like synchronous code</div>
+<pre><code>try {
+  const user = await getUser(userId);
+  const orders = await getOrders(user.id);
+  const shipping = await getShipping(orders[0].id);
+  render(user, orders, shipping);        // 👈 all three still in scope
+} catch (err) {
+  handleError(err);
+}</code></pre>
+</div>
+
+<p>Same promises underneath — no new runtime machinery at all. But now normal <code>if</code>, <code>for</code>, <code>try/catch</code> and ordinary block scoping all work again. The key sentence for an interview: <strong>"async/await didn't replace promises, it's syntax over them — an async function returns a promise and <code>await</code> consumes one."</strong></p>
+
+<p>And the honest downside, worth volunteering: <code>await</code> makes it very easy to write accidentally sequential code, which is exactly the trap in section 15. Sometimes the explicit <code>Promise.all</code> is clearer about intent.</p>
+
+<h2 id="implement-all">18. Implementing <code>Promise.all</code> yourself</h2>
+
+<p>A genuinely common whiteboard exercise. It's short, but there are four details that separate a decent answer from a great one.</p>
+
+<div class="snippet good">
+  <div class="label">✅ A solid implementation</div>
+<pre><code>function promiseAll(items) {
+  return new Promise((resolve, reject) =&gt; {
+    const results = [];
+    let remaining = items.length;
+
+    if (remaining === 0) return resolve([]);      // 👈 detail 1
+
+    items.forEach((item, i) =&gt; {
+      Promise.resolve(item).then(                 // 👈 detail 2
+        (value) =&gt; {
+          results[i] = value;                     // 👈 detail 3
+          remaining -= 1;
+          if (remaining === 0) resolve(results);  // 👈 detail 4
+        },
+        reject                                    // first rejection wins
+      );
+    });
+  });
+}</code></pre>
+</div>
+
+<p>Talk through these as you write — that's what earns the points:</p>
+
+<ol>
+  <li><strong>The empty array.</strong> With no inputs, nothing ever calls <code>resolve</code> and your promise hangs forever. <code>Promise.all([])</code> fulfils immediately with <code>[]</code>. Handle it up front.</li>
+  <li><strong><code>Promise.resolve(item)</code>.</strong> The input may contain plain values, not just promises — <code>Promise.all([1, fetchUser()])</code> is legal. Wrapping normalises everything so <code>.then</code> is always safe to call.</li>
+  <li><strong>Index assignment, not <code>push</code>.</strong> Results must come back in <em>input</em> order, not completion order. <code>results[i] = value</code> preserves position; <code>push</code> would scramble it based on which network request happened to win.</li>
+  <li><strong>A counter, not <code>results.length</code>.</strong> Because of sparse-array assignment, <code>results.length</code> jumps to 5 as soon as index 4 lands, even with holes at 0–3. Count down explicitly.</li>
+</ol>
+
+<p>And the free bonus: passing <code>reject</code> directly as the rejection handler gives you fail-fast for free — the first rejection calls <code>reject</code>, and every later call to <code>resolve</code>/<code>reject</code> is ignored, because promise state is permanent. Say that out loud; it shows you're using the immutability property deliberately.</p>
+
+<details>
+  <summary>Bonus: <code>allSettled</code> is a two-line change</summary>
+<pre><code>function promiseAllSettled(items) {
+  return promiseAll(
+    items.map((item) =&gt;
+      Promise.resolve(item).then(
+        (value)  =&gt; ({ status: 'fulfilled', value }),
+        (reason) =&gt; ({ status: 'rejected', reason })   // 👈 never rejects
+      )
+    )
+  );
+}</code></pre>
+  <p>By converting every rejection into a fulfilled envelope object, no input can ever reject, so the underlying <code>all</code> can never fail fast. Elegant, and a very strong thing to notice unprompted.</p>
+</details>
+
+<h2 id="cancel">19. Can you cancel a promise?</h2>
+
+<p><strong>No.</strong> That's the correct one-word answer, and then you explain why.</p>
+
+<p>A promise represents <em>an eventual result</em>, not <em>the operation producing it</em>. It's the coat-check ticket, and the ticket has no power over the cloakroom. By the time you hold a promise, whoever created it has already started the work, and there's no channel back. Add to that: promise state is one-way and permanent, so there's nowhere for a "cancelled" state to live.</p>
+
+<p>What people usually mean by "cancel" is one of two things.</p>
+
+<h4>1. Stop caring about the result</h4>
+
+<p>Just don't act on it. A common React pattern for avoiding a state update after unmount:</p>
+
+<div class="snippet plain">
+  <div class="label">Ignore a late result</div>
+<pre><code>let cancelled = false;
+
+fetchUser(id).then((user) =&gt; {
+  if (cancelled) return;    // 👈 result arrives, we drop it
+  setUser(user);
+});
+
+// on cleanup:
+cancelled = true;</code></pre>
+</div>
+
+<p>The request still completes and still costs bandwidth. You've only muted it.</p>
+
+<h4>2. Actually abort the underlying operation — <code>AbortController</code></h4>
+
+<p>This is the real answer, and it lives at the <em>API</em> level, not the promise level:</p>
+
+<div class="snippet good">
+  <div class="label">✅ Genuinely aborting a request</div>
+<pre><code>const controller = new AbortController();
+
+fetch('/api/search?q=shoes', { signal: controller.signal })
+  .then((r) =&gt; r.json())
+  .then(render)
+  .catch((err) =&gt; {
+    if (err.name === 'AbortError') return;   // 👈 expected, not a bug
+    showError(err);
+  });
+
+controller.abort();   // network request is genuinely torn down</code></pre>
+</div>
+
+<p>The controller has a <code>signal</code>, you hand the signal to an API that understands it, and <code>abort()</code> tells that API to stop. The promise then <strong>rejects</strong> with an <code>AbortError</code> — note that it rejects rather than entering some special cancelled state, which preserves the two-state model.</p>
+
+<p>The killer use case is search-as-you-type: every keystroke aborts the previous in-flight request, so you don't get stale results overwriting fresh ones. <code>AbortController</code> also works with <code>addEventListener</code> (pass <code>{ signal }</code> to remove listeners in bulk) and any library that accepts a signal.</p>
+
+<div class="box wait">
+  <p class="box-title">Wait — is the promise "cancelled"?</p>
+  <p>No, and this is exactly the distinction to draw in an interview. The <em>operation</em> was cancelled; the <em>promise</em> settled normally, into the rejected state, with an <code>AbortError</code>. Promises stay two-outcome. That framing — "cancellation belongs to the operation, not the result" — is a genuinely senior-sounding answer.</p>
+</div>
+
+<h2 id="interview">20. The interview layer</h2>
+
+<h3>How this gets asked</h3>
+
+<p>Almost always one of these, roughly in order of frequency:</p>
+
+<ul>
+  <li>"What's the output of this snippet?" <em>(a <code>console.log</code>/<code>setTimeout</code>/<code>Promise</code> mix)</em></li>
+  <li>"Can you explain the event loop?"</li>
+  <li>"What's the difference between a microtask and a macrotask?"</li>
+  <li>"JavaScript is single-threaded — so how does it do asynchronous work?"</li>
+  <li>"How would you fire three API requests in parallel?"</li>
+  <li>"What's the difference between <code>Promise.all</code> and <code>Promise.allSettled</code>?"</li>
+  <li>"Implement <code>Promise.all</code>."</li>
+</ul>
+
+<div class="box iview">
+  <p class="box-title">In an interview: the core model answer</p>
+  <p>For <em>"explain the event loop"</em> — say this, and draw the diagram while you do:</p>
+</div>
+
+<div class="say">
+  <p class="who">Say this out loud</p>
+  <p>"JavaScript executes on a single thread, so there's one call stack and only one thing runs at a time. But the browser isn't single-threaded — when I call <code>setTimeout</code> or <code>fetch</code>, that work is handed off to the host environment, which runs it on its own threads. When it finishes, my callback gets put in a queue, not run immediately.</p>
+  <p>The event loop's job is to move things from those queues onto the stack, and it only does that when the stack is empty. There are two queues: the macrotask queue for timers, I/O and UI events, and the microtask queue for promise callbacks and anything after an <code>await</code>. The important asymmetry is that the loop drains the <em>entire</em> microtask queue after every task, but takes only <em>one</em> macrotask per turn — so promise callbacks always run before a <code>setTimeout</code>, even a zero-delay one.</p>
+  <p>That's also why blocking matters: rendering happens between tasks on the same thread, so a long synchronous function freezes the whole UI."</p>
+</div>
+
+<p><strong>Why this answer lands:</strong> it corrects the "single-threaded" oversimplification without being pedantic, it names all four components in the right relationships, it states the one rule that actually predicts output, and it closes with practical consequence. That last move — from mechanism to "so here's why it matters" — is what separates a candidate who memorised a blog post from one who has debugged a janky page.</p>
+
+<h3>Follow-up questions, with answers</h3>
+
+<h4>"Is JS really single-threaded if it does async work?"</h4>
+<p>Yes — <em>execution</em> of your JS is single-threaded. Asynchrony comes from delegating to the host environment, which is multi-threaded, and getting callbacks back through queues. So it's concurrent, not parallel. The one exception is Web Workers, which give you genuine parallelism — but each worker has its own thread, its own event loop and its own memory, and they only communicate by message-passing.</p>
+
+<h4>"Why does the distinction between microtask and macrotask matter?"</h4>
+<p>Two reasons. Ordering: promise callbacks always run before the next timer or event, which decides the output of every one of these puzzle questions. And responsiveness: the browser can render between macrotasks but <em>never</em> in the middle of a microtask drain, so an unbounded chain of microtasks freezes the page while an unbounded chain of timers doesn't.</p>
+
+<h4>"How do you run three requests in parallel?"</h4>
+<p>Start them all before awaiting any of them — <code>const [a, b, c] = await Promise.all([f1(), f2(), f3()])</code>. The requests are in flight the moment the functions are called; <code>await</code> only controls when I read the results. Awaiting each one in a loop makes them sequential, which is the classic mistake. If I want partial results rather than all-or-nothing, I'd use <code>allSettled</code> instead.</p>
+
+<h4>"What happens if you forget to <code>await</code>?"</h4>
+<p>Three things. The variable holds a pending promise instead of the value, so property access gives <code>undefined</code>. Ordering guarantees disappear — code that assumed the work was done runs early. And any rejection becomes unhandled, which logs a warning in the browser and can crash a Node process. TypeScript with <code>no-floating-promises</code> catches nearly all of these.</p>
+
+<h4>"Why does an <code>async</code> function always return a promise?"</h4>
+<p>Because it can suspend at an <code>await</code>, and the caller can't be made to block waiting for it — that would freeze the thread. So the caller needs something to hold immediately, and that's the promise. The engine wraps whatever you return; <code>throw</code> becomes a rejection rather than a synchronous exception.</p>
+
+<h4>"What happens to a rejected promise with no <code>.catch</code>?"</h4>
+<p>Nothing stops. The rejection sits there, and once the microtask queue drains without a handler appearing, the environment fires an <code>unhandledrejection</code> event and logs an error. In the browser your app keeps running with a silent failure — usually a spinner that never stops. In Node 15+ it terminates the process by default. The value isn't lost, though: attach a <code>.catch</code> later and it still fires, because settled state is permanent.</p>
+
+<h4>"Why not just use <code>setTimeout(fn, 0)</code> instead of a promise, if I just want to defer something?"</h4>
+<p>Different timing and different cost. <code>setTimeout(fn, 0)</code> is a macrotask — it yields to rendering and to any pending events, and it's clamped to at least 4ms when nested. A microtask via <code>queueMicrotask</code> or <code>Promise.resolve().then</code> runs before the next render, at the end of the current task. If I want "after the current code but before the browser paints," that's a microtask. If I want "let the browser breathe and paint first," that's a timeout.</p>
+
+<h4>"Can you cancel a promise?"</h4>
+<p>Not the promise itself — it represents a result, not an operation, and its state is one-way. What you cancel is the underlying work, with <code>AbortController</code>: pass <code>signal</code> to <code>fetch</code>, call <code>abort()</code>, and the promise rejects with an <code>AbortError</code>. Without that, the best you can do is ignore the result when it arrives.</p>
+
+<h4>"Does <code>Promise.all</code> cancel the others when one rejects?"</h4>
+<p>No. It rejects immediately, but the other operations keep running to completion — it just stops listening. If you need actual cancellation, wire an <code>AbortController</code> through to each request and abort in the catch.</p>
+
+<h4>"Where does <code>await</code> put the rest of my function?"</h4>
+<p>On the microtask queue. The function's frame comes off the stack, control returns to the caller, and when the awaited promise settles, the continuation is queued as a microtask. Even <code>await</code> on a non-promise costs one microtask tick.</p>
+
+<h3>Traps — the specific wrong answers</h3>
+
+<div class="box trap">
+  <p class="box-title">Trap 1: "setTimeout runs the callback on another thread"</p>
+  <p>Wrong, and it's a load-bearing misunderstanding. Only the <em>timing</em> happens elsewhere. Your callback is always run by the single JS thread, from the task queue. <strong>Say instead:</strong> "The browser's timer thread counts, then queues my callback for the main thread to run when it's free."</p>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap 2: "Promises are asynchronous, so they don't block"</p>
+  <p>Promises control <em>scheduling</em>, not <em>threading</em>. A heavy synchronous loop inside a <code>.then</code> blocks exactly as hard as anywhere else. <strong>Say instead:</strong> "Promises decide when code runs, not where. For CPU-heavy work I'd need a Web Worker."</p>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap 3: "<code>setTimeout(fn, 100)</code> runs after exactly 100ms"</p>
+  <p>It's a minimum delay to being <em>queued</em>, not a guarantee of execution time. <strong>Say instead:</strong> "At least 100ms, then it waits for the stack to clear and for its turn in the queue."</p>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap 4: answering an output puzzle with a memorised rule</p>
+  <p>"Promises come before timeouts" gets you the easy version and fails the hard one. Walk the machine out loud instead: what's synchronous, what got queued where, what happens when the stack empties. Interviewers are testing whether you have a <em>model</em> — that's depth — not whether you memorised an ordering, which is recall. If you narrate the simulation, you'll get nested and edge cases right too.</p>
+</div>
+
+<div class="box trap">
+  <p class="box-title">Trap 5: reaching for <code>async</code> on the <code>new Promise</code> executor</p>
+  <p><code>new Promise(async (resolve) =&gt; { ... })</code> is an anti-pattern — if the async body throws, nothing rejects the promise and the error vanishes. Also watch for the <em>explicit promise construction antipattern</em>: wrapping a function that already returns a promise in <code>new Promise</code>. If it's already a promise, just return it.</p>
+</div>
+
+<h2 id="cheatsheet">21. Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<dl class="cheat">
+  <dt>Single-threaded</dt>
+  <dd>One thread executes <em>your JS</em>; the browser itself is multi-threaded. Concurrency, not parallelism.</dd>
+
+  <dt>Call stack</dt>
+  <dd>Frames pushed on call, popped on return. Async work only moves when the stack is empty.</dd>
+
+  <dt>Web APIs / host</dt>
+  <dd><code>setTimeout</code>, <code>fetch</code>, DOM events aren't JavaScript — they're host capabilities on host threads.</dd>
+
+  <dt>The loop, in five words</dt>
+  <dd>Run task → drain all microtasks → maybe render → one macrotask → repeat.</dd>
+
+  <dt>Macrotasks</dt>
+  <dd>Timers, I/O, UI events, the initial script. <strong>One per turn.</strong></dd>
+
+  <dt>Microtasks</dt>
+  <dd>Promise callbacks, post-<code>await</code> code, <code>queueMicrotask</code>, <code>MutationObserver</code>. <strong>All of them, every turn.</strong></dd>
+
+  <dt>Microtask starvation</dt>
+  <dd>A microtask that queues another forever means no render, no events — a permanently frozen page.</dd>
+
+  <dt><code>setTimeout(fn, 0)</code></dt>
+  <dd>Minimum delay, not a guarantee. 4ms floor when nested; throttled hard in background tabs.</dd>
+
+  <dt>Blocking</dt>
+  <dd>Rendering shares the thread and happens between tasks — long sync work freezes the UI. Fix: chunk, or Web Worker.</dd>
+
+  <dt>Promise states</dt>
+  <dd>pending → fulfilled or rejected. One-way, permanent, single-settle. "Settled" = either outcome.</dd>
+
+  <dt>Executor timing</dt>
+  <dd>The <code>new Promise</code> callback runs <em>synchronously</em>. Only <code>.then</code> handlers are deferred.</dd>
+
+  <dt><code>.then</code></dt>
+  <dd>Returns a NEW promise. Return a value → fulfils with it; return a promise → adopts it; throw → rejects.</dd>
+
+  <dt><code>.catch</code> / <code>.finally</code></dt>
+  <dd><code>.catch</code> is <code>.then(undefined, fn)</code>; put it last. <code>.finally</code> takes no args and passes everything through.</dd>
+
+  <dt>Unhandled rejection</dt>
+  <dd>Browser: <code>unhandledrejection</code> event + console error, app continues. Node 15+: process exits.</dd>
+
+  <dt><code>async</code></dt>
+  <dd>Always returns a promise. Body runs synchronously until the first <code>await</code>. <code>throw</code> → rejection.</dd>
+
+  <dt><code>await</code></dt>
+  <dd>"Pause here, resume in a microtask." Doesn't start work — the function call did that.</dd>
+
+  <dt>Parallel requests</dt>
+  <dd>Call them all first, then <code>await Promise.all([...])</code>. Awaiting in a loop is sequential.</dd>
+
+  <dt><code>all</code></dt>
+  <dd>All fulfil → array in input order. One rejects → fails fast. Others aren't cancelled.</dd>
+
+  <dt><code>allSettled</code></dt>
+  <dd>Never rejects. Array of <code>{status, value|reason}</code>. Waits for the slowest. Use for independent results.</dd>
+
+  <dt><code>race</code></dt>
+  <dd>First to <em>settle</em> wins, success or failure. Classic use: timeouts.</dd>
+
+  <dt><code>any</code></dt>
+  <dd>First to <em>fulfil</em> wins. All reject → <code>AggregateError</code> with <code>.errors</code>. Use for redundant sources.</dd>
+
+  <dt>Implementing <code>all</code></dt>
+  <dd>Counter + <code>results[i] = value</code> + <code>Promise.resolve(item)</code> + handle the empty array.</dd>
+
+  <dt>Cancellation</dt>
+  <dd>Promises can't be cancelled. <code>AbortController</code> cancels the <em>operation</em>; the promise rejects with <code>AbortError</code>.</dd>
+</dl>
+
+<hr>
+
+<p style="margin-top:2.4rem;">If you take one thing away, make it this: <strong>don't memorise the answers to the puzzles — simulate the machine.</strong> Stack empties, microtasks drain completely, one macrotask, repeat. Every question on this page is that loop plus a bit of arithmetic.</p>
+
+<p>And it's genuinely fine if the harder puzzle took you two or three passes. Everybody's does. The engineers who look effortless at this aren't recalling faster — they're just running the same simulation you now know how to run. 🎯</p>
+
+</div>
+</body>
+</html>

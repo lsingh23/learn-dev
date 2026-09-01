@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM Events: Bubbling, Capturing &amp; Delegation</title>
+<style>
+  :root {
+    --ink: #23282f;
+    --ink-soft: #5b6472;
+    --bg: #fcfbf9;
+    --rule: #e5e1da;
+    --accent: #2f6f8f;
+    --accent-soft: #eaf3f7;
+    --green: #2e7d4f;
+    --green-soft: #eaf5ee;
+    --red: #b4342b;
+    --red-soft: #fdeeec;
+    --purple: #6b4fa8;
+    --purple-soft: #f2eefb;
+    --amber: #9a6a10;
+    --amber-soft: #fdf4e2;
+    --code-bg: #1d2027;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 56px 22px 140px;
+  }
+
+  h1 {
+    font-size: 2.15rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+
+  .standfirst {
+    font-size: 1.13rem;
+    color: var(--ink-soft);
+    margin: 0 0 40px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 72px 0 6px;
+    padding-top: 26px;
+    border-top: 2px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 1.16rem;
+    margin: 42px 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-size: 1rem;
+    margin: 28px 0 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 16px 0; }
+
+  a { color: var(--accent); }
+
+  ul, ol { padding-left: 24px; }
+  li { margin: 9px 0; }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: #efece6;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #e3ded5;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: #e7e9ee;
+    padding: 16px 18px;
+    border-radius: 9px;
+    overflow-x: auto;
+    font-size: 14.5px;
+    line-height: 1.62;
+    margin: 0 0 20px;
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  pre .c  { color: #7d8798; font-style: italic; }
+  pre .s  { color: #b3d78a; }
+  pre .k  { color: #cf9bec; }
+  pre .fn { color: #82aaff; }
+  pre .hl { background: #37414f; border-radius: 3px; padding: 1px 0; }
+
+  /* code block labels */
+  .lbl {
+    display: inline-block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 7px 7px 0 0;
+    margin-bottom: -3px;
+    position: relative;
+    z-index: 1;
+  }
+  .lbl-bad  { background: var(--red);   color: #fff; }
+  .lbl-good { background: var(--green); color: #fff; }
+  .lbl-neutral { background: #4a5261; color: #fff; }
+  .lbl + pre { border-top-left-radius: 0; }
+
+  /* callouts */
+  .aside {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 4px 20px;
+    border-radius: 0 9px 9px 0;
+    margin: 28px 0;
+    font-size: 0.97rem;
+  }
+  .aside .tag {
+    display: block;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-top: 16px;
+    color: var(--accent);
+  }
+  .aside p:first-of-type { margin-top: 6px; }
+  .aside pre { font-size: 13.6px; }
+
+  .aside.myth { border-color: var(--red); background: var(--red-soft); }
+  .aside.myth .tag { color: var(--red); }
+  .aside.hood { border-color: var(--purple); background: var(--purple-soft); }
+  .aside.hood .tag { color: var(--purple); }
+  .aside.iv   { border-color: var(--green); background: var(--green-soft); }
+  .aside.iv .tag { color: var(--green); }
+  .aside.trap { border-color: var(--amber); background: var(--amber-soft); }
+  .aside.trap .tag { color: var(--amber); }
+
+  .say {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 2px 20px;
+    margin: 18px 0;
+    font-size: 1.02rem;
+  }
+  .say .who {
+    display: block;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 700;
+    margin-top: 16px;
+  }
+  .say p { font-style: italic; }
+
+  /* TOC */
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 11px;
+    padding: 10px 26px 22px;
+    margin: 0 0 48px;
+  }
+  nav.toc h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    border: none;
+    padding: 0;
+    margin: 18px 0 8px;
+    color: var(--ink-soft);
+  }
+  nav.toc ol { margin: 0; padding-left: 20px; font-size: 0.96rem; }
+  nav.toc li { margin: 5px 0; }
+
+  /* figures */
+  figure {
+    margin: 34px 0;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 11px;
+    padding: 20px 16px 8px;
+  }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 10px 12px 8px;
+  }
+
+  .svg-box   { fill: #f4f1ec; stroke: #cfc8bc; stroke-width: 1.5; }
+  .svg-target{ fill: #fdf0d8; stroke: var(--amber); stroke-width: 2.5; }
+  .svg-label { font-family: var(--mono); font-size: 15px; fill: #2b3038; }
+  .svg-note  { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 13px; fill: #5b6472; }
+  .svg-phase { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.09em; }
+  .svg-num   { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 13px; font-weight: 700; fill: #fff; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.94rem;
+    margin: 24px 0;
+    background: #fff;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f4f1ec; font-size: 0.83rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td code { font-size: 0.85em; }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 0 18px;
+    margin: 18px 0;
+  }
+  details summary {
+    cursor: pointer;
+    padding: 13px 0;
+    font-weight: 600;
+    font-size: 0.98rem;
+  }
+  details[open] summary { border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+  details p:last-child { margin-bottom: 16px; }
+
+  .fu {
+    border-left: 3px solid var(--rule);
+    padding-left: 20px;
+    margin: 30px 0;
+  }
+  .fu > .q {
+    font-weight: 650;
+    margin: 0 0 6px;
+  }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 46px 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 17px; }
+    .wrap { padding: 34px 16px 100px; }
+    h1 { font-size: 1.7rem; }
+    pre { font-size: 13.2px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>DOM Events: Bubbling, Capturing &amp; Delegation</h1>
+<p class="standfirst">One click, many listeners. Once you can see the path an event travels, half a dozen interview questions collapse into a single mental model — and a bunch of bugs you've probably hit stop being mysterious.</p>
+
+<nav class="toc">
+  <h2>On this page</h2>
+  <ol>
+    <li><a href="#surprise">A click that fires twice</a></li>
+    <li><a href="#tree">First, the tree</a></li>
+    <li><a href="#phases">The three phases</a></li>
+    <li><a href="#history">Why both directions exist</a></li>
+    <li><a href="#options">The third argument, and the options object</a></li>
+    <li><a href="#target">target vs currentTarget vs this</a></li>
+    <li><a href="#stopping">stopPropagation, stopImmediatePropagation, preventDefault</a></li>
+    <li><a href="#delegation">Event delegation</a></li>
+    <li><a href="#closest">closest(), and the child-click trap</a></li>
+    <li><a href="#nobubble">Events that don't bubble</a></li>
+    <li><a href="#react">How React does events</a></li>
+    <li><a href="#removing">Removing listeners without leaking</a></li>
+    <li><a href="#dropdown">Recipe: click-outside-to-close</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="surprise">A click that fires twice</h2>
+
+<p>Let's start with something small and slightly annoying. Here's some markup — a card with a button inside it:</p>
+
+<span class="lbl lbl-neutral">HTML</span>
+<pre><code>&lt;div class="card"&gt;
+  &lt;button class="buy"&gt;Buy now&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+
+<p>And here's some JavaScript that listens for clicks on <em>both</em> of them:</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>document.querySelector('.card').addEventListener('click', () =&gt; {
+  console.log('card clicked');
+});
+
+document.querySelector('.buy').addEventListener('click', () =&gt; {
+  console.log('button clicked');
+});</code></pre>
+
+<p>Now you click the button — the actual pixels of the button, nothing else. What gets logged? Take a guess before you scroll. It's genuinely worth guessing, because whichever answer you picked tells you which mental model you're currently carrying.</p>
+
+<details>
+  <summary>Show me what actually logs</summary>
+  <pre><code>button clicked
+card clicked</code></pre>
+  <p><strong>Both</strong> handlers run, and the button's runs first — even though your finger only ever touched one element.</p>
+</details>
+
+<p>This trips people up because most of us start out with the wrong picture in our heads. The wrong picture is: <em>a click is an arrow that hits one element, and that element's handler runs.</em> Nice and simple. Also wrong.</p>
+
+<p>The real picture is that a click doesn't hit an element. It travels a <strong>path</strong> — and every element on that path gets a turn. Let me build that picture up properly, because everything else in this guide falls out of it.</p>
+
+<h2 id="tree">First, the tree</h2>
+
+<p>Quick foundation, and I promise it's short. When the browser parses your HTML, it doesn't keep a big string of text around. It builds a <strong>tree of objects</strong> in memory called the DOM (Document Object Model). Nesting in your HTML becomes parent/child relationships in the tree.</p>
+
+<p>So this HTML:</p>
+
+<span class="lbl lbl-neutral">HTML</span>
+<pre><code>&lt;html&gt;
+  &lt;body&gt;
+    &lt;div class="card"&gt;
+      &lt;button class="buy"&gt;Buy now&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+<p>...becomes a chain: <code>html</code> has a child <code>body</code>, which has a child <code>div.card</code>, which has a child <code>button.buy</code>. Above <code>html</code> sits the <code>document</code> object, and above <em>that</em> sits <code>window</code>, the global object representing the tab itself.</p>
+
+<p>That gives every element exactly one route to the top:</p>
+
+<pre><code>window → document → html → body → div.card → button.buy</code></pre>
+
+<p>Hold onto that chain. It <em>is</em> the event path. There's nothing more to it than that — the browser walks up and down this exact line.</p>
+
+<h2 id="phases">The three phases</h2>
+
+<p>Here's the mental model, and I'd encourage you to actually picture it rather than memorise it.</p>
+
+<p>Imagine an office building. A courier arrives with a package addressed to Maya, in office 604. The courier doesn't teleport to Maya's desk. They walk in through the <strong>front door</strong>, past the <strong>security desk</strong>, into the <strong>lift</strong>, out onto the <strong>sixth-floor reception</strong>, down the <strong>corridor</strong>, and finally to <strong>Maya's door</strong>. Then, having handed the package over, they walk back out the same way: corridor, reception, lift, security, front door.</p>
+
+<p>Everyone the courier passes — twice — gets a chance to look at the package. Security can inspect it on the way in. The floor receptionist can log it on the way out. Any of them could, in principle, confiscate it so it never reaches Maya at all.</p>
+
+<p>That's an event. The trip <em>inward</em>, from <code>window</code> down toward the element you actually clicked, is called the <strong>capturing phase</strong>. The moment the event arrives at the clicked element itself is the <strong>target phase</strong>. The trip back <em>outward</em>, from the clicked element up to <code>window</code>, is the <strong>bubbling phase</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 720 430" role="img" aria-label="Diagram of an event travelling down the DOM tree in the capturing phase and back up in the bubbling phase">
+  <defs>
+    <marker id="arrowDown" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 5 10 L 10 0 z" fill="#2f6f8f"/>
+    </marker>
+    <marker id="arrowUp" viewBox="0 0 10 10" refX="5" refY="1" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 10 L 5 0 L 10 10 z" fill="#2e7d4f"/>
+    </marker>
+  </defs>
+
+  <!-- capture rail -->
+  <line x1="92" y1="30" x2="92" y2="352" stroke="#2f6f8f" stroke-width="2.5" marker-end="url(#arrowDown)"/>
+  <text class="svg-phase" fill="#2f6f8f" transform="rotate(-90 30 200)" x="30" y="200" text-anchor="middle">CAPTURING</text>
+
+  <!-- bubble rail -->
+  <line x1="628" y1="352" x2="628" y2="30" stroke="#2e7d4f" stroke-width="2.5" marker-end="url(#arrowUp)"/>
+  <text class="svg-phase" fill="#2e7d4f" transform="rotate(90 690 200)" x="690" y="200" text-anchor="middle">BUBBLING</text>
+
+  <!-- boxes -->
+  <rect class="svg-box" x="150" y="16"  width="420" height="48" rx="7"/>
+  <text class="svg-label" x="360" y="46" text-anchor="middle">window</text>
+
+  <rect class="svg-box" x="150" y="80"  width="420" height="48" rx="7"/>
+  <text class="svg-label" x="360" y="110" text-anchor="middle">document</text>
+
+  <rect class="svg-box" x="150" y="144" width="420" height="48" rx="7"/>
+  <text class="svg-label" x="360" y="174" text-anchor="middle">&lt;html&gt;</text>
+
+  <rect class="svg-box" x="150" y="208" width="420" height="48" rx="7"/>
+  <text class="svg-label" x="360" y="238" text-anchor="middle">&lt;body&gt;</text>
+
+  <rect class="svg-box" x="150" y="272" width="420" height="48" rx="7"/>
+  <text class="svg-label" x="360" y="302" text-anchor="middle">&lt;div class="card"&gt;</text>
+
+  <rect class="svg-target" x="150" y="336" width="420" height="52" rx="7"/>
+  <text class="svg-label" x="360" y="360" text-anchor="middle">&lt;button class="buy"&gt;</text>
+  <text class="svg-note" x="360" y="378" text-anchor="middle">TARGET PHASE — you clicked here 👆</text>
+
+  <!-- capture step numbers -->
+  <circle cx="92" cy="40"  r="12" fill="#2f6f8f"/><text class="svg-num" x="92" y="45" text-anchor="middle">1</text>
+  <circle cx="92" cy="104" r="12" fill="#2f6f8f"/><text class="svg-num" x="92" y="109" text-anchor="middle">2</text>
+  <circle cx="92" cy="168" r="12" fill="#2f6f8f"/><text class="svg-num" x="92" y="173" text-anchor="middle">3</text>
+  <circle cx="92" cy="232" r="12" fill="#2f6f8f"/><text class="svg-num" x="92" y="237" text-anchor="middle">4</text>
+  <circle cx="92" cy="296" r="12" fill="#2f6f8f"/><text class="svg-num" x="92" y="301" text-anchor="middle">5</text>
+  <circle cx="92" cy="362" r="13" fill="#9a6a10"/><text class="svg-num" x="92" y="367" text-anchor="middle">6</text>
+
+  <!-- bubble step numbers -->
+  <circle cx="628" cy="296" r="12" fill="#2e7d4f"/><text class="svg-num" x="628" y="301" text-anchor="middle">7</text>
+  <circle cx="628" cy="232" r="12" fill="#2e7d4f"/><text class="svg-num" x="628" y="237" text-anchor="middle">8</text>
+  <circle cx="628" cy="168" r="12" fill="#2e7d4f"/><text class="svg-num" x="628" y="173" text-anchor="middle">9</text>
+  <circle cx="628" cy="104" r="12" fill="#2e7d4f"/><text class="svg-num" x="628" y="109" text-anchor="middle">10</text>
+  <circle cx="628" cy="40"  r="12" fill="#2e7d4f"/><text class="svg-num" x="628" y="45" text-anchor="middle">11</text>
+
+  <text class="svg-note" x="360" y="415" text-anchor="middle">Eleven stops. One click.</text>
+</svg>
+<figcaption>A single click on the button visits every ancestor twice: once on the way down (capture), once on the way back up (bubble).</figcaption>
+</figure>
+
+<p>Now go back to our mystery. We attached two handlers. Neither of them asked for the capturing phase, so both are bubbling handlers — the default. The event goes down through steps 1–5 firing nothing, reaches the button at step 6 and runs the button's handler, then bubbles up and hits <code>div.card</code> at step 7, running the card's handler.</p>
+
+<p><code>button clicked</code>, then <code>card clicked</code>. Not mysterious any more — just the courier walking back out past reception.</p>
+
+<div class="aside">
+  <span class="tag">Where the analogy breaks down</span>
+  <p>A courier physically moves; an event doesn't. The browser has already worked out the full path before it fires anything, and then it just calls your functions in order. And unlike a package, the event object is <em>shared</em> — every handler on the path gets a reference to the same object, so if one handler sets <code>event.foo = 1</code>, later handlers see it. That shared-object detail is exactly why <code>stopPropagation()</code> can work at all.</p>
+</div>
+
+<div class="aside hood">
+  <span class="tag">Under the hood</span>
+  <p>The event object knows where it is. <code>event.eventPhase</code> is <code>1</code> during capturing, <code>2</code> at the target, <code>3</code> during bubbling. And <code>event.composedPath()</code> returns the whole array of nodes the event will visit, target first. Logging <code>composedPath()</code> once in a confusing situation is the fastest way to see reality instead of guessing at it.</p>
+</div>
+
+<h2 id="history">Why both directions exist</h2>
+
+<p>Reasonable question: why on earth would a system need to deliver the same event twice, in two directions? That seems like a design nobody would choose.</p>
+
+<p>And you're right — nobody did choose it. It's a peace treaty. 🕊️</p>
+
+<p>Back in the late '90s, Netscape Navigator and Internet Explorer were building event systems independently and landed on opposite answers. Netscape said events should travel from the outside in: the window sees it first, and it trickles down to the element. That's capturing. Microsoft said the opposite: the element you clicked is obviously the most relevant thing, so it should go first, and then the news should spread outward to its ancestors. That's bubbling.</p>
+
+<p>When the W3C sat down to standardise the DOM, they couldn't pick a winner without breaking a browser's worth of existing code. So they specified <strong>both</strong>, in sequence: capture down, then bubble up. Bubbling became the default for <code>addEventListener</code> because that's what the overwhelming majority of real code had been written against.</p>
+
+<p>So the answer to "why both?" isn't an elegant engineering reason. It's history. Say that out loud in an interview and it lands well, because it signals you know the platform rather than just the API surface.</p>
+
+<h2 id="options">The third argument, and the options object</h2>
+
+<p>By default, <code>addEventListener</code> registers a <strong>bubbling</strong> listener. To listen during the capturing phase instead, you pass <code>true</code> as a third argument:</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>card.addEventListener('click', handleCard, <span class="hl">true</span>);   <span class="c">// 👈 capturing</span>
+card.addEventListener('click', handleCard, false);  <span class="c">// bubbling (the default)</span>
+card.addEventListener('click', handleCard);         <span class="c">// same as false</span></code></pre>
+
+<p>Let's prove the ordering. Same card and button, but now the card listens on the way <em>down</em>:</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>card.addEventListener('click', () =&gt; console.log('card (capture)'), true);
+button.addEventListener('click', () =&gt; console.log('button'));
+card.addEventListener('click', () =&gt; console.log('card (bubble)'));
+
+<span class="c">// Clicking the button logs:</span>
+<span class="c">// → card (capture)</span>
+<span class="c">// → button</span>
+<span class="c">// → card (bubble)</span></code></pre>
+
+<p>The card gets two turns, because the card is on the path twice. That's the whole trick.</p>
+
+<h3>The options object</h3>
+
+<p>That bare boolean is the old signature. The modern form passes an object, which is strictly more capable:</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>element.addEventListener('click', handleClick, {
+  capture: false,   <span class="c">// fire during capturing instead of bubbling</span>
+  once: true,       <span class="c">// auto-remove itself after firing one time</span>
+  passive: true,    <span class="c">// promise never to call preventDefault()</span>
+  signal: someSignal <span class="c">// an AbortSignal that can remove this listener later</span>
+});</code></pre>
+
+<p>Two of these deserve real explanations rather than a one-line gloss.</p>
+
+<h4>once</h4>
+
+<p><code>once: true</code> means the browser removes the listener for you immediately after it fires. It's the tidy version of a pattern you've probably hand-rolled:</p>
+
+<span class="lbl lbl-bad">❌ Fiddly</span>
+<pre><code>function onFirstScroll() {
+  loadAnalytics();
+  window.removeEventListener('scroll', onFirstScroll);
+}
+window.addEventListener('scroll', onFirstScroll);</code></pre>
+
+<span class="lbl lbl-good">✅ Same thing, no bookkeeping</span>
+<pre><code>window.addEventListener('scroll', loadAnalytics, { once: true });</code></pre>
+
+<h4>passive — and why scrolling cares</h4>
+
+<p>This one needs a bit of background, so let's get it.</p>
+
+<p>Some events have a <strong>default action</strong> the browser performs on its own. A <code>touchmove</code> or a <code>wheel</code> event normally scrolls the page. But your JavaScript is allowed to cancel that, by calling <code>event.preventDefault()</code> inside the handler. Carousels and custom gesture libraries do exactly this: "no, don't scroll, I'm handling this swipe myself."</p>
+
+<p>Now think about the browser's problem. You start swiping. The browser fires <code>touchmove</code>. It <em>cannot know</em> whether your handler is going to cancel the scroll until your handler has finished running. So it has to wait. It runs your JavaScript on the main thread, waits for it to return, checks whether <code>preventDefault()</code> was called, and only <em>then</em> does it scroll.</p>
+
+<p>If your handler takes 100ms, the page freezes for 100ms before it moves a pixel. On a slow phone with a few of these registered, scrolling feels like dragging a fridge.</p>
+
+<p><code>passive: true</code> is you making a promise: <em>"this handler will never call <code>preventDefault()</code>."</em> With that promise in hand, the browser doesn't have to wait. It can start scrolling on the compositor thread immediately and run your handler whenever it gets around to it. Scrolling stays at 60fps regardless of how slow your handler is.</p>
+
+<span class="lbl lbl-good">✅ Fast scroll tracking</span>
+<pre><code>window.addEventListener('scroll', updateProgressBar, { passive: true });
+el.addEventListener('touchstart', trackGesture, { passive: true });</code></pre>
+
+<p>If you break the promise and call <code>preventDefault()</code> inside a passive listener, it doesn't throw — it's simply ignored, and you get a console warning. That's a good thing to mention: passive isn't enforced by an exception, it's enforced by the browser ignoring you.</p>
+
+<div class="aside">
+  <span class="tag">Wait, what about…?</span>
+  <p><em>"If passive is so much better, why isn't it the default?"</em> For <code>touchstart</code>, <code>touchmove</code>, <code>wheel</code> and <code>mousewheel</code> on <code>window</code>, <code>document</code> and <code>document.body</code>, browsers <strong>did</strong> make it the default, precisely because so much of the web was suffering. Elsewhere it can't be the default without silently breaking every carousel that relies on cancelling scroll. So: default-passive on the big scroll containers, default-non-passive everywhere else.</p>
+</div>
+
+<h2 id="target">target vs currentTarget vs this</h2>
+
+<p>This is the single most-asked detail in this whole area, and it's asked constantly because it's the hinge that delegation swings on. Get it solid.</p>
+
+<p>Every handler receives an event object. Two of its properties sound identical and are not:</p>
+
+<ul>
+  <li><code>event.target</code> — <strong>the element the event originated on.</strong> The deepest thing you actually clicked. This is the same value for every handler on the path.</li>
+  <li><code>event.currentTarget</code> — <strong>the element whose listener is currently running.</strong> This changes as the event travels. It's always the element you called <code>addEventListener</code> on.</li>
+</ul>
+
+<p>Back to the courier: <code>target</code> is the name on the package's address label — it says "Maya, office 604" the whole way. <code>currentTarget</code> is whoever is holding the package right now.</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>card.addEventListener('click', (event) =&gt; {
+  console.log('target:', event.target.className);
+  console.log('currentTarget:', event.currentTarget.className);
+});
+
+<span class="c">// Click the button inside the card:</span>
+<span class="c">// → target: buy      👈 what you clicked</span>
+<span class="c">// → currentTarget: card  👈 who's listening</span>
+
+<span class="c">// Click the card's padding, missing the button:</span>
+<span class="c">// → target: card</span>
+<span class="c">// → currentTarget: card</span></code></pre>
+
+<p>When you click directly on the listening element, they're the same. When you click something nested inside it, they differ. That difference is the entire foundation of delegation, which is why interviewers keep poking at it.</p>
+
+<h3>And <code>this</code>?</h3>
+
+<p>Inside a listener added with <code>addEventListener</code>, <code>this</code> equals <code>currentTarget</code>. The browser calls your function with the listening element as the receiver.</p>
+
+<p><strong>Unless you used an arrow function.</strong> Arrow functions don't get their own <code>this</code> — they inherit it from wherever they were written. So:</p>
+
+<span class="lbl lbl-bad">❌ Surprising</span>
+<pre><code>card.addEventListener('click', () =&gt; {
+  console.log(this); <span class="c">// → Window (or undefined in a module) — NOT the card</span>
+});</code></pre>
+
+<span class="lbl lbl-good">✅ Predictable</span>
+<pre><code>card.addEventListener('click', function () {
+  console.log(this); <span class="c">// → &lt;div class="card"&gt;</span>
+});
+
+<span class="c">// ...or just don't rely on `this` at all:</span>
+card.addEventListener('click', (event) =&gt; {
+  console.log(event.currentTarget); <span class="c">// → &lt;div class="card"&gt; ✅ always works</span>
+});</code></pre>
+
+<p>My honest recommendation: use <code>event.currentTarget</code> and never think about <code>this</code> in a handler again. It works with arrows, with regular functions, with class methods, with everything. But <em>know</em> the <code>this</code> rule, because interviewers ask it.</p>
+
+<div class="aside myth">
+  <span class="tag">A common misconception</span>
+  <p><em>"<code>event.target</code> is the element I attached the listener to."</em> This belief works fine right up until someone nests an <code>&lt;span&gt;</code> or an icon inside your button — and then <code>event.target</code> is the span, your <code>target.dataset.id</code> is <code>undefined</code>, and you spend twenty minutes confused. <code>target</code> is <em>where the event came from</em>. <code>currentTarget</code> is <em>where you're standing</em>.</p>
+</div>
+
+<h2 id="stopping">stopPropagation, stopImmediatePropagation, preventDefault</h2>
+
+<p>Three methods that people mash together into a vague notion of "cancel the event." They do three genuinely different jobs, and conflating them is a classic ding.</p>
+
+<p>Before we can separate them, we need one term nailed down.</p>
+
+<h3>What "the default action" actually means</h3>
+
+<p>Some events cause the browser to do something <em>on its own</em>, with no JavaScript involved at all. Turn off JS entirely and these still happen — they're built into the browser:</p>
+
+<ul>
+  <li>Clicking an <code>&lt;a href&gt;</code> navigates to the URL.</li>
+  <li>Clicking a submit button submits the form and reloads the page.</li>
+  <li>Clicking a checkbox toggles it.</li>
+  <li>Typing a character into an input inserts that character.</li>
+  <li>Pressing Space scrolls the page down.</li>
+  <li>Right-clicking opens the context menu.</li>
+  <li>Dragging a link starts a drag operation.</li>
+</ul>
+
+<p>That built-in behaviour is the <strong>default action</strong>. <code>event.preventDefault()</code> cancels it. That's <em>all</em> it does.</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>form.addEventListener('submit', (event) =&gt; {
+  event.preventDefault(); <span class="c">// 👈 don't reload the page</span>
+  submitViaFetch(new FormData(form));
+});</code></pre>
+
+<p>Critically: <strong>preventDefault does not stop the event from travelling.</strong> The event keeps right on bubbling to every ancestor. You cancelled the browser's built-in reaction, not the journey.</p>
+
+<h3>stopPropagation</h3>
+
+<p><code>event.stopPropagation()</code> is the mirror image: it stops the journey and leaves the default action completely alone.</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>button.addEventListener('click', (event) =&gt; {
+  event.stopPropagation(); <span class="c">// card's handler will NOT run</span>
+});
+
+<span class="c">// Clicking the button now logs only:</span>
+<span class="c">// → button clicked</span></code></pre>
+
+<p>The courier gets confiscated at Maya's door. Nobody further along the route ever sees the package.</p>
+
+<p>One subtlety worth knowing: <code>stopPropagation()</code> stops the event moving to the <em>next element</em>, but every other listener <em>on the current element</em> still runs. If you attached three click handlers to the same button and the first calls <code>stopPropagation()</code>, all three still fire — the event just doesn't go anywhere afterwards.</p>
+
+<h3>stopImmediatePropagation</h3>
+
+<p>Which is exactly what this one fixes. <code>event.stopImmediatePropagation()</code> does everything <code>stopPropagation()</code> does, <em>plus</em> it skips the remaining listeners on the current element.</p>
+
+<span class="lbl lbl-neutral">JS</span>
+<pre><code>button.addEventListener('click', (e) =&gt; {
+  console.log('first');
+  e.stopImmediatePropagation(); <span class="c">// 👈</span>
+});
+button.addEventListener('click', () =&gt; console.log('second'));
+card.addEventListener('click', () =&gt; console.log('card'));
+
+<span class="c">// → first</span>
+<span class="c">// (that's it — "second" and "card" never run)</span></code></pre>
+
+<p>Swap in plain <code>stopPropagation()</code> and you'd get <code>first</code> and <code>second</code>, but still no <code>card</code>.</p>
+
+<table>
+  <thead>
+    <tr><th>Method</th><th>Stops travel to ancestors?</th><th>Stops other listeners on the same element?</th><th>Stops the browser's default action?</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>preventDefault()</code></td><td>No</td><td>No</td><td><strong>Yes</strong></td></tr>
+    <tr><td><code>stopPropagation()</code></td><td><strong>Yes</strong></td><td>No</td><td>No</td></tr>
+    <tr><td><code>stopImmediatePropagation()</code></td><td><strong>Yes</strong></td><td><strong>Yes</strong></td><td>No</td></tr>
+  </tbody>
+</table>
+
+<div class="aside trap">
+  <span class="tag">Trap</span>
+  <p><code>return false</code> from a handler is <em>not</em> a general "cancel everything." In an old-style inline handler (<code>onclick="return false"</code>) or a jQuery handler it means preventDefault + stopPropagation. In a plain <code>addEventListener</code> callback it means <strong>absolutely nothing</strong> — the return value is discarded. Saying "you can just return false" in an interview is a small but real red flag.</p>
+</div>
+
+<div class="aside myth">
+  <span class="tag">A common misconception</span>
+  <p><em>"I'll add <code>stopPropagation()</code> to be safe."</em> Please don't. <code>stopPropagation()</code> is not a defensive measure — it's an offensive one. It silently breaks any delegated listener higher up the tree: analytics, "click outside to close" handlers, focus management, third-party widgets. It's a common source of the bug report "the dropdown won't close when I click the thing inside the modal." Reach for it only when you genuinely mean "no ancestor should know about this."</p>
+</div>
+
+<h2 id="delegation">Event delegation</h2>
+
+<p>Now we can build the thing all of that was setup for.</p>
+
+<p>Say we have a to-do list, and every item has a delete button:</p>
+
+<span class="lbl lbl-neutral">HTML</span>
+<pre><code>&lt;ul id="todo-list"&gt;
+  &lt;li&gt;Buy milk       &lt;button data-id="1"&gt;Delete&lt;/button&gt;&lt;/li&gt;
+  &lt;li&gt;Renew passport &lt;button data-id="2"&gt;Delete&lt;/button&gt;&lt;/li&gt;
+  &lt;!-- ...498 more --&gt;
+&lt;/ul&gt;</code></pre>
+
+<p>The obvious approach is to loop and attach a listener to each button:</p>
+
+<span class="lbl lbl-bad">❌ 500 listeners</span>
+<pre><code>document.querySelectorAll('#todo-list button').forEach((button) =&gt; {
+  button.addEventListener('click', () =&gt; {
+    deleteTodo(button.dataset.id);
+  });
+});</code></pre>
+
+<p>This works. It also has three problems, and they get worse as the app grows.</p>
+
+<p><strong>One: it's 500 listeners.</strong> Each one is a function object plus an entry in the browser's internal listener table, held in memory for as long as the elements live. For 500 rows that's survivable; for a big table or an infinite-scroll feed it's real memory and real setup time.</p>
+
+<p><strong>Two — and this is the big one — it only works on the elements that existed at the moment the loop ran.</strong> Add a new to-do after page load and its delete button is dead. It looks identical, it just has no listener. This is the single most common "my button doesn't work" bug in vanilla JS.</p>
+
+<p><strong>Three: teardown is a chore.</strong> When the list is destroyed you're supposed to remove 500 listeners, and you need a reference to each original function to do it. Most codebases quietly skip this and accumulate leaks.</p>
+
+<h3>The delegation move</h3>
+
+<p>So here's the idea. We know a click on a button <em>bubbles up</em> through the <code>&lt;li&gt;</code> to the <code>&lt;ul&gt;</code>. And we know <code>event.target</code> tells us what was actually clicked. So we can put <strong>one</strong> listener on the <code>&lt;ul&gt;</code> and ask, each time, "what did you actually click?"</p>
+
+<span class="lbl lbl-good">✅ 1 listener</span>
+<pre><code>document.querySelector('#todo-list').addEventListener('click', (event) =&gt; {
+  const button = event.target.closest('button[data-id]');
+  if (!button) return; <span class="c">// 👈 clicked something else in the list — ignore it</span>
+
+  deleteTodo(button.dataset.id);
+});</code></pre>
+
+<p>That's the whole technique. <strong>Listen on a common ancestor, and use the event to figure out which descendant was involved.</strong> The name comes from the fact that the ancestor <em>delegates</em> the actual work based on what it's told.</p>
+
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-label="Comparison: 500 individual listeners versus one delegated listener on the parent list">
+  <defs>
+    <marker id="arrowUp2" viewBox="0 0 10 10" refX="5" refY="1" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 10 L 5 0 L 10 10 z" fill="#2e7d4f"/>
+    </marker>
+  </defs>
+  <!-- left: many listeners -->
+  <text class="svg-phase" fill="#b4342b" x="170" y="22" text-anchor="middle">500 LISTENERS</text>
+  <rect class="svg-box" x="30" y="38" width="280" height="216" rx="8"/>
+  <text class="svg-label" x="44" y="60">&lt;ul&gt;</text>
+
+  <rect x="56" y="72" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="68" y="92" font-size="13">&lt;li&gt; Buy milk</text>
+  <circle cx="266" cy="87" r="9" fill="#b4342b"/><text class="svg-num" x="266" y="91" text-anchor="middle" font-size="11">L</text>
+
+  <rect x="56" y="110" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="68" y="130" font-size="13">&lt;li&gt; Renew passport</text>
+  <circle cx="266" cy="125" r="9" fill="#b4342b"/><text class="svg-num" x="266" y="129" text-anchor="middle" font-size="11">L</text>
+
+  <rect x="56" y="148" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="68" y="168" font-size="13">&lt;li&gt; Call the bank</text>
+  <circle cx="266" cy="163" r="9" fill="#b4342b"/><text class="svg-num" x="266" y="167" text-anchor="middle" font-size="11">L</text>
+
+  <text class="svg-note" x="170" y="199" text-anchor="middle">⋮</text>
+  <rect x="56" y="206" width="228" height="30" rx="5" fill="#f6efe4" stroke="#d8bd8a" stroke-dasharray="4 3"/>
+  <text class="svg-note" x="68" y="226" font-size="12" fill="#9a6a10">&lt;li&gt; added later — no listener ✗</text>
+
+  <!-- right: one listener -->
+  <text class="svg-phase" fill="#2e7d4f" x="550" y="22" text-anchor="middle">1 LISTENER</text>
+  <rect class="svg-box" x="410" y="38" width="280" height="216" rx="8"/>
+  <text class="svg-label" x="424" y="60">&lt;ul&gt;</text>
+  <circle cx="668" cy="54" r="10" fill="#2e7d4f"/><text class="svg-num" x="668" y="59" text-anchor="middle" font-size="12">L</text>
+
+  <rect x="436" y="72" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="448" y="92" font-size="13">&lt;li&gt; Buy milk</text>
+  <rect x="436" y="110" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="448" y="130" font-size="13">&lt;li&gt; Renew passport</text>
+  <rect x="436" y="148" width="228" height="30" rx="5" fill="#fff" stroke="#cfc8bc"/>
+  <text class="svg-label" x="448" y="168" font-size="13">&lt;li&gt; Call the bank</text>
+  <text class="svg-note" x="550" y="199" text-anchor="middle">⋮</text>
+  <rect x="436" y="206" width="228" height="30" rx="5" fill="#eaf5ee" stroke="#8fc2a4"/>
+  <text class="svg-note" x="448" y="226" font-size="12" fill="#2e7d4f">&lt;li&gt; added later — works ✓</text>
+
+  <!-- bubbling arrows on right -->
+  <path d="M 420 221 L 420 66" stroke="#2e7d4f" stroke-width="2" fill="none" marker-end="url(#arrowUp2)"/>
+
+  <text class="svg-note" x="360" y="285" text-anchor="middle">The clicks bubble up to the &lt;ul&gt; either way — so why not just listen there?</text>
+</svg>
+<figcaption>Delegation trades N listeners for one, and gets dynamic elements for free because it never cared about the children in the first place.</figcaption>
+</figure>
+
+<h3>The three reasons, stated plainly</h3>
+
+<p>When an interviewer asks "why delegation?", these are the three answers, in roughly this order of importance:</p>
+
+<ol>
+  <li><strong>Dynamically-added elements just work.</strong> The listener is on the parent, which was always there. New children inherit the behaviour without any wiring, because there's nothing to wire. This is the reason that actually changes how you write code.</li>
+  <li><strong>Fewer listeners, less memory, faster setup.</strong> One function object instead of N. No loop over the DOM on every render. Meaningful on large lists and tables.</li>
+  <li><strong>Teardown is trivial.</strong> One <code>removeEventListener</code> — or one <code>abort()</code> — instead of tracking N function references. Fewer chances to leak.</li>
+</ol>
+
+<div class="aside">
+  <span class="tag">Wait, what about…?</span>
+  <p><em>"Isn't it slower, since every click in the list runs my handler even when it's irrelevant?"</em> Technically yes — you do a <code>closest()</code> call on clicks you end up ignoring. But <code>closest()</code> walks a handful of parent nodes in native code; it's a rounding error next to the cost of holding hundreds of listeners and re-attaching them on every re-render. And the event was going to bubble through that ancestor regardless — you're not adding a trip, you're just showing up for one that already happens.</p>
+</div>
+
+<h2 id="closest">closest(), and the child-click trap</h2>
+
+<p>Let me show you the bug that <code>closest()</code> exists to fix, because you will absolutely hit it.</p>
+
+<p>Here's a naive delegated handler:</p>
+
+<span class="lbl lbl-bad">❌ Buggy</span>
+<pre><code>list.addEventListener('click', (event) =&gt; {
+  if (event.target.tagName === 'BUTTON') {
+    deleteTodo(event.target.dataset.id);
+  }
+});</code></pre>
+
+<p>Works perfectly. Then a designer adds an icon inside the button:</p>
+
+<span class="lbl lbl-neutral">HTML</span>
+<pre><code>&lt;button data-id="1"&gt;
+  &lt;svg class="trash-icon"&gt;...&lt;/svg&gt;
+  &lt;span&gt;Delete&lt;/span&gt;
+&lt;/button&gt;</code></pre>
+
+<p>And now delete is broken — but only sometimes. Click the button's padding and it works. Click the word "Delete" and nothing happens.</p>
+
+<p>Why? Because <code>event.target</code> is the deepest element under the pointer. Click the text and <code>target</code> is the <code>&lt;span&gt;</code>, not the <code>&lt;button&gt;</code>. <code>span.tagName</code> is <code>'SPAN'</code>, the check fails, and the click is silently dropped. (With an SVG icon it's even nastier — <code>tagName</code> comes back as lowercase <code>'svg'</code>.)</p>
+
+<p>What we actually want to ask isn't "is the target a button?" It's "<strong>is the target inside a button?</strong>" And that's precisely what <code>closest()</code> answers.</p>
+
+<span class="lbl lbl-good">✅ Fixed</span>
+<pre><code>list.addEventListener('click', (event) =&gt; {
+  const button = event.target.closest('button[data-id]');
+  if (!button) return;
+  deleteTodo(button.dataset.id);
+});</code></pre>
+
+<p><code>element.closest(selector)</code> starts at the element itself, then walks up through its ancestors, and returns the first one matching the selector — or <code>null</code> if it reaches the top without a match. It checks the element itself first, which is exactly the behaviour we want: click the button directly and it returns the button; click the span inside it and it returns the button too.</p>
+
+<div class="aside trap">
+  <span class="tag">Trap</span>
+  <p><code>closest()</code> walks all the way up the document, not just to your listening element. If you have nested delegated regions, you can match a button outside the container you're listening on. In practice: use a selector specific enough that it can't match elsewhere (<code>'[data-action="delete-todo"]'</code>, not <code>'button'</code>), and if you want to be rigorous, add <code>if (!event.currentTarget.contains(button)) return;</code>.</p>
+</div>
+
+<h3>The scalable version: data attributes as a router</h3>
+
+<p>Once you have one delegated listener, the natural next step is to let it handle several actions. A <code>data-action</code> attribute turns it into a tiny router:</p>
+
+<span class="lbl lbl-good">✅ One listener, many behaviours</span>
+<pre><code>const actions = {
+  delete: (el) =&gt; deleteTodo(el.dataset.id),
+  edit:   (el) =&gt; openEditor(el.dataset.id),
+  pin:    (el) =&gt; pinTodo(el.dataset.id),
+};
+
+list.addEventListener('click', (event) =&gt; {
+  const trigger = event.target.closest('[data-action]');
+  if (!trigger) return;
+
+  actions[trigger.dataset.action]?.(trigger);
+});</code></pre>
+
+<p>Adding a fourth action is now one line of markup and one line of JS. No new listeners, ever. This pattern is the core of how libraries like Stimulus work, and mentioning that connection is a nice signal of breadth.</p>
+
+<h2 id="nobubble">Events that don't bubble</h2>
+
+<p>Delegation depends entirely on bubbling. So it's worth knowing that a handful of events <strong>don't bubble</strong> — and if you try to delegate them, you'll get silence and no error, which is the worst kind of failure.</p>
+
+<p>The main offenders:</p>
+
+<table>
+  <thead>
+    <tr><th>Doesn't bubble</th><th>Bubbling counterpart</th><th>What it means</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>focus</code></td><td><code>focusin</code></td><td>An element gained keyboard focus</td></tr>
+    <tr><td><code>blur</code></td><td><code>focusout</code></td><td>An element lost keyboard focus</td></tr>
+    <tr><td><code>mouseenter</code></td><td><code>mouseover</code></td><td>Pointer entered an element</td></tr>
+    <tr><td><code>mouseleave</code></td><td><code>mouseout</code></td><td>Pointer left an element</td></tr>
+    <tr><td><code>load</code>, <code>error</code> (on <code>&lt;img&gt;</code>, <code>&lt;script&gt;</code>)</td><td>— (use capture)</td><td>Resource finished / failed loading</td></tr>
+    <tr><td><code>scroll</code> (on elements)</td><td>— (use capture)</td><td>An element scrolled</td></tr>
+  </tbody>
+</table>
+
+<p>So this quietly does nothing:</p>
+
+<span class="lbl lbl-bad">❌ Never fires</span>
+<pre><code>form.addEventListener('focus', (e) =&gt; {
+  highlightField(e.target); <span class="c">// 👈 focus doesn't bubble to the form</span>
+});</code></pre>
+
+<span class="lbl lbl-good">✅ Works</span>
+<pre><code>form.addEventListener('focusin', (e) =&gt; {
+  highlightField(e.target);
+});</code></pre>
+
+<p>There's a second escape hatch that works even where no bubbling counterpart exists: <strong>listen in the capturing phase</strong>. Capturing goes top-down and doesn't depend on the event bubbling, so an ancestor can catch a non-bubbling event on the way in:</p>
+
+<span class="lbl lbl-good">✅ Also works — catch it on the way down</span>
+<pre><code>form.addEventListener('focus', handleFocus, <span class="hl">true</span>);
+
+<span class="c">// The classic use: detect broken images anywhere on the page</span>
+document.addEventListener('error', (e) =&gt; {
+  if (e.target.tagName === 'IMG') e.target.src = '/placeholder.png';
+}, <span class="hl">true</span>);</code></pre>
+
+<div class="aside hood">
+  <span class="tag">Under the hood</span>
+  <p>Why don't <code>mouseenter</code>/<code>mouseleave</code> bubble? Because they were designed to mean "the pointer entered <em>this specific element</em>," which is what you want for hover effects. <code>mouseover</code>/<code>mouseout</code> bubble, and they also fire every time the pointer crosses into a <em>child</em> — so a hover menu built on <code>mouseout</code> flickers as you move over its own contents. That flicker is the historical reason <code>mouseenter</code> was invented. If you delegate hover with <code>mouseover</code>, you must compare <code>event.relatedTarget</code> to filter out moves between children.</p>
+  <p>You can check any event yourself: <code>event.bubbles</code> is a boolean on the event object.</p>
+</div>
+
+<h2 id="react">How React does events</h2>
+
+<p>Everything so far has been the browser's own system. React sits on top of it and does something clever, and interviewers love asking about the seam between the two.</p>
+
+<p>Here's the thing that surprises people. When you write this:</p>
+
+<span class="lbl lbl-neutral">JSX</span>
+<pre><code>&lt;button onClick={handleBuy}&gt;Buy now&lt;/button&gt;</code></pre>
+
+<p>...React does <strong>not</strong> call <code>addEventListener('click', handleBuy)</code> on that button. There is no click listener on that DOM node. If you inspected it in DevTools' Event Listeners panel, you'd find nothing.</p>
+
+<p>Instead, <strong>React does event delegation for you</strong> — the same technique we just built by hand, applied to your entire app. React attaches a small set of listeners to one container, and when a click bubbles up to it, React looks at <code>event.target</code>, figures out which component that DOM node belongs to, and then simulates the whole capture-and-bubble journey <em>through your React component tree</em>, calling the <code>onClick</code> props it finds along the way.</p>
+
+<p>Your <code>onClick</code> is not a DOM listener. It's a prop that React consults when it replays the event through its own tree.</p>
+
+<h3>The React 17 change (this is the version detail they ask about)</h3>
+
+<p>Through React 16, those container listeners were attached to <code>document</code>. As of <strong>React 17</strong>, they're attached to the <strong>root container</strong> — the DOM node you passed to <code>createRoot</code> (typically <code>#root</code>).</p>
+
+<figure>
+<svg viewBox="0 0 720 250" role="img" aria-label="Diagram showing React attaching its listeners at the root container rather than at document">
+  <defs>
+    <marker id="arrowUp3" viewBox="0 0 10 10" refX="5" refY="1" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 10 L 5 0 L 10 10 z" fill="#2e7d4f"/>
+    </marker>
+  </defs>
+  <rect class="svg-box" x="60" y="14" width="600" height="42" rx="7"/>
+  <text class="svg-label" x="360" y="41" text-anchor="middle">document</text>
+  <text class="svg-note" x="672" y="41" text-anchor="end" font-size="12">React 16 listened here</text>
+
+  <rect class="svg-box" x="90" y="70" width="540" height="42" rx="7"/>
+  <text class="svg-label" x="360" y="97" text-anchor="middle">&lt;body&gt;</text>
+
+  <rect x="120" y="126" width="480" height="46" rx="7" fill="#eaf3f7" stroke="#2f6f8f" stroke-width="2.5"/>
+  <text class="svg-label" x="360" y="147" text-anchor="middle">&lt;div id="root"&gt;</text>
+  <text class="svg-note" x="360" y="165" text-anchor="middle" fill="#2f6f8f">React 17+ attaches ALL its listeners here</text>
+
+  <rect x="180" y="186" width="360" height="40" rx="7" fill="#fdf0d8" stroke="#9a6a10" stroke-width="2"/>
+  <text class="svg-label" x="360" y="211" text-anchor="middle">&lt;button onClick={...}&gt; — no listener of its own</text>
+
+  <path d="M 640 200 L 640 152" stroke="#2e7d4f" stroke-width="2" fill="none" marker-end="url(#arrowUp3)"/>
+  <text class="svg-note" x="656" y="185" font-size="11" fill="#2e7d4f">native</text>
+  <text class="svg-note" x="656" y="199" font-size="11" fill="#2e7d4f">bubble</text>
+</svg>
+<figcaption>The click bubbles natively up to <code>#root</code>. React catches it there, then replays it through the component tree.</figcaption>
+</figure>
+
+<p>Why the change? So you can run two React versions on one page, or embed React inside a jQuery/Angular app, without the two fighting over <code>document</code>. It also made <code>stopPropagation</code> behave the way people always expected.</p>
+
+<h3>What this means when you mix React with native listeners</h3>
+
+<p>Three consequences worth being able to state:</p>
+
+<p><strong>1. A native listener on an ancestor <em>inside</em> the root runs before your React handler.</strong> If you do <code>someDiv.addEventListener('click', fn)</code> on a wrapper div and a React button inside it is clicked, <code>fn</code> runs first — the native event has to bubble all the way to <code>#root</code> before React even hears about it. That ordering surprises everyone the first time.</p>
+
+<p><strong>2. Calling <code>stopPropagation()</code> in a native listener kills your React handler entirely.</strong> If the event never reaches <code>#root</code>, React never learns it happened. This is the classic "my onClick doesn't fire and there's no error" bug when integrating a third-party library.</p>
+
+<p><strong>3. Calling <code>stopPropagation()</code> in a React handler <em>does</em> stop listeners on <code>document</code> — in React 17+.</strong> React's synthetic <code>stopPropagation</code> forwards to the native event, and since React's listener sits at <code>#root</code> (below <code>document</code>), stopping there prevents the event ever reaching <code>document</code>. In React 16 this didn't work, because React's own listener <em>was</em> the one on <code>document</code>. If you ever wondered why a click-outside handler broke on a React upgrade, that's why.</p>
+
+<span class="lbl lbl-neutral">JSX</span>
+<pre><code>function Modal() {
+  <span class="c">// Stops the click reaching a document-level "close on outside click"</span>
+  return &lt;div onClick={(e) =&gt; e.stopPropagation()}&gt;...&lt;/div&gt;;
+}</code></pre>
+
+<div class="aside trap">
+  <span class="tag">Trap</span>
+  <p>React <strong>portals</strong> render DOM somewhere else (say, directly under <code>&lt;body&gt;</code>) but events still propagate through the <strong>React tree</strong>, not the DOM tree. So a click inside a portalled modal fires the <code>onClick</code> of the component that <em>rendered</em> the portal, even though those nodes aren't DOM ancestors. This is deliberate and extremely useful, and it's a great "do they really understand it?" question.</p>
+</div>
+
+<div class="aside hood">
+  <span class="tag">Under the hood</span>
+  <p>A few more React details, in case they push: the object you receive is a <strong>SyntheticEvent</strong>, a cross-browser wrapper — <code>e.nativeEvent</code> gets you the real one. React 17 removed <strong>event pooling</strong>, so you no longer need <code>e.persist()</code> to read an event asynchronously. And not everything is delegated: React attaches <code>onScroll</code>, media events, and a few others directly to the node, because those don't bubble. <code>onMouseEnter</code>/<code>onMouseLeave</code> are synthesised from <code>mouseout</code>/<code>mouseover</code> for the same reason.</p>
+</div>
+
+<h2 id="removing">Removing listeners without leaking</h2>
+
+<p>Let's finish the lifecycle. Adding listeners is easy; removing them is where the bugs are.</p>
+
+<p>Here's a piece of code that looks completely reasonable and does nothing at all:</p>
+
+<span class="lbl lbl-bad">❌ Buggy — the listener is never removed</span>
+<pre><code>window.addEventListener('resize', () =&gt; recalculate());
+<span class="c">// later...</span>
+window.removeEventListener('resize', () =&gt; recalculate());</code></pre>
+
+<p>Take a second with that one. The two functions look identical. Why doesn't it work?</p>
+
+<p>Because they aren't the same function. Every time you evaluate a function expression, JavaScript creates a <strong>brand new function object</strong>. Two functions with identical source code are two different objects, the same way <code>{} === {}</code> is <code>false</code>. <code>removeEventListener</code> finds the listener to remove by <strong>identity</strong> — same type, same function reference, same capture flag — and there's no listener matching this second, freshly-minted function. So it removes nothing, silently, with no error.</p>
+
+<p>The fix is to hold onto the reference:</p>
+
+<span class="lbl lbl-good">✅ Fixed</span>
+<pre><code>const handleResize = () =&gt; recalculate(); <span class="c">// 👈 one function, stored</span>
+
+window.addEventListener('resize', handleResize);
+window.removeEventListener('resize', handleResize);</code></pre>
+
+<p>Same trap in a subtler costume — <code>.bind()</code> also returns a new function every time:</p>
+
+<span class="lbl lbl-bad">❌ Buggy</span>
+<pre><code>el.addEventListener('click', this.handleClick.bind(this));
+el.removeEventListener('click', this.handleClick.bind(this)); <span class="c">// different object!</span></code></pre>
+
+<span class="lbl lbl-good">✅ Fixed</span>
+<pre><code>this.boundClick = this.handleClick.bind(this); <span class="c">// bind once, in the constructor</span>
+el.addEventListener('click', this.boundClick);
+el.removeEventListener('click', this.boundClick);</code></pre>
+
+<p>And the capture flag counts as part of the identity, which catches people out:</p>
+
+<span class="lbl lbl-bad">❌ Buggy</span>
+<pre><code>el.addEventListener('click', onClick, true);
+el.removeEventListener('click', onClick);       <span class="c">// removes nothing — capture mismatch</span>
+el.removeEventListener('click', onClick, true); <span class="c">// ✅ this one works</span></code></pre>
+
+<p>(<code>once</code> and <code>passive</code> are <em>not</em> part of the identity. Only <code>capture</code> is.)</p>
+
+<h3>Why leaked listeners matter</h3>
+
+<p>Here's the mechanism, because "memory leak" is a phrase people say without being able to explain.</p>
+
+<p>A listener attached to a long-lived object — <code>window</code>, <code>document</code>, a global event bus — is a reference held by that long-lived object. Your handler function closes over whatever it uses: component state, a big data array, a DOM node. So as long as the listener is registered, the garbage collector can see a live path to all of it and cannot free any of it.</p>
+
+<p>Mount and unmount a component 200 times in a single-page app without cleaning up, and you now have 200 dead components' worth of state pinned in memory, and 200 handlers all running on every scroll event. The app gets slower the longer you use it, which is the signature symptom.</p>
+
+<div class="aside">
+  <span class="tag">Wait, what about…?</span>
+  <p><em>"What if I just remove the element from the DOM?"</em> Then the listener goes with it — if nothing else references either. Modern browsers happily collect a detached node along with its listeners. The leak comes from listeners on things that <strong>don't</strong> get removed: <code>window</code>, <code>document</code>, <code>IntersectionObserver</code>s, timers, and anything holding a closure over your removed component.</p>
+</div>
+
+<h3>AbortController: the modern way</h3>
+
+<p>Since 2021 there's a much nicer approach. <code>AbortController</code> — the same object used to cancel <code>fetch</code> requests — can cancel listeners, via the <code>signal</code> option.</p>
+
+<span class="lbl lbl-good">✅ One abort() removes all of them</span>
+<pre><code>const controller = new AbortController();
+const { signal } = controller;
+
+window.addEventListener('resize', handleResize, { signal });
+window.addEventListener('scroll', handleScroll, { signal });
+document.addEventListener('keydown', handleKey, { signal });
+el.addEventListener('click', () =&gt; toggle(), { signal }); <span class="c">// 👈 inline is fine now!</span>
+
+<span class="c">// Teardown — removes all four:</span>
+controller.abort();</code></pre>
+
+<p>Three things this buys you. You don't need to keep a named reference to every handler, so inline arrow functions become safe. You clean up N listeners with one call instead of N. And the same controller can cancel in-flight fetches at the same time, so "everything this component started" becomes a single cancellation unit.</p>
+
+<p>In React it's the tidiest effect cleanup you'll write:</p>
+
+<span class="lbl lbl-good">✅ React effect cleanup</span>
+<pre><code>useEffect(() =&gt; {
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  window.addEventListener('resize', onResize, { signal });
+  document.addEventListener('keydown', onKey, { signal });
+
+  return () =&gt; controller.abort(); <span class="c">// 👈 that's the whole cleanup</span>
+}, []);</code></pre>
+
+<h2 id="dropdown">Recipe: click-outside-to-close</h2>
+
+<p>This gets asked as a live-coding exercise all the time, and it's a lovely one because it exercises delegation, <code>contains</code>/<code>closest</code>, propagation, and cleanup all at once.</p>
+
+<p>The requirement: a dropdown that closes when you click anywhere outside it. Since a click anywhere bubbles up to <code>document</code>, that's where we listen.</p>
+
+<p>Here's the version almost everyone writes first, and it has a great bug:</p>
+
+<span class="lbl lbl-bad">❌ Buggy — the menu opens and instantly closes</span>
+<pre><code>toggleButton.addEventListener('click', () =&gt; {
+  menu.hidden = false;
+
+  document.addEventListener('click', () =&gt; {
+    menu.hidden = true;
+  }, { once: true });
+});</code></pre>
+
+<p>Can you see it? The click that opened the menu is <em>still bubbling</em>. It leaves the button, continues up to <code>document</code>, and hits the listener we just added — one that's now looking for the next click and finds the current one. The menu closes in the same tick it opened.</p>
+
+<p>The fix isn't <code>stopPropagation()</code> (that would break other delegated handlers on the page). The fix is to <strong>ask where the click came from</strong> — which is exactly the delegation mindset:</p>
+
+<span class="lbl lbl-good">✅ Fixed</span>
+<pre><code>const controller = new AbortController();
+const { signal } = controller;
+
+document.addEventListener('click', (event) =&gt; {
+  if (menu.hidden) return;
+
+  const clickedInside = menu.contains(event.target)
+    || toggleButton.contains(event.target); <span class="c">// 👈 the toggle counts as "inside"</span>
+
+  if (!clickedInside) menu.hidden = true;
+}, { signal });
+
+document.addEventListener('keydown', (event) =&gt; {
+  if (event.key === 'Escape') menu.hidden = true;
+}, { signal });
+
+<span class="c">// teardown:</span> controller.abort();</code></pre>
+
+<p>Because the document listener now checks <code>contains()</code>, the opening click harmlessly matches "inside the toggle" and the menu stays open. One persistent listener, no re-registration, and Escape handled too — which is the accessibility detail that makes an interviewer nod.</p>
+
+<div class="aside">
+  <span class="tag">Wait, what about…?</span>
+  <p><em>"Why <code>contains()</code> rather than <code>closest()</code>?"</em> Either works; they ask the same question from different ends. <code>menu.contains(event.target)</code> starts from the menu and looks down; <code>event.target.closest('.menu')</code> starts from the click and looks up. Use <code>contains</code> when you already hold the element reference, <code>closest</code> when you only have a selector.</p>
+  <p>Two upgrades worth mentioning if you want to show polish: use <code>pointerdown</code> instead of <code>click</code> so the menu closes the instant the press starts (feels snappier, and dodges edge cases where the target is removed before <code>click</code> fires), and consider <code>focusout</code> so keyboard users tabbing away also close it.</p>
+</div>
+
+<hr class="soft">
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How this gets asked</h3>
+
+<p>The phrasings you'll actually hear:</p>
+
+<ul>
+  <li>"Explain event bubbling."</li>
+  <li>"What is event delegation and why would you use it?"</li>
+  <li>"What's the difference between <code>event.target</code> and <code>event.currentTarget</code>?"</li>
+  <li>"I have a list where items get added dynamically. How do you handle clicks on them?"</li>
+  <li>"What does <code>preventDefault</code> do? How is it different from <code>stopPropagation</code>?"</li>
+  <li>"How does React handle events differently from the DOM?"</li>
+  <li>"What's a passive event listener?"</li>
+  <li>"Build a dropdown that closes when you click outside it." (live coding)</li>
+</ul>
+
+<p>The first two are recall. Everything after is depth — they're checking whether the model in your head is real or memorised.</p>
+
+<div class="say">
+  <span class="who">Model answer — "What is event delegation?"</span>
+  <p>"Instead of putting a listener on every item, I put one listener on a shared ancestor and use <code>event.target</code> to work out what was actually clicked — usually with <code>closest()</code>, so it still works if you click an icon inside the button. It relies on bubbling: the click travels from the element up through its ancestors, so the parent sees every click in its subtree. The big win isn't really performance, it's that elements added later work automatically, because there was never anything attached to them in the first place. And teardown is one listener instead of hundreds."</p>
+</div>
+
+<p><strong>Why that answer lands:</strong> it names the mechanism (bubbling), names the modern tool (<code>closest</code>), pre-empts the child-element gotcha without being asked, and — crucially — ranks the benefits correctly. Candidates who lead with "it's faster" sound like they read it on a flashcard. Leading with "dynamic elements work" sounds like someone who has shipped it.</p>
+
+<h3>Follow-ups, with answers</h3>
+
+<div class="fu">
+  <p class="q">"Why use delegation instead of just adding listeners to each element?"</p>
+  <p>Three reasons, and I'd give the memory one last. Dynamically-added elements work with no extra wiring — that's the one that changes how you write code. Teardown is a single removal rather than tracking N function references, so you leak less. And yes, one function object instead of hundreds, plus no DOM loop on every render. The trade-off is a slightly less direct handler and a dependency on the event bubbling, so it doesn't work for <code>focus</code> or <code>mouseenter</code> without switching to <code>focusin</code>/<code>mouseover</code>.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"target vs currentTarget?"</p>
+  <p><code>target</code> is where the event originated — the deepest element clicked. It's the same for every handler on the path. <code>currentTarget</code> is the element whose listener is running right now, so it changes as the event travels and always equals the element you called <code>addEventListener</code> on. In a non-arrow handler, <code>this</code> equals <code>currentTarget</code>; in an arrow function it doesn't, so I just use <code>event.currentTarget</code> and never worry about it. Delegation is exactly the case where they differ, and that difference is the whole point.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"How do you handle a click on a dynamically added element?"</p>
+  <p>Delegate. Put the listener on a container that exists at load time and check <code>event.target.closest(...)</code> inside it. The alternative — re-running an attach loop after every DOM update — means double-binding bugs and stale listeners. If for some reason I truly had to attach directly, I'd attach at creation time in whatever function builds the element, not in a rescanning loop.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Does stopPropagation stop the default action?"</p>
+  <p>No — they're independent. <code>stopPropagation</code> stops the event travelling to other elements; the browser's built-in behaviour still happens. Call it on an anchor's click and the page still navigates. <code>preventDefault</code> is the opposite: it cancels the built-in behaviour but the event keeps bubbling. If you want both you call both. And <code>stopImmediatePropagation</code> additionally skips the other listeners registered on the same element, which plain <code>stopPropagation</code> doesn't.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Why doesn't my removeEventListener work?"</p>
+  <p>Almost always because it isn't being given the same function reference. An arrow function or a <code>.bind()</code> call creates a new object each time it's evaluated, so the remove call passes a function that was never registered — and it fails silently, no error. The fix is to store the handler in a variable, or bind once. The other cause is a capture mismatch: if you added with <code>capture: true</code> you must remove with <code>capture: true</code>, since capture is part of the listener's identity. These days I'd sidestep the whole thing with an <code>AbortController</code> signal — one <code>abort()</code> removes everything, and inline arrows become safe.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"How does React handle events differently?"</p>
+  <p>React does delegation for you. Your <code>onClick</code> isn't a real listener on that DOM node — React attaches a set of listeners at the root container, and when a native event bubbles up there, it maps the target back to a component and replays capture-and-bubble through the React tree, calling the props it finds. Since React 17 those listeners are on the root container rather than <code>document</code>, which lets multiple React versions coexist on a page and makes <code>stopPropagation</code> in a React handler correctly block a <code>document</code>-level listener. The practical gotcha is mixing: a native listener on a DOM ancestor inside the root fires <em>before</em> your React handlers, and if it calls <code>stopPropagation</code> your <code>onClick</code> never fires at all. Also, portals propagate through the React tree, not the DOM tree.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"What's a passive event listener?"</p>
+  <p>It's a promise to the browser that the handler won't call <code>preventDefault()</code>. Normally, for events like <code>touchmove</code> or <code>wheel</code>, the browser has to run your handler and wait to see whether you cancelled the scroll before it can scroll — so a slow handler blocks scrolling and you get jank. With <code>{ passive: true }</code> it can scroll immediately on the compositor thread and run your handler whenever. Browsers already default to passive for <code>touchstart</code>, <code>touchmove</code> and <code>wheel</code> on <code>window</code>, <code>document</code> and <code>body</code> because of how widespread the problem was. If you call <code>preventDefault</code> in a passive listener it's ignored with a console warning rather than throwing.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"How would you implement a click-outside-to-close dropdown?"</p>
+  <p>One listener on <code>document</code> for clicks. Inside it, bail early if the menu is closed, then check whether <code>event.target</code> is inside the menu or inside the toggle using <code>contains()</code> or <code>closest()</code> — if not, close. The bug people hit is registering the document listener inside the open handler, because the opening click is still bubbling and immediately closes the menu; checking <code>contains</code> on a persistent listener avoids that entirely, and it's better than <code>stopPropagation</code>, which would break other delegated handlers on the page. I'd also close on Escape, and register both with an <code>AbortController</code> signal so cleanup is one <code>abort()</code>. If I wanted extra polish, <code>pointerdown</code> instead of <code>click</code> feels snappier.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Can you delegate a focus event?"</p>
+  <p>Not with <code>focus</code> — it doesn't bubble. Use <code>focusin</code>/<code>focusout</code>, which are the bubbling equivalents, or listen for <code>focus</code> in the capturing phase with <code>addEventListener('focus', fn, true)</code>, since capturing doesn't depend on bubbling. Same story for <code>mouseenter</code>/<code>mouseleave</code>, where the bubbling counterparts are <code>mouseover</code>/<code>mouseout</code> — though those also fire when moving between child elements, so you have to filter on <code>relatedTarget</code>.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"If I add a capturing and a bubbling listener on the same element, which runs first?"</p>
+  <p>Capturing, since the capture phase happens first. The exception is when that element is the target itself: at the target, the two phases collapse, and listeners fire in registration order regardless of the capture flag. That's a nice detail to know, but I wouldn't rely on it in real code.</p>
+</div>
+
+<h3>Traps — the answers that get you dinged</h3>
+
+<div class="aside trap">
+  <span class="tag">Trap 1</span>
+  <p><strong>"Delegation is mainly a performance optimisation."</strong> It's technically true and strategically wrong — it makes you sound like you learned it from a list. The dominant benefit is that dynamic content works for free. Say that first, then mention memory.</p>
+</div>
+
+<div class="aside trap">
+  <span class="tag">Trap 2</span>
+  <p><strong>"<code>preventDefault</code> stops the event."</strong> It stops the <em>browser's</em> reaction, not the event's travel. Being fuzzy here is the fastest way to signal that you've been copy-pasting <code>e.preventDefault(); e.stopPropagation();</code> without knowing which one you needed.</p>
+</div>
+
+<div class="aside trap">
+  <span class="tag">Trap 3</span>
+  <p><strong>"React attaches listeners to <code>document</code>."</strong> True for React 16 and earlier, wrong since React 17. If you're not sure of the version, say "React 17 moved them from <code>document</code> to the root container" — that phrasing is correct either way and shows you know the history.</p>
+</div>
+
+<div class="aside trap">
+  <span class="tag">Trap 4</span>
+  <p><strong>Checking <code>event.target.tagName === 'BUTTON'</code> in a live-coding round.</strong> The interviewer will nest a <code>&lt;span&gt;</code> in the button and watch what happens. Reach for <code>closest()</code> immediately and, ideally, say <em>why</em> as you type it.</p>
+</div>
+
+<div class="aside trap">
+  <span class="tag">Trap 5</span>
+  <p><strong>Reaching for <code>stopPropagation()</code> to fix a click-outside handler.</strong> It works locally and quietly breaks analytics, focus management, and any other delegated listener above you. The senior answer is "check where the click came from," not "stop the click."</p>
+</div>
+
+<hr class="soft">
+
+<h2 id="cheatsheet">Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're in good shape.</p>
+
+<table>
+  <thead>
+    <tr><th>Concept</th><th>The one-line answer</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Three phases</strong></td><td>Capture (window → target), target, bubble (target → window). Every ancestor is visited twice.</td></tr>
+    <tr><td><strong>Why both?</strong></td><td>Netscape did capturing, IE did bubbling; W3C standardised both. Bubbling is the default.</td></tr>
+    <tr><td><strong>Third argument</strong></td><td><code>true</code> = listen during capture. Modern form is an options object.</td></tr>
+    <tr><td><strong><code>once</code></strong></td><td>Auto-removes the listener after it fires once.</td></tr>
+    <tr><td><strong><code>passive: true</code></strong></td><td>Promise not to call <code>preventDefault()</code>, so the browser can scroll without waiting for your handler.</td></tr>
+    <tr><td><strong><code>signal</code></strong></td><td>An <code>AbortSignal</code>; <code>controller.abort()</code> removes every listener registered with it.</td></tr>
+    <tr><td><strong><code>event.target</code></strong></td><td>Where the event originated. Same for every handler on the path.</td></tr>
+    <tr><td><strong><code>event.currentTarget</code></strong></td><td>The element whose listener is running now. Equals <code>this</code> in a non-arrow handler.</td></tr>
+    <tr><td><strong><code>preventDefault()</code></strong></td><td>Cancels the browser's built-in behaviour. Does not stop propagation.</td></tr>
+    <tr><td><strong><code>stopPropagation()</code></strong></td><td>Stops travel to other elements. Does not stop the default action.</td></tr>
+    <tr><td><strong><code>stopImmediatePropagation()</code></strong></td><td>Also skips the remaining listeners on the same element.</td></tr>
+    <tr><td><strong><code>return false</code></strong></td><td>Does nothing in an <code>addEventListener</code> callback. (jQuery/inline handlers only.)</td></tr>
+    <tr><td><strong>Delegation</strong></td><td>One listener on an ancestor + <code>event.target.closest(sel)</code> to identify what was clicked.</td></tr>
+    <tr><td><strong>Why delegate</strong></td><td>Dynamic elements work for free; fewer listeners; one-line teardown.</td></tr>
+    <tr><td><strong><code>closest()</code></strong></td><td>Walks up from the element (inclusive) to the first ancestor matching a selector, else <code>null</code>.</td></tr>
+    <tr><td><strong>Don't bubble</strong></td><td><code>focus</code>, <code>blur</code>, <code>mouseenter</code>, <code>mouseleave</code>, <code>load</code>, element <code>scroll</code>.</td></tr>
+    <tr><td><strong>Use instead</strong></td><td><code>focusin</code>/<code>focusout</code>, <code>mouseover</code>/<code>mouseout</code> — or listen in the capture phase.</td></tr>
+    <tr><td><strong>React events</strong></td><td>React delegates for you; listeners live on the root container (React 17+), not on your nodes.</td></tr>
+    <tr><td><strong>React + native</strong></td><td>Native listeners on DOM ancestors run first; their <code>stopPropagation</code> kills your <code>onClick</code>.</td></tr>
+    <tr><td><strong>React portals</strong></td><td>Events propagate through the React tree, not the DOM tree.</td></tr>
+    <tr><td><strong><code>removeEventListener</code> fails</strong></td><td>Different function reference (arrow or <code>.bind()</code>), or a mismatched capture flag. Fails silently.</td></tr>
+    <tr><td><strong>Memory leak</strong></td><td>A listener on <code>window</code>/<code>document</code> keeps its closure — and everything in it — alive forever.</td></tr>
+    <tr><td><strong>Click outside</strong></td><td>Persistent <code>document</code> listener + <code>contains()</code>/<code>closest()</code> check. Never <code>stopPropagation</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3>One last thing</h3>
+
+<p>If you remember nothing else from this guide, remember the courier. A click doesn't hit an element — it walks a path from the top of the document down to the thing you touched and back out again, and every element on that path gets a turn.</p>
+
+<p>Bubbling, capturing, delegation, <code>stopPropagation</code>, click-outside handlers, React's whole synthetic event system: all of it is just different things you can do while standing somewhere along that path. Once the path is real in your head, you're not memorising eight rules any more. You're reading one picture. 🎯</p>
+
+</div>
+</body>
+</html>

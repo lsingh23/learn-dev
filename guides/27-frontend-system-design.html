@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontend System Design: The RADIO Framework</title>
+<style>
+  :root {
+    --ink: #1c1b22;
+    --ink-soft: #4a4857;
+    --paper: #fdfcfa;
+    --rule: #e6e2dc;
+    --accent: #5b45d6;
+    --accent-soft: #efecfd;
+    --warn: #b4531a;
+    --warn-soft: #fdf1e7;
+    --good: #17724a;
+    --good-soft: #e9f6ef;
+    --bad: #a52036;
+    --bad-soft: #fdecef;
+    --code-bg: #f4f2ef;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; padding: 48px 22px 120px; }
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+  .sub { font-size: 1.12rem; color: var(--ink-soft); margin: 0 0 40px; }
+  h2 {
+    font-size: 1.62rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.2em 0 0.5em;
+    padding-top: 0.7em;
+    border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 1.22rem; margin: 2.2em 0 0.4em; letter-spacing: -0.01em; }
+  h4 { font-size: 1.02rem; margin: 1.8em 0 0.3em; letter-spacing: 0.01em; }
+  p { margin: 0 0 1.1em; }
+  ul, ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+  li { margin-bottom: 0.45em; }
+  a { color: var(--accent); }
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--code-bg);
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 1.3em;
+    line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; font-size: 0.83rem; }
+  .codehead {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid var(--rule);
+    border-bottom: none;
+    margin-bottom: 0;
+    font-weight: 700;
+  }
+  .codehead + pre { border-radius: 0 0 8px 8px; }
+  .bad-head { background: var(--bad-soft); color: var(--bad); border-color: #f3cdd4; }
+  .good-head { background: var(--good-soft); color: var(--good); border-color: #c6e6d5; }
+  .note-head { background: var(--accent-soft); color: var(--accent); border-color: #d8d1fa; }
+
+  .aside {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 1.8em 0;
+    font-size: 0.97rem;
+  }
+  .aside p:last-child { margin-bottom: 0; }
+  .aside .label {
+    display: block;
+    font-size: 0.73rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .wait { background: var(--accent-soft); border-left: 4px solid var(--accent); }
+  .wait .label { color: var(--accent); }
+  .misc { background: var(--bad-soft); border-left: 4px solid var(--bad); }
+  .misc .label { color: var(--bad); }
+  .hood { background: #f1f1f4; border-left: 4px solid #6c6a7a; }
+  .hood .label { color: #55535f; }
+  .interview { background: var(--good-soft); border-left: 4px solid var(--good); }
+  .interview .label { color: var(--good); }
+  .trap { background: var(--warn-soft); border-left: 4px solid var(--warn); }
+  .trap .label { color: var(--warn); }
+
+  .say {
+    background: #fff;
+    border: 2px solid var(--good);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 1.4em 0;
+    font-size: 1.0rem;
+  }
+  .say .label {
+    display: block; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase;
+    font-weight: 700; color: var(--good); margin-bottom: 6px;
+  }
+  .say p:last-child { margin-bottom: 0; }
+  .why-lands { font-size: 0.93rem; color: var(--ink-soft); margin-top: -0.6em; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin-bottom: 48px;
+    font-size: 0.95rem;
+  }
+  .toc h2 {
+    border: none; margin: 0 0 8px; padding: 0; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft);
+  }
+  .toc ol { margin: 0; padding-left: 1.3em; }
+  .toc li { margin-bottom: 0.2em; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.5em;
+    font-size: 0.9rem;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td { border: 1px solid var(--rule); padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 700; }
+
+  figure { margin: 1.8em 0; }
+  figcaption { font-size: 0.87rem; color: var(--ink-soft); text-align: center; margin-top: 8px; }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 0 0 1.2em;
+    background: #fff;
+  }
+  summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 0.7em; }
+
+  .fu { border-left: 3px solid var(--rule); padding-left: 18px; margin: 1.4em 0; }
+  .fu > p:first-child { font-weight: 650; }
+  .q { font-weight: 650; margin-bottom: 0.3em; }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: 3em 0; }
+  .cheat table { font-size: 0.87rem; }
+  .kicker { font-size: 0.78rem; letter-spacing: 0.11em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="kicker">Guide 27</p>
+<h1>Frontend System Design: The RADIO Framework</h1>
+<p class="sub">Forty-five minutes. A whiteboard. Someone says <em>"design Facebook's news feed."</em> There is no right answer, and that is the whole point. Here's how to perform.</p>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#what">What's actually being graded</a></li>
+    <li><a href="#radio">RADIO, as a script you can run</a></li>
+    <li><a href="#r">R — Requirements</a></li>
+    <li><a href="#a">A — Architecture</a></li>
+    <li><a href="#d">D — Data model</a></li>
+    <li><a href="#i">I — Interface</a></li>
+    <li><a href="#o">O — Optimisations &amp; deep dives</a></li>
+    <li><a href="#budget">Time budgeting &amp; breadth-then-depth</a></li>
+    <li><a href="#api">Component API design</a></li>
+    <li><a href="#state">Local vs global state: the decision tree</a></li>
+    <li><a href="#walk">Worked walkthroughs of the classic prompts</a></li>
+    <li><a href="#fetching">App-level fetching &amp; caching</a></li>
+    <li><a href="#realtime">Polling vs SSE vs WebSockets</a></li>
+    <li><a href="#states">Error &amp; loading states across an app</a></li>
+    <li><a href="#ds">Design systems</a></li>
+    <li><a href="#mfe">Micro-frontends</a></li>
+    <li><a href="#collab">Collaborative editors: OT vs CRDT</a></li>
+    <li><a href="#browsers">Cross-browser &amp; device at scale</a></li>
+    <li><a href="#comms">How to actually talk during the interview</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="what">What's actually being graded</h2>
+
+<p>Let me start with the thing that trips almost everyone up the first time.</p>
+
+<p>In a coding interview, there <em>is</em> a right answer. Your two-pointer solution either works or it doesn't. You can be nervous, ramble, write ugly code — if the tests pass, you probably passed.</p>
+
+<p>Frontend system design is not that. Nobody at the whiteboard is checking your architecture against a reference architecture, because <strong>there isn't one</strong>. Two excellent engineers given "design an autocomplete component" will draw two different boxes-and-arrows diagrams, and both will be hired.</p>
+
+<p>So what's being measured?</p>
+
+<p>Here's the analogy I keep coming back to. Imagine you're hiring a contractor to renovate your kitchen. Two show up. The first one walks in, glances around, and says "yep, I'd put the island here." The second one asks: how many people cook at once? Do you need the dishwasher near the sink or near the cupboards? What's your budget? Is this a forever home or are you selling in two years? Then she sketches two options and says "this one's cheaper but you lose counter space — which matters more to you?"</p>
+
+<p>You hire the second one. Not because her island placement is better, but because you now believe she'll make good decisions <em>in situations you haven't thought of yet</em>. That belief is the entire product of a system design interview.</p>
+
+<p>Concretely, interviewers are scoring four things:</p>
+
+<ol>
+  <li><strong>Structured thinking.</strong> Do you have a process, or do you free-associate? Can they follow you?</li>
+  <li><strong>Asking the right questions.</strong> Did you scope the problem before solving it? Did you surface the constraint that changes the design?</li>
+  <li><strong>Naming tradeoffs.</strong> Not "we should use WebSockets" but "WebSockets buy us sub-second latency at the cost of connection state on the server and pain with corporate proxies."</li>
+  <li><strong>Knowing when to go deep vs stay broad.</strong> A candidate who spends 30 minutes on debounce implementation has failed. So has one who stays at 30,000 feet for the whole hour. The skill is <em>choosing</em>, out loud.</li>
+</ol>
+
+<div class="aside misc">
+  <span class="label">A common misconception</span>
+  <p>"I need to know the correct architecture for a news feed." You don't. What you need is to be able to <em>defend</em> whatever architecture you draw, and to know what you gave up to get it. An interviewer will happily hire someone who chose the "worse" option with clear eyes over someone who chose the "better" option by accident.</p>
+</div>
+
+<p>One more framing, because it changes how you'll read the rest of this guide: this is a <strong>performance</strong>. Not in the fake sense — you're not acting — but in the sense that a violin recital is a performance. You know the piece. The recital is about executing it under pressure, legibly, in front of someone. Most of this guide is the piece. The last section is about the recital.</p>
+
+<h2 id="radio">RADIO, as a script you can run</h2>
+
+<p>The worst thing about an open-ended prompt is the first thirty seconds. Your brain fires in five directions at once and you say something like "so, uh, we'd probably use React?"</p>
+
+<p>The fix is having a script. RADIO is a mnemonic for five phases, in order:</p>
+
+<figure>
+<svg viewBox="0 0 700 210" role="img" aria-label="The five RADIO phases in sequence: Requirements, Architecture, Data model, Interface, Optimisations">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#8a86a0"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif">
+    <g>
+      <rect x="8" y="40" width="118" height="76" rx="9" fill="#efecfd" stroke="#5b45d6" stroke-width="1.6"/>
+      <text x="67" y="66" text-anchor="middle" font-size="24" font-weight="700" fill="#5b45d6">R</text>
+      <text x="67" y="87" text-anchor="middle" font-size="12.5" fill="#1c1b22">Requirements</text>
+      <text x="67" y="104" text-anchor="middle" font-size="11" fill="#4a4857">~5 min</text>
+    </g>
+    <line x1="130" y1="78" x2="146" y2="78" stroke="#8a86a0" stroke-width="1.6" marker-end="url(#ar)"/>
+    <g>
+      <rect x="150" y="40" width="118" height="76" rx="9" fill="#fff" stroke="#c9c4dd" stroke-width="1.6"/>
+      <text x="209" y="66" text-anchor="middle" font-size="24" font-weight="700" fill="#5b45d6">A</text>
+      <text x="209" y="87" text-anchor="middle" font-size="12.5" fill="#1c1b22">Architecture</text>
+      <text x="209" y="104" text-anchor="middle" font-size="11" fill="#4a4857">~10 min</text>
+    </g>
+    <line x1="272" y1="78" x2="288" y2="78" stroke="#8a86a0" stroke-width="1.6" marker-end="url(#ar)"/>
+    <g>
+      <rect x="292" y="40" width="118" height="76" rx="9" fill="#fff" stroke="#c9c4dd" stroke-width="1.6"/>
+      <text x="351" y="66" text-anchor="middle" font-size="24" font-weight="700" fill="#5b45d6">D</text>
+      <text x="351" y="87" text-anchor="middle" font-size="12.5" fill="#1c1b22">Data model</text>
+      <text x="351" y="104" text-anchor="middle" font-size="11" fill="#4a4857">~7 min</text>
+    </g>
+    <line x1="414" y1="78" x2="430" y2="78" stroke="#8a86a0" stroke-width="1.6" marker-end="url(#ar)"/>
+    <g>
+      <rect x="434" y="40" width="118" height="76" rx="9" fill="#fff" stroke="#c9c4dd" stroke-width="1.6"/>
+      <text x="493" y="66" text-anchor="middle" font-size="24" font-weight="700" fill="#5b45d6">I</text>
+      <text x="493" y="87" text-anchor="middle" font-size="12.5" fill="#1c1b22">Interface</text>
+      <text x="493" y="104" text-anchor="middle" font-size="11" fill="#4a4857">~7 min</text>
+    </g>
+    <line x1="556" y1="78" x2="572" y2="78" stroke="#8a86a0" stroke-width="1.6" marker-end="url(#ar)"/>
+    <g>
+      <rect x="576" y="40" width="118" height="76" rx="9" fill="#e9f6ef" stroke="#17724a" stroke-width="1.6"/>
+      <text x="635" y="66" text-anchor="middle" font-size="24" font-weight="700" fill="#17724a">O</text>
+      <text x="635" y="87" text-anchor="middle" font-size="12.5" fill="#1c1b22">Optimisations</text>
+      <text x="635" y="104" text-anchor="middle" font-size="11" fill="#4a4857">~15 min</text>
+    </g>
+    <text x="351" y="160" text-anchor="middle" font-size="12.5" fill="#4a4857">Announce the plan out loud in the first minute — then the interviewer is following you,</text>
+    <text x="351" y="179" text-anchor="middle" font-size="12.5" fill="#4a4857">instead of wondering where you're going.</text>
+  </g>
+</svg>
+<figcaption>The whole interview, on one line. Times are for a 45-minute slot.</figcaption>
+</figure>
+
+<p>That last bit deserves emphasis. Literally say, in the first minute:</p>
+
+<div class="say">
+  <span class="label">Say this out loud</span>
+  <p>"Cool. Before I design anything I want to spend about five minutes on requirements, so I'm solving the right problem. Then I'll sketch the high-level architecture, walk through the data model and the APIs, and leave the back half for deep dives on whatever's most interesting to you. Does that work?"</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> in fifteen seconds you've demonstrated that you have a process, you've asked for buy-in, and you've pre-negotiated permission to spend time on requirements — which is exactly the part nervous candidates skip. The interviewer relaxes. They now know how to grade you.</p>
+
+<h2 id="r">R — Requirements clarification</h2>
+
+<p>I want to be blunt: <strong>candidates who skip this fail</strong>. Not "score lower" — fail. It's the single most reliable signal in the whole interview, because a huge part of senior frontend work is refusing to build the wrong thing.</p>
+
+<p>The prompt you're given is deliberately underspecified. "Design a news feed" could mean a Twitter timeline, a company intranet announcement board, or an RSS reader. These have wildly different designs. Your job in the first five minutes is to collapse that ambiguity into something buildable — and to do it collaboratively, so the interviewer feels like a stakeholder rather than an examiner.</p>
+
+<h3>The seven things to ask about</h3>
+
+<p>Don't machine-gun these. Ask a few, listen, follow the thread. But have them in your pocket.</p>
+
+<p><strong>1. Functional scope — what can a user actually <em>do</em>?</strong> Get a verb list. For a feed: scroll, read posts, like, comment, create a post, follow someone. This is your feature inventory.</p>
+
+<p><strong>2. What's explicitly out of scope.</strong> This is the highest-value question in the entire interview and almost nobody asks it. Say: <em>"I'm going to assume auth, the recommendation algorithm, and notifications are out of scope — I'll focus on rendering and interacting with the feed itself. Shout if you'd rather I cover something else."</em> You've just protected yourself from spending ten minutes on the wrong thing, and you've shown you understand that scope is a decision, not a discovery.</p>
+
+<p><strong>3. Who are the users?</strong> Consumers on flaky mobile networks in India? Internal analysts on desktop Chrome with a wired connection? This one question changes almost everything downstream: bundle size budget, whether you need offline support, whether you optimise for first paint or for interaction richness.</p>
+
+<p><strong>4. Scale.</strong> Not to sound clever — because it changes the design. Ask three numbers: how many users, how much data per user (how long is the feed? how many rows in the table?), and how often does it change. "Ten thousand rows" means virtualization. "Fifty rows" means don't bother. "Updates every second" means a real-time transport. "Updates daily" means a refresh button.</p>
+
+<p><strong>5. Devices and browsers.</strong> Mobile-first or desktop-first? Do we support Safari on iOS 15? Is there a native app that shares this API? This determines your support matrix, which determines your polyfill and CSS strategy.</p>
+
+<p><strong>6. Offline.</strong> Does it need to work on a train? Full offline (service worker, local writes, sync queue) is enormously more work than "show a nice banner when the network drops." Ask which one they mean.</p>
+
+<p><strong>7. i18n and a11y.</strong> Multiple languages means text expansion in your layouts, and RTL means your CSS needs logical properties (<code>margin-inline-start</code>, not <code>margin-left</code>). Accessibility should not really be a question — the right move is to <em>state</em> it: <em>"I'll assume we need to meet WCAG AA, so I'll design keyboard navigation and screen-reader semantics in rather than bolting them on."</em> Saying that unprompted is a strong senior signal.</p>
+
+<div class="aside wait">
+  <span class="label">Wait — what if the interviewer says "you decide"?</span>
+  <p>Extremely common, and it's not a dodge — it's a test. The wrong response is to shrug. The right response is to make the call yourself and <em>say why</em>: "Okay, I'll assume mobile-first for consumers on 4G, because that's the harder constraint — if it's fast there it's fast on desktop." You've now converted an ambiguity into a stated assumption. Write it on the board. If it turns out to be wrong, they'll correct you, and correcting a written assumption is cheap. Discovering at minute 35 that you assumed wrong is not.</p>
+</div>
+
+<h3>The part everyone forgets: agree on priorities</h3>
+
+<p>Requirements gathering is not finished when you have a list. It's finished when you have a <em>ranked</em> list.</p>
+
+<p>Here's why. Almost every interesting frontend decision is a tradeoff between things you can't maximise at once: initial load speed vs interaction richness, SEO vs client-side simplicity, offline capability vs consistency. If you haven't agreed on what matters most, every tradeoff discussion later becomes unanchored — you'll say "we could do it either way" and the interviewer will hear indecision.</p>
+
+<p>So close the R phase like this:</p>
+
+<div class="say">
+  <span class="label">Say this out loud</span>
+  <p>"Let me play back what I've got. We're building a mobile-first feed for consumers on unreliable networks. Must-haves are: fast first render, infinite scroll, and likes that feel instant. Nice-to-haves are real-time new-post insertion and offline reading. Out of scope: auth, ranking, notifications. If I have to trade something off, I'm going to protect first render and perceived interaction speed over completeness — sound right?"</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> the playback proves you listened. The ranking gives you a rule to appeal to for the next forty minutes — every later decision can be justified with "because we said first render matters most." That's what "structured thinking" actually looks like in practice.</p>
+
+<p>Write the requirements in a corner of the board and <em>leave them there</em>. You'll point at them repeatedly.</p>
+
+<div class="aside trap">
+  <span class="label">Trap</span>
+  <p>Spending fifteen minutes on requirements. Five is a real five — maybe seven for a big prompt — but there's a point where thorough becomes stalling, and interviewers notice. If you're still asking questions at minute ten, you're avoiding the design. Set the scope, state your assumptions, move.</p>
+</div>
+
+<h2 id="a">A — Architecture / high-level design</h2>
+
+<p>Now you draw. The goal of this phase is a picture that someone could look at and understand how data flows through your app.</p>
+
+<h3>The four layers (this is the backbone)</h3>
+
+<p>Almost every non-trivial frontend app, whatever framework, separates into the same four responsibilities. If you internalise nothing else from this section, internalise these — they give you a default answer to "how would you structure this?" for <em>any</em> prompt.</p>
+
+<figure>
+<svg viewBox="0 0 660 380" role="img" aria-label="Four-layer frontend architecture: view layer, state layer, data layer, and cross-cutting utilities, with a server on the far side">
+  <defs>
+    <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#5b45d6"/>
+    </marker>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#8a86a0"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif">
+    <rect x="20" y="20" width="380" height="86" rx="9" fill="#efecfd" stroke="#5b45d6" stroke-width="1.6"/>
+    <text x="36" y="44" font-size="14" font-weight="700" fill="#5b45d6">View layer</text>
+    <text x="36" y="65" font-size="12" fill="#1c1b22">Components. Render props → pixels. Emit events.</text>
+    <text x="36" y="84" font-size="12" fill="#4a4857">FeedPage · PostCard · LikeButton · Composer</text>
+    <text x="36" y="99" font-size="11.5" fill="#a52036">Rule: no fetch() in here.</text>
+
+    <line x1="210" y1="110" x2="210" y2="140" stroke="#5b45d6" stroke-width="1.6" marker-end="url(#ar2)"/>
+    <text x="222" y="130" font-size="11" fill="#4a4857">reads state / dispatches actions</text>
+
+    <rect x="20" y="144" width="380" height="80" rx="9" fill="#fff" stroke="#5b45d6" stroke-width="1.6"/>
+    <text x="36" y="168" font-size="14" font-weight="700" fill="#5b45d6">State layer</text>
+    <text x="36" y="189" font-size="12" fill="#1c1b22">Holds the truth. Server cache + UI state + derived.</text>
+    <text x="36" y="208" font-size="12" fill="#4a4857">query cache · store · context · URL</text>
+
+    <line x1="210" y1="228" x2="210" y2="258" stroke="#5b45d6" stroke-width="1.6" marker-end="url(#ar2)"/>
+    <text x="222" y="248" font-size="11" fill="#4a4857">asks for data</text>
+
+    <rect x="20" y="262" width="380" height="80" rx="9" fill="#fff" stroke="#5b45d6" stroke-width="1.6"/>
+    <text x="36" y="286" font-size="14" font-weight="700" fill="#5b45d6">Data / API layer</text>
+    <text x="36" y="307" font-size="12" fill="#1c1b22">HTTP client, WebSocket, retries, auth headers,</text>
+    <text x="36" y="325" font-size="12" fill="#1c1b22">response → domain object mapping.</text>
+
+    <rect x="424" y="20" width="212" height="322" rx="9" fill="#f4f2ef" stroke="#c9c4dd" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <text x="530" y="44" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4a4857">Services / utilities</text>
+    <text x="530" y="64" text-anchor="middle" font-size="11.5" fill="#4a4857">(cross-cutting, used by all)</text>
+    <text x="530" y="96" text-anchor="middle" font-size="12" fill="#1c1b22">logging &amp; analytics</text>
+    <text x="530" y="120" text-anchor="middle" font-size="12" fill="#1c1b22">i18n / formatting</text>
+    <text x="530" y="144" text-anchor="middle" font-size="12" fill="#1c1b22">feature flags</text>
+    <text x="530" y="168" text-anchor="middle" font-size="12" fill="#1c1b22">auth token storage</text>
+    <text x="530" y="192" text-anchor="middle" font-size="12" fill="#1c1b22">error reporting</text>
+    <text x="530" y="216" text-anchor="middle" font-size="12" fill="#1c1b22">router</text>
+
+    <line x1="210" y1="346" x2="210" y2="368" stroke="#8a86a0" stroke-width="1.6" marker-end="url(#ar3)"/>
+    <text x="222" y="364" font-size="11.5" fill="#4a4857">network → server</text>
+  </g>
+</svg>
+<figcaption>The default frontend architecture. Arrows point down for requests, and results flow back up.</figcaption>
+</figure>
+
+<p>Let me make each layer concrete, because "state layer" is meaningless until you can name what lives there.</p>
+
+<p><strong>View layer.</strong> Components whose job is to turn data into DOM and turn clicks into events. The discipline that makes this layer good is: <em>a view component should be renderable from props alone.</em> If <code>PostCard</code> fetches its own data, you can't render it in a test, in Storybook, or in a different context. Push fetching up and out.</p>
+
+<p><strong>State layer.</strong> Where the truth lives while the app is running. Crucially this is not one bucket — it's at least four kinds of state that want different homes, which is the whole of the D phase and the state-management section below.</p>
+
+<p><strong>Data / API layer.</strong> The only place that knows about HTTP. It owns base URLs, auth headers, retry policy, timeouts, and — this is the underrated part — <strong>mapping wire format to domain objects</strong>. If your API returns <code>{ created_ts: 1690000000 }</code> and your components read <code>post.createdAt</code> as a Date, the translation belongs here. That one boundary means a backend rename costs you one file instead of forty.</p>
+
+<p><strong>Services / utilities.</strong> Cross-cutting things every layer touches: logging, analytics, i18n, feature flags, the router. Draw them as a sidebar rather than a layer, because they don't sit in the request flow.</p>
+
+<div class="aside interview">
+  <span class="label">In an interview</span>
+  <p>Naming these four layers out loud, unprompted, takes twenty seconds and immediately reads as "has built a real app." Then say the thing that proves you mean it: <em>"the rule I'd enforce is that view components never call the network directly — that's what keeps them testable and reusable."</em> Interviewers love a stated invariant, because invariants are what survive a team of fifteen people.</p>
+</div>
+
+<h3>Component hierarchy</h3>
+
+<p>Below the layer diagram, draw the component tree for the main screen. Keep it to two or three levels — you are showing decomposition instinct, not producing a spec.</p>
+
+<pre><code>&lt;FeedPage&gt;                     // owns the query, no visual logic
+  &lt;Composer /&gt;                 // "what's on your mind"
+  &lt;FeedList&gt;                   // owns virtualization + sentinel
+    &lt;PostCard&gt;                 // pure: renders one post from props
+      &lt;PostHeader /&gt;           // avatar, name, timestamp
+      &lt;PostMedia /&gt;            // image/video, handles aspect ratio
+      &lt;PostActions /&gt;          // 👈 like/comment/share — the interactive bit
+    &lt;/PostCard&gt;
+  &lt;/FeedList&gt;
+  &lt;NewPostsPill /&gt;             // "3 new posts" floating button
+&lt;/FeedPage&gt;</code></pre>
+
+<p>The useful commentary here isn't the tree, it's <em>where you drew the boundaries and why</em>: "I'm keeping <code>PostCard</code> pure so we can virtualize the list without it caring, and so it renders identically on the server."</p>
+
+<h3>Rendering strategy: CSR, SSR, SSG</h3>
+
+<p>You need these three straight, because the interviewer <em>will</em> ask "why that one?"</p>
+
+<p><strong>CSR — client-side rendering.</strong> Server sends a near-empty HTML shell plus a JS bundle. The browser downloads, parses, and runs the JS, which then fetches data and builds the DOM. Simple to deploy (it's static files). But the user stares at nothing until JS loads and the data arrives, and there's no meaningful HTML for a crawler that doesn't run JS.</p>
+
+<p><strong>SSR — server-side rendering.</strong> The server runs your components, fetches the data, and sends real HTML. The user sees content fast. Then JS loads and <em>hydrates</em> — attaching event listeners to the already-present DOM so it becomes interactive. Costs you a server that renders on every request, and there's an awkward window where the page looks ready but clicking does nothing.</p>
+
+<p><strong>SSG — static site generation.</strong> Same as SSR, but rendered once at build time and served from a CDN. Fastest possible delivery and nearly free to scale. Only works when the content is the same for everyone and doesn't change every minute.</p>
+
+<div class="aside hood">
+  <span class="label">Under the hood — what "hydration" really is</span>
+  <p>Josh Comeau's line for this is that hydration is watering the dry HTML with the water of interactivity, and it's a good picture. The server gives you a photograph of the UI: correct-looking, completely inert. Hydration walks the same component tree in the browser, builds the framework's internal representation, and wires up the event handlers onto the existing DOM nodes.</p>
+  <p>Where the analogy breaks down: it's not a gentle sprinkle. Traditional hydration re-runs your component code for the <em>whole page</em>, which is why a heavy page can be visible for two seconds before it responds to a tap. That gap is the reason streaming SSR, islands, and server components exist.</p>
+</div>
+
+<p>The decision rule, said out loud:</p>
+
+<div class="say">
+  <span class="label">Say this out loud</span>
+  <p>"If the content is public and SEO matters — a product page, an article, a feed you can read logged out — I'd server-render, because the crawler and the user both get HTML immediately. If it's behind a login and highly interactive — a dashboard, an editor — CSR is fine and simpler, since nobody's indexing it and the first paint is a shell either way. If the content is the same for every user and changes rarely, static-generate it and serve from a CDN. For our feed I'd go SSR for the first page of posts and then fetch subsequent pages on the client — the first screen is the one that has to be fast."</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> it's a rule, not a preference, and the last sentence shows you can apply the rule <em>hybrid</em> — which is what real apps do.</p>
+
+<h3>How to draw this legibly under pressure</h3>
+
+<p>This sounds trivial. It isn't. A significant chunk of candidates lose points because the interviewer literally cannot read the board.</p>
+
+<ul>
+  <li><strong>Start top-left and work down-right.</strong> Reserve the whole left third for your requirements list — you'll refer back to it.</li>
+  <li><strong>Boxes are nouns, arrows are verbs.</strong> Label every arrow with what flows along it (<code>GET /feed?cursor</code>, <code>likeToggled</code>). An unlabelled arrow is decoration.</li>
+  <li><strong>Big and few beats small and many.</strong> Five boxes you can read at a distance beats twenty you can't. Don't draw every component.</li>
+  <li><strong>Leave whitespace on purpose.</strong> You will need to add the caching box, the WebSocket, the error boundary. If you fill the board in phase A, you'll be erasing during phase O, which is where the points are.</li>
+  <li><strong>Narrate while you draw.</strong> Silence while drawing is dead air and it makes the interviewer's mind wander. "So this box is the feed page, it owns the query… and this arrow is the paginated fetch going out…"</li>
+  <li><strong>On a shared doc instead of a whiteboard?</strong> Use indented plaintext and ASCII arrows. Don't fight a drawing tool — nobody scores you on your rectangles, and fumbling with a diagram widget eats minutes.</li>
+</ul>
+
+<h2 id="d">D — Data model</h2>
+
+<p>Now: what data exists, and where does it live? There are two halves, and strong candidates do both.</p>
+
+<h3>Half one: the server entities</h3>
+
+<p>Sketch the shapes the API deals in. You don't need database tables — just the nouns and their relationships.</p>
+
+<pre><code>User    { id, handle, displayName, avatarUrl }
+Post    { id, authorId, text, media[], createdAt,
+          likeCount, commentCount, likedByMe }   // 👈 note this one
+Comment { id, postId, authorId, text, createdAt }</code></pre>
+
+<p><code>likedByMe</code> is worth pausing on, because it's a genuinely nice thing to point at. It's a <em>per-viewer</em> field on a shared entity. Mentioning that it exists — and that it means the feed response can't be cached at the CDN as-is, since it differs per user — is exactly the kind of detail that separates a decent answer from a strong one.</p>
+
+<h3>Half two: the client state shape, in four flavours</h3>
+
+<p>Here's the mental model that makes state management click, and it's the single most reusable idea in this guide.</p>
+
+<p>Think of your app's state like a household's belongings. Some things are <strong>borrowed from the library</strong> — you didn't create them, someone else owns the canonical copy, and yours can go stale. Some things are <strong>yours and disposable</strong> — a shopping list you'll throw away tonight. Some things are <strong>computed on the spot</strong> — you don't store "how many mugs do I own", you count them. And some things are <strong>written on the front door</strong> for anyone arriving to see.</p>
+
+<p>Those four categories are real, and confusing them is the root cause of most frontend state disasters.</p>
+
+<table>
+<thead><tr><th>Kind</th><th>What it is</th><th>Examples</th><th>Where it lives</th></tr></thead>
+<tbody>
+<tr><td><strong>Server state</strong></td><td>A cached copy of data the server owns. Can go stale. Async, shared, needs refetching.</td><td>posts, user profile, comments</td><td>A query cache (React Query / SWR / Apollo)</td></tr>
+<tr><td><strong>Client UI state</strong></td><td>Ephemeral, created by the UI, meaningless to the server.</td><td>is the dropdown open, hover state, unsent draft text</td><td><code>useState</code>, as local as possible</td></tr>
+<tr><td><strong>Derived state</strong></td><td>Computed from other state. Should never be stored.</td><td>filtered list, cart total, "is form valid"</td><td>Nowhere — compute during render</td></tr>
+<tr><td><strong>URL state</strong></td><td>State that belongs in the address bar because it identifies <em>what the user is looking at</em>.</td><td>search query, page/cursor, active tab, filters, sort, open modal id</td><td>Path params + query string</td></tr>
+</tbody>
+</table>
+
+<h3>Why URL-as-state scores so well</h3>
+
+<p>Most candidates never mention it, so mentioning it is nearly free signal. But it's also just correct.</p>
+
+<p>Consider a product listing with filters. You store the filters in a React <code>useState</code>. Now:</p>
+
+<ul>
+  <li>The user finds the perfect filter combination and pastes the link to a colleague. The colleague sees an unfiltered page. 😖</li>
+  <li>The user hits the back button expecting to undo a filter change and gets thrown out of the page entirely.</li>
+  <li>The user refreshes, and everything resets.</li>
+</ul>
+
+<p>Move the filters into the query string — <code>/products?category=boots&amp;sort=price&amp;page=3</code> — and all three problems evaporate at once, because the browser already has a mechanism for "shareable, restorable, back-button-aware state." It's called a URL. You're not building a feature; you're declining to fight the platform.</p>
+
+<div class="say">
+  <span class="label">Say this out loud</span>
+  <p>"I'd put the search query, active filters, sort order, and pagination cursor in the URL rather than in component state. That gets us three things for free: links are shareable, the back button does what users expect, and a refresh restores exactly where they were. The rule of thumb I use is — if a user would be annoyed that they can't bookmark it, it belongs in the URL."</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> that final heuristic is memorable and it shows you're reasoning from user experience rather than reciting a pattern. Expect a follow-up about what <em>doesn't</em> go in the URL: anything sensitive (URLs get logged and shared), anything huge (URL length limits), and anything that changes on every keystroke without debouncing (you'll flood the history stack — use a <em>replace</em> rather than a <em>push</em> for those).</p>
+
+<div class="aside wait">
+  <span class="label">Wait — isn't "derived state should never be stored" too absolute?</span>
+  <p>Nearly, but not quite. Store derived values only when the computation is genuinely expensive <em>and</em> you've measured it — and then it's a memoized cache, not state. The failure mode you're avoiding is having two sources of truth that can disagree: if you store both <code>items</code> and <code>itemCount</code>, sooner or later some code path updates one and not the other, and now your UI lies. Compute, don't store, and you make that bug impossible rather than unlikely.</p>
+</div>
+
+<h2 id="i">I — Interface / API definition</h2>
+
+<p>"Interface" means two different things here, and you should explicitly cover both. That's part of the score.</p>
+
+<h3>The component interface: props in, events out</h3>
+
+<p>For each significant component, state its contract in one line. Data flows down as props; changes flow up as callbacks.</p>
+
+<pre><code>&lt;PostCard
+  post={post}                    // data in
+  onLike={(postId) =&gt; ...}       // events out
+  onComment={(postId) =&gt; ...}
+/&gt;
+
+&lt;FeedList
+  posts={posts}
+  isLoadingMore={bool}
+  hasNextPage={bool}
+  onLoadMore={() =&gt; ...}         // 👈 list doesn't know HOW to fetch
+/&gt;</code></pre>
+
+<p>Notice what <code>FeedList</code> <em>doesn't</em> take: a URL, a fetch function, an auth token. It knows how to display a list and when to ask for more. Whoever renders it decides what "more" means. That's the separation that lets the same list component serve a feed, a search result page, and a profile timeline.</p>
+
+<p>(There's a whole section on component API design below — this phase is just about <em>stating</em> the contracts, briefly.)</p>
+
+<h3>The network interface: endpoints and shapes</h3>
+
+<p>Write the actual request and response. Concrete beats abstract, and it takes thirty seconds.</p>
+
+<pre><code>GET /api/feed?cursor=eyJ0IjoxNjkwfQ&amp;limit=20
+
+200 →
+{
+  "items": [ { "id": "p_812", "authorId": "u_9", ... } ],
+  "nextCursor": "eyJ0IjoxNjg5fQ",   // 👈 null when exhausted
+  "hasMore": true
+}</code></pre>
+
+<h3>Pagination: offset vs cursor</h3>
+
+<p>This comes up in nearly every prompt, so let's make it airtight.</p>
+
+<p><strong>Offset pagination</strong> is <code>?page=3&amp;limit=20</code>, which the server turns into "skip 40, take 20." Simple, and it lets you jump to page 47 directly.</p>
+
+<p><strong>Cursor pagination</strong> is <code>?cursor=abc123&amp;limit=20</code>, meaning "give me the 20 items that come after this specific item." The cursor is an opaque token — usually an encoded timestamp plus id — that the server returns to you.</p>
+
+<p>Here's why cursors are the right answer for feeds, and it's worth drawing:</p>
+
+<figure>
+<svg viewBox="0 0 660 300" role="img" aria-label="Diagram showing how offset pagination duplicates an item when a new item is inserted, while cursor pagination does not">
+  <g font-family="-apple-system, Segoe UI, sans-serif">
+    <text x="10" y="20" font-size="13.5" font-weight="700" fill="#a52036">❌ Offset: a new post arrives between page 1 and page 2</text>
+
+    <text x="10" y="46" font-size="11.5" fill="#4a4857">t=0, you fetch ?page=1 (skip 0, take 3)</text>
+    <g>
+      <rect x="10" y="54" width="86" height="30" rx="5" fill="#e9f6ef" stroke="#17724a"/><text x="53" y="74" text-anchor="middle" font-size="12">Post D</text>
+      <rect x="100" y="54" width="86" height="30" rx="5" fill="#e9f6ef" stroke="#17724a"/><text x="143" y="74" text-anchor="middle" font-size="12">Post C</text>
+      <rect x="190" y="54" width="86" height="30" rx="5" fill="#e9f6ef" stroke="#17724a"/><text x="233" y="74" text-anchor="middle" font-size="12">Post B</text>
+      <rect x="280" y="54" width="86" height="30" rx="5" fill="#f4f2ef" stroke="#c9c4dd" stroke-dasharray="4 3"/><text x="323" y="74" text-anchor="middle" font-size="12" fill="#4a4857">Post A</text>
+    </g>
+
+    <text x="10" y="108" font-size="11.5" fill="#4a4857">someone posts <tspan font-weight="700">E</tspan> — everything shifts right one slot</text>
+    <g>
+      <rect x="10" y="116" width="86" height="30" rx="5" fill="#fdf1e7" stroke="#b4531a"/><text x="53" y="136" text-anchor="middle" font-size="12">Post E</text>
+      <rect x="100" y="116" width="86" height="30" rx="5" fill="#f4f2ef" stroke="#c9c4dd"/><text x="143" y="136" text-anchor="middle" font-size="12" fill="#4a4857">Post D</text>
+      <rect x="190" y="116" width="86" height="30" rx="5" fill="#f4f2ef" stroke="#c9c4dd"/><text x="233" y="136" text-anchor="middle" font-size="12" fill="#4a4857">Post C</text>
+      <rect x="280" y="116" width="86" height="30" rx="5" fill="#fdecef" stroke="#a52036" stroke-width="1.8"/><text x="323" y="136" text-anchor="middle" font-size="12">Post B</text>
+      <rect x="370" y="116" width="86" height="30" rx="5" fill="#fdecef" stroke="#a52036" stroke-width="1.8"/><text x="413" y="136" text-anchor="middle" font-size="12">Post A</text>
+    </g>
+    <text x="290" y="166" font-size="11.5" fill="#a52036">?page=2 = "skip 3, take 3" → returns B again 😖</text>
+
+    <line x1="10" y1="188" x2="650" y2="188" stroke="#e6e2dc"/>
+
+    <text x="10" y="214" font-size="13.5" font-weight="700" fill="#17724a">✅ Cursor: "give me what comes after Post B"</text>
+    <g>
+      <rect x="10" y="230" width="86" height="30" rx="5" fill="#fdf1e7" stroke="#b4531a"/><text x="53" y="250" text-anchor="middle" font-size="12">Post E</text>
+      <rect x="100" y="230" width="86" height="30" rx="5" fill="#f4f2ef" stroke="#c9c4dd"/><text x="143" y="250" text-anchor="middle" font-size="12" fill="#4a4857">Post D</text>
+      <rect x="190" y="230" width="86" height="30" rx="5" fill="#f4f2ef" stroke="#c9c4dd"/><text x="233" y="250" text-anchor="middle" font-size="12" fill="#4a4857">Post C</text>
+      <rect x="280" y="230" width="86" height="30" rx="5" fill="#fff" stroke="#17724a" stroke-width="1.8"/><text x="323" y="250" text-anchor="middle" font-size="12">Post B</text>
+      <rect x="370" y="230" width="86" height="30" rx="5" fill="#e9f6ef" stroke="#17724a" stroke-width="1.8"/><text x="413" y="250" text-anchor="middle" font-size="12">Post A</text>
+    </g>
+    <text x="284" y="222" font-size="11" fill="#17724a">cursor points here</text>
+    <text x="466" y="250" font-size="11.5" fill="#17724a">→ correctly returns A. No duplicate.</text>
+  </g>
+</svg>
+<figcaption>Offsets are positions in a list that keeps moving. Cursors are anchors to a specific item.</figcaption>
+</figure>
+
+<p>The analogy: an offset is "page 47 of the book," which breaks if someone inserts pages while you're reading. A cursor is a bookmark physically clipped to a page — insert whatever you like, the bookmark still points at the same page. (Where it breaks down: if someone <em>deletes</em> the bookmarked page, a naive cursor is orphaned, so real implementations encode a sortable value like a timestamp rather than just an id.)</p>
+
+<p>Cursors also perform better at depth — <code>OFFSET 100000</code> makes the database walk a hundred thousand rows, while a cursor is an indexed seek. Their cost: you can't jump to an arbitrary page. That's fine for a feed, and fatal for an admin table with "go to page 12", which is exactly where offset still wins.</p>
+
+<h3>Error contracts</h3>
+
+<p>Say this, because barely anyone does: <em>"I'd want errors to have a consistent shape so the UI can handle them generically."</em></p>
+
+<pre><code>{
+  "error": {
+    "code": "RATE_LIMITED",      // 👈 stable, machine-readable
+    "message": "Too many requests",
+    "retryable": true,
+    "fields": { "email": "Already registered" }  // for form errors
+  }
+}</code></pre>
+
+<p>The key insight is that <code>code</code> is for your code and <code>message</code> is for humans — and the message must never be the thing you branch on, because the day it gets reworded or translated, your error handling silently breaks. The <code>retryable</code> flag lets a generic layer decide whether to auto-retry, and <code>fields</code> lets a form map server validation onto the right inputs.</p>
+
+<h2 id="o">O — Optimisations and deep dives</h2>
+
+<p>This is the back half, it's the biggest chunk of time, and it's where the interview differentiates candidates. It's also the phase where the temptation to lecture is strongest — resist it.</p>
+
+<p>There are four standing areas. Have a headline for each, then go deep on whichever the interviewer picks.</p>
+
+<h3>Performance</h3>
+
+<p>Split it into three buckets so you don't ramble.</p>
+
+<p><strong>Loading performance:</strong> code splitting by route, so the feed page doesn't ship the settings page's JS. Lazy-loading below-the-fold components. Preloading the critical data on the server so there's no client-side waterfall. Compressing and correctly sizing images (<code>srcset</code>, modern formats), and reserving their space in the layout so nothing jumps.</p>
+
+<p><strong>Rendering performance:</strong> virtualization for long lists (render only the ~20 rows in view, not the 10,000 in the array). Memoization to stop a parent re-render cascading into 500 children. Keeping expensive work off the main thread when it's genuinely heavy.</p>
+
+<p><strong>Interaction performance:</strong> debouncing keystroke-triggered network calls, optimistic updates so a like feels instant, and never blocking the main thread during an animation.</p>
+
+<div class="aside interview">
+  <span class="label">In an interview</span>
+  <p>Anchor performance to metrics, not vibes. "I'd track LCP for whether the main content shows up fast, INP for whether taps feel responsive, and CLS for layout jumping — and I'd set a JS budget for the route, because bundle size is the thing that silently regresses." Naming a budget is a senior tell: it implies you've watched a bundle grow by 40% over a quarter and had to fight it back.</p>
+</div>
+
+<h3>Accessibility</h3>
+
+<p>Don't recite WCAG. Say what you'd actually do, in this order: semantic HTML first (a <code>&lt;button&gt;</code> is a button, and you get focus, Enter/Space, and screen-reader role for free); then keyboard navigation with a visible focus indicator and no traps; then ARIA <em>only</em> to fill gaps the semantics can't cover, like <code>aria-live</code> for content that arrives asynchronously; then contrast and text sizing; then testing with an actual screen reader, because the automated tools catch maybe a third of real problems.</p>
+
+<p>The line worth memorising: <strong>"the first rule of ARIA is don't use ARIA — if a native element does the job, use it, because bad ARIA is worse than none."</strong> It's true, it's quotable, and it demonstrates you've been burned by a <code>&lt;div role="button"&gt;</code> at some point.</p>
+
+<h3>UX edge cases</h3>
+
+<p>Walk the states: empty, loading, partial, error, offline. There's a full taxonomy later in this guide. In the interview, the move is to pick one screen and enumerate its states out loud — it takes forty seconds and it shows you think about the 20% of code that is 80% of the polish.</p>
+
+<h3>Scale</h3>
+
+<p>Scale on the frontend means three different things and it's worth being precise: <strong>data scale</strong> (10,000 rows → virtualization, pagination, memory), <strong>user scale</strong> (CDN, caching, and the fact that your bundle is downloaded a million times so kilobytes are money), and <strong>team scale</strong> (module boundaries, a design system, typed API contracts, so forty engineers don't collide).</p>
+
+<div class="aside trap">
+  <span class="label">Trap</span>
+  <p>Presenting an optimisation as free. Every single one has a cost, and naming it is the whole game. Virtualization breaks Ctrl+F and in-page search, and complicates screen readers. Memoization adds comparison cost and code noise, and is often slower than what it replaced. Optimistic updates need rollback logic and can show the user a lie. Say the cost <em>before</em> the interviewer asks — that's the difference between "knows techniques" and "has shipped them."</p>
+</div>
+
+<h2 id="budget">Time budgeting &amp; signalling breadth-then-depth</h2>
+
+<p>For a 45-minute session: <strong>5 on R, 10 on A, 7 on D, 7 on I, 15 on O</strong>, with the last minute or two for questions. Wear a watch or glance at the clock — this is legitimately part of the evaluation, because shipping on time is part of the job.</p>
+
+<p>Two failure modes, both fatal, both avoidable:</p>
+
+<p><strong>Rabbit-holing.</strong> You spend twelve minutes explaining exactly how you'd implement a debounce with <code>setTimeout</code>. The interviewer now knows one thing about you. The fix is a self-interrupt: <em>"I could go deeper on the debounce implementation — want me to, or should I keep moving and come back?"</em> Handing them the steering wheel costs you nothing and it demonstrates self-awareness.</p>
+
+<p><strong>Staying shallow.</strong> You breeze through all five phases in eighteen minutes and now there's dead air. The interviewer has learned that you can recite a framework. The fix is the opposite move: choose something and dig, unprompted.</p>
+
+<p>The technique that solves both is <strong>breadth-then-depth signalling</strong>, and it's the single most useful sentence in this guide:</p>
+
+<div class="say">
+  <span class="label">Say this out loud (at the start of the O phase)</span>
+  <p>"Okay — the high-level design is on the board. There are about five areas I think are worth going deep on: request cancellation and race conditions in the search, the caching strategy, keyboard accessibility for the results list, virtualization if the list gets long, and how this behaves on a bad mobile connection. I have opinions on all of them. Which is most interesting to you — or shall I start with the race conditions, since I think that's where the real complexity is?"</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> it does four jobs at once. It proves breadth (you saw five areas). It proves prioritisation (you have a recommendation). It hands the interviewer control, which they want because they have a rubric to fill. And it guarantees you spend your remaining fifteen minutes on something they're actually scoring. If they say "you pick," pick the one with the most substance and go — don't pick the easy one.</p>
+
+<h2 id="api">Component API design</h2>
+
+<p>This deserves its own section because it's a favourite standalone question — "design a Modal component" — and because it's genuinely the skill that separates people who write components from people who build systems others use.</p>
+
+<h3>The problem: prop explosion</h3>
+
+<p>Let's watch a component decay. It starts sensibly.</p>
+
+<pre><code>&lt;Modal isOpen={isOpen} onClose={close} title="Delete file?" /&gt;</code></pre>
+
+<p>Then a teammate needs a footer with buttons. Add <code>footer</code>. Someone needs it without a close X. Add <code>showCloseButton</code>. Someone needs a wide one. Add <code>size</code>. Someone needs the title to have an icon. Add <code>titleIcon</code>. Someone needs the body scrollable but the header pinned. Add <code>stickyHeader</code>. Six months later:</p>
+
+<div class="codehead bad-head">❌ The prop-explosion endgame</div>
+<pre><code>&lt;Modal
+  isOpen showCloseButton hideOverlay preventScroll centered
+  fullScreenOnMobile stickyHeader stickyFooter dismissOnEsc
+  dismissOnOverlayClick showDivider compactPadding noPadding
+  titleIcon={&lt;Trash /&gt;} footerAlign="right" size="lg"
+  headerClassName="..." bodyClassName="..." footerClassName="..."
+/&gt;</code></pre>
+
+<p>Twenty-two props. Why is this bad? It's not aesthetics.</p>
+
+<ul>
+  <li><strong>Combinatorial explosion.</strong> Ten booleans is 1,024 possible configurations. You've tested maybe six. The rest are undiscovered bugs.</li>
+  <li><strong>Illegal states are representable.</strong> What does <code>noPadding</code> plus <code>compactPadding</code> mean? Nobody knows, including the author.</li>
+  <li><strong>Every new use case needs a new prop</strong> — and every new prop is shipped to every consumer forever. The component's owner becomes a bottleneck for the whole org.</li>
+  <li><strong>The <code>className</code> escape hatches</strong> are a confession: the API can't express what people need, so they're reaching in and styling internals, which means you can never refactor the internals again.</li>
+</ul>
+
+<p>The analogy I like: this is a hotel room with one panel of thirty switches by the door, unlabelled. Compare it to a room where each lamp has its own switch, on the lamp. Same capabilities, radically different usability — because <em>control lives next to the thing it controls</em>.</p>
+
+<h3>The fix: composition over configuration</h3>
+
+<div class="codehead good-head">✅ Compound components</div>
+<pre><code>&lt;Modal open={isOpen} onOpenChange={setIsOpen}&gt;
+  &lt;Modal.Header&gt;
+    &lt;Trash /&gt; Delete file?
+  &lt;/Modal.Header&gt;
+  &lt;Modal.Body&gt;
+    This can&amp;apos;t be undone.
+  &lt;/Modal.Body&gt;
+  &lt;Modal.Footer&gt;
+    &lt;Button variant="ghost" onClick={close}&gt;Cancel&lt;/Button&gt;
+    &lt;Button variant="danger" onClick={del}&gt;Delete&lt;/Button&gt;
+  &lt;/Modal.Footer&gt;
+&lt;/Modal&gt;</code></pre>
+
+<p>Look at what happened. <code>titleIcon</code> disappeared — you just put an icon in the header, because the header accepts children. <code>footerAlign</code> disappeared — you lay out the footer's children however you want. <code>showCloseButton</code> disappeared — omit <code>&lt;Modal.Close /&gt;</code>. A dozen props collapsed into "put whatever you want inside."</p>
+
+<p>The shift in thinking is this: <strong>props configure a fixed shape; children provide a shape.</strong> The moment you find yourself adding a prop that describes <em>content</em> rather than <em>behaviour</em>, that prop wants to be children.</p>
+
+<h4>How compound components actually work</h4>
+
+<p>You might reasonably wonder: how does <code>Modal.Footer</code> know it's inside a <code>Modal</code>? It's a plain component sitting in the children — there's no visible wiring.</p>
+
+<p>The answer is context. The parent puts shared state into a context provider; the children read it. That's the whole trick.</p>
+
+<pre><code>const ModalContext = createContext(null);
+
+function Modal({ open, onOpenChange, children }) {
+  return (
+    &lt;ModalContext.Provider value={{ open, onOpenChange }}&gt;
+      {open &amp;&amp; &lt;div className="overlay"&gt;{children}&lt;/div&gt;}
+    &lt;/ModalContext.Provider&gt;
+  );
+}
+
+Modal.Close = function ModalClose(props) {
+  const { onOpenChange } = useContext(ModalContext);   // 👈 the wiring
+  return &lt;button onClick={() =&gt; onOpenChange(false)} {...props} /&gt;;
+};</code></pre>
+
+<p>Attaching <code>Close</code> as a property of <code>Modal</code> is purely for ergonomics and discoverability — typing <code>Modal.</code> shows you the family. It also signals "these belong together" without a naming convention.</p>
+
+<div class="aside wait">
+  <span class="label">Wait — is composition always better?</span>
+  <p>No, and saying so is a nuance point. Composition trades verbosity for flexibility. If 95% of your usages are identical, forcing every caller to assemble five sub-components is just ceremony — and worse, it lets people build <em>inconsistent</em> modals, which is the exact thing a design system exists to prevent.</p>
+  <p>The mature answer is both layers: a flexible compound API underneath, plus a thin opinionated preset on top for the common case. <code>&lt;ConfirmDialog title=… onConfirm=… /&gt;</code> built out of <code>&lt;Modal&gt;</code>. Everyone uses the preset; the 5% who need something unusual drop down a level instead of filing a ticket.</p>
+</div>
+
+<h3>Slot props: composition when children isn't enough</h3>
+
+<p>Sometimes a component needs to render caller-supplied content in <em>several</em> places. One <code>children</code> can't cover it, so you accept named slots — props that take elements.</p>
+
+<pre><code>&lt;Card
+  header={&lt;Avatar user={user} /&gt;}
+  footer={&lt;Timestamp at={post.createdAt} /&gt;}
+&gt;
+  {post.text}
+&lt;/Card&gt;</code></pre>
+
+<p>And sometimes the component owns the data but the caller owns the presentation — that's a <em>render prop</em>: a function passed as a child, which the component calls with its internal state.</p>
+
+<pre><code>&lt;List items={posts}&gt;
+  {(post, index) =&gt; &lt;PostCard post={post} highlighted={index === 0} /&gt;}
+&lt;/List&gt;</code></pre>
+
+<p><code>List</code> handles virtualization, keys, empty states, and infinite loading. It has no idea what a post looks like. That's a clean seam.</p>
+
+<h3>Controlled and uncontrolled: support both</h3>
+
+<p>An <em>uncontrolled</em> component owns its own state. You hand it a starting value and let it get on with things:</p>
+
+<pre><code>&lt;Tabs defaultValue="profile" /&gt;      // component remembers which tab</code></pre>
+
+<p>A <em>controlled</em> component doesn't own anything — the parent holds the value and passes it down with a change handler:</p>
+
+<pre><code>&lt;Tabs value={tab} onValueChange={setTab} /&gt;   // 👈 parent is the truth</code></pre>
+
+<p>Why support both? Because they serve different needs. Uncontrolled is a one-liner for the 80% case where nobody outside cares which tab is open. Controlled is essential when something else must influence or observe it — syncing the tab to the URL, resetting it when a filter changes, or logging analytics on change.</p>
+
+<p>The convention (this is exactly what native <code>&lt;input&gt;</code> does, and what every good library copies): if the <code>value</code> prop is present, you're controlled; if only <code>defaultValue</code> is, you're uncontrolled. Detect it once and never switch modes mid-life.</p>
+
+<pre><code>function useControllable({ value, defaultValue, onChange }) {
+  const [internal, setInternal] = useState(defaultValue);
+  const isControlled = value !== undefined;          // 👈 the whole rule
+  return [
+    isControlled ? value : internal,
+    (next) =&gt; { if (!isControlled) setInternal(next); onChange?.(next); },
+  ];
+}</code></pre>
+
+<div class="aside interview">
+  <span class="label">In an interview</span>
+  <p>If you're asked to design any stateful component — tabs, accordion, select, date picker — saying <em>"I'd support a controlled and an uncontrolled mode, mirroring how native inputs work"</em> is a strong, concrete answer that shows you've thought about the consumer rather than just the implementation.</p>
+</div>
+
+<h3>Headless components: behaviour without presentation</h3>
+
+<p>Here's a real tension in every design system. Behaviour is hard and universal: a combobox needs arrow-key navigation, type-ahead, focus management, <code>aria-activedescendant</code>, click-outside-to-close, scroll-into-view. That logic is identical everywhere. Appearance is easy and specific: it differs per product, per brand, per page.</p>
+
+<p>Bundling them means every team that wants your <em>behaviour</em> must accept your <em>pixels</em> — and when they can't, they reimplement the whole thing badly, and now your app has four dropdowns with four different keyboard bugs.</p>
+
+<p>A <strong>headless</strong> component ships only the behaviour and hands you the wiring:</p>
+
+<pre><code>const { isOpen, highlightedIndex, getInputProps, getItemProps } =
+  useCombobox({ items: results, onSelect });
+
+&lt;input {...getInputProps()} className="my-own-styles" /&gt;
+{isOpen &amp;&amp; results.map((r, i) =&gt; (
+  &lt;li {...getItemProps({ item: r, index: i })}
+      className={i === highlightedIndex ? "active" : ""}&gt;
+    {r.label}
+  &lt;/li&gt;
+))}</code></pre>
+
+<p>The hook owns the keyboard handling and the ARIA attributes; you own every visual decision. Think of it as an engine you can drop into any car body. (Where the analogy strains: an engine constrains the chassis, and headless hooks do impose some DOM structure — you can't always put the list anywhere you like.)</p>
+
+<h3>Naming, defaults, and killing boolean soup</h3>
+
+<p>Small things, but they're the difference between an API people enjoy and one they tolerate.</p>
+
+<p><strong>Naming conventions.</strong> Booleans read as assertions: <code>isOpen</code>, <code>hasError</code>, <code>canDismiss</code>. Handlers are <code>onSomethingHappened</code> in past tense where it helps: <code>onChange</code>, <code>onDismiss</code>, <code>onSelectionChange</code>. Prefer the domain's word over the implementation's: <code>onDismiss</code> beats <code>setModalVisibleFalse</code>. And name for <em>what it is</em>, not <em>what it looks like</em> — <code>variant="danger"</code>, never <code>variant="red"</code>, because in dark mode or a rebrand, red isn't red anymore but danger is still danger.</p>
+
+<p><strong>Defaults do the heavy lifting.</strong> The best API is one where the common case needs no props at all. If everyone writes <code>&lt;Tooltip placement="top"&gt;</code>, make <code>top</code> the default. Every default you get right is a prop that disappears from a thousand call sites.</p>
+
+<p><strong>Variant unions beat boolean soup.</strong> Watch this go wrong:</p>
+
+<div class="codehead bad-head">❌ Booleans that can contradict</div>
+<pre><code>&lt;Button primary secondary danger /&gt;   // ...so what colour is it?</code></pre>
+
+<div class="codehead good-head">✅ One prop, mutually exclusive by construction</div>
+<pre><code>&lt;Button variant="danger" size="sm" /&gt;
+// variant: "primary" | "secondary" | "ghost" | "danger"</code></pre>
+
+<p>This is the deeper principle, and it's worth being able to state directly: <strong>make illegal states unrepresentable.</strong> With three booleans, "primary and danger at once" is a state your type system permits and your component must somehow handle. With a union, that state cannot be typed, so the bug cannot be written. You've moved an entire class of error from runtime to compile time — for free, by choosing a better shape.</p>
+
+<div class="aside interview">
+  <span class="label">How this gets asked</span>
+  <p>"Design the API for a Modal / Dropdown / DataTable component." · "How would you build a component library used by fifty engineers?" · "This component has twenty props — what would you do?" · "How do you make a component flexible without making it a mess?"</p>
+</div>
+
+<div class="say">
+  <span class="label">Model answer — component API design</span>
+  <p>"I'd start by asking what the smallest surface is that covers the real use cases and still extends. My default is composition over configuration: instead of a prop for every possible piece of content, expose compound sub-components — <code>Modal.Header</code>, <code>Modal.Body</code>, <code>Modal.Footer</code> — wired together with context, so callers compose the layout rather than requesting it via flags. For behaviour I'd support controlled and uncontrolled modes like a native input, so simple cases are one line but you can hoist state when you need to. I'd use variant unions rather than boolean props so contradictory states can't be expressed. And on top of the flexible primitive, I'd ship one or two opinionated presets for the common cases — that's what keeps the product consistent while leaving an escape hatch that isn't a fork."</p>
+</div>
+
+<h4>Follow-ups they'll actually ask</h4>
+
+<div class="fu">
+  <p class="q">"Why not just add the props? It's less code for the consumer."</p>
+  <p>For the first five, sure — and I'd do exactly that. The problem is the growth curve: each boolean doubles the configuration space, and the tested subset stays tiny, so bug surface grows exponentially while confidence doesn't. The tell that it's time to switch is when props start describing <em>content</em> rather than <em>behaviour</em> — <code>titleIcon</code>, <code>footerButtons</code>. That's content asking to be children.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Why not just let people pass <code>className</code> and style whatever they want?"</p>
+  <p>Because it silently makes your internal DOM structure part of your public API. The moment someone writes <code>.modal-body &gt; div:first-child</code>, you can never restructure without breaking them, and you won't know until production. I'd rather expose a small number of intentional slots and design tokens. If people keep needing escape hatches, that's real feedback that the API is missing something — I'd rather fix the API than institutionalise the workaround.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"How do you evolve the API without breaking fifty consumers?"</p>
+  <p>Additive changes are safe, so new capability arrives as new optional props or new sub-components. For removals: deprecate with a console warning and a codemod where possible, support both paths for a release or two, then remove on a major version. The thing that makes this survivable is having usage data — if I can grep the monorepo and see that a prop has eleven usages, I can just fix all eleven myself, which is faster than any migration guide.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Isn't headless over-engineering for one product?"</p>
+  <p>For one product with one design language, yes — I'd ship a styled component and stop. Headless earns its keep when you have multiple brands or surfaces, or when teams keep forking your component to restyle it. The cost is real: more boilerplate at every call site, and the accessibility guarantees now depend on consumers spreading the props you gave them.</p>
+</div>
+
+<h2 id="state">Local vs global state: the decision tree</h2>
+
+<p>"Where should this state live?" is asked in some form in nearly every frontend interview, and it's the question junior candidates answer with a tool name ("Redux") instead of a process.</p>
+
+<p>Start from the governing principle, which you should be able to say verbatim:</p>
+
+<blockquote style="border-left:4px solid var(--accent); margin:1.4em 0; padding:2px 0 2px 18px; font-size:1.06rem;">
+<strong>Keep state as local as possible, for as long as possible.</strong>
+</blockquote>
+
+<p>Why? Two reasons, and both matter.</p>
+
+<p><strong>Reasoning cost.</strong> If a piece of state lives in one component, there are exactly two places it can be modified from. If it lives in a global store, there are potentially two hundred. When it's wrong at 2am, local state means you read one file.</p>
+
+<p><strong>Re-render cost.</strong> This one is concrete and it's the part interviewers probe. When state changes, everything subscribed to it re-renders. Put a text input's value in a global store and every keystroke notifies every subscriber. Put it in the input's own component and a keystroke re-renders one component. This is the single most common self-inflicted performance wound in React apps, and it comes from "I'll just put it in the store, it's easier."</p>
+
+<div class="aside misc">
+  <span class="label">A common misconception</span>
+  <p>"Context is a state manager, so it solves this." Context is a <em>transport</em> mechanism — it moves a value down the tree without prop-drilling. It does no subscription slicing whatsoever: when the provider's value changes, <em>every</em> consumer re-renders, even ones reading a part of the object that didn't change. That's fine for a theme that changes twice a session. It's a disaster for a value that changes on every mouse move. The distinction — transport vs subscription-with-selectors — is exactly what the "why not just use Context instead of Redux/Zustand?" follow-up is testing.</p>
+</div>
+
+<h3>The tree, in order</h3>
+
+<figure>
+<svg viewBox="0 0 660 430" role="img" aria-label="Decision tree for choosing where state should live">
+  <defs>
+    <marker id="ar4" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L6.5,3 L0,6 z" fill="#8a86a0"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="12.5">
+    <rect x="14" y="10" width="330" height="40" rx="7" fill="#fff" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="35" fill="#1c1b22">1. Does only <tspan font-weight="700">one</tspan> component need it?</text>
+    <line x1="352" y1="30" x2="392" y2="30" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="10" width="250" height="40" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="35" fill="#17724a" font-weight="650">useState. Done. Stop here.</text>
+
+    <line x1="60" y1="52" x2="60" y2="76" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="14" y="80" width="330" height="40" rx="7" fill="#fff" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="105" fill="#1c1b22">2. A few <tspan font-weight="700">nearby</tspan> components?</text>
+    <line x1="352" y1="100" x2="392" y2="100" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="80" width="250" height="40" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="105" fill="#17724a" font-weight="650">Lift to nearest parent / compose</text>
+
+    <line x1="60" y1="122" x2="60" y2="146" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="14" y="150" width="330" height="40" rx="7" fill="#fff" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="175" fill="#1c1b22">3. Does the <tspan font-weight="700">server</tspan> own it?</text>
+    <line x1="352" y1="170" x2="392" y2="170" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="150" width="250" height="40" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="175" fill="#17724a" font-weight="650">Query cache — not your store</text>
+
+    <line x1="60" y1="192" x2="60" y2="216" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="14" y="220" width="330" height="46" rx="7" fill="#fff" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="240" fill="#1c1b22">4. Should it survive refresh /</text>
+    <text x="28" y="257" fill="#1c1b22">   be <tspan font-weight="700">shareable</tspan>?</text>
+    <line x1="352" y1="243" x2="392" y2="243" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="220" width="250" height="46" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="240" fill="#17724a" font-weight="650">URL (shareable) or</text>
+    <text x="410" y="257" fill="#17724a" font-weight="650">storage (private)</text>
+
+    <line x1="60" y1="268" x2="60" y2="292" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="14" y="296" width="330" height="46" rx="7" fill="#fff" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="316" fill="#1c1b22">5. App-wide but changes</text>
+    <text x="28" y="333" fill="#1c1b22">   <tspan font-weight="700">rarely</tspan>?</text>
+    <line x1="352" y1="319" x2="392" y2="319" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="296" width="250" height="46" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="316" fill="#17724a" font-weight="650">Context — theme, locale,</text>
+    <text x="410" y="333" fill="#17724a" font-weight="650">current user</text>
+
+    <line x1="60" y1="344" x2="60" y2="368" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="14" y="372" width="330" height="46" rx="7" fill="#efecfd" stroke="#5b45d6" stroke-width="1.5"/>
+    <text x="28" y="392" fill="#1c1b22">6. App-wide, <tspan font-weight="700">frequent</tspan>, or</text>
+    <text x="28" y="409" fill="#1c1b22">   needs selectors?</text>
+    <line x1="352" y1="395" x2="392" y2="395" stroke="#8a86a0" stroke-width="1.4" marker-end="url(#ar4)"/>
+    <rect x="396" y="372" width="250" height="46" rx="7" fill="#e9f6ef" stroke="#17724a" stroke-width="1.5"/>
+    <text x="410" y="392" fill="#17724a" font-weight="650">A store (Zustand / Redux)</text>
+    <text x="410" y="409" fill="#17724a" font-weight="650">— now it's earned</text>
+  </g>
+</svg>
+<figcaption>Walk it from the top and stop at the first "yes." Most state stops at step 1.</figcaption>
+</figure>
+
+<p>Let me add the reasoning behind each step, because reciting the tree without the <em>why</em> won't survive a follow-up.</p>
+
+<p><strong>1 — Only this component? <code>useState</code>.</strong> Is the dropdown open? Is the row hovered? What's typed in this input? None of this is anyone else's business.</p>
+
+<p><strong>2 — A few nearby components? Lift it up.</strong> Move it to their nearest common ancestor and pass it down. If that means threading a prop through four intermediate layers that don't care, first try <em>composition</em>: pass the rendered element as children so the state-owning component and the state-using component become neighbours instead of distant relatives. That trick eliminates most prop-drilling complaints without any new machinery.</p>
+
+<p><strong>3 — Does the server own it? Query cache.</strong> This is the step that saves the most code in real apps. Data fetched from an API isn't really <em>your</em> state; it's a local copy of someone else's state, and it needs caching, deduplication, background refetching, staleness rules, and retry. If you put it in Redux, you will hand-write all of that, badly. Use a query cache and the "global state" problem in most apps shrinks by about 80%, because it turns out most of what people put in Redux was just server data.</p>
+
+<p><strong>4 — Must survive a refresh or be shareable?</strong> If someone should be able to send a link to it, it goes in the URL. If it's private-but-persistent (a dismissed banner, a theme choice, a draft), it goes in <code>localStorage</code>, hydrated on load. If it's per-tab (a wizard's progress), <code>sessionStorage</code>.</p>
+
+<p><strong>5 — Genuinely app-wide and low-frequency? Context.</strong> Theme, locale, feature flags, the logged-in user. These change approximately never, so the "everything re-renders" behaviour costs nothing.</p>
+
+<p><strong>6 — App-wide and frequent, or you need selectors? A store.</strong> Now you need components to subscribe to <em>slices</em> so a change to one field doesn't wake the whole tree. That's the actual technical thing a store gives you over Context: selector-based subscriptions. Plus devtools, middleware, and testable state transitions.</p>
+
+<div class="aside trap">
+  <span class="label">Trap</span>
+  <p>Answering "where does state live?" with a library name. "I'd use Redux" is a non-answer, and worse, it signals cargo-culting. The answer is a <em>process</em> plus a default. Say: "most of it stays local, server data goes in a query cache, view-identifying state goes in the URL, and only what's genuinely global and hot needs a store — which in most apps is a surprisingly short list, maybe the current user, the theme, and a notification queue."</p>
+</div>
+
+<div class="say">
+  <span class="label">Model answer — local vs global state</span>
+  <p>"My default is to keep state as local as possible for as long as possible, and only promote it when something forces me to — because local state is cheaper to reason about and cheaper to re-render. So I walk a tree: if one component needs it, <code>useState</code>. A few nearby components, lift it or compose so they're neighbours. If the server owns it, it goes in a query cache rather than my store, because it needs staleness and refetching that a plain store won't give me. If it should be shareable or survive a refresh, it goes in the URL or storage. Only what's genuinely app-wide is left — and then it's Context if it changes rarely, like theme or current user, or a store with selectors if it changes often, because Context re-renders every consumer on any change."</p>
+</div>
+
+<h4>Follow-ups</h4>
+
+<div class="fu">
+  <p class="q">"Why not just put everything in the store? It's consistent."</p>
+  <p>Consistency is real value, so I don't dismiss it. But you pay three ways. Re-renders: without careful selectors, unrelated components wake up on every change. Coupling: any component can mutate anything, so a bug's blast radius is the whole app rather than one subtree. And you lose automatic teardown — local state dies with its component, whereas store state accumulates and you have to remember to clean it up, which is where stale-data bugs come from.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Why not just use Context instead of a store?"</p>
+  <p>Context has no selectors. Any change to the provider's value re-renders every consumer, even ones reading an unchanged field. You can mitigate it by splitting into many small contexts, and honestly that works well up to a point — but once you're maintaining a dozen providers with memoized values to avoid re-render storms, you've hand-rolled a worse store. The threshold is update frequency plus number of consumers.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"How do you know when to promote local state to global?"</p>
+  <p>I let the code tell me. The signal is a second, unrelated part of the tree needing the same value, or prop-drilling more than about three levels after I've already tried composition. Promoting is a cheap refactor; demoting is expensive, because by then everything depends on it. So I under-promote deliberately.</p>
+</div>
+
+<div class="fu">
+  <p class="q">"Where does form state go?"</p>
+  <p>Local, almost always — it's the definition of ephemeral, and it changes on every keystroke, which is the worst possible thing to put in a global store. The exception is a multi-step wizard where steps unmount: then it lifts to the wizard container, and if it must survive a refresh, it's mirrored into <code>sessionStorage</code>.</p>
+</div>
+
+<h2 id="walk">Worked walkthroughs of the classic prompts</h2>
+
+<p>Five prompts cover most of the space. For each, I'll give you the <em>shape</em> of a strong answer: the requirements to surface, the one core design decision, the state model, and the areas the interviewer will push on. Not an essay — a scaffold you fill in live.</p>
+
+<h3>1. Autocomplete / typeahead</h3>
+
+<p><strong>Requirements to surface:</strong> What are we searching — a fixed local list or a remote index? How large? Do results need to be grouped or categorised? Is it a pure search box or a form field that must produce a valid selection? Mobile? How fresh must results be?</p>
+
+<p><strong>The core design decision:</strong> what triggers a request, and how you handle the fact that requests come back out of order.</p>
+
+<p>Let's do the second part properly, because it's the heart of the question and it's where most candidates fumble.</p>
+
+<p>You type "reac". Four keystrokes, four requests. They don't necessarily come back in the order sent — "r" might route through a slow server and land <em>after</em> "reac". Now the dropdown shows results for "r" while the input says "reac". The UI is lying, and it will fix itself only on the next keystroke.</p>
+
+<figure>
+<svg viewBox="0 0 660 200" role="img" aria-label="Timeline showing a request for a short query resolving after a later request, causing stale results">
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="12">
+    <line x1="30" y1="170" x2="640" y2="170" stroke="#8a86a0" stroke-width="1.4"/>
+    <text x="30" y="190" fill="#4a4857">time →</text>
+
+    <line x1="60" y1="40" x2="560" y2="40" stroke="#a52036" stroke-width="2.2"/>
+    <circle cx="60" cy="40" r="4.5" fill="#a52036"/><circle cx="560" cy="40" r="4.5" fill="#a52036"/>
+    <text x="66" y="30" fill="#a52036" font-weight="650">GET /search?q=r</text>
+    <text x="566" y="45" fill="#a52036" font-weight="650">← lands LAST 😖</text>
+
+    <line x1="200" y1="80" x2="330" y2="80" stroke="#17724a" stroke-width="2.2"/>
+    <circle cx="200" cy="80" r="4.5" fill="#17724a"/><circle cx="330" cy="80" r="4.5" fill="#17724a"/>
+    <text x="206" y="70" fill="#17724a" font-weight="650">GET /search?q=rea</text>
+
+    <line x1="300" y1="120" x2="420" y2="120" stroke="#17724a" stroke-width="2.2"/>
+    <circle cx="300" cy="120" r="4.5" fill="#17724a"/><circle cx="420" cy="120" r="4.5" fill="#17724a"/>
+    <text x="306" y="110" fill="#17724a" font-weight="650">GET /search?q=reac</text>
+    <text x="428" y="125" fill="#4a4857">correct results shown here…</text>
+
+    <line x1="560" y1="34" x2="560" y2="170" stroke="#a52036" stroke-dasharray="4 3"/>
+    <text x="380" y="160" fill="#a52036">…then overwritten by the stale "r" response</text>
+  </g>
+</svg>
+<figcaption>The race condition every autocomplete has, and most naive implementations lose.</figcaption>
+</figure>
+
+<p>Three fixes, in increasing order of quality — and knowing all three, in order, is what a strong answer sounds like:</p>
+
+<ol>
+  <li><strong>Debounce.</strong> Wait ~250ms after the last keystroke before firing. This is a mitigation, not a fix — it cuts request volume by maybe 80%, which is worth it for cost alone, but two requests can still overlap.</li>
+  <li><strong>Ignore stale responses.</strong> Track the latest query; when a response arrives, drop it unless its query still matches the current input. Correct, and one line.</li>
+  <li><strong>Actually cancel.</strong> Abort the in-flight request with an <code>AbortController</code> when a new one starts. This is strictly better because you also stop wasting the user's bandwidth and the server's capacity — which on mobile is a real cost, not a theoretical one.</li>
+</ol>
+
+<pre><code>const controller = useRef(null);
+
+async function search(query) {
+  controller.current?.abort();                 // 👈 kill the previous one
+  controller.current = new AbortController();
+  try {
+    const res = await fetch(`/api/search?q=${query}`,
+                            { signal: controller.current.signal });
+    setResults(await res.json());
+  } catch (err) {
+    if (err.name !== 'AbortError') setError(err);   // aborts aren't failures
+  }
+}</code></pre>
+
+<p><strong>Caching by prefix.</strong> Cache responses keyed by query string. Then two things get better: backspacing is instant, because "reac" → "rea" is already in the cache. And you can do a nice trick — if "rea" returned fewer than a full page of results, then "reac" <em>cannot</em> have more, so you can filter the cached results client-side and skip the network entirely. Mention this; it's a genuinely clever detail that shows you've thought past the obvious.</p>
+
+<p><strong>Min query length.</strong> Don't search on one character — the result set is huge, useless, and expensive. Two or three characters is typical.</p>
+
+<p><strong>State model:</strong></p>
+<pre><code>query          // controlled input value (local)
+debouncedQuery // what we actually fetch for (local, derived-ish)
+results        // keyed cache: Map&lt;query, Item[]&gt;
+status         // 'idle' | 'loading' | 'success' | 'error' | 'empty'
+isOpen         // is the listbox showing
+activeIndex    // which option is keyboard-highlighted 👈 not focus!
+</code></pre>
+
+<p><strong>Deep dive area — accessibility (the combobox pattern).</strong> This is a favourite probe, so learn the shape:</p>
+
+<pre><code>&lt;input
+  role="combobox"
+  aria-expanded="true"
+  aria-controls="results-list"
+  aria-activedescendant="option-3"   /* 👈 the key one */
+  aria-autocomplete="list"
+/&gt;
+&lt;ul id="results-list" role="listbox"&gt;
+  &lt;li id="option-3" role="option" aria-selected="true"&gt;React&lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+
+<p>Why <code>aria-activedescendant</code> rather than moving real DOM focus to the highlighted option? Because if focus leaves the input, typing stops working. So we keep focus in the input the whole time and use this attribute to <em>tell</em> the screen reader which option is currently active. It's a pointer, not a move. That distinction is exactly what the question is testing.</p>
+
+<p>Keyboard contract: Down/Up move the highlight (and wrap), Enter selects, Escape closes and restores the typed text, Tab closes and moves on. Home/End jump to first/last if you're being thorough.</p>
+
+<p><strong>Other deep dives to have ready:</strong> highlighting the matched substring (escape the user's input before building a regex — otherwise a query containing <code>(</code> throws, and that's a real bug people hit); empty state that says "No results for 'xyz'" rather than showing nothing; error state with a retry that doesn't lose the query; and mobile, where the on-screen keyboard covers half the viewport, so the dropdown may need to render above the input or as a full-screen sheet, and hover-based highlighting doesn't exist.</p>
+
+<h3>2. Infinite scroll photo gallery</h3>
+
+<p><strong>Requirements to surface:</strong> How many photos total? Are dimensions known before load? Grid or masonry? Does back-navigation need to restore position? Does this need to be indexable by search engines? Mobile data constraints?</p>
+
+<p><strong>Core design decision:</strong> how you detect "user needs more" and how you keep memory flat as they scroll for ten minutes.</p>
+
+<p><strong>Detection: IntersectionObserver over scroll listeners.</strong> The old way is a <code>scroll</code> listener that computes whether you're near the bottom. It fires dozens of times per second, each callback reads layout properties (which can force a synchronous reflow), and it runs on the main thread during the exact moment the user is scrolling — the worst possible time to be busy. The modern way is an empty sentinel <code>&lt;div&gt;</code> after the last item, watched by an <code>IntersectionObserver</code>. The browser tells you when it comes into view, off the main thread, once.</p>
+
+<pre><code>const sentinelRef = useRef(null);
+
+useEffect(() =&gt; {
+  const io = new IntersectionObserver(([entry]) =&gt; {
+    if (entry.isIntersecting &amp;&amp; hasMore &amp;&amp; !isLoading) loadMore();
+  }, { rootMargin: '400px' });   // 👈 fire before it's visible
+  io.observe(sentinelRef.current);
+  return () =&gt; io.disconnect();
+}, [hasMore, isLoading]);</code></pre>
+
+<p>The <code>rootMargin</code> is the detail worth calling out: it starts the fetch 400px <em>before</em> the sentinel is on screen, so the next batch usually arrives before the user reaches the bottom. That's the difference between infinite scroll that feels seamless and one that stutters.</p>
+
+<p><strong>Virtualization for memory.</strong> After 2,000 photos, you have 2,000 DOM nodes and 2,000 decoded images in memory — enough to make a mid-range phone thrash or crash. Virtualization renders only the visible window plus a small buffer, with spacer elements above and below to keep the scrollbar honest. Say the cost out loud: it breaks browser find-in-page, complicates screen readers, needs care with variable-height items, and is a meaningful chunk of complexity you shouldn't add before you need it.</p>
+
+<p><strong>Image loading and layout stability.</strong> This is where you score easy points. Images that load without reserved space cause the content below to jump — the user taps the wrong thing, and your CLS score tanks. Fix: know the aspect ratio up front (the API should return width and height), reserve the box with CSS <code>aspect-ratio</code>, and let the image fill it. Then <code>loading="lazy"</code> for offscreen images, <code>decoding="async"</code>, <code>srcset</code> so phones don't download desktop-sized files, and a blurred low-quality placeholder if you want the fancy version.</p>
+
+<p><strong>Scroll restoration.</strong> The scenario: user scrolls to photo 300, taps one, hits back — and lands at the top of an empty grid. Infuriating, and very common. To fix it you need the loaded pages still in cache (a query cache with a sensible retention window handles this), and you need to restore the scroll offset after those items have rendered — restoring too early scrolls a short page and does nothing. If you're virtualizing, restore by item index rather than pixel offset, since pixel positions may not be reconstructible.</p>
+
+<p><strong>The objections you should raise yourself.</strong> This is the move that impresses on this prompt: don't wait to be asked.</p>
+
+<ul>
+  <li><strong>Accessibility:</strong> content appearing continuously is disorienting for screen reader users, and a sticky footer becomes permanently unreachable because new content keeps pushing it down.</li>
+  <li><strong>SEO:</strong> content that only exists after JS-driven scroll may never be crawled. Paginated URLs are crawlable; an infinite scroll usually isn't.</li>
+  <li><strong>Findability:</strong> "it was about two-thirds down" is not a thing you can bookmark or share.</li>
+</ul>
+
+<p>The hybrid that fixes most of it: <strong>auto-load a few pages, then show a "Load more" button.</strong> Keeps the effortless feel early, gives keyboard and screen reader users an explicit control, gives you a real focus target, and makes the footer reachable. Pair it with real paginated URLs underneath (<code>?page=3</code>) so crawlers and shared links work.</p>
+
+<h3>3. News feed</h3>
+
+<p><strong>Requirements to surface:</strong> Is this chronological or ranked? Can users post from this page? Is it public (SEO matters) or logged-in-only? Do new posts need to appear live? What media types? Roughly how many posts does a session consume?</p>
+
+<p><strong>Core design decision:</strong> ranking is a server concern — say this early and clearly. The client asks for "the next page of the feed" and the server decides what that means. Trying to rank on the client is wrong for three reasons: you'd need to download everything to rank it, the ranking model is proprietary and changes constantly, and personalisation needs data the client doesn't have. The client's job is presentation, pagination, and interaction. That single sentence resolves a question a lot of candidates flail on.</p>
+
+<p><strong>Pagination:</strong> cursor-based, for exactly the reasons in the diagram earlier — a feed has items inserted at the head constantly, so offsets duplicate and skip content.</p>
+
+<p><strong>Optimistic likes.</strong> The user taps like. Do you wait 300ms for the server before filling in the heart? No — you fill it immediately, fire the request in the background, and roll back if it fails.</p>
+
+<pre><code>function toggleLike(postId) {
+  const prev = cache.get(postId);
+  cache.set(postId, { ...prev,
+    likedByMe: !prev.likedByMe,
+    likeCount: prev.likeCount + (prev.likedByMe ? -1 : 1) });  // 👈 instant
+
+  api.like(postId).catch(() =&gt; {
+    cache.set(postId, prev);            // roll back
+    toast('Could not save your like');  // ...and say so
+  });
+}</code></pre>
+
+<p>The tradeoffs worth naming: you must keep the previous value to roll back to; a silent rollback is confusing so you need a notification; and rapid double-taps need either debouncing or last-write-wins semantics so you don't end up with the UI and server disagreeing.</p>
+
+<p><strong>Real-time new posts without wrecking scroll.</strong> The naive version prepends new posts to the array. The user is reading paragraph three of a post, five new items get inserted above, and the content they were reading jumps 2,000 pixels down the page. This is one of the most hated bugs on the web.</p>
+
+<p>The correct pattern, which every major feed uses: <strong>buffer, don't insert.</strong> Hold arriving posts in a separate list and show a pill — "3 new posts" — at the top. When the user taps it (or scrolls back to the top themselves), splice them in and scroll to the top. The user chose the disruption, so it isn't one.</p>
+
+<p>(If you ever <em>must</em> insert above the viewport — say, loading older messages in a chat — the technique is scroll anchoring: measure <code>scrollHeight</code> before the insert, and after it, add the difference to <code>scrollTop</code> so the visible content stays put.)</p>
+
+<p><strong>Media handling:</strong> reserve space via aspect ratio, lazy-load offscreen, serve responsive sizes, and for video autoplay muted only when in view and pause when scrolled away — plus respect <code>prefers-reduced-motion</code> and the browser's data-saver signals.</p>
+
+<p><strong>Rendering strategy:</strong> if the feed is public, server-render the first page so crawlers and first paint both get real content, then fetch subsequent pages on the client. If it's behind a login, CSR is fine — but consider SSR anyway for perceived speed on slow phones, since the alternative is a spinner while the bundle downloads.</p>
+
+<p><strong>State model:</strong> posts in a query cache keyed by cursor pages; a separate buffer array for pending real-time posts; per-post optimistic overrides; composer draft in local state (mirrored to storage so a refresh doesn't eat it).</p>
+
+<h3>4. Multi-step form / wizard</h3>
+
+<p><strong>Requirements to surface:</strong> How many steps, and are they fixed or conditional (does answering "business account" add two steps)? Can users navigate backwards? Must progress survive a refresh, or a device change? Is there a final review step? What happens if submission fails halfway?</p>
+
+<p><strong>Core design decision:</strong> model the steps as an explicit <em>state machine</em>, not as a number you increment.</p>
+
+<p>Why does this matter? Because <code>step + 1</code> falls apart the moment steps become conditional. You end up with <code>if (step === 3 &amp;&amp; !isBusiness) setStep(5)</code> scattered across the codebase, and the back button has to reverse that logic, and now nobody can tell you which steps are reachable.</p>
+
+<pre><code>const flow = {
+  account:  { next: (d) =&gt; d.isBusiness ? 'company' : 'address' },
+  company:  { next: () =&gt; 'address', prev: 'account' },
+  address:  { next: () =&gt; 'payment',
+              prev: (d) =&gt; d.isBusiness ? 'company' : 'account' },
+  payment:  { next: () =&gt; 'review',  prev: 'address' },
+  review:   { submit: true,          prev: 'payment' },
+};</code></pre>
+
+<p>Transitions now live in one object you can read, test, and draw. On a whiteboard, drawing this as circles-and-arrows is a strong visual — it takes twenty seconds and it makes the conditional branch obvious.</p>
+
+<p><strong>Validation: per-step and on-submit, and they're different things.</strong> Validate a step when the user tries to leave it — that's the moment they expect feedback, and it stops them getting to step five before learning their email was malformed. But you must <em>also</em> validate everything server-side on final submit, because per-step validation is a UX affordance and never a security boundary. Within a field: validate on blur, not on every keystroke, or you'll show "invalid email" to someone who has typed the letter "j". Once a field has errored, <em>then</em> revalidate as they type, so they can see it turn valid.</p>
+
+<p><strong>Persistence across refresh.</strong> Write the collected answers to <code>sessionStorage</code> on each step transition (per-tab, cleared when they leave — usually what you want). On mount, if there's saved state, restore it. Two cautions worth mentioning unprompted: never persist card numbers or passwords, and version the saved blob so an old shape doesn't crash the new form. If the flow is long and valuable — a mortgage application — persist server-side as a draft instead, so it survives a device change.</p>
+
+<p><strong>Back button behaviour.</strong> Users will use the browser back button whether you like it or not. Push each step as a history entry (<code>/signup/address</code>) so back goes to the previous step rather than out of the flow entirely. This also makes each step linkable and analytics-friendly. Guard direct entry: if someone lands on <code>/signup/payment</code> with no prior data, bounce them to the first incomplete step rather than showing a broken form.</p>
+
+<p><strong>Resuming a partial submission and error recovery.</strong> The hard case: the user hits submit, the network dies, and they don't know whether the order went through. Two mechanisms. Give each submission attempt an <strong>idempotency key</strong> generated on the client, sent with the request — the server uses it to recognise a retry of the same submission rather than creating a second order. And on failure, keep every answer intact, show precisely which step the error belongs to, and offer a retry that doesn't restart the flow. The worst possible outcome is "something went wrong" plus an empty form.</p>
+
+<h3>5. Video player</h3>
+
+<p><strong>Requirements to surface:</strong> Live or on-demand? Do we control the encoding pipeline or are we playing arbitrary files? Do we need DRM? Captions? What's the longest video? Mobile? Is autoplay a requirement?</p>
+
+<p><strong>Core design decision: streaming vs progressive download.</strong></p>
+
+<p><strong>Progressive download</strong> is a single file over HTTP — <code>&lt;video src="movie.mp4"&gt;</code>. The browser downloads from the start and plays as it goes. Dead simple. But you commit to one quality for everyone: too high and phone users buffer forever, too low and desktop users watch mush. And seeking to minute 40 means the server must support byte-range requests, or you wait.</p>
+
+<p><strong>Adaptive bitrate streaming</strong> (HLS or DASH) is the real answer for anything substantial. Here's the mental model, and it's simpler than it sounds:</p>
+
+<figure>
+<svg viewBox="0 0 660 240" role="img" aria-label="Adaptive bitrate streaming: the same video encoded at three qualities, chopped into segments, with the player switching between rungs as bandwidth changes">
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="11.5">
+    <text x="10" y="18" font-size="12.5" font-weight="700" fill="#1c1b22">Same video, encoded at 3 qualities, chopped into ~4s segments</text>
+
+    <text x="10" y="52" fill="#4a4857">1080p</text>
+    <g fill="#efecfd" stroke="#5b45d6">
+      <rect x="62" y="36" width="62" height="24" rx="4"/><rect x="130" y="36" width="62" height="24" rx="4"/>
+      <rect x="198" y="36" width="62" height="24" rx="4"/><rect x="266" y="36" width="62" height="24" rx="4"/>
+      <rect x="334" y="36" width="62" height="24" rx="4"/><rect x="402" y="36" width="62" height="24" rx="4"/>
+      <rect x="470" y="36" width="62" height="24" rx="4"/><rect x="538" y="36" width="62" height="24" rx="4"/>
+    </g>
+    <text x="10" y="92" fill="#4a4857">720p</text>
+    <g fill="#f4f2ef" stroke="#c9c4dd">
+      <rect x="62" y="76" width="62" height="24" rx="4"/><rect x="130" y="76" width="62" height="24" rx="4"/>
+      <rect x="198" y="76" width="62" height="24" rx="4"/><rect x="266" y="76" width="62" height="24" rx="4"/>
+      <rect x="334" y="76" width="62" height="24" rx="4"/><rect x="402" y="76" width="62" height="24" rx="4"/>
+      <rect x="470" y="76" width="62" height="24" rx="4"/><rect x="538" y="76" width="62" height="24" rx="4"/>
+    </g>
+    <text x="10" y="132" fill="#4a4857">360p</text>
+    <g fill="#f4f2ef" stroke="#c9c4dd">
+      <rect x="62" y="116" width="62" height="24" rx="4"/><rect x="130" y="116" width="62" height="24" rx="4"/>
+      <rect x="198" y="116" width="62" height="24" rx="4"/><rect x="266" y="116" width="62" height="24" rx="4"/>
+      <rect x="334" y="116" width="62" height="24" rx="4"/><rect x="402" y="116" width="62" height="24" rx="4"/>
+      <rect x="470" y="116" width="62" height="24" rx="4"/><rect x="538" y="116" width="62" height="24" rx="4"/>
+    </g>
+
+    <path d="M93 60 L161 60 L161 128 L297 128 L297 88 L569 88" fill="none" stroke="#b4531a" stroke-width="2.6"/>
+    <circle cx="93" cy="60" r="4" fill="#b4531a"/>
+    <text x="150" y="168" fill="#b4531a" font-weight="650">↑ what the player actually downloaded</text>
+    <text x="150" y="186" fill="#4a4857">bandwidth dropped → fell to 360p → recovered → settled at 720p</text>
+    <text x="150" y="210" fill="#4a4857">The switch happens between segments, so playback never stops.</text>
+  </g>
+</svg>
+<figcaption>Adaptive bitrate in one picture: a ladder of qualities, and the player picks a rung per segment.</figcaption>
+</figure>
+
+<p>The video is encoded several times at different qualities and each version is cut into short segments. A manifest file lists them all. The player downloads a segment, measures how long it took, and picks the quality for the <em>next</em> segment accordingly. Bandwidth drops on the train? The next segment is 360p and playback continues, blurrier but uninterrupted. That's the whole idea: <strong>degrade quality instead of stopping.</strong></p>
+
+<p><strong>Buffering states.</strong> Be precise here, because "loading" is three different things to a user: <em>initial load</em> (nothing has played yet — show a poster image and a spinner), <em>stalled</em> (playing then ran dry — show a spinner over the frozen frame, and if it lasts more than a few seconds, offer to drop quality), and <em>seeking</em> (user jumped, we're fetching that segment — keep the controls responsive so they can seek again). The relevant media events are <code>waiting</code>, <code>playing</code>, <code>canplay</code>, <code>seeking</code>, <code>seeked</code>, and <code>stalled</code>.</p>
+
+<p><strong>Custom controls and accessibility.</strong> The moment you hide the native controls you inherit every accessibility responsibility the browser was handling. Minimum bar: every control is a real <code>&lt;button&gt;</code> with an accessible label; Space or K toggles play, arrows seek by 5s, up/down adjust volume, F for fullscreen, M for mute; the scrubber is a <code>slider</code> role with <code>aria-valuenow</code> in seconds and is fully operable by keyboard; focus is visible; and controls that auto-hide must reappear on focus, or a keyboard user loses them entirely. That last one is the detail interviewers love, because almost everyone forgets it.</p>
+
+<p><strong>Captions.</strong> Not optional — legally required in many contexts, and used heavily by people who aren't deaf (noisy environments, second-language viewers). WebVTT via <code>&lt;track kind="captions"&gt;</code> is the standard; if you're rendering them yourself for styling control, you must still honour the user's OS caption preferences where exposed. Mention that captions also give you a searchable transcript, which is a product win.</p>
+
+<p><strong>Preloading strategy.</strong> Three levels, and the right choice depends on context: <code>preload="none"</code> (nothing until play — right for a page with twelve videos), <code>preload="metadata"</code> (duration and dimensions only, a few KB — the sensible default, since it lets you render the scrubber correctly), and <code>preload="auto"</code> (start buffering — only for a page whose entire purpose is that one video). Buffering a 4K video for someone who never presses play is real money off their data plan.</p>
+
+<h2 id="fetching">App-level data fetching &amp; caching strategy</h2>
+
+<p>"Where does fetching live?" sounds like a small question. It's actually the question that determines whether your app has a waterfall problem.</p>
+
+<p><strong>Where fetching lives.</strong> Three options, and the tradeoff is the same each time. Fetching <em>inside</em> the component that needs the data is the most colocated and the easiest to reason about, but it guarantees waterfalls: the parent renders, fetches, renders the child, which then starts its own fetch. Two round trips that could have been one. Fetching at the <em>route</em> level (a loader that runs before the route renders) parallelises everything for that screen and eliminates the waterfall, at the cost of the route knowing what its subtree needs. Fetching on the <em>server</em> during SSR is the fastest of all, because the server is close to the API, but it moves work to your infrastructure.</p>
+
+<p>The pragmatic answer: route-level for the critical data a screen needs, component-level for secondary or lazily-revealed data. Say it that way — it shows you know the waterfall exists and that you also know colocation has real value.</p>
+
+<h3>Normalized vs document caches</h3>
+
+<p>Here's the problem. Your feed request returns 20 posts, each with an embedded author object. The sidebar separately fetches the current user. The same user appears in three places. Now the user changes their display name.</p>
+
+<p>A <strong>document cache</strong> (React Query, SWR) stores whole responses keyed by their request: <code>['feed', cursor]</code> → the array as it came. Simple, predictable, trivially debuggable. But that user's name is duplicated in every cached response, so updating it means either invalidating everything or hand-patching each entry.</p>
+
+<p>A <strong>normalized cache</strong> (Apollo, RTK Query with entity adapters) splits responses into entities keyed by type and id — <code>User:9</code>, <code>Post:812</code> — and stores references. Update <code>User:9</code> once and every view of that user updates. Beautiful when your data is a graph with heavy reuse. The cost is real, though: you need stable ids on everything, cache updates after mutations get fiddly (when you create a post, which lists should it appear in? the cache can't know), and debugging a normalized cache is meaningfully harder.</p>
+
+<div class="say">
+  <span class="label">Say this out loud</span>
+  <p>"I'd start with a document cache keyed by query, because it's simpler and covers most cases. I'd reach for normalization when the same entity shows up in many places and mutations need to update all of them consistently — a social graph or a chat app. It's not free: you need stable ids everywhere, and cache updates after mutations become something you design rather than something you get."</p>
+</div>
+
+<h3>Prefetching on hover or route intent</h3>
+
+<p>Users telegraph their intentions. The gap between hovering a link and clicking it is typically 100–300ms — enough time to have the data in hand by the time the page renders. Trigger on <code>mouseenter</code> (or <code>touchstart</code> on mobile, or when a link scrolls into the viewport for high-confidence routes), fetch into the cache, and discard if unused. It costs you occasional wasted requests, so don't do it for expensive queries or on metered connections — and modern browsers expose enough (<code>navigator.connection</code>) to back off on slow networks.</p>
+
+<h3>Cache invalidation policy</h3>
+
+<p>Have a default and know the exceptions. The default that works remarkably well: <strong>stale-while-revalidate</strong>. Show cached data immediately (fast, feels instant), fire a background refetch, update if it changed. The user sees something now and something correct a moment later.</p>
+
+<p>Then the triggers for revalidation: on window refocus (they came back from another tab — things may have changed), on reconnect, after a related mutation (liking a post invalidates that post), and on a time-based staleness threshold you tune per data type. A user's profile can be stale for five minutes; a stock price cannot be stale for five seconds.</p>
+
+<p>And the exception worth naming: anything where showing stale data is actively harmful — account balances, live auction prices, seat availability — should skip the cache-first read and show a loading state instead. "Stale-while-revalidate by default, cache-bypass for correctness-critical reads" is a crisp thing to say.</p>
+
+<h3>Request deduplication</h3>
+
+<p>Three components mount at once, all asking for the current user. Without dedup that's three identical requests. With it, the first creates an in-flight promise keyed by the request; the others attach to it. Ten lines of code, and it's the reason query libraries let you call <code>useQuery(['user'])</code> anywhere without thinking. Mentioning it shows you understand what those libraries are actually doing for you.</p>
+
+<h2 id="realtime">Real-time: polling vs WebSockets vs SSE</h2>
+
+<p>Before comparing, let's make sure the underlying picture is solid, because the comparison only makes sense if you know why this is hard at all.</p>
+
+<p>HTTP is client-initiated. The browser asks, the server answers, the exchange ends. There is no mechanism in that model for the server to say "hey, something happened" — a shop that only speaks when spoken to. So every real-time approach is a workaround for that one limitation, and they differ in <em>how</em> they work around it.</p>
+
+<figure>
+<svg viewBox="0 0 660 330" role="img" aria-label="Comparison of short polling, long polling, server-sent events, and WebSockets">
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="11.5">
+    <text x="10" y="16" font-weight="700" fill="#1c1b22" font-size="12.5">Short polling — "anything yet?" every 5s</text>
+    <line x1="100" y1="24" x2="100" y2="74" stroke="#c9c4dd"/><line x1="600" y1="24" x2="600" y2="74" stroke="#c9c4dd"/>
+    <text x="60" y="52" text-anchor="end" fill="#4a4857">client</text><text x="612" y="52" fill="#4a4857">server</text>
+    <g stroke="#8a86a0" stroke-width="1.3">
+      <line x1="100" y1="34" x2="596" y2="34"/><line x1="596" y1="44" x2="104" y2="44"/>
+      <line x1="100" y1="56" x2="596" y2="56"/><line x1="596" y1="66" x2="104" y2="66"/>
+    </g>
+    <text x="300" y="31" fill="#4a4857">GET /messages</text>
+    <text x="300" y="54" fill="#a52036">204 nothing (×99 out of 100) 😐</text>
+
+    <text x="10" y="106" font-weight="700" fill="#1c1b22" font-size="12.5">Long polling — request held open until there's news</text>
+    <line x1="100" y1="114" x2="100" y2="150" stroke="#c9c4dd"/><line x1="600" y1="114" x2="600" y2="150" stroke="#c9c4dd"/>
+    <line x1="100" y1="126" x2="596" y2="126" stroke="#8a86a0" stroke-width="1.3"/>
+    <text x="300" y="123" fill="#4a4857">GET /messages?wait=30s</text>
+    <line x1="596" y1="144" x2="104" y2="144" stroke="#17724a" stroke-width="1.6"/>
+    <text x="300" y="141" fill="#17724a">…held… then 200 [msg] → client immediately re-asks</text>
+
+    <text x="10" y="186" font-weight="700" fill="#1c1b22" font-size="12.5">SSE — one long-lived HTTP response, server pushes</text>
+    <line x1="100" y1="194" x2="100" y2="242" stroke="#c9c4dd"/><line x1="600" y1="194" x2="600" y2="242" stroke="#c9c4dd"/>
+    <line x1="100" y1="206" x2="596" y2="206" stroke="#8a86a0" stroke-width="1.3"/>
+    <text x="300" y="203" fill="#4a4857">GET /stream (Accept: text/event-stream)</text>
+    <g stroke="#17724a" stroke-width="1.6">
+      <line x1="596" y1="222" x2="104" y2="222"/><line x1="596" y1="236" x2="104" y2="236"/>
+    </g>
+    <text x="300" y="219" fill="#17724a">data: {...}</text>
+    <text x="300" y="233" fill="#17724a">data: {...}   ← one direction only</text>
+
+    <text x="10" y="274" font-weight="700" fill="#1c1b22" font-size="12.5">WebSocket — upgraded connection, both directions</text>
+    <line x1="100" y1="282" x2="100" y2="326" stroke="#c9c4dd"/><line x1="600" y1="282" x2="600" y2="326" stroke="#c9c4dd"/>
+    <line x1="100" y1="292" x2="596" y2="292" stroke="#8a86a0" stroke-width="1.3"/>
+    <text x="300" y="289" fill="#4a4857">HTTP Upgrade → 101 Switching Protocols</text>
+    <g stroke="#5b45d6" stroke-width="1.6">
+      <line x1="596" y1="308" x2="104" y2="308"/><line x1="100" y1="320" x2="596" y2="320"/>
+    </g>
+    <text x="300" y="305" fill="#5b45d6">← server frame</text>
+    <text x="300" y="318" fill="#5b45d6">client frame →</text>
+  </g>
+</svg>
+<figcaption>Four ways to defeat "the server can't speak first."</figcaption>
+</figure>
+
+<h3>The comparison, dimension by dimension</h3>
+
+<table>
+<thead><tr><th></th><th>Polling</th><th>SSE</th><th>WebSocket</th></tr></thead>
+<tbody>
+<tr><td><strong>Direction</strong></td><td>Client asks only</td><td>Server → client only</td><td>Both ways</td></tr>
+<tr><td><strong>Protocol</strong></td><td>Plain HTTP</td><td>Plain HTTP</td><td>Upgraded, separate protocol</td></tr>
+<tr><td><strong>Connection cost</strong></td><td>New request each time; headers &amp; TLS overhead repeatedly</td><td>One open connection per client</td><td>One open connection per client, plus server-side state</td></tr>
+<tr><td><strong>Proxies / firewalls</strong></td><td>Works everywhere, always</td><td>Usually fine; some proxies buffer and break streaming</td><td>Most friction — old proxies, some corporate networks block the upgrade</td></tr>
+<tr><td><strong>Reconnection</strong></td><td>Nothing to reconnect</td><td>Automatic in the browser, resumes via <code>Last-Event-ID</code></td><td>You write it: detect drop, backoff, re-auth, resubscribe</td></tr>
+<tr><td><strong>Ordering / delivery</strong></td><td>Ordered per response; you may miss things between polls</td><td>Ordered; ids allow gap recovery on reconnect</td><td>Ordered per connection, but nothing survives a drop unless you build it</td></tr>
+<tr><td><strong>Scaling</strong></td><td>Easiest — stateless, any load balancer</td><td>Open connections, but HTTP infra handles it</td><td>Sticky sessions or a pub/sub layer to route messages to the right server</td></tr>
+<tr><td><strong>Latency</strong></td><td>Up to the poll interval</td><td>Near-instant</td><td>Near-instant, lowest overhead per message</td></tr>
+</tbody>
+</table>
+
+<p>A few of these deserve unpacking, because they're where follow-ups live.</p>
+
+<p><strong>Reconnection and backoff.</strong> SSE gives you this free — the browser reconnects automatically and sends the last event id it saw, so the server can replay what you missed. With WebSockets you own it entirely, and the naive version is dangerous: if your server restarts and 50,000 clients all reconnect immediately, you've DDoS'd yourself. The right pattern is <strong>exponential backoff with jitter</strong> — wait 1s, then 2, 4, 8, capped at ~30s, plus a random offset so clients don't synchronise into a thundering herd.</p>
+
+<p><strong>Delivery guarantees.</strong> None of these give you exactly-once out of the box. WebSocket messages are ordered within a connection, but if the connection drops you have no idea what you missed. Real systems add sequence numbers so the client can detect a gap and request a resync, and make message handling <em>idempotent</em> so a replayed message doesn't double-post. Saying "I'd design the client to tolerate duplicates and detect gaps" is a strong, senior-sounding answer.</p>
+
+<p><strong>Scaling.</strong> Stateless polling scales with any load balancer. Persistent connections mean a specific user is attached to a specific server process — so when another user sends them a message, the server handling <em>that</em> request has to find where the recipient is connected. That's why real-time systems need a pub/sub layer (Redis, a message bus) behind the WebSocket tier. You don't need to design that in a frontend interview, but knowing <em>why</em> it exists is a differentiator.</p>
+
+<h3>The decision rule</h3>
+
+<div class="say">
+  <span class="label">Model answer — choosing a transport</span>
+  <p>"I'd pick based on directionality and frequency. If updates are infrequent and a few seconds of staleness is fine — a dashboard refreshing every thirty seconds — I'd just poll, or long-poll. It works through every proxy, there's no connection state, and it's the least operational burden. If it's server-to-client only — notifications, live scores, a progress stream — SSE is the sweet spot: it's plain HTTP, the browser handles reconnection with event ids so you can resume after a drop, and you don't take on WebSocket infrastructure. I'd only reach for WebSockets when I genuinely need low-latency bidirectional traffic: chat, collaborative editing, multiplayer. They're the most capable and the most expensive — you own reconnection, backoff, auth on reconnect, and you need sticky sessions or a pub/sub layer to route messages. Whatever I pick, I'd design the client so real-time is an enhancement over a solid fetch-based baseline, and fall back to polling if the connection can't be established."</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> it starts from the requirement rather than the technology, it correctly identifies SSE as underused (most candidates only know polling and WebSockets, so naming SSE for the right reason is instantly differentiating), and the fallback sentence shows you think about the 2% of users on a network that blocks your fancy transport.</p>
+
+<div class="aside wait">
+  <span class="label">Wait — isn't SSE limited to six connections per domain?</span>
+  <p>Over HTTP/1.1, yes — browsers cap concurrent connections per origin at around six, and an open SSE stream holds one. Six tabs and you're stuck. Over HTTP/2 or HTTP/3 that limit essentially disappears because streams are multiplexed over one connection. Since HTTP/2 is near-universal now, this is mostly a historical objection — but knowing it exists, and knowing why it stopped mattering, is exactly the kind of thing that makes an interviewer sit up.</p>
+</div>
+
+<h2 id="states">Error and loading states across an app</h2>
+
+<p>Here's a thing about UI work that took me embarrassingly long to internalise: the happy path is maybe 30% of the code. The rest is everything that can go slightly wrong. Candidates who enumerate states unprompted read as people who've shipped things to real users.</p>
+
+<h3>The taxonomy</h3>
+
+<p>"Loading" is not one state, and treating it as one is how you get UIs that show a spinner forever or an empty page that looks broken. Five distinct conditions, each needing a different UI:</p>
+
+<table>
+<thead><tr><th>State</th><th>What happened</th><th>What the UI must do</th></tr></thead>
+<tbody>
+<tr><td><strong>Loading</strong></td><td>Request in flight, nothing to show yet</td><td>Skeleton or spinner. Never a blank screen.</td></tr>
+<tr><td><strong>Empty</strong></td><td>Request succeeded, zero results</td><td>Explain <em>why</em> it's empty and what to do. "No orders yet — browse the shop" vs "No results for 'zzz' — try a different search". These are different empties!</td></tr>
+<tr><td><strong>Partial</strong></td><td>Some data arrived, some failed</td><td>Show what you have; scope the error to the broken region. Don't blow up the page.</td></tr>
+<tr><td><strong>Error</strong></td><td>Request failed</td><td>Say what failed, whether it's retryable, and offer the retry.</td></tr>
+<tr><td><strong>Offline</strong></td><td>No network at all</td><td>A persistent banner, cached content if you have it, queued writes if you support them. Distinguish "you're offline" from "we're broken" — the user's next action is completely different.</td></tr>
+</tbody>
+</table>
+
+<p>That distinction in the last row matters more than it looks. If the user thinks your app is broken, they leave. If they know their train went into a tunnel, they wait. Same failure, opposite outcomes, and the only difference is what you told them.</p>
+
+<h3>Skeletons vs spinners</h3>
+
+<p>Not a style preference — there's an actual rule.</p>
+
+<p><strong>Use a skeleton</strong> when you know the shape of what's coming and it's a substantial chunk of layout: a list of cards, an article, a table. The skeleton communicates "content is arriving, and here's roughly what it'll look like," which makes the wait feel shorter and — importantly — reserves the space, so nothing jumps when the real content lands.</p>
+
+<p><strong>Use a spinner</strong> when you don't know the shape, or the area is small, or it's an action rather than a page: a button submitting, a small inline widget. A skeleton for an unknown shape is a lie, and lying skeletons cause layout shift when the truth arrives.</p>
+
+<p><strong>Use nothing</strong> if it'll resolve in under ~200ms. A loading indicator that appears and vanishes in 100ms reads as a flicker, and flickers feel <em>slower</em> than a brief pause. Delay showing the indicator, and once shown, keep it up for a minimum duration so it can't flash.</p>
+
+<h3>Error boundaries and the retry story</h3>
+
+<p>The default failure mode of a component-based UI is brutal: one component throws during render, and the whole tree unmounts. The user gets a white page. An <strong>error boundary</strong> is a component that catches errors from its subtree and renders a fallback instead — a circuit breaker, tripping to isolate the fault rather than letting it take out the house.</p>
+
+<p>The design question isn't "should we use them" — it's <em>where to place them</em>, and that's a genuine judgement call worth discussing:</p>
+
+<ul>
+  <li><strong>One at the app root</strong> — catches everything, but the fallback is a full-page error. Necessary as a last resort, insufficient alone.</li>
+  <li><strong>One per route</strong> — the chrome (nav, header) survives, so the user can navigate away instead of reaching for the back button.</li>
+  <li><strong>One around each independent widget</strong> — a broken "recommended for you" carousel doesn't take down the checkout page next to it. This is where the real value is.</li>
+</ul>
+
+<p>Two important caveats to mention, because they're commonly missed: error boundaries only catch errors during rendering, not in event handlers or async callbacks — those need try/catch or the query layer's error handling. And a fallback with no way forward is just a prettier crash. Every boundary needs a retry that actually resets state and re-attempts, not a "Reload the page" button that discards the user's work.</p>
+
+<h3>Where to put the error message</h3>
+
+<p>Placement should follow scope, and the rule is simple: <strong>put the error as close as possible to the thing that failed.</strong></p>
+
+<ul>
+  <li><strong>Inline</strong>, next to a field or a widget: for anything the user can fix right there. Validation errors, a failed inline edit. Always inline — never a toast, because a toast about a form field makes the user hunt for which field.</li>
+  <li><strong>Toast</strong>: for transient, non-blocking failures where the user's context should be preserved. "Couldn't save your like." But be careful — toasts auto-dismiss, so anything the user must act on shouldn't live only in one, and they're often missed by screen readers unless you use a live region.</li>
+  <li><strong>Full-page</strong>: only when nothing on the page is usable. The route data failed entirely, or auth expired. Anything less than total failure deserves something less than a full-page error.</li>
+</ul>
+
+<h3>Degrade gracefully rather than failing wholesale</h3>
+
+<p>This is the principle that ties the section together, and it's a strong note to end an interview answer on.</p>
+
+<p>Imagine a product page that loads the product, reviews, recommendations, and inventory. The recommendations service times out. There are two possible designs: the page fails, or the page renders with everything except a recommendations block — which either disappears or shows a small "couldn't load" with a retry.</p>
+
+<p>The second is obviously better, but it doesn't happen by accident. It requires deliberate choices: independent queries rather than one blocking waterfall, a boundary around each region, and a decision in advance about which data is <em>essential</em> (no product? show an error) and which is <em>enhancement</em> (no reviews? carry on). Making that essential-vs-enhancement call explicit is exactly the kind of design thinking the interview is looking for.</p>
+
+<h2 id="ds">Design systems</h2>
+
+<p>The question behind every design system question: how do fifty engineers ship a product that looks like one product?</p>
+
+<p><strong>Tokens</strong> are the foundation, and they're simpler than the jargon suggests: named design decisions. Not <code>#5b45d6</code> scattered across 200 files, but <code>--color-primary</code> defined once. The layering that makes tokens actually work is worth knowing, because it's the difference between a system that can be rebranded and one that can't:</p>
+
+<pre><code>/* 1. Primitive — raw values, no meaning */
+--purple-500: #5b45d6;
+--space-4: 16px;
+
+/* 2. Semantic — meaning, referencing primitives */
+--color-action-primary: var(--purple-500);
+--color-text-danger:    var(--red-600);
+
+/* 3. Component — specific, referencing semantic */
+--button-primary-bg: var(--color-action-primary);</code></pre>
+
+<p>Why bother with three levels? Because components reference the semantic layer, which means rebranding or adding a dark theme is a swap at layer 1 or 2 — nothing in the components changes. If components referenced <code>--purple-500</code> directly, dark mode would be a find-and-replace across the codebase, and "purple" would end up meaning "the accent colour, which is now teal."</p>
+
+<p><strong>Primitive vs composite components.</strong> Primitives are the unopinionated building blocks — <code>Button</code>, <code>Input</code>, <code>Stack</code>, <code>Text</code>. Composites assemble them into product patterns — <code>SearchBar</code>, <code>ConfirmDialog</code>, <code>DataTable</code>. The useful rule: primitives belong to the design system and change rarely; composites are where product opinion lives and change often. Mixing them into one flat library is how design systems get bloated with things only one team uses.</p>
+
+<p><strong>Theming</strong> falls out of tokens if you did them right: swap the semantic layer's values under a selector or media query and everything follows. The gotcha to mention is that theming isn't only colour — dark mode often needs different shadow treatments (shadows barely read on dark backgrounds; elevation is usually communicated with lighter surfaces instead) and sometimes different image assets.</p>
+
+<p><strong>Versioning and adoption</strong> is where design systems actually die, and it's the part interviewers care about most because it's an engineering-org problem. Semantic versioning, so consumers know a major means work. Changelogs written for consumers, not committers. Codemods for mechanical migrations — if you renamed a prop, ship the script that renames it, because "we published a migration guide" translates to "nobody migrated." And a deprecation window with runtime warnings before removal. Big-bang migrations fail; incremental adoption where old and new coexist is the only thing that works at scale.</p>
+
+<p><strong>Documentation</strong> has to include the "when not to use this" section. A component page showing props is a reference; a page that also says "use <code>Banner</code> for persistent messages, <code>Toast</code> for transient ones, and neither for form validation" is what actually produces consistency. Live editable examples beat static screenshots, because the first thing anyone does is try to change something.</p>
+
+<p><strong>The governance problem.</strong> This is the real question hiding inside "design systems," and having a view marks you as senior. Who owns it? A dedicated team is fastest at quality but becomes a bottleneck — every product team ends up blocked on a ticket. A pure federated model has no bottleneck but drifts into inconsistency. The model that works in practice is a small core team owning architecture, quality bar, and review, with contributions from product teams following a documented path: propose, prototype in the product first, then promote to the system once a second team needs it. That "used by two teams before it's promoted" rule is a great concrete thing to offer — it stops the system filling with one-off components.</p>
+
+<h2 id="mfe">Micro-frontends</h2>
+
+<p>Let's be honest about what these are for, because the honest answer is the impressive one.</p>
+
+<p><strong>The problem they solve is organisational, not technical.</strong> One repo, one build, one deploy — and forty engineers across six teams all queuing behind it. One team's failing test blocks everyone's release. A team wants to upgrade React; now that's a company-wide project. Micro-frontends split the app so each team owns, builds, and deploys a slice independently.</p>
+
+<p>Say that first. Candidates who present micro-frontends as a technical improvement have usually not worked in an org big enough to need them.</p>
+
+<h3>The integration approaches</h3>
+
+<p><strong>Build-time</strong> — each team publishes an npm package; the shell installs them. Simple, and you get one optimised bundle. But it isn't really independent deployment: to ship a change, the shell must rebuild and redeploy. Good stepping stone, doesn't solve the actual problem.</p>
+
+<p><strong>iframes</strong> — genuinely strong isolation: separate CSS, separate JS globals, a crash in one can't take out another. That isolation is also the problem. Communication is limited to <code>postMessage</code>, you can't share auth state easily, modals can't escape their frame, routing and deep-linking become painful, sizing is awkward, and accessibility across frame boundaries is rough. Occasionally right for embedding genuinely third-party content; rarely right for your own teams' code.</p>
+
+<p><strong>Module federation</strong> — the modern default. Apps are built separately but load each other's modules at runtime over the network, and can share dependencies so React isn't downloaded three times. Real independent deploys with real code sharing. The cost is coupling on shared dependency versions: if two apps need incompatible React versions, you either duplicate (bundle bloat) or coordinate upgrades (the thing you were trying to avoid).</p>
+
+<p><strong>Web components</strong> — each app exports a custom element with the Shadow DOM providing style encapsulation. Framework-agnostic, which is genuinely useful when teams differ. But the boundary is DOM-shaped, so passing rich data means properties and custom events rather than props, SSR is harder, and Shadow DOM styling can fight your design system's global tokens.</p>
+
+<h3>The costs — say these unprompted</h3>
+
+<p>This is the part that separates "read a blog post" from "lived with it."</p>
+
+<ul>
+  <li><strong>Duplicated dependencies.</strong> Three apps, three copies of React and your date library. Users pay in download and parse time. Sharing dependencies claws it back but reintroduces version coupling — which is the exact autonomy you were buying.</li>
+  <li><strong>Inconsistent UX.</strong> Independent teams ship independent judgement. Three subtly different date pickers, two spinner styles, inconsistent error messaging. A shared design system is the mitigation, and now that system's version is a coordination point too.</li>
+  <li><strong>Cross-app state and routing.</strong> Who owns the URL? What happens when app A needs to know the user logged out in app B? You end up building an event bus or shared store — which is a global dependency across your supposedly independent apps.</li>
+  <li><strong>Debugging.</strong> A bug spanning two apps means two repos, two source maps, two deploy timelines, and no single place to reproduce it. Errors need to carry which app they came from, and it's slower even when you do that well.</li>
+  <li><strong>Performance ceiling.</strong> You can't tree-shake or optimise across boundaries you resolve at runtime, and you get extra network round trips discovering remote modules.</li>
+</ul>
+
+<div class="say">
+  <span class="label">Model answer — micro-frontends</span>
+  <p>"Micro-frontends solve an organisational problem: multiple teams blocked on a shared build and deploy pipeline. If that's not the pain you have, they're a bad trade — you take on real costs for autonomy you don't need. If you do have it, module federation is where I'd start, because it gives genuinely independent deploys while letting you share dependencies. The costs I'd plan for from day one are duplicated dependencies inflating the bundle, UX drift across teams, and the fact that anything genuinely cross-cutting — auth, routing, the design system — becomes a coordination point you have to govern deliberately. I'd want a shared design system and a documented contract for cross-app communication before splitting anything."</p>
+</div>
+<p class="why-lands"><strong>Why this lands:</strong> the opening sentence reframes it correctly, and "if that's not the pain you have, they're a bad trade" is the kind of restraint that makes interviewers trust your judgement on architecture decisions generally.</p>
+
+<h2 id="collab">Collaborative / real-time editors</h2>
+
+<p>Two people edit the same document at the same time. Everything else about this problem — transport, presence, UI — is comparatively easy. The hard part is: <strong>what does the document look like afterwards, and do both people see the same thing?</strong></p>
+
+<p>Let's make the difficulty concrete. The document is <code>"cat"</code>. Alice inserts <code>"s"</code> at position 3 → <code>"cats"</code>. Simultaneously, Bob inserts <code>"s"</code> at position 0 → <code>"scat"</code>. Each sends their operation to the other.</p>
+
+<p>Bob applies Alice's "insert s at 3" to his document <code>"scat"</code> → <code>"scats"</code>. Alice applies Bob's "insert s at 0" to hers <code>"cats"</code> → <code>"scats"</code>. Lucky. Now try it where Alice's edit was at position 1: Bob's document has shifted by one character, so applying "insert at 1" lands in the wrong place, and the two documents permanently diverge. <strong>Positions are only meaningful relative to a specific version of the document</strong>, and that's the entire problem.</p>
+
+<h3>OT — Operational Transformation</h3>
+
+<p>The idea: before applying a remote operation, <em>transform</em> it against the operations you've applied that the sender hadn't seen. Bob's insert at 0 shifted everything right by one, so Alice's "insert at 1" becomes "insert at 2" when applied on Bob's side.</p>
+
+<p>OT is what Google Docs was built on. It's memory-efficient — operations are small — and it produces intuitive results for text. Its costs: the transformation functions are genuinely hard to get right (there's a well-known history of published OT algorithms that turned out to be subtly wrong), and most practical implementations need a <strong>central server</strong> to impose a total ordering on operations. That server is a single point of failure and it makes true peer-to-peer or offline-first hard.</p>
+
+<h3>CRDT — Conflict-free Replicated Data Type</h3>
+
+<p>The idea: design the data structure so that concurrent operations <em>can't</em> conflict, mathematically. Instead of "insert at index 3," each character gets a unique, globally-ordered identifier — think of it as a fractional position between its neighbours, plus a site id to break ties. Then merging is just union-then-sort, and it doesn't matter what order updates arrive in or whether they arrive twice. Everyone converges.</p>
+
+<p>The analogy: OT is two people editing a shared document by sending each other instructions like "insert on line 4," which requires knowing exactly which version the other person is looking at. CRDT is giving every character its own permanent seat number in a very finely-divided seating chart — you can add rows between rows forever, and everyone sorting by seat number gets the same room. (Where it breaks down: seat numbers grow. Real CRDTs need care to stop identifiers and tombstones bloating over a long editing history.)</p>
+
+<p>The upside is huge: no central server required, works offline naturally, order-independent, idempotent. The cost is metadata — every character carries an id, and deleted characters usually can't be truly removed (they become <em>tombstones</em>, so late-arriving operations referencing them still work). Documents can carry significantly more data than their visible text.</p>
+
+<table>
+<thead><tr><th></th><th>OT</th><th>CRDT</th></tr></thead>
+<tbody>
+<tr><td>Needs a central server</td><td>Usually yes</td><td>No</td></tr>
+<tr><td>Memory overhead</td><td>Low</td><td>Higher (ids + tombstones)</td></tr>
+<tr><td>Offline editing</td><td>Awkward</td><td>Natural</td></tr>
+<tr><td>Implementation difficulty</td><td>Hard to get right yourself</td><td>Hard theory, but good libraries exist</td></tr>
+<tr><td>Where you see it</td><td>Google Docs (historically)</td><td>Figma, Linear, most newer tools</td></tr>
+</tbody>
+</table>
+
+<p>In an interview, the winning answer is: "I'd use an existing CRDT library rather than implementing either — this is a category where rolling your own is how you end up with documents that silently diverge." That's not a cop-out; it's correct engineering judgement, and interviewers read it that way.</p>
+
+<h3>Presence and cursors</h3>
+
+<p>Different problem, much easier, and worth separating explicitly — because presence data is <em>ephemeral</em> and doesn't belong in the document. Cursor positions, selections, who's viewing, who's typing: broadcast over the same connection but stored separately, and thrown away when someone disconnects. Throttle cursor updates to ~20–30 per second (nobody perceives more), interpolate between them so remote cursors glide instead of teleporting, and — the detail people forget — a remote cursor's position must be transformed alongside document edits, or someone typing above you makes your cursor appear in the wrong place.</p>
+
+<h3>Offline edits and reconciliation</h3>
+
+<p>With a CRDT this is nearly free, which is a large part of why they've won: edit offline, accumulate operations locally, and on reconnect exchange and merge — convergence is guaranteed by the data structure. What's <em>not</em> free is the human layer. If someone edited a paragraph offline for two hours while three colleagues rewrote it, the merge is mathematically valid and semantically nonsense. Real products handle this with awareness rather than algorithms: show that you're offline, indicate how long it's been, and for long divergences consider forking to a draft rather than silently merging.</p>
+
+<h3>Undo semantics</h3>
+
+<p>My favourite part of this problem, because the naive answer is so obviously wrong once you see it.</p>
+
+<p>Ctrl+Z in a shared document should undo <em>your</em> last change, not whatever happened most recently in the document. If Bob typed a paragraph after your edit and you hit undo, deleting Bob's paragraph would be outrageous. So undo has to be <strong>per-user</strong>: each user's stack contains only their own operations.</p>
+
+<p>Which raises the genuinely hard case: you insert a word, Bob deletes the sentence containing it, you hit undo. What does that mean? There's no universally correct answer — most systems undo your operation in the current document context, which may mean it becomes a no-op or reappears in a strange place. Being able to <em>articulate that there's no clean answer</em> is worth more than confidently asserting one, because it shows you've actually thought about the semantics rather than the mechanics.</p>
+
+<h2 id="browsers">Cross-browser and device considerations at scale</h2>
+
+<p><strong>The support matrix is a product decision, not an engineering one.</strong> Lead with that. "Which browsers do we support?" is answered with analytics and revenue, not preferences: if 0.4% of visitors use a browser but they're 6% of revenue (older users, corporate machines), you support it. If 3% use it and they never convert, maybe you don't. Frame it as a cost — every additional browser is testing time and code — and let the business weigh it. That framing alone distinguishes you.</p>
+
+<p>Then make the tiers explicit, because "support" isn't binary:</p>
+
+<ul>
+  <li><strong>Tier A:</strong> fully tested, pixel-perfect, blocks a release if broken.</li>
+  <li><strong>Tier B:</strong> functional, may look slightly different, fixed on report.</li>
+  <li><strong>Tier C:</strong> content is accessible; enhancements may not work. Not tested.</li>
+</ul>
+
+<p><strong>Progressive enhancement</strong> is the technique that makes tiers cheap. Build the core experience with the most widely-supported technology, then layer enhancements that fail silently. A form that submits over plain HTTP still works if your JS fails to load; a fancy client-side validation layer on top makes it nicer. The mindset shift: enhancements are optional garnish, and their absence must never break the meal.</p>
+
+<p><strong>Feature detection, never UA sniffing.</strong> This one has a memorable justification: ask what the browser can <em>do</em>, not what it <em>is</em>. User-agent strings are a notorious swamp of lies — every browser claims to be several other browsers for historical compatibility reasons — and even if you parse it correctly today, a browser that gains the feature next month still fails your check.</p>
+
+<div class="codehead bad-head">❌ Sniffing</div>
+<pre><code>if (navigator.userAgent.includes('Safari')) { useFallback(); }
+// breaks: Chrome's UA contains "Safari" 🙃 and Safari gains features</code></pre>
+
+<div class="codehead good-head">✅ Detecting</div>
+<pre><code>if ('IntersectionObserver' in window) { useObserver(); }
+else { useScrollListener(); }
+
+@supports (display: grid) { .layout { display: grid; } }</code></pre>
+
+<p><strong>Polyfill strategy and differential serving.</strong> The tension: polyfills make old browsers work, and shipping them to everyone punishes the 97% on modern browsers with bytes they'll never execute. Options, in increasing sophistication: bundle everything (simple, wasteful); load polyfills conditionally at runtime after a feature check (costs a round trip for those who need it, free for everyone else); or <strong>differential serving</strong> — build two bundles and serve the modern one to modern browsers via <code>&lt;script type="module"&gt;</code> with a <code>nomodule</code> fallback, since any browser understanding modules supports a large baseline of modern JS. Two builds, but the majority gets a meaningfully smaller, faster bundle.</p>
+
+<p><strong>Real-device testing.</strong> Emulators lie in specific, predictable ways. They don't reproduce real touch behaviour, the on-screen keyboard covering your input, actual scroll momentum and rubber-banding, thermal throttling on a three-year-old Android, real network variability, or Safari's genuinely distinct rendering and media quirks. Keep a small physical device lab — one old low-end Android, one mid iPhone, one recent flagship — supplement with a cloud device farm in CI for breadth, and (the underrated one) run a proportion of your dev testing on a throttled connection and a CPU-throttled profile, because that's the experience of a large fraction of your users.</p>
+
+<h2 id="comms">How to actually talk during the interview</h2>
+
+<p>Everything above is the piece. This is the recital, and it's genuinely where interviews are won and lost — I've seen candidates with better technical instincts score lower than candidates who communicated well.</p>
+
+<p><strong>Think out loud, continuously.</strong> The interviewer cannot grade silence. If you pause to think, narrate the pause: "Give me a second, I'm weighing whether to put the cursor in the URL or in local state." Now the silence is data. Half-formed thoughts are fine and often better than polished ones — "my instinct is X, but I'm worried about Y" is a rich signal.</p>
+
+<p><strong>State assumptions explicitly and visibly.</strong> Every assumption goes on the board. "Assuming ~10k users, mobile-first, no offline requirement." Written assumptions are cheap to correct; unwritten ones become an argument at minute forty about what you meant.</p>
+
+<p><strong>Ask before diving deep.</strong> "I could go deep on the caching layer here — is that interesting, or would you rather I cover the accessibility side?" You cannot lose by asking. Either they steer you somewhere they're scoring, or they say "you pick," and now your choice is explicitly sanctioned.</p>
+
+<p><strong>Present tradeoffs as "X buys us A at the cost of B."</strong> This one sentence pattern is the highest-leverage habit in this entire guide. Not "we should use WebSockets" — instead: <em>"WebSockets buy us sub-second bidirectional updates at the cost of connection state on the server, reconnection logic we own, and trouble with some corporate proxies. Given this is a chat product, I think that's worth it — but if we only needed server-to-client, I'd take SSE instead."</em></p>
+
+<p>Notice the structure: the choice, the benefit, the cost, the reason it's justified <em>here</em>, and the condition under which you'd choose differently. That last clause is the senior signal, because it proves you're reasoning from the requirements rather than from habit.</p>
+
+<p><strong>Write things down.</strong> The board is a shared memory. Requirements in one corner. The architecture diagram in the middle. A running list of "things to come back to" in another corner — when you defer something ("I'll assume no offline for now"), write it in that list so you can return to it or at least acknowledge it at the end. That list is also your safety net: if you go blank at minute 35, glance at it and pick something.</p>
+
+<p><strong>Handle the "how would this change if…" pivot gracefully.</strong> This <em>will</em> happen. "What if we now need this to work offline?" "What if it's 10 million users instead of 10 thousand?" It is not a gotcha — it's the most efficient way to test whether you understand your own design's failure points, and it's usually a sign the interview is going well.</p>
+
+<p>The wrong response is defensiveness, or scrapping everything and starting over. The right response has three moves: <strong>identify what specifically breaks</strong> ("with 10 million users the per-user feed query becomes the bottleneck, and CDN caching stops working because <code>likedByMe</code> is per-viewer"), <strong>propose the smallest change that fixes it</strong> ("I'd split the response into a cacheable post payload and a small per-user overlay"), and <strong>name the new tradeoff</strong> ("that's two requests instead of one, but the big one is now CDN-cacheable"). Adapting a design beats defending it every single time.</p>
+
+<div class="aside trap">
+  <span class="label">Trap</span>
+  <p>Treating the interviewer as an examiner rather than a colleague. The best-performing candidates make it feel like a design discussion between two engineers — they say "what do you think?", they push back gently when they disagree ("I'd actually lean the other way, because…"), and they take suggestions on board visibly. If you disagree with something the interviewer says, <em>say so with reasoning</em>. Silent capitulation reads worse than a well-argued disagreement — they're partly checking whether you'd be pleasant and honest to work with.</p>
+</div>
+
+<p>And the small thing that matters more than it should: when you're stuck, say you're stuck. "I haven't built this specific thing before, so let me reason from first principles" is a completely acceptable sentence, and it's massively better than bluffing. Interviewers detect bluffing very reliably, and it's one of the few things that will sink an otherwise good interview outright.</p>
+
+<h2 id="cheat">Interview cheat sheet</h2>
+
+<p class="cheat">The morning-of version. One line each.</p>
+
+<div class="cheat">
+<table>
+<thead><tr><th>Concept</th><th>The crisp answer</th></tr></thead>
+<tbody>
+<tr><td><strong>RADIO</strong></td><td>Requirements → Architecture → Data model → Interface → Optimisations. Announce the plan in minute one.</td></tr>
+<tr><td><strong>Time budget (45 min)</strong></td><td>5 / 10 / 7 / 7 / 15. Say when you're moving between phases.</td></tr>
+<tr><td><strong>Requirements</strong></td><td>Scope in, scope <em>out</em>, users, scale, devices, offline, i18n/a11y — then agree what to prioritise.</td></tr>
+<tr><td><strong>The four layers</strong></td><td>View / State / Data-API / Services. Invariant: view components never call the network.</td></tr>
+<tr><td><strong>CSR / SSR / SSG</strong></td><td>Public + SEO → SSR. Behind login + interactive → CSR. Same for everyone + rarely changes → SSG.</td></tr>
+<tr><td><strong>Four kinds of state</strong></td><td>Server (query cache) · UI (local) · Derived (compute, never store) · URL (shareable, back-button-correct).</td></tr>
+<tr><td><strong>URL as state</strong></td><td>If a user would be annoyed they can't bookmark it, it belongs in the URL.</td></tr>
+<tr><td><strong>State decision tree</strong></td><td>One component → local. A few → lift/compose. Server-owned → query cache. Shareable → URL. App-wide + rare → Context. App-wide + hot → store with selectors.</td></tr>
+<tr><td><strong>Context vs store</strong></td><td>Context is transport with no selectors — every consumer re-renders on any change. A store gives sliced subscriptions.</td></tr>
+<tr><td><strong>Pagination</strong></td><td>Cursor for feeds (no duplicates/skips when items are inserted, fast at depth); offset when you need "jump to page 12".</td></tr>
+<tr><td><strong>Component API</strong></td><td>Composition over configuration. Content → children, not props. Variant unions, not boolean soup. Controlled + uncontrolled.</td></tr>
+<tr><td><strong>Prop explosion tell</strong></td><td>A prop describing <em>content</em> (<code>titleIcon</code>) wants to be children. A <code>className</code> escape hatch means the API is missing something.</td></tr>
+<tr><td><strong>Autocomplete</strong></td><td>Debounce ~250ms, <code>AbortController</code> to cancel, cache by prefix, min 2–3 chars, combobox + <code>aria-activedescendant</code>.</td></tr>
+<tr><td><strong>Out-of-order responses</strong></td><td>Debounce reduces, matching-query check fixes, aborting fixes <em>and</em> saves bandwidth. Know all three, in that order.</td></tr>
+<tr><td><strong>Infinite scroll</strong></td><td>IntersectionObserver sentinel with <code>rootMargin</code>, virtualize for memory, reserve image space via aspect-ratio, restore scroll on back. Raise the a11y/SEO objections yourself; offer "Load more" as the hybrid.</td></tr>
+<tr><td><strong>News feed</strong></td><td>Ranking is server-side. Cursor pages. Optimistic likes with rollback. Buffer new posts behind a "3 new posts" pill — never insert above the viewport.</td></tr>
+<tr><td><strong>Wizard</strong></td><td>State machine not <code>step+1</code>. Validate on leaving a step <em>and</em> on the server. <code>sessionStorage</code> for refresh. History entry per step. Idempotency key for submit retries.</td></tr>
+<tr><td><strong>Video</strong></td><td>ABR = same video at several qualities, cut into segments; player picks a rung per segment. Degrade quality, don't stop. <code>preload="metadata"</code> by default.</td></tr>
+<tr><td><strong>Caching</strong></td><td>Document cache by default; normalize when one entity appears everywhere. Stale-while-revalidate, revalidate on focus/reconnect/mutation. Dedupe in-flight requests.</td></tr>
+<tr><td><strong>Real-time</strong></td><td>Polling = simple/infrequent. SSE = server→client streams, free reconnect via <code>Last-Event-ID</code>. WebSockets = genuine bidirectional. Backoff with jitter, tolerate duplicates, detect gaps.</td></tr>
+<tr><td><strong>UI states</strong></td><td>Loading · Empty · Partial · Error · Offline — five different UIs. Skeleton when you know the shape, spinner when you don't, nothing under 200ms.</td></tr>
+<tr><td><strong>Errors</strong></td><td>Boundary per widget, not just per app. Inline for fixable, toast for transient, full-page only for total failure. Every fallback needs a real retry.</td></tr>
+<tr><td><strong>Design systems</strong></td><td>Three token layers (primitive → semantic → component). Core team owns quality, product teams contribute. Promote to the system once a second team needs it.</td></tr>
+<tr><td><strong>Micro-frontends</strong></td><td>An org solution, not a technical one. Module federation is the modern default. Pay in duplicated deps, UX drift, cross-app state, and debugging.</td></tr>
+<tr><td><strong>OT vs CRDT</strong></td><td>OT transforms ops against concurrent ones (needs a central server, low memory). CRDT makes conflicts impossible by construction (offline-friendly, more metadata). Use a library. Undo is per-user.</td></tr>
+<tr><td><strong>Browser support</strong></td><td>A product decision with tiers. Feature-detect, never UA-sniff. Differential serving via <code>type="module"</code>/<code>nomodule</code>. Test on real low-end devices.</td></tr>
+<tr><td><strong>Tradeoff sentence</strong></td><td>"X buys us A at the cost of B — worth it here because C, though if D I'd choose otherwise."</td></tr>
+<tr><td><strong>Breadth-then-depth</strong></td><td>"Here are five areas we could go deep on — which is most interesting to you?"</td></tr>
+<tr><td><strong>The pivot</strong></td><td>Identify what breaks → smallest fix → name the new tradeoff. Adapt, don't defend.</td></tr>
+</tbody>
+</table>
+</div>
+
+<hr>
+
+<p>One last thing, and then go get some sleep.</p>
+
+<p>The reason this interview feels so uncomfortable is that it removes the thing you're used to being graded on — a correct output. There's no green test suite here. That's genuinely disorienting, and if you've been in the industry a while and still find these nerve-wracking, that's not a sign you're underprepared. It's just the shape of the format.</p>
+
+<p>But flip it around. There's no correct output, which means there's nothing to get wrong. You cannot fail by choosing SSE when they were thinking WebSockets, as long as you knew what each one costs. You cannot fail by drawing three boxes instead of five. The only real ways to fail are to skip the requirements, to design in silence, or to present a choice as obvious when it was a judgement call.</p>
+
+<p>Run the script. Ask the questions. Say the costs out loud. That's the whole performance. 🎻</p>
+
+</div>
+</body>
+</html>

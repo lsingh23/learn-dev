@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>package.json, Lockfiles &amp; Semantic Versioning</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --text: #26221f;
+    --muted: #6b625b;
+    --rule: #e6e0d8;
+    --accent: #b0451f;
+    --accent-soft: #fdf1ec;
+    --link: #9c3d1b;
+    --code-bg: #2b2724;
+    --code-text: #f2ede7;
+    --code-dim: #9d948b;
+    --code-hi: #ffcf8a;
+    --code-str: #b6d98a;
+    --good: #2f6f4a;
+    --good-soft: #eef7f1;
+    --bad: #a52f2f;
+    --bad-soft: #fdefef;
+    --info: #2a5d86;
+    --info-soft: #edf4fa;
+    --warn: #8a6212;
+    --warn-soft: #fbf4e4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16140f;
+      --surface: #1e1b16;
+      --text: #ece6dd;
+      --muted: #a79d92;
+      --rule: #35302a;
+      --accent: #f0906a;
+      --accent-soft: #2c2019;
+      --link: #f0906a;
+      --code-bg: #100e0b;
+      --code-text: #ece6dd;
+      --code-dim: #8b8177;
+      --code-hi: #ffcf8a;
+      --code-str: #b6d98a;
+      --good: #7fc99c;
+      --good-soft: #1a2620;
+      --bad: #f08a8a;
+      --bad-soft: #2a1a1a;
+      --info: #8fc2e8;
+      --info-soft: #16222c;
+      --warn: #e3bd6a;
+      --warn-soft: #2a2317;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 20px 120px;
+  }
+
+  header.hero {
+    padding: 72px 0 24px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 40px;
+  }
+
+  .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px;
+    font-weight: 800;
+  }
+
+  .standfirst {
+    font-size: 1.16rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.017em;
+    margin: 68px 0 6px;
+    font-weight: 750;
+    scroll-margin-top: 20px;
+  }
+
+  h2 .num {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    margin: 40px 0 4px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 20px;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 28px 0 2px;
+    font-weight: 700;
+  }
+
+  p { margin: 1em 0; }
+
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  ul, ol { padding-left: 1.35em; }
+  li { margin: 0.5em 0; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, "DejaVu Sans Mono", monospace;
+    font-size: 0.875em;
+  }
+
+  p code, li code, td code, summary code, h3 code, h4 code, h2 code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.1em 0.36em;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    line-height: 1.6;
+    font-size: 14.5px;
+    margin: 18px 0;
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    white-space: pre;
+    font-size: inherit;
+  }
+
+  pre .c { color: var(--code-dim); }
+  pre .k { color: var(--code-hi); }
+  pre .s { color: var(--code-str); }
+
+  .codeblock { margin: 22px 0; }
+  .codeblock pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .codelabel {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+    letter-spacing: 0.01em;
+  }
+  .codelabel.bad { background: var(--bad-soft); color: var(--bad); border: 1px solid var(--rule); border-bottom: none; }
+  .codelabel.good { background: var(--good-soft); color: var(--good); border: 1px solid var(--rule); border-bottom: none; }
+  .codelabel.plain { background: var(--surface); color: var(--muted); border: 1px solid var(--rule); border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 4px 20px;
+    margin: 28px 0;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  .callout .ctitle {
+    font-weight: 750;
+    font-size: 0.95rem;
+    margin: 16px 0 -4px;
+    letter-spacing: -0.005em;
+  }
+  .callout p:last-child { margin-bottom: 16px; }
+  .callout.wait { background: var(--info-soft); border-color: color-mix(in srgb, var(--info) 30%, transparent); }
+  .callout.wait .ctitle { color: var(--info); }
+  .callout.misc { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+  .callout.misc .ctitle { color: var(--bad); }
+  .callout.hood { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .callout.hood .ctitle { color: var(--warn); }
+  .callout.iv { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+  .callout.iv .ctitle { color: var(--accent); }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 24px 22px;
+    margin: 36px 0 8px;
+  }
+  .toc .ctitle { font-weight: 750; font-size: 0.95rem; margin: 4px 0 8px; }
+  .toc ol { margin: 0; padding-left: 1.3em; }
+  .toc li { margin: 0.28em 0; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  figure { margin: 30px 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .svgwrap {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 14px;
+    overflow-x: auto;
+  }
+
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .sv-label { fill: var(--text); font-size: 13px; }
+  .sv-small { fill: var(--muted); font-size: 11px; }
+  .sv-mono { font-family: "SFMono-Regular", Consolas, Menlo, monospace; font-size: 12px; fill: var(--text); }
+  .sv-box { fill: var(--bg); stroke: var(--rule); stroke-width: 1.5; }
+  .sv-accent { fill: var(--accent); }
+  .sv-stroke { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 0.94rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .tablewrap { overflow-x: auto; }
+
+  details.qa {
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 0 18px;
+    margin: 12px 0;
+    background: var(--surface);
+  }
+  details.qa summary {
+    cursor: pointer;
+    font-weight: 650;
+    padding: 13px 0;
+    list-style-position: outside;
+  }
+  details.qa[open] summary { border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+  details.qa p:last-child { margin-bottom: 16px; }
+
+  .model {
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    padding: 2px 20px;
+    margin: 22px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .model .mtag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    font-weight: 750;
+    color: var(--accent);
+    margin: 16px 0 -6px;
+  }
+  .model .said { font-style: italic; }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 56px 0;
+  }
+
+  .cheat {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 6px 22px;
+  }
+  .cheat dt { font-weight: 700; margin-top: 16px; }
+  .cheat dd { margin: 2px 0 0; color: var(--muted); }
+
+  .lede { font-size: 1.06rem; }
+
+  .filename {
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+    font-size: 12px;
+    color: var(--code-dim);
+  }
+
+  footer.end {
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.93rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview prep · Guide 20</p>
+  <h1>package.json, Lockfiles &amp; Semantic Versioning</h1>
+  <p class="standfirst">A mystery in three acts: the build works on your laptop, the exact same commit fails in CI, and git swears nobody touched a single line of code.</p>
+</header>
+
+<p class="lede">I want to start with a bug report. Not a code bug — a <em>build</em> bug, which is somehow worse, because there's nothing to step through in a debugger.</p>
+
+<p>It's Tuesday. You open a pull request. It's a one-line CSS change. Your local build is green. You push. Twelve minutes later, CI comes back red:</p>
+
+<pre><code><span class="c">$ npm run build</span>
+
+TypeError: Cannot read properties of undefined (reading 'match')
+    at normalizePath (node_modules/some-postcss-plugin/index.js:41:22)
+
+<span class="c">Build failed. Exit code 1.</span></code></pre>
+
+<p>You stare at it. You run <code>npm run build</code> locally again. Green. You check out your branch on a colleague's machine. Green. You re-run CI. Red. Same commit. Same command. Same Node version, even — you checked.</p>
+
+<p>Someone on the team says the sentence that has been said in every engineering org since the beginning of time: <em>"but it works on my machine."</em> Someone else says the more interesting one: <em>"but nobody changed any code."</em></p>
+
+<p>And here's the thing — they're both right. Nobody changed any code <strong>in your repository</strong>. But your application isn't just your repository. Your application is your repository <em>plus roughly 900 packages you didn't write</em>, and one of those 900 packages published a new version at 3am, and your CI machine happily downloaded it while your laptop is still sitting on the old one.</p>
+
+<p>Everything in this guide — every field in <code>package.json</code>, every caret, the entire existence of lockfiles, half of why pnpm exists — is a response to that one problem. Let's solve the mystery properly.</p>
+
+<nav class="toc">
+  <p class="ctitle">Where we're going</p>
+  <ol>
+    <li><a href="#intent">The file that records intent, not reality</a></li>
+    <li><a href="#semver">Semantic versioning, and what a caret actually allows</a></li>
+    <li><a href="#lockfile">The lockfile: a photograph of the whole tree</a></li>
+    <li><a href="#ci">npm install vs npm ci (case closed)</a></li>
+    <li><a href="#commit">Why lockfiles go in git — and when they don't</a></li>
+    <li><a href="#deptypes">dependencies, devDependencies, peerDependencies</a></li>
+    <li><a href="#managers">npm vs yarn vs pnpm, and phantom dependencies</a></li>
+    <li><a href="#monorepo">Monorepos, workspaces, and the task graph</a></li>
+    <li><a href="#supplychain">npm audit and the supply chain</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="intent"><span class="num">Act one</span>The file that records intent, not reality</h2>
+
+<p>Let's look at the most boring file in your project.</p>
+
+<div class="codeblock">
+<div class="codelabel plain">package.json</div>
+<pre><code>{
+  <span class="k">"name"</span>: <span class="s">"checkout-app"</span>,
+  <span class="k">"version"</span>: <span class="s">"2.4.0"</span>,
+  <span class="k">"dependencies"</span>: {
+    <span class="k">"react"</span>: <span class="s">"^18.2.0"</span>,
+    <span class="k">"date-fns"</span>: <span class="s">"^2.30.0"</span>
+  },
+  <span class="k">"devDependencies"</span>: {
+    <span class="k">"vite"</span>: <span class="s">"^5.0.0"</span>
+  }
+}</code></pre>
+</div>
+
+<p>Read that <code>"react": "^18.2.0"</code> out loud. Most people read it as "we use React 18.2.0." That is <strong>not what it says</strong>. It says something much looser, and the looseness is the whole story.</p>
+
+<p>What it actually says is: <em>"give me any version of React that is at least 18.2.0, but still starts with 18."</em> It's not a version. It's a <strong>range</strong> — a shape of acceptable versions. Today that range resolves to 18.3.1. Next month it might resolve to 18.4.0. You didn't ask for that upgrade, but you did permit it, in writing, with that little <code>^</code>.</p>
+
+<p>So here's the first mental model I want you to hold, and everything else hangs off it:</p>
+
+<div class="callout hood">
+  <p class="ctitle">The three layers</p>
+  <p><strong><code>package.json</code></strong> is your <em>shopping list</em>. "Some milk, a loaf of bread." It describes what you want in general terms.</p>
+  <p><strong><code>node_modules</code></strong> is your <em>fridge</em>. It contains actual, specific, physical items — this exact carton, this exact loaf.</p>
+  <p><strong><code>package-lock.json</code></strong> is the <em>receipt</em>. It says precisely which carton you got: brand, size, batch number, which shop, and a barcode you can check against.</p>
+  <p>The list is not the fridge. Two people shopping from the same list on different days come home with different fridges. That's the bug at the top of this page.</p>
+</div>
+
+<h3>What actually happens when you run <code>npm install</code></h3>
+
+<p>Before we go further, let's be really concrete, because a lot of people have never watched this process in their head.</p>
+
+<ol>
+  <li>npm reads your <code>package.json</code> and collects your <strong>direct dependencies</strong> — the ones you asked for by name.</li>
+  <li>For each one, it asks the <strong>registry</strong> (by default <code>registry.npmjs.org</code>) "what versions of <code>date-fns</code> exist?" and picks the <em>highest</em> one that satisfies your range.</li>
+  <li>It downloads that package and opens <em>its</em> <code>package.json</code> — which has its own dependencies, with its own ranges. So it repeats step 2 for those. And for theirs. And theirs.</li>
+  <li>This continues until nothing new is left. The result is a <strong>dependency tree</strong>, usually several hundred to a few thousand packages deep, that gets written to disk as <code>node_modules</code>.</li>
+</ol>
+
+<p>Those indirect packages — the ones you never named, that came along because something you named needed them — are called <strong>transitive dependencies</strong>. In a typical React app they outnumber your direct dependencies by something like 50 to 1.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 300" role="img" aria-label="Diagram: package.json ranges are resolved by the registry into a concrete node_modules tree, and the lockfile records that resolution.">
+  <rect x="8" y="40" width="170" height="120" rx="9" class="sv-box"/>
+  <text x="20" y="62" class="sv-label" style="font-weight:700">package.json</text>
+  <text x="20" y="84" class="sv-mono">react: ^18.2.0</text>
+  <text x="20" y="104" class="sv-mono">date-fns: ^2.30.0</text>
+  <text x="20" y="124" class="sv-mono">vite: ^5.0.0</text>
+  <text x="20" y="148" class="sv-small">3 ranges. Your intent.</text>
+
+  <path d="M182 100 H 246" class="sv-stroke" marker-end="url(#ar)"/>
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="currentColor" style="color:var(--muted)"/>
+    </marker>
+  </defs>
+  <text x="188" y="90" class="sv-small">resolve</text>
+
+  <rect x="250" y="26" width="150" height="148" rx="9" class="sv-box"/>
+  <text x="262" y="48" class="sv-label" style="font-weight:700">the registry</text>
+  <text x="262" y="70" class="sv-small">"what versions exist</text>
+  <text x="262" y="86" class="sv-small">right now?"</text>
+  <text x="262" y="112" class="sv-small" style="fill:var(--accent)">↑ this answer</text>
+  <text x="262" y="128" class="sv-small" style="fill:var(--accent)">changes over time</text>
+  <text x="262" y="152" class="sv-small">← the moving part</text>
+
+  <path d="M404 100 H 468" class="sv-stroke" marker-end="url(#ar)"/>
+
+  <rect x="472" y="26" width="220" height="148" rx="9" class="sv-box"/>
+  <text x="484" y="48" class="sv-label" style="font-weight:700">node_modules</text>
+  <text x="484" y="70" class="sv-mono">react@18.3.1</text>
+  <text x="484" y="88" class="sv-mono">date-fns@2.30.0</text>
+  <text x="484" y="106" class="sv-mono">vite@5.4.11</text>
+  <text x="484" y="124" class="sv-mono" style="fill:var(--muted)">…+ 891 transitive</text>
+  <text x="484" y="150" class="sv-small">Exact files. Reality.</text>
+
+  <rect x="150" y="212" width="400" height="66" rx="9" class="sv-box" style="stroke:var(--accent);stroke-dasharray:5 4"/>
+  <text x="170" y="236" class="sv-label" style="font-weight:700;fill:var(--accent)">package-lock.json</text>
+  <text x="170" y="262" class="sv-small">a written record of exactly what the arrows produced this time</text>
+
+  <path d="M580 178 C 580 210, 470 224, 552 224" class="sv-stroke" style="stroke:var(--accent);stroke-dasharray:4 4" marker-end="url(#ar)"/>
+  <path d="M100 164 C 100 210, 200 224, 148 224" class="sv-stroke" style="stroke:var(--accent);stroke-dasharray:4 4"/>
+</svg>
+</div>
+<figcaption>Your <code>package.json</code> doesn't produce <code>node_modules</code> by itself. It produces it <em>in combination with whatever the registry contains at that moment</em>. That second input is invisible, and it drifts.</figcaption>
+</figure>
+
+<p>That diagram contains the entire bug. <code>package.json</code> + <code>node_modules</code> looks like a complete story, but there's a third input in the middle that isn't in your repo, isn't in your git history, and quietly changes every single day.</p>
+
+<p>So: what are those ranges, exactly? What does <code>^</code> really permit? Let's do that properly, because interviewers love this and most candidates are fuzzy on it.</p>
+
+<hr>
+
+<h2 id="semver"><span class="num">Act two</span>Semantic versioning, and what a caret actually allows</h2>
+
+<p>Every version on npm is three numbers separated by dots: <code>2.30.0</code>. This is <strong>semantic versioning</strong>, usually shortened to <em>semver</em>, and each number is a promise from the package author to you.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 190" role="img" aria-label="Diagram of the three semver number positions: major, minor, patch.">
+  <text x="230" y="70" style="font-family:SFMono-Regular,Consolas,Menlo,monospace;font-size:44px;fill:var(--text);font-weight:600">2 . 30 . 4</text>
+
+  <path d="M242 86 V 116 H 130" class="sv-stroke"/>
+  <text x="24" y="122" class="sv-label" style="font-weight:700">MAJOR</text>
+  <text x="24" y="142" class="sv-small">I broke something.</text>
+  <text x="24" y="158" class="sv-small">Read the changelog.</text>
+
+  <path d="M330 86 V 140 H 290" class="sv-stroke"/>
+  <text x="290" y="122" class="sv-label" style="font-weight:700">MINOR</text>
+  <text x="290" y="158" class="sv-small">New stuff, nothing broken.</text>
+
+  <path d="M416 86 V 116 H 530" class="sv-stroke"/>
+  <text x="530" y="122" class="sv-label" style="font-weight:700">PATCH</text>
+  <text x="530" y="142" class="sv-small">Bug fix. Behaviour</text>
+  <text x="530" y="158" class="sv-small">you relied on is safe.</text>
+</svg>
+</div>
+<figcaption>Bumping a number is a claim about compatibility, not about how much work went in.</figcaption>
+</figure>
+
+<ul>
+  <li><strong>PATCH</strong> (<code>2.30.4</code> → <code>2.30.5</code>): a bug fix. Nothing you were doing should stop working.</li>
+  <li><strong>MINOR</strong> (<code>2.30.4</code> → <code>2.31.0</code>): new features added, but everything that worked before still works. <em>Additive.</em></li>
+  <li><strong>MAJOR</strong> (<code>2.30.4</code> → <code>3.0.0</code>): something you relied on has changed or been removed. Your code may need edits.</li>
+</ul>
+
+<p>A nice way to hold it: the version number is a <strong>traffic light for your upgrade risk</strong>. Green light for patch, amber for minor ("probably fine, but there's new surface area"), red for major ("stop and read").</p>
+
+<h3>The range operators</h3>
+
+<p>Now the part that actually shows up in your <code>package.json</code>. When you write a dependency, you're describing a <em>set</em> of acceptable versions.</p>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th>You write</th><th>It means</th><th>Will accept</th><th>Won't accept</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>^1.2.3</code></td>
+      <td>&ge; 1.2.3 and &lt; 2.0.0<br><span class="sv-small">minor + patch may move</span></td>
+      <td>1.2.4, 1.3.0, 1.99.0</td>
+      <td>2.0.0, 1.2.2</td>
+    </tr>
+    <tr>
+      <td><code>~1.2.3</code></td>
+      <td>&ge; 1.2.3 and &lt; 1.3.0<br><span class="sv-small">patch only</span></td>
+      <td>1.2.4, 1.2.99</td>
+      <td>1.3.0, 2.0.0</td>
+    </tr>
+    <tr>
+      <td><code>1.2.3</code></td>
+      <td>exactly 1.2.3</td>
+      <td>1.2.3</td>
+      <td>anything else</td>
+    </tr>
+    <tr>
+      <td><code>&gt;=1.2.3</code></td>
+      <td>anything newer, forever</td>
+      <td>1.2.3, 2.0.0, 9.0.0</td>
+      <td>1.2.2</td>
+    </tr>
+    <tr>
+      <td><code>*</code> or <code>""</code></td>
+      <td>literally any version</td>
+      <td>everything</td>
+      <td>nothing 😬</td>
+    </tr>
+    <tr>
+      <td><code>1.2.x</code></td>
+      <td>same as <code>~1.2.0</code></td>
+      <td>1.2.7</td>
+      <td>1.3.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>The caret is npm's default — when you run <code>npm install date-fns</code>, npm writes <code>^2.30.0</code> into your file, not <code>2.30.0</code>. That default is a deliberate bet: <em>"trust authors to follow semver, so you passively get bug fixes and security patches without doing anything."</em> Whether that bet is a good one is a genuinely interesting question, and we'll come back to it.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 210" role="img" aria-label="Number line showing which versions the caret and tilde ranges accept.">
+  <line x1="40" y1="60" x2="660" y2="60" class="sv-stroke"/>
+  <g class="sv-mono" style="text-anchor:middle">
+    <text x="70" y="84">1.2.2</text>
+    <text x="180" y="84">1.2.3</text>
+    <text x="290" y="84">1.2.9</text>
+    <text x="400" y="84">1.3.0</text>
+    <text x="510" y="84">1.9.0</text>
+    <text x="620" y="84">2.0.0</text>
+  </g>
+  <g>
+    <circle cx="70" cy="60" r="4" fill="var(--muted)"/>
+    <circle cx="180" cy="60" r="4" fill="var(--muted)"/>
+    <circle cx="290" cy="60" r="4" fill="var(--muted)"/>
+    <circle cx="400" cy="60" r="4" fill="var(--muted)"/>
+    <circle cx="510" cy="60" r="4" fill="var(--muted)"/>
+    <circle cx="620" cy="60" r="4" fill="var(--muted)"/>
+  </g>
+
+  <rect x="164" y="112" width="378" height="26" rx="13" fill="var(--accent)" opacity="0.18"/>
+  <text x="176" y="130" class="sv-mono" style="fill:var(--accent);font-weight:700">^1.2.3</text>
+  <text x="556" y="130" class="sv-small">stops just short of 2.0.0</text>
+
+  <rect x="164" y="156" width="158" height="26" rx="13" fill="var(--info)" opacity="0.2"/>
+  <text x="176" y="174" class="sv-mono" style="fill:var(--info);font-weight:700">~1.2.3</text>
+  <text x="336" y="174" class="sv-small">stops just short of 1.3.0</text>
+</svg>
+</div>
+<figcaption>Caret = "same major". Tilde = "same major <em>and</em> minor". Both are anchored at the version you wrote — neither will ever go <em>backwards</em>.</figcaption>
+</figure>
+
+<h3>The <code>0.x</code> special case (a favourite follow-up)</h3>
+
+<p>Here's a question worth pausing on. Given <code>"some-lib": "^0.2.3"</code>, and the library publishes <code>0.3.0</code> — do you get it?</p>
+
+<p>Take a guess before reading on. The naive rule says "caret means the major number is locked, and the major here is <code>0</code>, so <code>0.3.0</code> has the same major and should be allowed."</p>
+
+<p><strong>You don't get it.</strong> <code>^0.2.3</code> means <code>&gt;=0.2.3 &lt;0.3.0</code>. The caret behaves like a tilde down here.</p>
+
+<p>Why? Because of what <code>0.x</code> <em>means</em>. Semver says major version zero is for initial development — the API is explicitly unstable, and anything may change at any time. Authors on <code>0.x</code> have no bigger number to bump when they break something, so in practice <strong>the minor position becomes the breaking-change position</strong>. <code>0.2.x</code> → <code>0.3.0</code> is the <code>0.x</code> equivalent of <code>1.x</code> → <code>2.0.0</code>.</p>
+
+<p>So the caret quietly shifts one position to the left when the major is zero. Here's the full rule, which is genuinely worth memorising because it makes you sound like someone who has read the spec:</p>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood — what the caret really does</p>
+  <p>The caret allows changes that <em>do not modify the left-most non-zero position</em>.</p>
+  <p><code>^1.2.3</code> → left-most non-zero is the major → <code>&gt;=1.2.3 &lt;2.0.0</code><br>
+  <code>^0.2.3</code> → left-most non-zero is the minor → <code>&gt;=0.2.3 &lt;0.3.0</code><br>
+  <code>^0.0.3</code> → left-most non-zero is the patch → <code>&gt;=0.0.3 &lt;0.0.4</code> (an exact pin, effectively!)</p>
+  <p>That last one surprises people. On a <code>0.0.x</code> package, the caret gives you no flexibility at all.</p>
+</div>
+
+<h3>Pre-release tags</h3>
+
+<p>Sometimes you'll see a version with a hyphen: <code>3.0.0-beta.2</code>, <code>18.3.0-canary.14</code>, <code>5.0.0-rc.1</code>. That suffix is a <strong>pre-release tag</strong>, and it does two things.</p>
+
+<p>First, it sorts <em>before</em> the plain release. <code>3.0.0-beta.2</code> is <strong>less than</strong> <code>3.0.0</code>. Think of the release as the finished cake and the pre-releases as the cake at various points during baking — they come before, not after.</p>
+
+<p>Second — and this is the useful bit — <strong>ordinary ranges will never accidentally pick up a pre-release</strong>. If you have <code>^3.0.0</code> and the author publishes <code>3.1.0-beta.1</code>, you don't get it. You'd only get a pre-release if your range explicitly opts in, e.g. <code>^3.1.0-beta.1</code>, and even then only for that same <code>3.1.0</code> tuple. This is a safety feature: authors can publish experimental versions to the registry without every consumer's install suddenly changing.</p>
+
+<p>Related, and often confused with pre-release versions: <strong>dist-tags</strong>. Every package has named pointers to versions. <code>latest</code> is the one you get by default; authors also publish things like <code>next</code>, <code>beta</code>, or <code>canary</code>. When you run <code>npm install react@next</code>, you're saying "whatever version the <code>next</code> label currently points at."</p>
+
+<h3>The uncomfortable truth about semver</h3>
+
+<p>Everything above describes a rule system. I now need to tell you that the rule system is not enforced by anything.</p>
+
+<p>Semver is not a technical guarantee. There is no bot at npm that diffs your public API and refuses your publish if you removed a function in a minor. Semver is <strong>a promise made by a human being</strong>, often at 11pm, often about a codebase where "breaking" is genuinely ambiguous. Is tightening a TypeScript type breaking? Is fixing a bug that people were depending on breaking? Is making an error message clearer breaking, if someone was regex-matching it?</p>
+
+<p>In practice, accidental breaking changes in minor and patch releases happen constantly. Not usually from malice — from a maintainer who genuinely believed the change was additive.</p>
+
+<div class="callout misc">
+  <p class="ctitle">A common misconception</p>
+  <p>"Lockfiles exist because npm can't figure out which versions to install."</p>
+  <p>No — npm resolves ranges perfectly well. Lockfiles exist because <strong>semver is a social contract, not a mechanism</strong>. If every author on earth followed semver flawlessly, a caret range would be genuinely safe and lockfiles would be a nice-to-have for install speed. In the world we actually live in, the lockfile is the thing standing between you and someone else's honest mistake.</p>
+</div>
+
+<p>Which brings us, finally, to the fix.</p>
+
+<hr>
+
+<h2 id="lockfile"><span class="num">Act three</span>The lockfile: a photograph of the whole tree</h2>
+
+<p>When npm finishes resolving your ranges into a concrete tree, it writes down what it found. That file is <code>package-lock.json</code> (yarn calls it <code>yarn.lock</code>, pnpm calls it <code>pnpm-lock.yaml</code> — same idea, different syntax).</p>
+
+<p>Here's one entry from a real lockfile, trimmed:</p>
+
+<div class="codeblock">
+<div class="codelabel plain">package-lock.json (one entry of ~900)</div>
+<pre><code><span class="k">"node_modules/date-fns"</span>: {
+  <span class="k">"version"</span>: <span class="s">"2.30.0"</span>,                                  <span class="c">// 👈 exact, no range</span>
+  <span class="k">"resolved"</span>: <span class="s">"https://registry.npmjs.org/date-fns/-/date-fns-2.30.0.tgz"</span>,
+  <span class="k">"integrity"</span>: <span class="s">"sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw=="</span>,
+  <span class="k">"dependencies"</span>: { <span class="k">"@babel/runtime"</span>: <span class="s">"^7.21.0"</span> },
+  <span class="k">"engines"</span>: { <span class="k">"node"</span>: <span class="s">"&gt;=0.11"</span> }
+}</code></pre>
+</div>
+
+<p>Four things are recorded, and each one is doing real work:</p>
+
+<ul>
+  <li><strong><code>version</code></strong> — the exact version. Not a range. A single point.</li>
+  <li><strong><code>resolved</code></strong> — the exact URL the tarball came from. This matters if you use a private registry or a mirror; it pins <em>where</em>, not just <em>what</em>.</li>
+  <li><strong><code>integrity</code></strong> — a cryptographic hash (SHA-512) of the tarball's contents. On install, npm downloads the file, hashes it, and compares. If a single byte differs, the install fails loudly.</li>
+  <li>The entry appears for <strong>every package in the tree</strong> — your direct deps and all ~900 transitive ones. That's the crucial part. Your <code>package.json</code> pins nothing about transitive deps; the lockfile pins all of them.</li>
+</ul>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — why does it store the URL <em>and</em> a hash?</p>
+  <p>Because they answer different questions. The URL answers "where do I get this?" The hash answers "did I get the thing I expected?"</p>
+  <p>Think of ordering a specific book. The URL is the shop's address. The integrity hash is you checking the ISBN on the cover when the parcel arrives. If the shop has quietly swapped in a different book — a compromised registry mirror, a man-in-the-middle, a maliciously re-published tarball — the ISBN check catches it, even though the address was right.</p>
+</div>
+
+<h3>Solving the mystery</h3>
+
+<p>Let's go back to Tuesday's red build. Here's what actually happened.</p>
+
+<p>Your project depends on a PostCSS plugin, but not directly — it's four levels down, pulled in by something pulled in by your build tool. Its version was declared somewhere as <code>^4.1.0</code>.</p>
+
+<ul>
+  <li><strong>Three weeks ago</strong>, you ran <code>npm install</code> on your laptop. The best match at that moment was <code>4.1.6</code>. It went into your <code>node_modules</code> and has been sitting there ever since. You haven't reinstalled — why would you?</li>
+  <li><strong>Last night at 3am</strong>, the plugin author published <code>4.2.0</code>. New feature, no breaking changes intended. But it changed an internal path-normalisation helper to assume a config field is always present. In your setup, it isn't.</li>
+  <li><strong>This morning</strong>, CI started from a clean machine with an empty <code>node_modules</code>. It ran <code>npm install</code>. The range <code>^4.1.0</code> now best-matches <code>4.2.0</code>. CI installed a different tree than the one on your laptop.</li>
+</ul>
+
+<p>Same commit. Same command. Different <code>node_modules</code>. Nobody changed any code, and yet the code being executed was different — because most of the code being executed was never in your repo.</p>
+
+<p><em>That's the whole thing.</em> Once you see it, "works on my machine" stops being a joke and becomes a precise, diagnosable statement: <strong>my machine has an older resolution of the tree than yours.</strong></p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — didn't the lockfile stop this?</p>
+  <p>Good instinct, and this is the sharp edge. The repo <em>had</em> a lockfile. The problem is that CI ran <code>npm install</code>, and <code>npm install</code> treats the lockfile as a strong suggestion rather than the law — it will happily update it when it thinks it should. There's a different command that treats it as law. Let's look at both.</p>
+</div>
+
+<hr>
+
+<h2 id="ci"><span class="num">The fix</span><code>npm install</code> vs <code>npm ci</code></h2>
+
+<p>These two commands look interchangeable. They are not, and knowing the difference cold is one of the cheapest interview wins available.</p>
+
+<h4><code>npm install</code> — "make the tree satisfy package.json"</h4>
+
+<p>Its job is to get you to a working state, and it's allowed to change things to get there. It will:</p>
+
+<ul>
+  <li>use the lockfile as a starting point where it can,</li>
+  <li>but re-resolve anything the lockfile doesn't cover or that has drifted from <code>package.json</code>,</li>
+  <li><strong>write back to <code>package-lock.json</code></strong>, and possibly to <code>package.json</code> too (if you passed a package name),</li>
+  <li>install on top of whatever <code>node_modules</code> already exists, patching it up rather than starting clean.</li>
+</ul>
+
+<p>It is a <em>reconciling</em> command. Useful for humans. Non-deterministic by design.</p>
+
+<h4><code>npm ci</code> — "make the tree match the lockfile, exactly"</h4>
+
+<p>"ci" stands for <em>clean install</em> (it's also very convenient that it stands for continuous integration). It:</p>
+
+<ul>
+  <li><strong>deletes <code>node_modules</code> entirely</strong> first, so there's no leftover state,</li>
+  <li>installs precisely what the lockfile says — it does no version resolution at all,</li>
+  <li><strong>never writes</strong> to <code>package-lock.json</code> or <code>package.json</code>,</li>
+  <li><strong>fails loudly</strong> if the lockfile and <code>package.json</code> disagree (e.g. someone hand-edited a version into <code>package.json</code> and forgot to reinstall),</li>
+  <li>refuses to run at all if there's no lockfile.</li>
+</ul>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ In CI — reintroduces the drift you were trying to eliminate</div>
+<pre><code><span class="c">- run: npm install</span>
+<span class="c">- run: npm test</span></code></pre>
+</div>
+
+<div class="codeblock">
+<div class="codelabel good">✅ In CI — reproducible, and it catches lockfile drift for you</div>
+<pre><code><span class="c">- run: npm ci</span>
+<span class="c">- run: npm test</span></code></pre>
+</div>
+
+<p>That "fails loudly" behaviour is underrated. It turns a whole category of silent inconsistency into a build error, which is exactly where you want it. If a teammate bumps a version in <code>package.json</code> by hand and doesn't regenerate the lockfile, <code>npm ci</code> stops the PR. <code>npm install</code> would quietly paper over it and produce a build that nobody can reproduce.</p>
+
+<p>It's also meaningfully faster, because it skips the entire resolution phase — no round-trips to the registry to ask what versions exist, no dependency-graph solving. It just reads a manifest and downloads.</p>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood — the equivalents elsewhere</p>
+  <p>Every package manager has this pair. <code>yarn install --immutable</code> (Yarn Berry) or <code>--frozen-lockfile</code> (Yarn 1) fails if the install would change <code>yarn.lock</code>. <code>pnpm install --frozen-lockfile</code> does the same, and pnpm does this <em>automatically</em> when it detects a CI environment. Same principle everywhere: in CI, the lockfile is read-only input, never output.</p>
+</div>
+
+<hr>
+
+<h2 id="commit"><span class="num">Section 5</span>Why lockfiles go in git — and when they don't</h2>
+
+<p>The lockfile only helps if everyone has the same one. That means it goes in version control, committed, reviewed, and pushed like any other file. Four reasons, in rough order of how often they come up:</p>
+
+<h4>1. Reproducible builds</h4>
+<p>You, your teammate, CI, and the production build server all produce byte-identical trees. When something breaks in production, you can check out that commit and get <em>exactly</em> the code that was running — not an approximation of it. Without this, "reproduce the bug locally" is a coin flip.</p>
+
+<h4>2. Auditability</h4>
+<p>Because it's in git, a dependency change becomes a <strong>reviewable diff</strong>. "This PR bumps 40 transitive packages" is now visible information rather than an invisible event. When a build breaks the day after a merge, <code>git log -- package-lock.json</code> tells you what moved. Dependency upgrades become deliberate, dated, attributable actions instead of weather.</p>
+
+<h4>3. Security</h4>
+<p>Those integrity hashes are pinned in the file. If someone compromises a registry mirror or a maintainer account and republishes a tarball with a crypto-miner in it, the hash won't match what's in your lockfile and the install fails. Without a lockfile, you'd just... install it.</p>
+
+<h4>4. Speed</h4>
+<p>Least glamorous, most felt. Skipping resolution makes installs noticeably faster, which compounds across every CI run of every day.</p>
+
+<div class="callout misc">
+  <p class="ctitle">A common misconception</p>
+  <p>"We should gitignore the lockfile so everyone always gets the latest security patches."</p>
+  <p>This inverts the goal. You don't get security from <em>drift</em> — you get it from <em>controlled, visible upgrades</em>. Ignoring the lockfile doesn't mean you're always patched; it means nobody knows what's installed anywhere, patched or not. The correct tool for staying current is a bot (Dependabot, Renovate) that opens a PR bumping the lockfile, which CI then tests. That's the same outcome, but observable and revertible.</p>
+</div>
+
+<h3>The nuance: applications vs libraries</h3>
+
+<p>This is the follow-up interviewers reach for when they want to see if you've thought about it, or just memorised "always commit the lockfile."</p>
+
+<p><strong>Applications commit their lockfile, and it is authoritative.</strong> An app is deployed, not consumed. It's the final node in the graph. Nothing installs your app as a dependency, so your resolution <em>is</em> the resolution. Lock it hard.</p>
+
+<p><strong>Libraries are different</strong> — and the key insight is that <em>a published library's lockfile is never used by its consumers.</em> When someone runs <code>npm install your-library</code>, npm reads your library's <code>package.json</code> ranges and folds them into <em>their</em> tree, resolved against <em>their</em> other dependencies. Your lockfile isn't even in the published tarball. It has zero authority downstream.</p>
+
+<p>So should a library repo commit one at all? The honest answer is "yes, but understand what it's for": it pins your <strong>own CI and contributor environment</strong>, which is useful for reproducible test runs. What it does <em>not</em> do is describe how consumers will experience your package.</p>
+
+<p>Which creates a real risk. If your library only ever tests against one frozen resolution, you'll never notice that your declared range <code>^2.0.0</code> is broken against <code>2.9.0</code> — because your lockfile keeps you on <code>2.1.3</code> forever. Mature libraries handle this with a second CI job that installs <em>without</em> the lockfile (or with dependencies deliberately updated to their range maximums), so they're testing the promise they actually made in <code>package.json</code>.</p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — can a library force exact versions on consumers?</p>
+  <p>There's a mechanism called <code>npm-shrinkwrap.json</code>. It's the one lockfile that <em>does</em> get published in your tarball and <em>does</em> bind consumers. It's rare and mostly reserved for CLI tools that people install globally, where you're effectively shipping an application rather than a library. For a normal library it's considered antisocial: you're overriding your consumer's ability to dedupe and patch their own tree.</p>
+</div>
+
+<h3>Lockfile merge conflicts</h3>
+
+<p>Two teammates each add a package on their own branch. Both regenerate the lockfile. Both touch thousands of lines. Git throws up its hands.</p>
+
+<p>The instinct is to open the file and start picking sides. <strong>Don't.</strong> A lockfile isn't source — it's a <em>generated artefact</em>, and it's internally consistent in ways a human editor can't maintain. Hand-merging two halves of a resolved dependency graph produces a file that looks fine, installs something subtly wrong, and now nobody can reproduce anything.</p>
+
+<p>The fix is always: <strong>throw the conflicted lockfile away and regenerate it.</strong></p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ Resolving a lockfile conflict</div>
+<pre><code><span class="c"># 1. Take the merge for package.json BY HAND — that one is real source.</span>
+<span class="c">#    Make sure both people's new deps survive.</span>
+
+<span class="c"># 2. Throw away the conflicted lockfile and rebuild it from the merged intent.</span>
+git checkout --theirs package-lock.json   <span class="c"># or --ours; it doesn't matter</span>
+npm install                                <span class="c"># regenerates a coherent tree</span>
+
+<span class="c"># 3. Sanity check, then commit the regenerated file.</span>
+git add package-lock.json
+npm ci &amp;&amp; npm test</code></pre>
+</div>
+
+<p>Modern npm can even do most of this for you: <code>npm install</code> on a repo with a conflicted <code>package-lock.json</code> will detect the conflict markers and resolve them itself. Yarn Berry and pnpm handle it similarly. The rule to remember is the principle, not the incantation: <strong>regenerate, never hand-edit.</strong></p>
+
+<p>The other half of the answer — the part that makes an interviewer nod — is <em>prevention</em>. Add this to <code>.gitattributes</code>:</p>
+
+<pre><code>package-lock.json merge=binary linguist-generated=true</code></pre>
+
+<p>The first flag tells git not to attempt a textual merge (so you get a clean "pick one and regenerate" instead of a scrambled file). The second hides it from PR diffs by default, so reviewers aren't scrolling past 4,000 lines of noise to find the two lines that matter.</p>
+
+<hr>
+
+<h2 id="deptypes"><span class="num">Section 6</span>dependencies, devDependencies, peerDependencies</h2>
+
+<p>Your <code>package.json</code> can list dependencies in several buckets. People treat this as bookkeeping. It isn't — it changes what gets installed, what gets shipped, and whether your library breaks its consumers.</p>
+
+<h3>The practical rule</h3>
+
+<p>Ask one question: <strong>does the running application need this to execute?</strong></p>
+
+<ul>
+  <li><strong><code>dependencies</code></strong> — yes. React, your date library, your state manager. This code ends up in the bundle or runs on the server.</li>
+  <li><strong><code>devDependencies</code></strong> — no. Vite, TypeScript, ESLint, Jest, Prettier. These build, check, or test your code. Once the build output exists, they're not needed.</li>
+</ul>
+
+<p>Here's the counter-intuitive one that catches people: <strong>TypeScript belongs in <code>devDependencies</code>, even though your entire app is written in TypeScript.</strong> Why? Because what ships is the compiled JavaScript. The compiler is a tool you used at build time, like a hammer — the hammer doesn't come with the house.</p>
+
+<h3>Does the distinction actually matter?</h3>
+
+<p>Here's the honest answer, which is more interesting than the textbook one.</p>
+
+<p><strong>For a bundled frontend app: barely, and not for the reason people think.</strong> Your bundler decides what's in your bundle by following <code>import</code> statements from your entry point — it does not read the <code>dependencies</code> field. Sticking React in <code>devDependencies</code> won't remove it from your bundle. Being sloppy here costs you almost nothing at runtime.</p>
+
+<p><strong>For a published library: enormously.</strong> When someone installs your package, npm installs everything in your <code>dependencies</code> into <em>their</em> <code>node_modules</code>, and nothing from your <code>devDependencies</code>. Put your test framework in the wrong bucket and every consumer downloads Jest. This is where you see packages with a 4 MB install size for 12 KB of actual code.</p>
+
+<p><strong>For Docker images and servers: enormously.</strong> Production installs typically run <code>npm ci --omit=dev</code> to keep images small and reduce attack surface. If something the server needs at runtime is in <code>devDependencies</code>, it's simply not there.</p>
+
+<div class="callout misc">
+  <p class="ctitle">The classic gotcha 🔥</p>
+  <p>A Dockerfile does this:</p>
+  <pre style="margin:10px 0"><code>RUN npm ci --omit=dev
+RUN npm run build</code></pre>
+  <p>and the build dies with <code>sh: vite: not found</code>.</p>
+  <p>Of course it does — <code>vite</code> is a devDependency, and you just told npm not to install those. The subtlety is that this is <em>correct configuration in the wrong order</em>. You need dev deps to <em>produce</em> the artefact and don't need them to <em>run</em> it. The fix is a multi-stage build: install everything and build in stage one, then copy only the build output plus a production-only install into stage two. Same class of bug bites people on platforms that prune dev dependencies — as long as the prune happens <em>after</em> the build, you're fine; when a platform installs production-only from the start, you're not.</p>
+</div>
+
+<h3><code>peerDependencies</code>: "don't bring your own, use the host's"</h3>
+
+<p>This is the one people flannel through in interviews, so let's build it from the problem up.</p>
+
+<p>You're writing <code>react-fancy-modal</code>. It's a React component library. It obviously needs React — you can't call <code>useState</code> without it. So React goes in <code>dependencies</code>, right?</p>
+
+<p>Let's trace what happens if you do. An app installs your library. The app already has React 18 in its own <code>dependencies</code>. Now npm builds the tree, and if the versions don't match exactly, it can end up with <strong>two copies of React on disk</strong> — the app's copy at the top level, and your library's copy nested inside <code>node_modules/react-fancy-modal/node_modules/react</code>.</p>
+
+<p>And two copies of React is not a disk-space problem. It's a <em>correctness catastrophe</em>.</p>
+
+<h4>Why two copies of React breaks everything</h4>
+
+<p>To see why, you need one fact about how hooks work. When you call <code>useState</code>, that function doesn't contain the state logic. It's a thin forwarder that looks up "the currently rendering component's dispatcher" from a <strong>mutable variable living inside the <code>react</code> module itself</strong>. The renderer (<code>react-dom</code>) sets that variable right before it renders your component, and clears it after.</p>
+
+<p>Now: in Node/bundler module systems, each copy of a package on disk is a <em>separate module instance</em> with its own separate variables. So:</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram showing react-dom wiring the dispatcher into one copy of React while the component reads from a second copy, which is empty.">
+  <rect x="20" y="30" width="300" height="180" rx="10" class="sv-box"/>
+  <text x="36" y="54" class="sv-label" style="font-weight:700">Copy A — node_modules/react</text>
+
+  <rect x="40" y="70" width="260" height="46" rx="7" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.2"/>
+  <text x="54" y="90" class="sv-mono">currentDispatcher =</text>
+  <text x="54" y="108" class="sv-mono" style="fill:var(--good)">{ useState: fn, useEffect: fn }</text>
+
+  <rect x="40" y="140" width="260" height="46" rx="7" class="sv-box"/>
+  <text x="54" y="168" class="sv-label">react-dom set this ✓</text>
+
+  <rect x="380" y="30" width="300" height="180" rx="10" class="sv-box"/>
+  <text x="396" y="54" class="sv-label" style="font-weight:700">Copy B — .../modal/node_modules/react</text>
+
+  <rect x="400" y="70" width="260" height="46" rx="7" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.2"/>
+  <text x="414" y="90" class="sv-mono">currentDispatcher =</text>
+  <text x="414" y="108" class="sv-mono" style="fill:var(--bad)">null</text>
+
+  <rect x="400" y="140" width="260" height="46" rx="7" class="sv-box"/>
+  <text x="414" y="162" class="sv-label">your modal imported this one</text>
+  <text x="414" y="180" class="sv-small">useState() → reads null → 💥</text>
+</svg>
+</div>
+<figcaption>Same code, two module instances, two independent internal variables. The renderer fills in one; your component reads the other.</figcaption>
+</figure>
+
+<p>Your modal calls <code>useState</code>, which reaches into Copy B's dispatcher variable, which is <code>null</code>, because <code>react-dom</code> only ever set Copy A's. You get the infamous:</p>
+
+<pre><code>Error: Invalid hook call. Hooks can only be called inside
+the body of a function component.</code></pre>
+
+<p>...which is a maddeningly misleading message, because you <em>did</em> call it inside a function component. The React team even lists "you might have more than one copy of React" as one of the three causes, and it's by far the most common one in library land.</p>
+
+<p>The same class of breakage hits <strong>Context</strong>. <code>createContext()</code> returns a unique object. A Provider created by Copy A and a consumer created by Copy B are looking at two different objects, so the consumer never sees the value and silently falls back to the default. That one doesn't even throw — it just quietly renders the wrong thing, which is worse.</p>
+
+<h4>So what's the actual fix?</h4>
+
+<p>Declare React as a <strong>peer dependency</strong>:</p>
+
+<div class="codeblock">
+<div class="codelabel good">✅ react-fancy-modal/package.json</div>
+<pre><code>{
+  <span class="k">"peerDependencies"</span>: {
+    <span class="k">"react"</span>: <span class="s">"^18.0.0 || ^19.0.0"</span>       <span class="c">// 👈 "the host must provide this"</span>
+  },
+  <span class="k">"devDependencies"</span>: {
+    <span class="k">"react"</span>: <span class="s">"^18.2.0"</span>                    <span class="c">// 👈 for OUR tests and dev server only</span>
+  }
+}</code></pre>
+</div>
+
+<p>A peer dependency says: <em>"I need React to exist in the final application, and I need it to be version 18 or 19, but I am not going to install it — I'll use whichever one the host already has."</em> One copy. One dispatcher. Hooks work.</p>
+
+<div class="callout hood">
+  <p class="ctitle">The analogy</p>
+  <p>A regular dependency is a contractor who brings their own ladder. A peer dependency is an electrician who says "I'll do the wiring, but the building must already have mains power, and it must be 240V." They don't bring a generator — they'd electrocute someone by running a second, unsynchronised supply through the same walls.</p>
+  <p><em>Where it breaks down:</em> the electrician can physically <em>see</em> whether the building has power before starting. Your library can't — it declares its requirement in <code>package.json</code> and trusts the package manager to enforce it. Which is exactly why the enforcement rules below matter so much.</p>
+</div>
+
+<p>You'll see peer dependencies everywhere once you look: plugin ecosystems (<code>eslint-plugin-*</code> peer-depend on <code>eslint</code>), anything that hooks into a framework's internals (<code>@testing-library/react</code>, styled-components, every React component library), and anything where <em>shared identity</em> matters — a single instance, a single context, a single registry.</p>
+
+<h4><code>--legacy-peer-deps</code>, in one paragraph</h4>
+
+<p>You will hit this flag on a real job, so know what it actually does. Up to npm 6, peers weren't installed — you just got a warning that scrolled past. From npm 7 on, peers <em>are</em> auto-installed, and genuinely conflicting peer ranges make the install <strong>fail</strong> with <code>ERESOLVE</code>.</p>
+
+<pre><code>npm install --legacy-peer-deps</code></pre>
+
+<p>This does <strong>not</strong> "force the install". It tells npm to ignore <code>peerDependencies</code> entirely — back to npm 6 behaviour. So it's the right call for a <em>stale</em> range (a library declaring <code>"react": "^17"</code> that works fine on 18 because nobody republished it), and the wrong call for a real conflict, where it just stops telling you about the problem. The cleaner fix is <code>overrides</code> in <code>package.json</code> (<code>resolutions</code> in yarn): a committed, reviewable "use this version everywhere" instead of a flag in someone's shell history.</p>
+
+<details class="qa">
+<summary>Two footnotes you'll never be asked about, but might see</summary>
+<p><strong>Optional peers.</strong> <code>peerDependenciesMeta: { typescript: { optional: true } }</code> means "if you have it, it must be this version; if you don't, don't nag anyone."</p>
+<p><strong><code>bundledDependencies</code>.</strong> Ships those packages' files <em>inside</em> your published tarball instead of fetching them at install time. Essentially vendoring, for air-gapped or unpublished deps. It's about packaging, not resolution.</p>
+</details>
+
+<hr>
+
+<h2 id="managers"><span class="num">Section 7</span>npm vs yarn vs pnpm, and the phantom dependency</h2>
+
+<p>Three tools that all read <code>package.json</code> and produce <code>node_modules</code>. The differences look cosmetic until you understand what they each do with the <em>shape</em> of that folder — and that shape has consequences you can feel.</p>
+
+<h3>Flat hoisting, and the bug it creates</h3>
+
+<p>In npm 1 and 2, <code>node_modules</code> was a literal tree. If your app needed <code>express</code>, and express needed <code>debug</code>, you got <code>node_modules/express/node_modules/debug</code>. Simple and correct — but on Windows it blew past the 260-character path limit, and it duplicated the same package dozens of times.</p>
+
+<p>So npm 3 introduced <strong>hoisting</strong>. Every package, direct or transitive, gets lifted to the top level of <code>node_modules</code> where possible. Only genuine version conflicts get nested.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 300" role="img" aria-label="Comparison of a nested node_modules tree and a flat hoisted one.">
+  <text x="20" y="28" class="sv-label" style="font-weight:700">Nested (npm 2, and pnpm's spirit)</text>
+  <g class="sv-mono">
+    <text x="20" y="58">node_modules/</text>
+    <text x="40" y="80">└─ express/</text>
+    <text x="60" y="102">   └─ node_modules/</text>
+    <text x="80" y="124">      └─ debug/</text>
+  </g>
+  <text x="20" y="162" class="sv-small">You can only import express.</text>
+  <text x="20" y="180" class="sv-small">debug is invisible to your code.</text>
+  <rect x="14" y="196" width="300" height="30" rx="6" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.2"/>
+  <text x="28" y="216" class="sv-label" style="fill:var(--good)">✓ can't import what you didn't declare</text>
+
+  <text x="380" y="28" class="sv-label" style="font-weight:700">Flat / hoisted (npm 3+, yarn 1)</text>
+  <g class="sv-mono">
+    <text x="380" y="58">node_modules/</text>
+    <text x="400" y="80">├─ express/</text>
+    <text x="400" y="102">└─ debug/     ← lifted up here</text>
+  </g>
+  <text x="380" y="162" class="sv-small">Now `require('debug')` works</text>
+  <text x="380" y="180" class="sv-small">even though you never installed it.</text>
+  <rect x="374" y="196" width="300" height="30" rx="6" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.2"/>
+  <text x="388" y="216" class="sv-label" style="fill:var(--bad)">✗ phantom dependency</text>
+
+  <text x="20" y="270" class="sv-small">Node's resolver walks up looking for a folder named `debug` — it can't tell how it got there.</text>
+</svg>
+</div>
+<figcaption>Hoisting solved a real problem and created a subtler one: the flat folder erases the distinction between "I asked for this" and "something else asked for this."</figcaption>
+</figure>
+
+<h3>The phantom dependency</h3>
+
+<p>A <strong>phantom dependency</strong> (sometimes "ghost dependency") is a package you can successfully import even though it appears nowhere in your <code>package.json</code>. It works purely because hoisting parked it at the top of <code>node_modules</code>, and Node's resolver has no idea who asked for it.</p>
+
+<p>Here's the failure, and notice how nasty its shape is:</p>
+
+<div class="codeblock">
+<div class="codelabel bad">❌ src/utils/format.js — works today, breaks with no warning later</div>
+<pre><code><span class="c">// I never ran `npm install lodash`. But it's in node_modules,</span>
+<span class="c">// because our test runner depends on it. So this works. For now.</span>
+import { debounce } from <span class="s">'lodash'</span>;
+
+export const saveDraft = debounce(sendToServer, 500);</code></pre>
+</div>
+
+<p>Everything is green. Tests pass, CI passes, it ships. Then, six weeks later, the test runner releases a minor version that switched from <code>lodash</code> to <code>lodash-es</code>. Nobody at your company reads that changelog — why would you, it's a test runner. Your lockfile updates, <code>lodash</code> vanishes from the top of <code>node_modules</code>, and your <em>production checkout page</em> dies with <code>Cannot find module 'lodash'</code>.</p>
+
+<p>The reason this is so poisonous: <strong>the change that broke you is invisible in the diff of the thing that broke.</strong> Nobody touched <code>format.js</code>. You had a real, load-bearing dependency on lodash and never wrote it down, so nothing in your tooling could protect it.</p>
+
+<p>The fix, obviously, is to declare what you use. The problem is that nothing <em>makes</em> you, and in a codebase with a few hundred files, phantom imports accumulate silently. Which is precisely the gap pnpm was built to close.</p>
+
+<h3>pnpm: a content-addressable store and a strict layout</h3>
+
+<p>pnpm is two separate ideas that people blur together, and you only need a sentence on each.</p>
+
+<p><strong>One: store every file once per machine.</strong> npm copies package files into each project. Twelve projects on React 18.3.1 means twelve copies on disk. pnpm keeps one global store keyed by file <em>content hash</em>, and links your project at it with <strong>hard links</strong> — a second name for the exact same bytes, free to create. So installing something you already have anywhere on the machine means no download and no copy. That's the whole reason "pnpm is faster and smaller"; it isn't a cleverer algorithm, it's just doing far less I/O.</p>
+
+<p><strong>Two: a strict, non-flat <code>node_modules</code>.</strong> This is the one that kills phantom dependencies. The top level of <code>node_modules</code> contains <strong>only your direct dependencies</strong> — exactly what's in your <code>package.json</code>. Everything else lives in a hidden <code>node_modules/.pnpm/</code>, symlinked so each package can reach only what it declared.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 300" role="img" aria-label="pnpm layout: top-level node_modules contains only direct dependencies, symlinked into a .pnpm folder that hard-links into a global store.">
+  <rect x="14" y="20" width="200" height="120" rx="9" class="sv-box"/>
+  <text x="28" y="44" class="sv-label" style="font-weight:700">node_modules/</text>
+  <text x="28" y="68" class="sv-mono">express →</text>
+  <text x="28" y="88" class="sv-mono">react   →</text>
+  <text x="28" y="118" class="sv-small">only what you declared</text>
+
+  <path d="M218 78 H 268" class="sv-stroke" marker-end="url(#ar2)"/>
+  <defs>
+    <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="currentColor" style="color:var(--muted)"/>
+    </marker>
+  </defs>
+  <text x="222" y="68" class="sv-small">symlink</text>
+
+  <rect x="272" y="20" width="210" height="180" rx="9" class="sv-box"/>
+  <text x="286" y="44" class="sv-label" style="font-weight:700">node_modules/.pnpm/</text>
+  <text x="286" y="70" class="sv-mono" style="font-size:11px">express@4.19.2/</text>
+  <text x="286" y="90" class="sv-mono" style="font-size:11px">react@18.3.1/</text>
+  <text x="286" y="110" class="sv-mono" style="font-size:11px">debug@4.3.4/</text>
+  <text x="286" y="130" class="sv-mono" style="font-size:11px">…every version, once</text>
+  <text x="286" y="164" class="sv-small">each with its own</text>
+  <text x="286" y="180" class="sv-small">symlinked deps</text>
+
+  <path d="M486 100 H 536" class="sv-stroke" marker-end="url(#ar2)"/>
+  <text x="486" y="90" class="sv-small">hard link</text>
+
+  <rect x="540" y="20" width="146" height="180" rx="9" class="sv-box" style="stroke:var(--accent)"/>
+  <text x="554" y="44" class="sv-label" style="font-weight:700;fill:var(--accent)">global store</text>
+  <text x="554" y="68" class="sv-small">~/.local/share/pnpm</text>
+  <text x="554" y="96" class="sv-small">every file on your</text>
+  <text x="554" y="112" class="sv-small">machine, stored</text>
+  <text x="554" y="128" class="sv-small">exactly once,</text>
+  <text x="554" y="144" class="sv-small">keyed by content hash</text>
+
+  <rect x="14" y="228" width="672" height="46" rx="8" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.2"/>
+  <text x="32" y="248" class="sv-label" style="fill:var(--good);font-weight:700">Consequence: `import 'debug'` from your app fails immediately.</text>
+  <text x="32" y="266" class="sv-small">It's not at the top level, so Node can't resolve it. Phantom dependencies become an install-time error, not a production incident.</text>
+</svg>
+</div>
+<figcaption>Strictness isn't pedantry here. It converts a class of bug that appears months later in production into an error you hit within seconds of writing the import.</figcaption>
+</figure>
+
+<p>This strictness is occasionally painful — some older packages genuinely rely on hoisting and break under pnpm. There are escape hatches (<code>public-hoist-pattern</code>, <code>shamefully-hoist</code> — the name is a good hint about how the maintainers feel). But it's the right default, and the failure mode is loud rather than silent.</p>
+
+<h3>Yarn, in brief</h3>
+
+<p><strong>Yarn 1 (Classic)</strong> mattered enormously in 2016 — it brought lockfiles, deterministic installs and offline caching to an npm that had none of them. npm then copied all of it. Yarn 1 is now maintenance-only, and its layout is flat and hoisted, so it has npm's phantom-dependency problem too.</p>
+
+<p><strong>Yarn Berry (2+)</strong> asks a genuinely interesting question: why have a <code>node_modules</code> folder at all? It's a lookup table implemented as a filesystem, resolved by <code>stat()</code>-ing your way up thousands of directories. <strong>Plug'n'Play</strong> replaces it with one generated map file (<code>.pnp.cjs</code>) pointing at zipped, never-unpacked packages. Installs get near-instant, phantom deps become impossible, and the cache is small enough to commit — "zero installs."</p>
+
+<p>The cost is compatibility: a decade of tooling assumes it can read files out of <code>node_modules</code> with plain <code>fs</code> calls. That friction is why PnP never took over, and why Berry also ships a conventional <code>node-modules</code> linker.</p>
+
+<h3>Comparing them honestly</h3>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th></th><th>npm</th><th>Yarn Berry</th><th>pnpm</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Layout</strong></td><td>flat, hoisted</td><td>PnP map (or node_modules)</td><td>symlinks + global store</td></tr>
+    <tr><td><strong>Speed</strong></td><td>fine; much better than it was</td><td>fastest with PnP</td><td>very fast, especially warm</td></tr>
+    <tr><td><strong>Disk</strong></td><td>full copy per project</td><td>compressed zips</td><td>best — one copy per machine</td></tr>
+    <tr><td><strong>Strictness</strong></td><td>none — phantoms possible</td><td>strict under PnP</td><td>strict</td></tr>
+    <tr><td><strong>Monorepos</strong></td><td>workspaces, basic</td><td>workspaces + constraints</td><td>excellent; <code>workspace:</code> protocol</td></tr>
+    <tr><td><strong>Compatibility</strong></td><td>perfect — it's the baseline</td><td>PnP needs tooling buy-in</td><td>very good; rare hoisting edge cases</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>A defensible position to hold in an interview: <em>npm if you want zero friction and ship-it-today compatibility; pnpm if you have a monorepo, care about disk and install time, or want correctness enforced; Yarn Berry if your team will invest in PnP and wants zero-installs.</em> Then add the point that actually matters — <strong>pick one and commit</strong>. Mixed package managers in one repo means multiple competing lockfiles, which is strictly worse than any single choice.</p>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood — how do you enforce "pick one"?</p>
+  <p>The <code>packageManager</code> field: <code>"packageManager": "pnpm@9.1.0"</code>. Node's Corepack reads it and makes sure the right manager <em>at the right version</em> is used, so a teammate running <code>npm i</code> in a pnpm repo gets stopped rather than generating a rogue <code>package-lock.json</code>. Pair it with <code>engines: { "node": "&gt;=20" }</code> and you've eliminated another chunk of "works on my machine."</p>
+</div>
+
+<hr>
+
+<h2 id="monorepo"><span class="num">Section 8</span>Monorepos, workspaces, and the task graph</h2>
+
+<p>A <strong>monorepo</strong> is one git repository containing several separately-versioned packages — a web app, an admin dashboard, a shared component library, a shared config package. Not one giant application; several distinct units that happen to share a repo and a toolchain.</p>
+
+<h3>The problem it solves</h3>
+
+<p>Start with the pain of <em>not</em> having one. Your design system lives in its own repo. You need to change a Button prop, which requires updating three apps that consume it. Today:</p>
+
+<ol>
+  <li>PR to the design system. Review. Merge.</li>
+  <li>Publish <code>@acme/ui@3.1.0</code> to the registry. Wait for CI.</li>
+  <li>PR to app one bumping the dependency. Discover a problem. Go back to step 1.</li>
+  <li>Repeat for apps two and three, which are now on three different versions of the design system.</li>
+</ol>
+
+<p>That's days of latency for a one-line change, four PRs that must be reviewed in isolation, and a window where your apps disagree about what a Button is. Monorepos fix this with:</p>
+
+<ul>
+  <li><strong>Atomic cross-package changes.</strong> One PR changes the Button <em>and</em> all three call sites. It's reviewed as one coherent unit, and CI verifies the whole thing together. There's never a moment where the repo is half-migrated.</li>
+  <li><strong>Shared tooling.</strong> One ESLint config, one TypeScript config, one CI setup, one Prettier version. Not eight slightly-drifted copies.</li>
+  <li><strong>One version of the truth.</strong> Every package uses the same React, the same test runner. You never debug "app A is on React 17 and app B is on 18."</li>
+  <li><strong>Discoverability.</strong> One clone, one search. You can find every usage of a component with a single grep.</li>
+</ul>
+
+<h3>And the problems it causes</h3>
+
+<p>I want to be fair here, because "monorepo good" is a shallow take and interviewers notice.</p>
+
+<ul>
+  <li><strong>Build and CI times.</strong> The naive setup runs every test in the repo on every PR. Change a README, wait 40 minutes. This gets bad fast.</li>
+  <li><strong>Tooling complexity.</strong> You now need a task runner, a caching strategy, a versioning/release tool. Your CI config stops being ten lines.</li>
+  <li><strong>Coupling by default.</strong> Because importing across packages is trivial, people do — and you can end up with a distributed monolith where nothing can be extracted.</li>
+  <li><strong>Repo weight.</strong> Clone times, editor indexing, and git operations all get slower.</li>
+  <li><strong>Ownership blur.</strong> Who reviews a PR that touches five packages owned by three teams?</li>
+</ul>
+
+<h3>Workspaces: the base primitive</h3>
+
+<p>Every serious package manager supports <strong>workspaces</strong>, and this is the layer everything else builds on. You declare which folders are packages:</p>
+
+<div class="codeblock">
+<div class="codelabel plain">root package.json (npm / yarn)</div>
+<pre><code>{
+  <span class="k">"name"</span>: <span class="s">"acme"</span>,
+  <span class="k">"private"</span>: true,               <span class="c">// 👈 stops you publishing the root by accident</span>
+  <span class="k">"workspaces"</span>: [<span class="s">"apps/*"</span>, <span class="s">"packages/*"</span>]
+}</code></pre>
+</div>
+
+<p>(pnpm uses a separate <code>pnpm-workspace.yaml</code> with the same idea.)</p>
+
+<p>Two things change when you do this. First, the app can depend on the local package by name — <code>"@acme/ui": "workspace:*"</code> — and the package manager <strong>symlinks the local folder</strong> into <code>node_modules</code> instead of downloading from the registry. Edit the library, the app sees it immediately. No publish, no version bump, no <code>npm link</code> pain.</p>
+
+<p>Second, dependencies are installed and deduplicated <strong>once at the root</strong>, and there's a <strong>single lockfile</strong> for the entire repo. So the whole guarantee we built up earlier now applies across every package simultaneously — one resolution, one reproducible tree, everywhere.</p>
+
+<p>Workspaces give you linking and installing. What they don't give you is any intelligence about <em>running tasks</em>. That's the next layer.</p>
+
+<h3>Turborepo and Nx: the task graph</h3>
+
+<p>Here's the problem workspaces leave on the table. You type <code>npm run build</code> at the root. Which order do things build in? The web app imports <code>@acme/ui</code>, so <code>@acme/ui</code> must build first. Nothing in <code>package.json</code> expresses that ordering.</p>
+
+<p>Turborepo and Nx let you declare it, then do something clever with it:</p>
+
+<div class="codeblock">
+<div class="codelabel plain">turbo.json</div>
+<pre><code>{
+  <span class="k">"tasks"</span>: {
+    <span class="k">"build"</span>: {
+      <span class="k">"dependsOn"</span>: [<span class="s">"^build"</span>],      <span class="c">// 👈 build my deps' `build` first</span>
+      <span class="k">"outputs"</span>: [<span class="s">"dist/**"</span>]
+    },
+    <span class="k">"test"</span>: { <span class="k">"dependsOn"</span>: [<span class="s">"build"</span>] }
+  }
+}</code></pre>
+</div>
+
+<p>That <code>^</code> means "in my dependencies." So the tool builds a <strong>task graph</strong> — nodes are (package, task) pairs, edges are ordering constraints — and runs it with maximum parallelism. But ordering isn't the selling point; two things the graph <em>enables</em> are.</p>
+
+<h4>Caching</h4>
+
+<p>Before running a task, the tool hashes everything that could change its output — source files, resolved dependency versions, task config, declared env vars — and uses that as a cache key. Seen this hash before? Don't run the task; <strong>replay the stored output</strong> (restore <code>dist/</code>, reprint the log) in milliseconds.</p>
+
+<p>Point that cache at shared storage — <strong>remote caching</strong> — and it stops being a local nicety. CI builds <code>@acme/ui</code> on your PR; your colleague who didn't touch it gets a cache hit and downloads the result instead of compiling; the production deploy hits it too. The interview framing: <strong>a given piece of work is done exactly once across the whole organisation.</strong> That's how a 20-minute CI run becomes 90 seconds.</p>
+
+<figure>
+<div class="svgwrap">
+<svg viewBox="0 0 700 230" role="img" aria-label="Task graph showing three packages, with two restored from cache and one rebuilt.">
+  <rect x="20" y="34" width="150" height="52" rx="8" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.3"/>
+  <text x="34" y="56" class="sv-mono" style="font-size:12px">@acme/config</text>
+  <text x="34" y="76" class="sv-small" style="fill:var(--good)">CACHE HIT · 40ms</text>
+
+  <rect x="20" y="120" width="150" height="52" rx="8" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.3"/>
+  <text x="34" y="142" class="sv-mono" style="font-size:12px">@acme/utils</text>
+  <text x="34" y="162" class="sv-small" style="fill:var(--good)">CACHE HIT · 31ms</text>
+
+  <path d="M174 60 C 210 60, 210 100, 246 100" class="sv-stroke" marker-end="url(#ar3)"/>
+  <path d="M174 146 C 210 146, 210 106, 246 106" class="sv-stroke" marker-end="url(#ar3)"/>
+  <defs>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="currentColor" style="color:var(--muted)"/>
+    </marker>
+  </defs>
+
+  <rect x="250" y="77" width="150" height="52" rx="8" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.3"/>
+  <text x="264" y="99" class="sv-mono" style="font-size:12px">@acme/ui</text>
+  <text x="264" y="119" class="sv-small" style="fill:var(--warn)">CHANGED · builds</text>
+
+  <path d="M404 103 H 446" class="sv-stroke" marker-end="url(#ar3)"/>
+
+  <rect x="450" y="77" width="150" height="52" rx="8" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.3"/>
+  <text x="464" y="99" class="sv-mono" style="font-size:12px">apps/web</text>
+  <text x="464" y="119" class="sv-small" style="fill:var(--warn)">AFFECTED · rebuilds</text>
+
+  <rect x="450" y="160" width="150" height="52" rx="8" class="sv-box" style="stroke-dasharray:4 4"/>
+  <text x="464" y="182" class="sv-mono" style="font-size:12px">apps/docs</text>
+  <text x="464" y="202" class="sv-small">SKIPPED entirely</text>
+
+  <text x="20" y="205" class="sv-small">You edited one file in @acme/ui. The graph decides everything else.</text>
+</svg>
+</div>
+<figcaption>Affected-only execution: the graph knows <code>apps/docs</code> doesn't depend on <code>@acme/ui</code>, so it isn't built or tested at all.</figcaption>
+</figure>
+
+<h4>Affected-only execution</h4>
+
+<p>The same graph answers the CI-time question: given the files this PR changed, which packages could possibly be impacted? Diff against the base branch, map changed files to packages, walk the graph <em>upward</em> to everything that depends on them, and run tasks for only that set.</p>
+
+<p>This is what makes monorepo CI scale. A change in <code>apps/docs</code> shouldn't test the checkout flow, and with a task graph, it doesn't.</p>
+
+<p>The difference between the two tools, briefly: <strong>Turborepo</strong> is deliberately minimal — it orchestrates and caches the scripts you already have, and you can adopt it in an afternoon. <strong>Nx</strong> is a fuller platform: same graph and caching, plus code generators, enforced module boundaries (lint rules that forbid certain packages importing others), and deep framework integrations. Turborepo for "I want fast CI"; Nx for "I want an opinionated platform for a large org."</p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — what about versioning and publishing?</p>
+  <p>Separate concern, separate tool. <strong>Changesets</strong> is the common answer: contributors add a small markdown file describing their change and its semver bump, and a release job aggregates them into version bumps, changelogs, and publishes — including cascading bumps to dependent packages. Lerna used to own this space and still works; Changesets is the more current default for JS libraries.</p>
+</div>
+
+<h3>When a monorepo is NOT worth it</h3>
+
+<p>Say this part unprompted and you'll stand out, because it shows you're evaluating rather than following fashion.</p>
+
+<ul>
+  <li><strong>One app, one team.</strong> Then it's not a monorepo, it's a repo. Don't add a task runner to a single Next.js project.</li>
+  <li><strong>Packages that genuinely don't share code.</strong> If the only thing your repos have in common is that the same company owns them, you're paying the tooling cost for none of the atomic-change benefit.</li>
+  <li><strong>Genuinely independent release cadences with external consumers.</strong> An SDK shipped to third parties on its own schedule often wants its own repo, its own issue tracker, and its own release history.</li>
+  <li><strong>No appetite for build-infrastructure ownership.</strong> A monorepo makes build tooling a permanent, staffed responsibility. If nobody will own it, CI times will rot and everyone will blame "the monorepo."</li>
+  <li><strong>Hard access boundaries.</strong> If some code must be visible to only a subset of engineers, repo-level permissions are a much simpler answer than path-based access control.</li>
+</ul>
+
+<hr>
+
+<h2 id="supplychain"><span class="num">Section 9</span><code>npm audit</code> and the supply chain</h2>
+
+<p>One more thread, and it ties the whole guide together — because supply-chain risk is the reason a lot of these defaults are what they are.</p>
+
+<p>You have ~900 packages in your tree. You chose maybe 15 of them. The other 885 arrived because of transitive resolution, written by people you've never heard of, and their code runs with the same privileges as yours — in your build, on your CI machine (which has deploy credentials), and often in your users' browsers.</p>
+
+<h3>What <code>npm audit</code> actually does</h3>
+
+<p>It takes the list of exact versions from your <strong>lockfile</strong> (note the dependency on everything we built earlier — without a lockfile there's no precise list to check), sends it to a service backed by the GitHub Advisory Database, and gets back "these versions of these packages have known reported vulnerabilities." It then reports them by severity and, where a compatible fixed version exists, offers <code>npm audit fix</code>.</p>
+
+<p>It's a genuinely useful hygiene tool. It's also widely misunderstood, and understanding its limits is the more interesting half.</p>
+
+<h3>The limits</h3>
+
+<ul>
+  <li><strong>No reachability analysis.</strong> It flags a package version, not a code path. A ReDoS vulnerability in an argument parser used only by a build script you run locally gets the same "high severity" badge as an auth bypass in your session library. This produces enormous noise, and noise trains teams to ignore the tool — which is the real damage.</li>
+  <li><strong>Dev dependencies are counted.</strong> Much of a typical report is build tooling that never touches production. <code>npm audit --omit=dev</code> gives a far more honest picture of shipped risk.</li>
+  <li><strong>It only knows what's been reported.</strong> A malicious package uploaded yesterday isn't in any database. Audit is a rear-view mirror; the highest-impact attacks are, by definition, not in it yet.</li>
+  <li><strong><code>npm audit fix --force</code> is dangerous.</strong> The plain version only applies fixes inside your declared ranges. Add <code>--force</code> and it will happily push through <em>major</em> upgrades to make the report green. You can trade a theoretical vulnerability for a real broken build. Run it, then read the diff.</li>
+  <li><strong>Sometimes there is no fix.</strong> A transitive dep four levels down with no patched release. Your options are <code>overrides</code> in <code>package.json</code> to force a patched version, replacing the top-level dependency, or documenting an accepted risk. All three are legitimate; pretending the number is zero isn't.</li>
+</ul>
+
+<h3>How supply-chain risk shapes everything else</h3>
+
+<p>Three connections worth making, because they reframe decisions from earlier in the guide:</p>
+
+<ul>
+  <li><strong>The lockfile is a security control, not just a reproducibility one.</strong> Integrity hashes mean a tampered tarball fails the install, and pinned transitive versions mean a package compromised at 3am reaches you as <em>a PR someone reviews</em>, not as a silent update.</li>
+  <li><strong>Install scripts are the sharp end.</strong> Packages run arbitrary code on <code>postinstall</code> — on your laptop and on CI, which holds deploy credentials. That's how most real npm compromises actually executed. <code>--ignore-scripts</code> shuts it off (some native modules genuinely need them).</li>
+  <li><strong>Fewer dependencies is a real strategy.</strong> Every package is a trust relationship with a stranger. "Do we need a library for this?" is a security question, not only a bundle-size one.</li>
+</ul>
+
+<div class="callout misc">
+  <p class="ctitle">A trap to avoid saying</p>
+  <p>"We run <code>npm audit</code> in CI and fail the build on any vulnerability."</p>
+  <p>It sounds rigorous, and it's how teams end up with a permanently red pipeline that everyone routes around with <code>--audit-level=none</code>. A better answer: audit runs and reports; the build fails on <em>high and critical in production dependencies</em>; a bot proposes routine upgrades; and someone actually triages the rest on a schedule. Security controls that get bypassed are worse than none, because they also generate false confidence.</p>
+</div>
+
+<hr>
+
+<h2 id="interview"><span class="num">Section 10</span>The interview layer</h2>
+
+<p>This topic gets asked in two very different registers, and it helps to know which one you're in.</p>
+
+<p><strong>Recall</strong> sounds like: "what's the difference between <code>^</code> and <code>~</code>?" There's a right answer and you say it in one sentence.</p>
+
+<p><strong>Depth</strong> sounds like: "walk me through what happens when CI installs dependencies," or "a build broke and nobody changed code — how do you debug it?" These are open, and they're really asking: <em>have you operated a real project, or have you only read about one?</em> The tell is whether you naturally reach for the lockfile.</p>
+
+<h3>How this gets asked</h3>
+
+<ul>
+  <li>"What's the difference between <code>package.json</code> and <code>package-lock.json</code>?"</li>
+  <li>"Should the lockfile be committed? Why?"</li>
+  <li>"What's the difference between <code>npm install</code> and <code>npm ci</code>?"</li>
+  <li>"Explain semantic versioning. What does <code>^1.2.3</code> allow?"</li>
+  <li>"What's a peer dependency? Why does a React component library use one?"</li>
+  <li>"Have you used pnpm? What's the advantage?"</li>
+  <li>"How would you structure a repo with a shared component library and three apps?"</li>
+</ul>
+
+<h3>The model answer</h3>
+
+<div class="model">
+  <p class="mtag">Say this out loud — "package.json vs the lockfile"</p>
+  <p class="said">"<code>package.json</code> records my <em>intent</em> — usually a range like <code>^18.2.0</code>, meaning any 18.x. The lockfile records the <em>result</em> of resolving all those ranges: the exact version of every package including all the transitive ones, plus where it came from and an integrity hash. That distinction matters because a range resolves against whatever the registry contains at that moment — so without a lockfile, two installs a week apart from identical source can produce different <code>node_modules</code>. That's the classic 'works on my machine but CI broke and nobody changed code' bug. We commit the lockfile so every machine gets the same tree, and CI runs <code>npm ci</code>, which installs the lockfile exactly and fails if it's drifted from <code>package.json</code>, rather than <code>npm install</code>, which will quietly re-resolve and rewrite it."</p>
+</div>
+
+<p><strong>Why that lands:</strong> it never defines a term with the term. It names the mechanism (ranges resolve against a moving registry), attaches it to a failure everyone has lived through, and ends with an operational decision. That arc — mechanism, consequence, decision — is the shape of an answer from someone who has actually shipped software.</p>
+
+<h3>Follow-ups, with answers</h3>
+
+<details class="qa">
+  <summary>Why commit the lockfile?</summary>
+  <p>Reproducibility first: everyone and every CI run gets a byte-identical tree, so bugs reproduce and "works on my machine" becomes debuggable. Then auditability — dependency changes become a reviewable diff in git history, so upgrades are deliberate and attributable rather than ambient. Then security: the integrity hashes mean a tampered or republished tarball fails the install instead of being silently used. And it's faster, because there's no resolution step.</p>
+</details>
+
+<details class="qa">
+  <summary>What's the actual difference between <code>npm install</code> and <code>npm ci</code>?</summary>
+  <p><code>npm install</code> reconciles: it makes the tree satisfy <code>package.json</code>, re-resolving where needed, installing on top of existing <code>node_modules</code>, and writing back to the lockfile. <code>npm ci</code> reproduces: it deletes <code>node_modules</code>, installs exactly what the lockfile says with no resolution at all, never writes to <code>package.json</code> or the lockfile, errors if there's no lockfile, and errors if the lockfile and <code>package.json</code> disagree. That last behaviour is the one I care about most in CI — it turns silent drift into a build failure.</p>
+</details>
+
+<details class="qa">
+  <summary>What does the caret actually allow?</summary>
+  <p><code>^1.2.3</code> means <code>&gt;=1.2.3 &lt;2.0.0</code> — minor and patch can move, major can't. <code>~1.2.3</code> is tighter: <code>&gt;=1.2.3 &lt;1.3.0</code>, patch only. The caret is npm's default when you install something, on the bet that authors follow semver so you passively pick up bug fixes. The precise rule is that the caret allows changes that don't modify the left-most non-zero position, which is what makes the <code>0.x</code> case behave differently.</p>
+</details>
+
+<details class="qa">
+  <summary>Why doesn't <code>^0.2.0</code> update to <code>0.3.0</code>?</summary>
+  <p>Because under semver, major version zero means the API is explicitly unstable — there's no bigger number to bump when you break something, so authors use the minor position for breaking changes. npm honours that: <code>^0.2.0</code> resolves to <code>&gt;=0.2.0 &lt;0.3.0</code>, so the caret behaves like a tilde. And it goes one further — <code>^0.0.3</code> means <code>&gt;=0.0.3 &lt;0.0.4</code>, effectively an exact pin. The general rule is "don't modify the left-most non-zero position."</p>
+</details>
+
+<details class="qa">
+  <summary>When would you pin an exact version?</summary>
+  <p>When a package has burned us before with a bad minor or patch, or is core enough that an unattended upgrade is unacceptable. When we need to hold a specific version temporarily while a regression is investigated upstream. And for tools where the output must be byte-identical across machines — a formatter or a compiler — because a patch bump that reformats everything creates enormous diff noise. I'd add that with a committed lockfile, pinning in <code>package.json</code> is more about signalling intent to teammates and to upgrade bots than about the install itself, since the lockfile already fixes the version. For a published library I'd avoid exact pins, because they stop consumers deduping and force duplicate copies into their tree.</p>
+</details>
+
+<details class="qa">
+  <summary>What's a peer dependency, and why does React use one?</summary>
+  <p>It's a declaration that says "I need this package to be present in the final app, at this version range, but I'm not going to install it — I'll use the host's copy." A React component library peer-depends on React because React must be a <em>single shared instance</em>. If the library brought its own, you could end up with two copies of React in the tree, and that breaks in serious ways. Since npm 7, peers are auto-installed and conflicting peer ranges cause an <code>ERESOLVE</code> failure rather than a warning. I'd also put React in my own <code>devDependencies</code> so I can run tests and a dev server locally.</p>
+</details>
+
+<details class="qa">
+  <summary>What breaks if there are two copies of React?</summary>
+  <p>Hooks, most visibly. <code>useState</code> doesn't hold the logic itself — it reads a "current dispatcher" variable stored inside the <code>react</code> module. Each copy on disk is a separate module instance with its own copy of that variable, so <code>react-dom</code> wires up copy A while your component reads from copy B, which is null. You get "Invalid hook call," which is confusing because the component looks completely correct. Context breaks too, and more quietly: <code>createContext</code> returns a unique object, so a Provider from one copy and a consumer from the other never match, and the consumer silently falls back to the default value. You can confirm it with <code>npm ls react</code> — if more than one version shows up, that's your answer.</p>
+</details>
+
+<details class="qa">
+  <summary>What's a phantom dependency?</summary>
+  <p>A package you can import successfully even though it's not in your <code>package.json</code>. It happens because npm and yarn hoist transitive dependencies to the top level of <code>node_modules</code>, and Node's resolver can't tell the difference between "you asked for this" and "something else did." It works fine until the package that was actually pulling it in changes its own dependencies — then the import disappears and your app breaks, with nothing in your own diff to explain it. pnpm prevents it structurally: only your declared dependencies are at the top level, so an undeclared import fails immediately.</p>
+</details>
+
+<details class="qa">
+  <summary>Why is pnpm faster and smaller?</summary>
+  <p>Two things. It keeps one global content-addressable store, indexed by file hash, so a given file exists once per machine — and it hard-links from that store into your project rather than copying, which means installing something you already have anywhere involves no download and no copy. And its <code>node_modules</code> is a symlink structure rather than a flat copy, so building it is cheap. The strictness of that structure is arguably the bigger win: only declared dependencies are at the top level, so phantom dependencies become impossible. The main gotcha is that hard links can't cross filesystems, so if the store is on a different volume — a common Docker setup — it falls back to copying.</p>
+</details>
+
+<details class="qa">
+  <summary>How do you resolve a lockfile merge conflict?</summary>
+  <p>Never by hand — it's a generated artefact and hand-merging produces a tree that looks plausible and installs something wrong. I merge <code>package.json</code> manually, since that's real source and I need both people's new dependencies. Then I discard the conflicted lockfile — take either side — and run <code>npm install</code> to regenerate it from the merged intent, then <code>npm ci &amp;&amp; npm test</code> to verify before committing. Modern npm can auto-resolve conflict markers for you. I'd also add <code>package-lock.json merge=binary linguist-generated=true</code> to <code>.gitattributes</code> so git doesn't try a text merge and PR diffs stay readable.</p>
+</details>
+
+<details class="qa">
+  <summary>Should a library commit a lockfile?</summary>
+  <p>It's worth committing for the library's own CI and contributors, so test runs are reproducible — but it's important to understand it has no authority over consumers. It isn't published in the tarball, and when someone installs the library, npm resolves the library's <code>package.json</code> ranges against <em>their</em> tree. There's a real risk in relying on it: if CI only ever tests one frozen resolution, you never find out that your declared <code>^2.0.0</code> range is broken against <code>2.9.0</code>. So mature libraries add a CI job that installs without the lockfile, to test the promise they actually made. The exception is <code>npm-shrinkwrap.json</code>, which <em>does</em> publish and <em>does</em> bind consumers — reasonable for a global CLI tool, antisocial for a normal library.</p>
+</details>
+
+<details class="qa">
+  <summary>Why not just delete node_modules and reinstall whenever something's weird?</summary>
+  <p>It often works, which is exactly the problem — it resolves the symptom without telling you the cause, and the cause is usually one of a few specific things: your local tree is stale relative to the lockfile, or someone hand-edited <code>package.json</code>, or you have duplicate copies of a package with shared state. <code>npm ci</code> is the disciplined version of the same instinct: it's a guaranteed clean install <em>and</em> it fails loudly if the lockfile and <code>package.json</code> disagree, so you learn something. And <code>npm ls &lt;package&gt;</code> tells you if you've got duplicates before you nuke anything.</p>
+</details>
+
+<details class="qa">
+  <summary>Why not just put everything in <code>dependencies</code> and stop thinking about it?</summary>
+  <p>For a bundled frontend app you'd mostly get away with it, because the bundler decides what ships by following imports, not by reading the <code>dependencies</code> field. But it breaks in two places that matter. For a published library, everything in <code>dependencies</code> gets installed into every consumer's tree — that's how a 12 KB package ends up costing 4 MB. And for anything deployed as a server or a Docker image, production installs run <code>--omit=dev</code>, so the split is what keeps images small and reduces attack surface. It's also documentation: the split tells the next person what's load-bearing at runtime.</p>
+</details>
+
+<h3>Traps</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Don't say</th><th>Say instead</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>"The lockfile locks the versions in package.json."</td>
+      <td>"<code>package.json</code> already holds ranges — the lockfile pins the <em>resolved tree</em>, including all the transitive dependencies that <code>package.json</code> says nothing about."</td>
+    </tr>
+    <tr>
+      <td>"<code>npm ci</code> is just a faster <code>npm install</code>."</td>
+      <td>"It's faster because it skips resolution — but the point is that it's <em>strict</em>: it never writes the lockfile and it fails when the lockfile has drifted."</td>
+    </tr>
+    <tr>
+      <td>"<code>^</code> means only patch updates."</td>
+      <td>"<code>^</code> is minor <em>and</em> patch. <code>~</code> is patch only."</td>
+    </tr>
+    <tr>
+      <td>"devDependencies aren't in the bundle."</td>
+      <td>"The bundler decides that by following imports. The dev/prod split matters for published libraries and for production installs that use <code>--omit=dev</code>."</td>
+    </tr>
+    <tr>
+      <td>"<code>--legacy-peer-deps</code> forces the install."</td>
+      <td>"It makes npm ignore <code>peerDependencies</code> entirely, like npm 6 did. It doesn't fix a conflict — it stops checking. Usually the right fix is <code>overrides</code>."</td>
+    </tr>
+    <tr>
+      <td>"Monorepos are better."</td>
+      <td>"They're a trade: atomic cross-package changes and shared tooling, at the cost of CI scope and build tooling somebody has to own. Worth it when packages actually share code and change together."</td>
+    </tr>
+    <tr>
+      <td>"We keep <code>npm audit</code> at zero."</td>
+      <td>"We fail on high/critical in production deps and triage the rest, because audit has no reachability analysis and a permanently red pipeline just gets bypassed."</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<hr>
+
+<h2 id="cheat"><span class="num">Section 11</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<dl class="cheat">
+  <dt>package.json</dt>
+  <dd>Your intent. Ranges, not versions. A shopping list.</dd>
+
+  <dt>package-lock.json</dt>
+  <dd>The resolved result: exact version + registry URL + integrity hash for every package, transitive ones included. A receipt.</dd>
+
+  <dt>Why builds drift</dt>
+  <dd>A range resolves against the registry <em>at install time</em>, and the registry changes daily. Same source, different tree.</dd>
+
+  <dt>npm install</dt>
+  <dd>Reconciles the tree to package.json; may re-resolve and rewrite the lockfile. For humans.</dd>
+
+  <dt>npm ci</dt>
+  <dd>Wipes node_modules, installs the lockfile exactly, never writes it, fails on drift or a missing lockfile. For CI.</dd>
+
+  <dt>MAJOR.MINOR.PATCH</dt>
+  <dd>Major = I broke something. Minor = new stuff, nothing broken. Patch = bug fix.</dd>
+
+  <dt>^1.2.3</dt>
+  <dd>&ge;1.2.3 &lt;2.0.0 — minor + patch. npm's default.</dd>
+
+  <dt>~1.2.3</dt>
+  <dd>&ge;1.2.3 &lt;1.3.0 — patch only.</dd>
+
+  <dt>^0.2.3</dt>
+  <dd>&ge;0.2.3 &lt;0.3.0. Caret never modifies the left-most non-zero position. <code>^0.0.3</code> is effectively exact.</dd>
+
+  <dt>Pre-release (1.0.0-beta.1)</dt>
+  <dd>Sorts <em>before</em> 1.0.0, and normal ranges never pick one up unless you opt in.</dd>
+
+  <dt>Semver's honest caveat</dt>
+  <dd>A human promise, not a mechanism. Accidental breaking minors are exactly why lockfiles exist.</dd>
+
+  <dt>Commit the lockfile because</dt>
+  <dd>Reproducibility, auditable diffs, integrity hashes catch tampering, faster installs.</dd>
+
+  <dt>Libraries</dt>
+  <dd>Commit for your own CI, but it binds nobody — consumers resolve your ranges against their tree. <code>npm-shrinkwrap.json</code> is the one that does publish.</dd>
+
+  <dt>Lockfile conflicts</dt>
+  <dd>Merge package.json by hand, discard the lockfile, regenerate with install, verify with ci. Never hand-edit.</dd>
+
+  <dt>dependencies vs devDependencies</dt>
+  <dd>Does the running app need it? Matters most for published libraries and production installs using <code>--omit=dev</code>.</dd>
+
+  <dt>peerDependencies</dt>
+  <dd>"The host must provide this; I won't install it." For shared singletons — React, ESLint, a framework.</dd>
+
+  <dt>Two copies of React</dt>
+  <dd>Separate module instances = separate internal dispatcher variables → "Invalid hook call." Context silently mismatches too. Check with <code>npm ls react</code>.</dd>
+
+  <dt>--legacy-peer-deps</dt>
+  <dd>Ignores peerDependencies entirely (npm 6 behaviour). It silences, it doesn't fix. Prefer <code>overrides</code>.</dd>
+
+  <dt>bundledDependencies</dt>
+  <dd>Ships those packages' files inside your published tarball. Rare — CLI tools, air-gapped installs.</dd>
+
+  <dt>Phantom dependency</dt>
+  <dd>An import that works only because hoisting parked a transitive dep at the top level. Breaks later, with nothing in your diff.</dd>
+
+  <dt>pnpm</dt>
+  <dd>Global content-addressable store + hard links = one copy per machine. Strict non-flat node_modules = no phantoms.</dd>
+
+  <dt>Yarn PnP</dt>
+  <dd>No node_modules at all — a generated resolution map plus zipped packages. Fastest, but needs tooling buy-in.</dd>
+
+  <dt>Workspaces</dt>
+  <dd>The base primitive: local packages symlinked, deps hoisted to root, one lockfile for the repo.</dd>
+
+  <dt>Turborepo / Nx</dt>
+  <dd>A task graph over workspaces. Real value = content-hash caching (shared remotely, so work is done once org-wide) and affected-only execution.</dd>
+
+  <dt>Monorepo trade</dt>
+  <dd>Buys atomic cross-package changes and shared tooling; costs CI scope, tooling ownership, and easy over-coupling.</dd>
+
+  <dt>npm audit</dt>
+  <dd>Checks lockfile versions against the advisory DB. No reachability analysis, includes dev deps, only knows reported issues, and <code>fix --force</code> can push major bumps.</dd>
+
+  <dt>Supply chain</dt>
+  <dd>~900 strangers' code runs in your build and on CI. Lockfiles + bot-proposed upgrades + <code>--ignore-scripts</code> + fewer deps.</dd>
+</dl>
+
+<hr>
+
+<h2>Back to Tuesday</h2>
+
+<p>Let's close the loop. Same red build, but now you know what you're looking at.</p>
+
+<p>Your first move isn't to re-run CI — it's <code>git diff</code> on the lockfile, which shows nothing, because CI regenerated it in a container you can't see. So your second move is to notice that CI runs <code>npm install</code>. That's the bug. Not the PostCSS plugin, not the code, not the machine: the pipeline was allowed to resolve fresh versions, so the lockfile you carefully committed was never being honoured.</p>
+
+<p>You change one line in the workflow, <code>npm install</code> → <code>npm ci</code>, and now CI installs precisely the tree your laptop has. Green. Then, separately and deliberately, you open a PR that bumps that plugin to <code>4.2.0</code> — and <em>that</em> PR goes red, on its own, in an isolated diff that says exactly what changed and why. Which is the whole point. The upgrade didn't stop being a problem; it stopped being a <em>mystery</em>.</p>
+
+<p>That's really all any of this is. <code>package.json</code> says what you'd accept. The lockfile says what you actually got. <code>npm ci</code> insists that they agree. Everything else — peer dependencies, pnpm's strict layout, a monorepo's task graph — is the same instinct applied at a different altitude: <strong>make the invisible thing explicit, so that when it changes, somebody notices.</strong></p>
+
+<p>Go get the job. 🚀</p>
+
+<footer class="end">
+  <p>Guide 20 · package.json, lockfiles, semantic versioning, dependency types, package managers, and monorepo tooling.</p>
+</footer>
+
+</div>
+</body>
+</html>

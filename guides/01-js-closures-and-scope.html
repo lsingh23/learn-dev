@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closures, Scope &amp; Hoisting</title>
+<style>
+  :root {
+    --ink: #1f2430;
+    --ink-soft: #4a5262;
+    --paper: #fdfcfa;
+    --rule: #e6e2db;
+    --accent: #6741d9;
+    --accent-soft: #f3efff;
+    --green: #157f52;
+    --green-soft: #edfaf3;
+    --red: #c02c3c;
+    --red-soft: #fdf0f1;
+    --amber: #9a6400;
+    --amber-soft: #fff8e8;
+    --blue: #15607a;
+    --blue-soft: #eef7fb;
+    --code-bg: #201f2e;
+    --code-ink: #e8e6f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 140px;
+  }
+
+  header.hero {
+    padding: 72px 0 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 40px;
+  }
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.6rem;
+    line-height: 1.12;
+    letter-spacing: -0.022em;
+    margin: 0 0 16px;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+    margin: 68px 0 6px;
+    padding-top: 16px;
+    border-top: 3px solid var(--ink);
+  }
+  h2 .num {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  h3 {
+    font-size: 1.24rem;
+    letter-spacing: -0.01em;
+    margin: 42px 0 4px;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 30px 0 2px;
+    color: var(--ink);
+  }
+
+  p { margin: 16px 0; }
+
+  a { color: var(--accent); }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.87em;
+  }
+
+  p > code, li > code, td > code, summary > code, h3 > code, h4 > code, h2 > code {
+    background: #efece6;
+    border-radius: 4px;
+    padding: 0.12em 0.36em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    line-height: 1.62;
+    margin: 18px 0;
+  }
+  pre code { font-size: 15px; }
+
+  .cm { color: #9c98c4; font-style: italic; }
+  .out { color: #7ee0b0; font-style: italic; }
+  .kw { color: #ff9ec4; }
+  .str { color: #ffd291; }
+
+  /* labelled code blocks */
+  .snippet { margin: 22px 0; }
+  .snippet > .label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 8px 8px 0 0;
+    display: block;
+  }
+  .snippet > .label + pre {
+    margin-top: 0;
+    border-radius: 0 0 10px 10px;
+  }
+  .bad > .label { background: var(--red); color: #fff; }
+  .good > .label { background: var(--green); color: #fff; }
+  .neutral > .label { background: #3c3a52; color: #ded9f2; }
+
+  /* callouts */
+  .box {
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 26px 0;
+    border-left: 4px solid;
+    font-size: 0.97rem;
+  }
+  .box .box-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .box p:first-of-type { margin-top: 0; }
+  .box p:last-child { margin-bottom: 0; }
+
+  .wait { background: var(--blue-soft); border-color: var(--blue); }
+  .wait .box-title { color: var(--blue); }
+
+  .myth { background: var(--red-soft); border-color: var(--red); }
+  .myth .box-title { color: var(--red); }
+
+  .hood { background: #f4f2ef; border-color: #8a8478; }
+  .hood .box-title { color: #6d675c; }
+
+  .iv { background: var(--accent-soft); border-color: var(--accent); }
+  .iv .box-title { color: var(--accent); }
+
+  .answer {
+    background: var(--green-soft);
+    border-color: var(--green);
+  }
+  .answer .box-title { color: var(--green); }
+
+  /* spoken model answer */
+  .say {
+    font-size: 1.02rem;
+    line-height: 1.72;
+    border-left: 4px solid var(--accent);
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .say::before {
+    content: "Say this out loud";
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 18px;
+    margin: 20px 0;
+    background: #fff;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 10px; }
+  details > *:last-child { margin-bottom: 0; }
+
+  .followups details { background: #fbfaf8; }
+
+  /* TOC */
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 0 0 20px;
+  }
+  nav.toc h2 {
+    all: unset;
+    display: block;
+    font-size: 0.76rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 5px 0; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 22px 0;
+    font-size: 0.94rem;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f4f2ef; font-weight: 650; }
+
+  figure { margin: 30px 0; }
+  figure svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 12px;
+    font-style: italic;
+  }
+
+  ul, ol { padding-left: 24px; }
+  li { margin: 7px 0; }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 44px 0;
+  }
+
+  .cheat h3 { margin-top: 26px; }
+  .cheat p { margin: 8px 0; }
+
+  .lead {
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    header.hero h1 { font-size: 2rem; }
+    header.hero { padding-top: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview prep · JavaScript</p>
+  <h1>Closures, Scope &amp; Hoisting</h1>
+  <p>The three things that show up in nearly every frontend interview — and the mental model that makes all three of them obvious at the same time.</p>
+</header>
+
+<p class="lead">Let me start with a piece of code that has ruined a lot of interviews.</p>
+
+<div class="snippet neutral">
+  <span class="label">What does this log?</span>
+<pre><code><span class="kw">for</span> (<span class="kw">var</span> i = 0; i &lt; 3; i++) {
+  setTimeout(() =&gt; console.log(i), 100);
+}</code></pre>
+</div>
+
+<p>Take a guess before you scroll. Genuinely — commit to an answer in your head. Most people say <code>0 1 2</code>, because that's obviously what the loop is doing.</p>
+
+<details>
+  <summary>Show me the actual output</summary>
+  <pre><code><span class="out">3
+3
+3</span></code></pre>
+  <p>Three threes. Not <code>0 1 2</code>. And if you change exactly one word — <code>var</code> to <code>let</code> — you get <code>0 1 2</code> again.</p>
+</details>
+
+<p>That single word changing the output is deeply weird if you think of <code>var</code> and <code>let</code> as "the same thing, but one's newer." They're not. And the reason they're not is the same reason closures work, which is the same reason hoisting works, which is the same reason the Temporal Dead Zone exists.</p>
+
+<p>All of it is one idea wearing four different hats. We're going to build that idea from the ground up, and by the end that loop won't just make sense — you'll be able to explain it out loud to a stranger in an interview room without hedging.</p>
+
+<p>I'm not going to assume you know what "scope" means. We start there.</p>
+
+<nav class="toc">
+  <h2>What we're covering</h2>
+  <ol>
+    <li><a href="#scope">Where do variables actually live?</a></li>
+    <li><a href="#lexical">Lexical scope and the scope chain</a></li>
+    <li><a href="#var-let-const"><code>var</code> vs <code>let</code> vs <code>const</code></a></li>
+    <li><a href="#const-immutable">Is <code>const</code> immutable? (No.)</a></li>
+    <li><a href="#hoisting">Hoisting: the creation phase</a></li>
+    <li><a href="#tdz">The Temporal Dead Zone</a></li>
+    <li><a href="#closures">Closures</a></li>
+    <li><a href="#loop">The loop puzzle, finally solved</a></li>
+    <li><a href="#usecases">Real closure use cases (not counters)</a></li>
+    <li><a href="#memory">Closures and memory leaks</a></li>
+    <li><a href="#iife">IIFEs and the module pattern</a></li>
+    <li><a href="#react">Why closures matter in React</a></li>
+    <li><a href="#followups">The follow-up questions</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="scope"><span class="num">Part 1</span>Where do variables actually live?</h2>
+
+<p>Here's a question that sounds too simple to be worth asking: when you write <code>const cartTotal = 40</code>, where does that value go?</p>
+
+<p>"In memory" is true but useless. The useful answer is: JavaScript keeps a <strong>lookup table</strong> for every region of your code. Name on the left, value on the right. When the engine needs to know what <code>cartTotal</code> is, it looks in the table.</p>
+
+<p>The spec calls this table an <strong>Environment Record</strong>. Everybody else calls it a <strong>scope</strong>. They're the same thing, and I'll use "scope" because that's the word the interviewer will use.</p>
+
+<p>Every time the engine enters a new region of code, it makes a fresh table:</p>
+
+<pre><code><span class="kw">const</span> currency = <span class="str">"CAD"</span>;          <span class="cm">// goes in the GLOBAL table</span>
+
+<span class="kw">function</span> checkout(items) {
+  <span class="kw">const</span> cartTotal = 40;         <span class="cm">// goes in checkout's OWN table</span>
+  <span class="kw">return</span> `${cartTotal} ${currency}`;
+}</code></pre>
+
+<p>Two tables. The global one holds <code>currency</code> and <code>checkout</code>. The one created when <code>checkout</code> runs holds <code>items</code> and <code>cartTotal</code>.</p>
+
+<p>But hm — <code>checkout</code> uses <code>currency</code>, and <code>currency</code> isn't in <code>checkout</code>'s table. How does that work?</p>
+
+<h3>Tables have a parent</h3>
+
+<p>Each table carries a pointer to the table it was born inside. When the engine looks up a name and doesn't find it, it doesn't give up — it follows that pointer up to the parent table and looks again. Then that table's parent. And so on, until it either finds the name or runs out of tables and throws <code>ReferenceError</code>.</p>
+
+<p>That chain of tables is the <strong>scope chain</strong>. Here's what it looks like for the code above:</p>
+
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="Diagram of nested scope tables with a parent pointer from checkout's scope to global scope">
+  <rect x="20" y="20" width="600" height="260" rx="10" fill="#f3efff" stroke="#6741d9" stroke-width="2"/>
+  <text x="40" y="48" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#6741d9">GLOBAL SCOPE</text>
+  <text x="40" y="76" font-family="ui-monospace, monospace" font-size="14" fill="#1f2430">currency  →  "CAD"</text>
+  <text x="40" y="100" font-family="ui-monospace, monospace" font-size="14" fill="#1f2430">checkout  →  ƒ</text>
+  <text x="40" y="128" font-family="system-ui, sans-serif" font-size="12.5" font-style="italic" fill="#4a5262">parent: none (top of the chain)</text>
+
+  <rect x="60" y="150" width="520" height="110" rx="10" fill="#eef7fb" stroke="#15607a" stroke-width="2"/>
+  <text x="80" y="178" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#15607a">checkout() SCOPE</text>
+  <text x="80" y="206" font-family="ui-monospace, monospace" font-size="14" fill="#1f2430">items      →  [ … ]</text>
+  <text x="80" y="230" font-family="ui-monospace, monospace" font-size="14" fill="#1f2430">cartTotal  →  40</text>
+  <text x="80" y="252" font-family="system-ui, sans-serif" font-size="12.5" font-style="italic" fill="#4a5262">parent: global ↑</text>
+
+  <path d="M 520 200 L 520 110" stroke="#15607a" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <text x="530" y="160" font-family="system-ui, sans-serif" font-size="12.5" fill="#15607a">look here next</text>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#15607a"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>Lookup starts at the innermost table and walks outward. It never walks inward.</figcaption>
+</figure>
+
+<p>That last sentence matters more than it looks. The chain only goes <em>up</em>. Global code can't see inside <code>checkout</code>, because <code>checkout</code>'s table isn't on global's chain. That's why the inside of a function is private by default — and that privacy is the seed of everything we'll build later.</p>
+
+<div class="box hood">
+  <span class="box-title">Under the hood</span>
+  <p>The tables I've been drawing are really <em>Lexical Environments</em>, each containing an Environment Record plus an <code>[[OuterEnv]]</code> reference. The engine also doesn't literally re-walk a linked list at runtime in optimized code — modern engines resolve most lookups to a fixed slot index ahead of time. But the linked-list model predicts the observable behaviour perfectly, and it's the model interviewers expect you to describe.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="lexical"><span class="num">Part 2</span>Lexical scope: written, not called</h2>
+
+<p>So each table has a parent. Which raises the obvious next question: <strong>who decides which table is the parent?</strong></p>
+
+<p>There are two plausible answers, and one of them is wrong in a way that's worth feeling.</p>
+
+<p>Plausible answer A: the parent is whoever <em>called</em> the function. Plausible answer B: the parent is whatever scope the function was <em>physically written inside</em>.</p>
+
+<p>Let's test it:</p>
+
+<pre><code><span class="kw">const</span> greeting = <span class="str">"hello from module scope"</span>;
+
+<span class="kw">function</span> speak() {
+  console.log(greeting);   <span class="cm">// 👈 which greeting?</span>
+}
+
+<span class="kw">function</span> runIt() {
+  <span class="kw">const</span> greeting = <span class="str">"hello from runIt"</span>;
+  speak();
+}
+
+runIt();</code></pre>
+
+<details>
+  <summary>What gets logged?</summary>
+  <pre><code><span class="out">"hello from module scope"</span></code></pre>
+  <p>Answer B wins. <code>speak</code> was <em>written</em> next to the outer <code>greeting</code>, so that's its parent scope — forever, no matter who calls it or from where.</p>
+</details>
+
+<p>This is <strong>lexical scope</strong>. "Lexical" comes from <em>lexis</em>, meaning word or text — it's scope determined by the text of your program. Where the curly braces sit on the page. You could work out the entire scope chain of a program with a printout and a highlighter, without ever running it.</p>
+
+<div class="box wait">
+  <span class="box-title">The analogy</span>
+  <p>A function is like a person who grew up in a particular house. Wherever they move later in life, when you ask them "what's home?", they mean the house they grew up in. Calling a function is sending that person somewhere new to do a job; it doesn't change where they grew up.</p>
+  <p><em>Where this breaks down:</em> a person can eventually change what they call home. A function can't. Its parent scope is locked in at creation and can never be reassigned. Also — and this is the classic gotcha — <code>this</code> does <strong>not</strong> work this way in regular functions; <code>this</code> is decided by the caller. Scope is lexical; <code>this</code> (in non-arrow functions) is dynamic. Interviewers love that distinction.</p>
+</div>
+
+<h3>Block scope vs function scope</h3>
+
+<p>So far I've been drawing a new table per <em>function</em>. But blocks make tables too — sometimes.</p>
+
+<p>A "block" is just a pair of curly braces that isn't a function body: the inside of an <code>if</code>, a <code>for</code>, a <code>while</code>, or a bare <code>{ }</code> floating on its own.</p>
+
+<div class="snippet neutral">
+  <span class="label">Blocks make tables — for let and const</span>
+<pre><code><span class="kw">if</span> (user.isAdmin) {
+  <span class="kw">let</span> auditNote = <span class="str">"admin action"</span>;
+  <span class="kw">var</span> legacyFlag = <span class="kw">true</span>;
+}
+
+console.log(legacyFlag);   <span class="out">// → true</span>
+console.log(auditNote);    <span class="out">// → ReferenceError</span></code></pre>
+</div>
+
+<p>Same block, same braces, two completely different outcomes. <code>let</code> respected the braces. <code>var</code> walked straight through them like they weren't there.</p>
+
+<p>That's the actual, load-bearing difference between them, and it's what Part 3 is about.</p>
+
+<!-- ============================================ -->
+<h2 id="var-let-const"><span class="num">Part 3</span><code>var</code> vs <code>let</code> vs <code>const</code></h2>
+
+<p><code>var</code> is <strong>function-scoped</strong>. Its table is the nearest enclosing <em>function</em> — full stop. If there's no enclosing function, it lands in global scope. Blocks are invisible to it.</p>
+
+<p><code>let</code> and <code>const</code> are <strong>block-scoped</strong>. Their table is the nearest enclosing pair of braces, whatever kind those braces are.</p>
+
+<figure>
+<svg viewBox="0 0 640 260" role="img" aria-label="Diagram showing var escaping a block up to the function scope while let stays inside the block">
+  <rect x="20" y="20" width="600" height="220" rx="10" fill="#f4f2ef" stroke="#8a8478" stroke-width="2"/>
+  <text x="40" y="46" font-family="system-ui, sans-serif" font-size="13.5" font-weight="700" fill="#6d675c">function handleSubmit() { … }</text>
+
+  <rect x="50" y="66" width="540" height="120" rx="9" fill="#fff" stroke="#c9c3b8" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="70" y="92" font-family="system-ui, sans-serif" font-size="13.5" font-weight="700" fill="#6d675c">if (…) { …block… }</text>
+  <text x="70" y="122" font-family="ui-monospace, monospace" font-size="13.5" fill="#c02c3c">var legacyFlag</text>
+  <text x="70" y="152" font-family="ui-monospace, monospace" font-size="13.5" fill="#157f52">let auditNote</text>
+
+  <path d="M 210 116 C 330 116 380 116 470 70" stroke="#c02c3c" stroke-width="2" fill="none" marker-end="url(#ar2)"/>
+  <text x="330" y="106" font-family="system-ui, sans-serif" font-size="12" fill="#c02c3c">escapes to the function</text>
+
+  <rect x="66" y="138" width="130" height="22" rx="5" fill="none" stroke="#157f52" stroke-width="2"/>
+  <text x="212" y="154" font-family="system-ui, sans-serif" font-size="12" fill="#157f52">stays in the block</text>
+
+  <text x="40" y="216" font-family="system-ui, sans-serif" font-size="12.5" font-style="italic" fill="#6d675c">var only ever stops at a function boundary. let/const stop at the nearest brace.</text>
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c02c3c"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption><code>var</code> ignores blocks entirely. This is not a bug in your code — it's what <code>var</code> was designed to do in 1995.</figcaption>
+</figure>
+
+<h3>The other two differences</h3>
+
+<p>Scoping is the big one, but there are two more the interviewer will probe.</p>
+
+<p><strong>Redeclaration.</strong> <code>var</code> lets you declare the same name twice in the same scope and just... shrugs. <code>let</code> and <code>const</code> throw a <code>SyntaxError</code>.</p>
+
+<pre><code><span class="kw">var</span> total = 10;
+<span class="kw">var</span> total = 99;      <span class="cm">// fine. no warning. good luck finding this bug.</span>
+
+<span class="kw">let</span> count = 10;
+<span class="kw">let</span> count = 99;      <span class="out">// → SyntaxError: Identifier 'count' has already been declared</span></code></pre>
+
+<p>That <code>SyntaxError</code> is thrown before a single line of your program runs, because it's caught while parsing. Which is a nice preview of hoisting: the engine clearly knows about your declarations before it executes anything.</p>
+
+<p><strong>Reassignment.</strong> <code>var</code> and <code>let</code> can be reassigned. <code>const</code> cannot.</p>
+
+<pre><code><span class="kw">let</span> attempts = 0;
+attempts = 1;              <span class="cm">// fine</span>
+
+<span class="kw">const</span> maxAttempts = 3;
+maxAttempts = 4;           <span class="out">// → TypeError: Assignment to constant variable.</span></code></pre>
+
+<p>Note the different error types — <code>SyntaxError</code> for redeclaring, <code>TypeError</code> for reassigning a <code>const</code>. Small detail, but naming it correctly in an interview reads as "this person has actually hit this."</p>
+
+<table>
+  <thead>
+    <tr><th></th><th><code>var</code></th><th><code>let</code></th><th><code>const</code></th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Scope</td><td>Function</td><td>Block</td><td>Block</td></tr>
+    <tr><td>Redeclare in same scope</td><td>Allowed</td><td><code>SyntaxError</code></td><td><code>SyntaxError</code></td></tr>
+    <tr><td>Reassign</td><td>Allowed</td><td>Allowed</td><td><code>TypeError</code></td></tr>
+    <tr><td>Before its declaration line</td><td><code>undefined</code></td><td><code>ReferenceError</code> (TDZ)</td><td><code>ReferenceError</code> (TDZ)</td></tr>
+    <tr><td>Creates a property on <code>window</code></td><td>Yes (at top level)</td><td>No</td><td>No</td></tr>
+  </tbody>
+</table>
+
+<p>Two rows there I haven't explained yet — the TDZ row and the hoisting behaviour behind it. We'll get to both properly in Parts 5 and 6. I'm putting the table here because it's useful to have in one place, not because you're supposed to already understand the last two rows.</p>
+
+<!-- ============================================ -->
+<h2 id="const-immutable"><span class="num">Part 4</span>Is <code>const</code> immutable? No.</h2>
+
+<p>This one has its own section because it's asked constantly, and because the wrong answer is so intuitive.</p>
+
+<pre><code><span class="kw">const</span> user = { name: <span class="str">"Ada"</span> };
+user.name = <span class="str">"Grace"</span>;
+
+console.log(user.name);   <span class="out">// → "Grace"</span>  😬</code></pre>
+
+<p>If <code>const</code> means constant, how did that change?</p>
+
+<p>Because <code>const</code> makes a promise about the <strong>binding</strong>, not the <strong>value</strong>. Let me define binding, because it's the word that makes this click and most explanations skip it.</p>
+
+<p>A binding is the row in the lookup table — the arrow between the name and the value. <code>const</code> freezes the arrow. It says: <em>this name will point at this exact value for its whole life.</em> It says nothing at all about whether that value is itself allowed to change internally.</p>
+
+<div class="box wait">
+  <span class="box-title">The analogy</span>
+  <p><code>const</code> is a house number painted on a mailbox. <code>const home = 42</code> means: this mailbox is nailed to house number 42 and can never be moved to number 43. It does not mean nobody can rearrange the furniture inside house 42, or paint the walls, or knock down a wall.</p>
+  <p><em>Where it breaks down:</em> primitives (numbers, strings, booleans) have no "inside" to rearrange, so for those, <code>const</code> genuinely does look like immutability. That coincidence is exactly why the misconception spreads.</p>
+</div>
+
+<p>So the rule is mechanical: <strong>the left-hand side of the <code>=</code> can never change; anything to the right of a dot can.</strong></p>
+
+<pre><code><span class="kw">const</span> cart = [];
+
+cart.push(<span class="str">"laptop"</span>);     <span class="cm">// ✅ mutating what cart points at</span>
+cart.length = 0;         <span class="cm">// ✅ still mutating</span>
+cart = [];               <span class="out">// → TypeError: Assignment to constant variable.</span></code></pre>
+
+<p>If you actually want the value frozen too, that's a separate tool:</p>
+
+<pre><code><span class="kw">const</span> config = Object.freeze({ retries: 3, nested: { deep: 1 } });
+
+config.retries = 99;
+console.log(config.retries);      <span class="out">// → 3   (silently ignored, or throws in strict mode)</span>
+
+config.nested.deep = 99;
+console.log(config.nested.deep);  <span class="out">// → 99  👈 freeze is shallow!</span></code></pre>
+
+<div class="box iv">
+  <span class="box-title">In an interview</span>
+  <p>"Is <code>const</code> immutable?" is a <strong>recall</strong> question with a <strong>depth</strong> trapdoor. Saying "no, it's the binding not the value" gets you the point. Adding "and <code>Object.freeze</code> is only shallow, so for real deep immutability you'd need a recursive freeze or a library like Immer" is what separates you from the other four candidates who also said "it's the binding."</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="hoisting"><span class="num">Part 5</span>Hoisting: what actually happens</h2>
+
+<p>Time for another guess-the-output. Two snippets, one word different.</p>
+
+<div class="snippet neutral">
+  <span class="label">Snippet A</span>
+<pre><code>console.log(shippingFee);
+<span class="kw">var</span> shippingFee = 5;</code></pre>
+</div>
+
+<div class="snippet neutral">
+  <span class="label">Snippet B</span>
+<pre><code>console.log(shippingFee);
+<span class="kw">let</span> shippingFee = 5;</code></pre>
+</div>
+
+<details>
+  <summary>Both outputs</summary>
+  <p>A logs <code>undefined</code>. B throws <code>ReferenceError: Cannot access 'shippingFee' before initialization</code>.</p>
+  <p>Neither of them throws <code>ReferenceError: shippingFee is not defined</code> — which is what you'd get if you referenced a name that genuinely didn't exist anywhere. Read those two error messages again; the difference between them is the whole story.</p>
+</details>
+
+<p>You'll often hear hoisting explained as "declarations get moved to the top of the file." I want you to drop that phrasing, because it's a lie that will cost you on the follow-up. Nothing moves. Your source code is not rewritten.</p>
+
+<h3>The real mechanism: two passes</h3>
+
+<p>Before JavaScript executes a single line of a scope, it does a quick <strong>setup pass</strong> over that scope. Two phases, in order:</p>
+
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="Two-phase diagram showing the creation phase registering names before the execution phase runs code">
+  <rect x="20" y="24" width="285" height="250" rx="10" fill="#eef7fb" stroke="#15607a" stroke-width="2"/>
+  <text x="40" y="52" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#15607a">1 · CREATION PHASE</text>
+  <text x="40" y="72" font-family="system-ui, sans-serif" font-size="12" fill="#4a5262">scan the scope, build the table</text>
+
+  <text x="40" y="104" font-family="ui-monospace, monospace" font-size="12.5" fill="#1f2430">function greet  →  ƒ (ready)</text>
+  <text x="40" y="132" font-family="ui-monospace, monospace" font-size="12.5" fill="#1f2430">var shippingFee →  undefined</text>
+  <text x="40" y="160" font-family="ui-monospace, monospace" font-size="12.5" fill="#1f2430">let taxRate     →  &lt;uninit&gt;</text>
+  <text x="40" y="188" font-family="ui-monospace, monospace" font-size="12.5" fill="#1f2430">const currency  →  &lt;uninit&gt;</text>
+
+  <text x="40" y="224" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#15607a">All four names now exist.</text>
+  <text x="40" y="244" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#15607a">Only two are usable.</text>
+
+  <path d="M 315 150 L 350 150" stroke="#1f2430" stroke-width="2.5" marker-end="url(#ar3)"/>
+
+  <rect x="360" y="24" width="260" height="250" rx="10" fill="#f3efff" stroke="#6741d9" stroke-width="2"/>
+  <text x="380" y="52" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#6741d9">2 · EXECUTION PHASE</text>
+  <text x="380" y="72" font-family="system-ui, sans-serif" font-size="12" fill="#4a5262">run the code, top to bottom</text>
+
+  <text x="380" y="104" font-family="ui-monospace, monospace" font-size="12.5" fill="#4a5262">line 1 · reads a name…</text>
+  <text x="380" y="132" font-family="ui-monospace, monospace" font-size="12.5" fill="#4a5262">line 2 · assigns 5</text>
+  <text x="380" y="160" font-family="ui-monospace, monospace" font-size="12.5" fill="#4a5262">line 3 · calls greet()</text>
+
+  <text x="380" y="200" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#6741d9">Values get filled in here,</text>
+  <text x="380" y="220" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#6741d9">when the line is reached.</text>
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2430"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>Hoisting isn't code moving. It's names being registered in the table one phase early.</figcaption>
+</figure>
+
+<p>In the <strong>creation phase</strong>, the engine walks the scope and registers every declared name in the table. Crucially, it registers them <em>differently</em> depending on how they were declared:</p>
+
+<ul>
+  <li><strong>Function declarations</strong> get registered with the entire function ready to go. That's why you can call a function above where you wrote it.</li>
+  <li><strong><code>var</code></strong> gets registered and immediately initialized to <code>undefined</code>.</li>
+  <li><strong><code>let</code> and <code>const</code></strong> get registered but left <em>uninitialized</em> — a special marker meaning "this name is claimed, but there's nothing here yet."</li>
+</ul>
+
+<p>Then the <strong>execution phase</strong> runs your code line by line, filling in the real values as it reaches each assignment.</p>
+
+<p>Now go back to the two snippets. In A, the creation phase already put <code>undefined</code> in the box, so reading it early gives you <code>undefined</code> — no error, just a meaningless value. In B, the box exists but is marked uninitialized, and reading an uninitialized box is an error <em>by design</em>.</p>
+
+<div class="box myth">
+  <span class="box-title">A common misconception</span>
+  <p>"<code>let</code> and <code>const</code> aren't hoisted."</p>
+  <p>They absolutely are. If they weren't hoisted, this would log the outer value instead of throwing:</p>
+  <pre><code><span class="kw">const</span> theme = <span class="str">"dark"</span>;
+{
+  console.log(theme);      <span class="out">// → ReferenceError, not "dark"</span>
+  <span class="kw">const</span> theme = <span class="str">"light"</span>;
+}</code></pre>
+  <p>The only way the engine can throw there is if it already knows the block has its own <code>theme</code>. That knowledge <em>is</em> the hoisting. What <code>let</code>/<code>const</code> lack isn't hoisting — it's <em>initialization</em> during the creation phase.</p>
+</div>
+
+<h3>Function declarations vs function expressions vs arrows</h3>
+
+<p>This is where hoisting bites people in real code.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Works — function declaration</span>
+<pre><code>formatPrice(9.99);       <span class="out">// → "$9.99"</span>
+
+<span class="kw">function</span> formatPrice(n) {
+  <span class="kw">return</span> `$${n.toFixed(2)}`;
+}</code></pre>
+</div>
+
+<div class="snippet bad">
+  <span class="label">❌ Breaks — function expression</span>
+<pre><code>formatPrice(9.99);       <span class="out">// → TypeError: formatPrice is not a function</span>
+
+<span class="kw">var</span> formatPrice = <span class="kw">function</span>(n) {
+  <span class="kw">return</span> `$${n.toFixed(2)}`;
+};</code></pre>
+</div>
+
+<div class="snippet bad">
+  <span class="label">❌ Breaks differently — arrow function</span>
+<pre><code>formatPrice(9.99);       <span class="out">// → ReferenceError: Cannot access 'formatPrice' before initialization</span>
+
+<span class="kw">const</span> formatPrice = (n) =&gt; `$${n.toFixed(2)}`;</code></pre>
+</div>
+
+<p>Here's the thing to internalise: <strong>arrow functions and function expressions aren't "less hoisted."</strong> Only the <em>declaration</em> hoists, and in those two cases the declaration is a <code>var</code> or a <code>const</code> — a plain variable that happens to be assigned a function later. The function itself is created during the execution phase, when that line runs.</p>
+
+<p>Which is why the three errors differ so precisely:</p>
+
+<ul>
+  <li>Declaration → the function is fully ready in the creation phase. Works.</li>
+  <li><code>var</code> + function expression → the name holds <code>undefined</code>. You're calling <code>undefined()</code>, so: <strong>TypeError</strong>.</li>
+  <li><code>const</code> + arrow → the name is uninitialized. You can't even read it, so: <strong>ReferenceError</strong>.</li>
+</ul>
+
+<p>Being able to explain <em>why the error type differs</em> is a genuinely strong signal. It shows you're reasoning from a model, not memorizing outcomes.</p>
+
+<div class="box iv">
+  <span class="box-title">In an interview</span>
+  <p><strong>The trap:</strong> saying "hoisting moves declarations to the top of the file." The follow-up that kills you is "okay, so if declarations move to the top, why does <code>let</code> throw?" If things literally moved, <code>let x = 5</code> at the top would just work. Lead with <em>two phases</em> instead and the follow-up answers itself.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="tdz"><span class="num">Part 6</span>The Temporal Dead Zone</h2>
+
+<p>We've already met it — we just haven't named it.</p>
+
+<p>The <strong>Temporal Dead Zone</strong> is the stretch of time between a <code>let</code>/<code>const</code> name being registered (start of the scope) and the line that initializes it actually running. Touch the variable during that window and you get a <code>ReferenceError</code>.</p>
+
+<pre><code>{
+  <span class="cm">// ── TDZ for `apiKey` starts here ──────────</span>
+  console.log(apiKey);            <span class="out">// → ReferenceError</span>
+  <span class="kw">typeof</span> apiKey;                  <span class="out">// → ReferenceError (!)  even typeof throws</span>
+  <span class="cm">// ── TDZ ends on the next line ─────────────</span>
+  <span class="kw">const</span> apiKey = <span class="str">"sk_live_…"</span>;
+  console.log(apiKey);            <span class="out">// → "sk_live_…"</span>
+}</code></pre>
+
+<p>Note the word <strong>temporal</strong> — it's about time, not lines. Which sounds pedantic until you see this:</p>
+
+<pre><code><span class="kw">function</span> getTotal() {
+  <span class="kw">return</span> subtotal * 1.13;    <span class="cm">// written ABOVE the declaration…</span>
+}
+
+<span class="kw">const</span> subtotal = 100;
+console.log(getTotal());       <span class="out">// → 113   …but works fine 👍</span></code></pre>
+
+<p>The reference to <code>subtotal</code> sits physically above its declaration, and it's completely fine — because by the time <code>getTotal()</code> is actually <em>called</em>, the declaration has run. The TDZ closed. Position on the page never mattered; only the clock did.</p>
+
+<h3>Why the TDZ is a feature, not an annoyance</h3>
+
+<p>The obvious question: why not just let <code>let</code> be <code>undefined</code> too, like <code>var</code>? Wouldn't that be less annoying?</p>
+
+<p>It would be less annoying and much worse. Three reasons:</p>
+
+<p><strong>1. <code>undefined</code> is a legitimate value.</strong> If early access silently gave you <code>undefined</code>, you could never distinguish "I read this too early — a real bug" from "this genuinely holds <code>undefined</code>." The TDZ turns a silent wrong value into a loud, precisely-located error. That's the trade every good language design makes: fail fast, fail near the cause.</p>
+
+<p><strong>2. <code>const</code> would be incoherent without it.</strong> A <code>const</code> is supposed to be assigned exactly once. If it were auto-initialized to <code>undefined</code> at creation, then your <code>const rate = 0.13</code> would be its <em>second</em> assignment — which is precisely what <code>const</code> forbids. The TDZ is what lets <code>const</code> keep its promise.</p>
+
+<p><strong>3. It catches a whole class of ordering bugs at the moment they happen</strong> rather than three functions downstream where <code>undefined</code> finally causes a crash.</p>
+
+<div class="box wait">
+  <span class="box-title">Wait — is a TDZ error the same as "not defined"?</span>
+  <p>No, and interviewers do check this. Compare:</p>
+  <pre><code><span class="kw">typeof</span> neverDeclared;   <span class="out">// → "undefined"  (no error!)</span>
+<span class="kw">typeof</span> inTdz;          <span class="out">// → ReferenceError</span>
+<span class="kw">let</span> inTdz = 1;</code></pre>
+  <p><code>typeof</code> on a name that doesn't exist anywhere is famously safe — it returns the string <code>"undefined"</code>. But <code>typeof</code> on a TDZ variable throws. So the TDZ made <code>typeof</code> unsafe for the first time in JS history. That's a deliberate trade: the committee decided catching real bugs beat preserving the <code>typeof</code> guard trick.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="closures"><span class="num">Part 7</span>Closures</h2>
+
+<p>Everything so far has been foundation. Here's the payoff.</p>
+
+<p>We established in Part 1 that a function's scope table is created when the function runs, and that lookups walk <em>up</em> the chain to the parent table. Fine. But that raises a question I skipped: <strong>what happens to a scope table when its function finishes?</strong></p>
+
+<p>The reasonable guess is: it's garbage. The function returned, its local variables are done, clean it up. And usually, that's exactly right.</p>
+
+<p>Except:</p>
+
+<pre><code><span class="kw">function</span> createGreeter(name) {
+  <span class="kw">const</span> greeting = `Hey ${name}!`;
+
+  <span class="kw">return</span> <span class="kw">function</span> sayHi() {
+    console.log(greeting);        <span class="cm">// 👈 reaches into a scope that's "over"</span>
+  };
+}
+
+<span class="kw">const</span> greetAda = createGreeter(<span class="str">"Ada"</span>);
+greetAda();      <span class="out">// → "Hey Ada!"</span></code></pre>
+
+<p><code>createGreeter</code> finished. It returned. Its table should be gone. And yet <code>greeting</code> is still there, alive, years of CPU cycles later.</p>
+
+<p>That's a closure.</p>
+
+<h3>The definition, now that it can't mislead you</h3>
+
+<p>A <strong>closure</strong> is a function bundled together with the scope it was created in. Because scope is lexical (Part 2), the inner function's parent table was decided when it was <em>written</em> — and the function holds a live reference to that table. As long as the function is alive, the table it points to can't be garbage collected.</p>
+
+<p>So the accurate phrasing isn't "the function remembers its variables." It's: <strong>the function keeps its parent scope alive.</strong></p>
+
+<figure>
+<svg viewBox="0 0 640 320" role="img" aria-label="Diagram showing a returned function holding a live reference to its creator's scope after the creator has finished">
+  <rect x="20" y="30" width="270" height="130" rx="10" fill="#f4f2ef" stroke="#c9c3b8" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="38" y="56" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#8a8478">CALL STACK — after return</text>
+  <text x="38" y="86" font-family="system-ui, sans-serif" font-size="13" fill="#8a8478">createGreeter("Ada")</text>
+  <text x="38" y="108" font-family="system-ui, sans-serif" font-size="13" font-style="italic" fill="#8a8478">↳ popped off. gone.</text>
+  <text x="38" y="138" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#8a8478">The call is over…</text>
+
+  <rect x="350" y="20" width="270" height="130" rx="10" fill="#eef7fb" stroke="#15607a" stroke-width="2"/>
+  <text x="368" y="46" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#15607a">HEAP — createGreeter's scope</text>
+  <text x="368" y="76" font-family="ui-monospace, monospace" font-size="13" fill="#1f2430">name      →  "Ada"</text>
+  <text x="368" y="100" font-family="ui-monospace, monospace" font-size="13" fill="#1f2430">greeting  →  "Hey Ada!"</text>
+  <text x="368" y="130" font-family="system-ui, sans-serif" font-size="12" font-style="italic" fill="#15607a">…but the table is still alive.</text>
+
+  <rect x="180" y="215" width="280" height="80" rx="10" fill="#f3efff" stroke="#6741d9" stroke-width="2"/>
+  <text x="200" y="243" font-family="ui-monospace, monospace" font-size="13.5" font-weight="700" fill="#6741d9">greetAda</text>
+  <text x="200" y="268" font-family="system-ui, sans-serif" font-size="12.5" fill="#4a5262">the returned sayHi function</text>
+  <text x="200" y="288" font-family="system-ui, sans-serif" font-size="12.5" fill="#4a5262">[[Scope]] ──────┐</text>
+
+  <path d="M 400 250 C 500 250 520 200 500 160" stroke="#6741d9" stroke-width="2.5" fill="none" marker-end="url(#ar4)"/>
+  <text x="440" y="205" font-family="system-ui, sans-serif" font-size="12" fill="#6741d9">holds it alive</text>
+  <defs>
+    <marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6741d9"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>The stack frame is gone. The scope table isn't — because something still points at it.</figcaption>
+</figure>
+
+<div class="box wait">
+  <span class="box-title">The analogy</span>
+  <p>Think of a function as a person leaving an office job. On the way out they take a <strong>backpack</strong> containing exactly the desk drawers they were still using. The office (the call) closes, the lights go off — but they're walking around with those drawers, and they can open them any time.</p>
+  <p><em>Where it breaks down (and this part matters):</em> a backpack implies they took a <em>copy</em>. They didn't. It's more like they kept a key to a storage locker. If two people leaving the same office kept keys to the <em>same</em> locker, and one of them changes what's inside, the other sees the change. Closures share the live scope, they don't snapshot it. That single fact explains the loop puzzle, so hold onto it.</p>
+</div>
+
+<h3>Proving it's shared, not copied</h3>
+
+<pre><code><span class="kw">function</span> makeAccount() {
+  <span class="kw">let</span> balance = 0;
+  <span class="kw">return</span> {
+    deposit: (n) =&gt; { balance += n; },
+    getBalance: () =&gt; balance,
+  };
+}
+
+<span class="kw">const</span> account = makeAccount();
+account.deposit(50);
+account.deposit(25);
+account.getBalance();     <span class="out">// → 75</span></code></pre>
+
+<p>Two different functions, one shared <code>balance</code>. If each had grabbed a copy, <code>getBalance</code> would still say <code>0</code>. It says <code>75</code>, so they're both looking at the same live table.</p>
+
+<p>And notice something else: there is <strong>no way</strong> to reach <code>balance</code> from outside. Not <code>account.balance</code>, not anything. The scope chain only goes up, remember — outside code has no path in. That's genuine privacy, built out of nothing but a function boundary.</p>
+
+<div class="box hood">
+  <span class="box-title">Under the hood</span>
+  <p>In V8, a closed-over variable is moved into a heap-allocated <em>context object</em> instead of living on the stack. V8 also only captures the variables the inner function actually references — so a closure over one variable from a scope containing a hundred usually keeps just the one. Usually. Debug builds and <code>eval</code> defeat this optimization, and some engines have historically over-captured. Don't design around it.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="loop"><span class="num">Part 8</span>The loop puzzle, finally</h2>
+
+<p>Back to where we started:</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Logs 3, 3, 3</span>
+<pre><code><span class="kw">for</span> (<span class="kw">var</span> i = 0; i &lt; 3; i++) {
+  setTimeout(() =&gt; console.log(i), 100);
+}</code></pre>
+</div>
+
+<p>You now have every piece you need. Let's assemble them.</p>
+
+<p><strong>Piece one:</strong> <code>var</code> is function-scoped, so <code>i</code> is <em>not</em> inside the loop body's block. There is exactly <strong>one</strong> <code>i</code>, sitting in the enclosing function (or global) scope. The loop doesn't create three variables. It creates one and changes it three times.</p>
+
+<p><strong>Piece two:</strong> closures share the live scope, they don't snapshot it. All three arrow functions were written in the same place, so all three have the same parent table — the one containing that single <code>i</code>.</p>
+
+<p><strong>Piece three:</strong> <code>setTimeout</code> doesn't run its callback now. It schedules it. The loop finishes completely — running <code>i++</code> a final time to <code>3</code>, which is what makes <code>i &lt; 3</code> false and ends the loop — and only then do the callbacks fire.</p>
+
+<p>So by the time the first callback runs and looks up <code>i</code>, it walks up to the one shared table and finds... <code>3</code>. Same for the second. Same for the third.</p>
+
+<p>The callbacks were never "wrong." They read <code>i</code> correctly. It's just that <code>i</code> had moved on without them.</p>
+
+<h3>What <code>let</code> does differently</h3>
+
+<div class="snippet good">
+  <span class="label">✅ Logs 0, 1, 2</span>
+<pre><code><span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; 3; i++) {
+  setTimeout(() =&gt; console.log(i), 100);
+}</code></pre>
+</div>
+
+<p><code>let</code> in a <code>for</code> header gets special treatment in the spec: the engine creates a <strong>fresh binding for every iteration</strong>, copying the value forward before running the update expression. Three iterations, three separate <code>i</code> variables, three separate tables.</p>
+
+<figure>
+<svg viewBox="0 0 640 330" role="img" aria-label="Comparison diagram: with var, three callbacks point at one shared i; with let, each callback points at its own i">
+  <text x="20" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#c02c3c">WITH var — one box, three pointers</text>
+  <rect x="430" y="44" width="180" height="46" rx="8" fill="#fdf0f1" stroke="#c02c3c" stroke-width="2"/>
+  <text x="450" y="73" font-family="ui-monospace, monospace" font-size="14" fill="#1f2430">i → 3</text>
+
+  <rect x="20" y="40" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="58" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #1</text>
+  <rect x="20" y="74" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #2</text>
+  <rect x="20" y="108" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="126" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #3</text>
+
+  <path d="M 175 53 L 425 62" stroke="#c02c3c" stroke-width="1.8" fill="none" marker-end="url(#ar5)"/>
+  <path d="M 175 87 L 425 68" stroke="#c02c3c" stroke-width="1.8" fill="none" marker-end="url(#ar5)"/>
+  <path d="M 175 121 L 425 74" stroke="#c02c3c" stroke-width="1.8" fill="none" marker-end="url(#ar5)"/>
+
+  <line x1="20" y1="160" x2="620" y2="160" stroke="#e6e2db" stroke-width="1.5"/>
+
+  <text x="20" y="192" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#157f52">WITH let — three boxes, one pointer each</text>
+
+  <rect x="20" y="208" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="226" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #1</text>
+  <rect x="20" y="244" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="262" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #2</text>
+  <rect x="20" y="280" width="150" height="26" rx="6" fill="#fff" stroke="#c9c3b8"/>
+  <text x="32" y="298" font-family="ui-monospace, monospace" font-size="11.5" fill="#4a5262">callback #3</text>
+
+  <rect x="430" y="204" width="180" height="30" rx="8" fill="#edfaf3" stroke="#157f52" stroke-width="2"/>
+  <text x="448" y="224" font-family="ui-monospace, monospace" font-size="13" fill="#1f2430">i → 0</text>
+  <rect x="430" y="240" width="180" height="30" rx="8" fill="#edfaf3" stroke="#157f52" stroke-width="2"/>
+  <text x="448" y="260" font-family="ui-monospace, monospace" font-size="13" fill="#1f2430">i → 1</text>
+  <rect x="430" y="276" width="180" height="30" rx="8" fill="#edfaf3" stroke="#157f52" stroke-width="2"/>
+  <text x="448" y="296" font-family="ui-monospace, monospace" font-size="13" fill="#1f2430">i → 2</text>
+
+  <path d="M 175 221 L 425 219" stroke="#157f52" stroke-width="1.8" marker-end="url(#ar6)"/>
+  <path d="M 175 257 L 425 255" stroke="#157f52" stroke-width="1.8" marker-end="url(#ar6)"/>
+  <path d="M 175 293 L 425 291" stroke="#157f52" stroke-width="1.8" marker-end="url(#ar6)"/>
+
+  <defs>
+    <marker id="ar5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c02c3c"/>
+    </marker>
+    <marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#157f52"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>The bug was never about timing. It was about how many <code>i</code>s existed.</figcaption>
+</figure>
+
+<div class="box myth">
+  <span class="box-title">A common misconception</span>
+  <p>"Use an arrow function and it'll capture the right value."</p>
+  <p>Nope. Look at the broken snippet again — it <em>is</em> an arrow function. Arrow functions close over scope exactly like regular functions do; the only things they treat differently are <code>this</code>, <code>arguments</code>, and <code>super</code>. Swapping <code>function(){}</code> for <code>() =&gt;</code> changes nothing about this bug in either direction. The fix is <code>let</code>, or a new scope — never the arrow.</p>
+</div>
+
+<h3>How we fixed this before <code>let</code> existed</h3>
+
+<p>If you're stuck with <code>var</code>, you have to manufacture a new scope per iteration yourself. Since <code>var</code> only respects <em>function</em> boundaries, that means creating a function per iteration:</p>
+
+<div class="snippet good">
+  <span class="label">✅ The pre-2015 fix (IIFE)</span>
+<pre><code><span class="kw">for</span> (<span class="kw">var</span> i = 0; i &lt; 3; i++) {
+  (<span class="kw">function</span>(captured) {
+    setTimeout(() =&gt; console.log(captured), 100);
+  })(i);                    <span class="cm">// 👈 i is passed by value → a fresh copy per iteration</span>
+}
+<span class="out">// → 0, 1, 2</span></code></pre>
+</div>
+
+<p>Each call to that wrapper creates its own table with its own <code>captured</code> parameter. The number was copied in as an argument, so each timeout closes over a different box.</p>
+
+<p>You'll basically never write this today, but interviewers ask for it as a way of checking whether you understand the mechanism or just memorized "use <code>let</code>."</p>
+
+<div class="box iv">
+  <span class="box-title">In an interview</span>
+  <p>The trap answer is "because <code>setTimeout</code> is asynchronous." That's <em>a</em> factor but not <em>the</em> cause, and a good interviewer will push: "so if I remove <code>setTimeout</code> and just store the functions in an array, then call them after the loop — what then?" Same result: three 3s, no async anywhere. The cause is <strong>one shared binding</strong>. Say that word — <em>binding</em> — and the follow-up disappears.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="usecases"><span class="num">Part 9</span>Real use cases (please, not another counter)</h2>
+
+<p>Every tutorial demonstrates closures with a counter. So every candidate says "counter" in the interview. So interviewers now ask, almost word for word: <em>"give me a use case for a closure that isn't a counter."</em></p>
+
+<p>Here are five you can actually reach for. Learn two properly.</p>
+
+<h3>1. <code>once()</code> — run this exactly one time</h3>
+
+<p>Real scenario: a "Place order" button. If a user double-clicks, you charge them twice. You need a guarantee that the handler runs once, ever.</p>
+
+<pre><code><span class="kw">function</span> once(fn) {
+  <span class="kw">let</span> called = <span class="kw">false</span>;
+  <span class="kw">let</span> result;
+
+  <span class="kw">return</span> <span class="kw">function</span> (...args) {
+    <span class="kw">if</span> (called) <span class="kw">return</span> result;
+    called = <span class="kw">true</span>;
+    result = fn.apply(<span class="kw">this</span>, args);
+    <span class="kw">return</span> result;
+  };
+}
+
+<span class="kw">const</span> placeOrder = once(() =&gt; { console.log(<span class="str">"charging card…"</span>); <span class="kw">return</span> <span class="str">"order-123"</span>; });
+
+placeOrder();    <span class="out">// → logs "charging card…", returns "order-123"</span>
+placeOrder();    <span class="out">// → logs nothing, returns "order-123"</span></code></pre>
+
+<p>The flag lives in the closure. It can't be reset from outside, can't collide with another <code>once</code>-wrapped function, and doesn't pollute any object with a <code>_hasBeenCalled</code> property. This is the single best answer to give, because it's short enough to write on a whiteboard in 40 seconds and it's obviously real code.</p>
+
+<h3>2. Memoization — don't recompute what you already know</h3>
+
+<pre><code><span class="kw">function</span> memoize(fn) {
+  <span class="kw">const</span> cache = <span class="kw">new</span> Map();          <span class="cm">// 👈 lives in the closure, one per wrapped fn</span>
+
+  <span class="kw">return</span> (arg) =&gt; {
+    <span class="kw">if</span> (!cache.has(arg)) cache.set(arg, fn(arg));
+    <span class="kw">return</span> cache.get(arg);
+  };
+}
+
+<span class="kw">const</span> slugify = memoize((title) =&gt; title.toLowerCase().replace(/\s+/g, <span class="str">"-"</span>));
+
+slugify(<span class="str">"Hello World"</span>);   <span class="out">// → "hello-world"   (computed)</span>
+slugify(<span class="str">"Hello World"</span>);   <span class="out">// → "hello-world"   (from cache)</span></code></pre>
+
+<p>Every memoized function gets its own private cache automatically. No naming collisions, no global cache object, no cleanup code.</p>
+
+<h3>3. Function factories — configure once, call many times</h3>
+
+<pre><code><span class="kw">function</span> createFormatter(currency, locale) {
+  <span class="kw">const</span> nf = <span class="kw">new</span> Intl.NumberFormat(locale, { style: <span class="str">"currency"</span>, currency });
+  <span class="kw">return</span> (amount) =&gt; nf.format(amount);
+}
+
+<span class="kw">const</span> formatCAD = createFormatter(<span class="str">"CAD"</span>, <span class="str">"en-CA"</span>);
+<span class="kw">const</span> formatJPY = createFormatter(<span class="str">"JPY"</span>, <span class="str">"ja-JP"</span>);
+
+formatCAD(1234.5);   <span class="out">// → "$1,234.50"</span>
+formatJPY(1234.5);   <span class="out">// → "￥1,235"</span></code></pre>
+
+<p>There's a real performance angle here: <code>Intl.NumberFormat</code> is expensive to construct. The closure builds it once and every subsequent call reuses it. This one is nice to mention because it shows closures as a <em>performance</em> tool, not just a privacy trick.</p>
+
+<h3>4. Debounce and throttle — the closure you've definitely used</h3>
+
+<pre><code><span class="kw">function</span> debounce(fn, delay) {
+  <span class="kw">let</span> timerId;                   <span class="cm">// 👈 survives between calls, private to this debounced fn</span>
+
+  <span class="kw">return</span> (...args) =&gt; {
+    clearTimeout(timerId);
+    timerId = setTimeout(() =&gt; fn(...args), delay);
+  };
+}
+
+searchInput.addEventListener(<span class="str">"input"</span>, debounce(runSearch, 300));</code></pre>
+
+<p>Every keystroke calls the returned function, which needs to know about the timer the <em>previous</em> keystroke set. That state has to live somewhere between calls. A closure is the natural home for it — and it's per-debounced-function, so two debounced handlers never interfere.</p>
+
+<h3>5. Event handlers that need context</h3>
+
+<pre><code><span class="kw">function</span> attachRemoveButtons(products) {
+  products.forEach((product) =&gt; {
+    <span class="kw">const</span> btn = document.querySelector(`#remove-${product.id}`);
+    btn.addEventListener(<span class="str">"click"</span>, () =&gt; {
+      removeFromCart(product.id);       <span class="cm">// 👈 closed over, per iteration</span>
+    });
+  });
+}</code></pre>
+
+<p>The click happens minutes after <code>attachRemoveButtons</code> returned. The handler still knows which product it belongs to — because <code>forEach</code>'s callback gives each iteration its own scope, and each handler closes over its own <code>product</code>. (Note that <code>forEach</code> sidesteps the whole <code>var</code> loop problem for free, since every iteration is a real function call.)</p>
+
+<div class="box iv">
+  <span class="box-title">In an interview</span>
+  <p>Don't recite all five. Pick <strong>one</strong>, write it, and explain what the closed-over variable is doing. Then say: "the general shape is — any time you need state that outlives a function call but shouldn't be visible to anyone else, that's a closure. Debounce, memoize, <code>once</code>, module privacy, React hooks — all the same shape." Naming the <em>shape</em> is what makes you sound senior.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="memory"><span class="num">Part 10</span>Do closures cause memory leaks?</h2>
+
+<p>Short answer: closures don't leak, but they make it easy for <em>you</em> to leak.</p>
+
+<p>Here's the mechanism. JavaScript's garbage collector frees anything unreachable from your running code. A closure is, by definition, a live reference to a scope. So as long as the closure is reachable, everything it captured is reachable too — and therefore uncollectable.</p>
+
+<p>That's the entire feature. It's also the entire risk.</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Leaks — a handler pinning a big object forever</span>
+<pre><code><span class="kw">function</span> setupPreview(imageBlob) {       <span class="cm">// imageBlob: 40 MB</span>
+  <span class="kw">const</span> smallThumb = makeThumb(imageBlob);
+
+  window.addEventListener(<span class="str">"resize"</span>, () =&gt; {
+    repaint(smallThumb);                 <span class="cm">// only needs the thumb…</span>
+    console.log(imageBlob.size);         <span class="cm">// 👈 …but this pins all 40 MB</span>
+  });
+}</code></pre>
+</div>
+
+<p>The listener is attached to <code>window</code>, which lives for the whole page. The listener closes over <code>imageBlob</code>. So <code>imageBlob</code> lives for the whole page too. Call <code>setupPreview</code> on twenty images and you're holding 800 MB of blobs you'll never look at again.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed — capture only what you need, and clean up</span>
+<pre><code><span class="kw">function</span> setupPreview(imageBlob) {
+  <span class="kw">const</span> smallThumb = makeThumb(imageBlob);
+  <span class="kw">const</span> size = imageBlob.size;           <span class="cm">// 👈 capture the number, not the blob</span>
+
+  <span class="kw">const</span> onResize = () =&gt; { repaint(smallThumb); console.log(size); };
+  window.addEventListener(<span class="str">"resize"</span>, onResize);
+
+  <span class="kw">return</span> () =&gt; window.removeEventListener(<span class="str">"resize"</span>, onResize);  <span class="cm">// 👈 teardown</span>
+}</code></pre>
+</div>
+
+<p>Two fixes, and they're the two you should always name:</p>
+
+<ol>
+  <li><strong>Capture the smallest thing.</strong> Pull out the number, the id, the string — don't close over the whole object when you need one field of it.</li>
+  <li><strong>Give every long-lived subscription a teardown.</strong> Remove the listener, clear the interval, unsubscribe. This is literally what a React <code>useEffect</code> cleanup function is for.</li>
+</ol>
+
+<div class="box wait">
+  <span class="box-title">Wait — so is holding memory a leak?</span>
+  <p>Worth being precise, because it's a great thing to say out loud: a <strong>leak</strong> is memory that's unreachable-in-spirit but reachable-in-fact — you're done with it, but the GC can't prove that. Closures holding data you still use aren't leaking, they're just <em>using memory</em>. The failure is when the closure outlives your need for what it captured. So the real question is never "does this closure hold memory?" but "how long does this closure live?"</p>
+</div>
+
+<div class="box myth">
+  <span class="box-title">A common misconception</span>
+  <p>"Closures leak in old IE, so avoid them."</p>
+  <p>That was a real bug — IE6/7 had a reference-counting GC for DOM objects that couldn't collect cycles between JS closures and DOM nodes. It's been irrelevant for well over a decade. If you cite it as a current reason to avoid closures, you'll sound like you learned JavaScript from a 2009 blog post. Cite it as history if you want; don't cite it as advice.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="iife"><span class="num">Part 11</span>IIFEs and the module pattern</h2>
+
+<p>A bit of history, because it explains why older code looks the way it does — and interviewers who've been around a while love it when you know this.</p>
+
+<p>Before 2015, JavaScript had no modules and no block scope. Every <code>&lt;script&gt;</code> tag dumped its variables into one shared global namespace. Load jQuery, a carousel plugin, and your own <code>app.js</code>, and if two of them declared <code>var config</code>, the last one silently won. Silently.</p>
+
+<p>The only tool that created a private scope was a function. So people started wrapping entire files in a function and calling it immediately:</p>
+
+<pre><code>(<span class="kw">function</span> () {
+  <span class="kw">var</span> config = { apiUrl: <span class="str">"/api"</span> };   <span class="cm">// 👈 invisible to everything outside</span>
+  <span class="cm">// …the whole file…</span>
+})();</code></pre>
+
+<p>That's an <strong>IIFE</strong> — Immediately Invoked Function Expression. Function expression: it's written in a position where JS expects a value, so it's an expression, not a declaration. Immediately invoked: the <code>()</code> on the end calls it right away.</p>
+
+<div class="box wait">
+  <span class="box-title">Wait — why the wrapping parentheses?</span>
+  <p>If a statement <em>starts</em> with the word <code>function</code>, the parser commits to reading a function <em>declaration</em>, and declarations can't be invoked on the spot. The wrapping parens put it in expression position, where the parser is expecting a value. You'll also see <code>!function(){}()</code> and <code>;(function(){})()</code> in old minified code — same trick, different characters.</p>
+</div>
+
+<h3>The module pattern</h3>
+
+<p>Combine an IIFE with a returned object and you get a module before modules existed:</p>
+
+<pre><code><span class="kw">var</span> cartModule = (<span class="kw">function</span> () {
+  <span class="kw">var</span> items = [];                       <span class="cm">// 👈 private. no way in from outside.</span>
+
+  <span class="kw">function</span> total() {
+    <span class="kw">return</span> items.reduce((sum, i) =&gt; sum + i.price, 0);
+  }
+
+  <span class="kw">return</span> {                              <span class="cm">// 👈 the public API</span>
+    add: <span class="kw">function</span> (item) { items.push(item); },
+    getTotal: total,
+  };
+})();
+
+cartModule.add({ price: 30 });
+cartModule.getTotal();     <span class="out">// → 30</span>
+cartModule.items;          <span class="out">// → undefined  ✅ genuinely private</span></code></pre>
+
+<p>Everything inside stays inside. Only what you put in the returned object is reachable. One global name (<code>cartModule</code>) instead of a dozen.</p>
+
+<p>And notice what's holding it together: <code>add</code> and <code>getTotal</code> escaped the IIFE, and they're keeping its scope alive so they can still reach <code>items</code>. <strong>The module pattern is just a closure.</strong> The entire module system of an era was built on the one idea we spent Part 7 on.</p>
+
+<p>Today you'd write <code>export</code> / <code>import</code> and get real module scope from the language. But this is why closures loomed so large in JS culture — for fifteen years they were the <em>only</em> encapsulation mechanism the language had.</p>
+
+<!-- ============================================ -->
+<h2 id="react"><span class="num">Part 12</span>Why closures matter in React</h2>
+
+<p>Keeping this tight, since it deserves its own guide — but you will get asked, so here's enough to hold a conversation.</p>
+
+<p>The key fact: <strong>a React function component is a function, and it runs again on every render.</strong> Every render creates a brand new scope, with brand new local variables — including a brand new value for every <code>useState</code> variable, and brand new function definitions for every handler and effect.</p>
+
+<p>Which means every function you define inside a component is a closure over <em>that particular render's</em> scope. Not over "the component." Over one render.</p>
+
+<div class="snippet bad">
+  <span class="label">❌ The stale closure</span>
+<pre><code><span class="kw">function</span> Timer() {
+  <span class="kw">const</span> [count, setCount] = useState(0);
+
+  useEffect(() =&gt; {
+    <span class="kw">const</span> id = setInterval(() =&gt; {
+      setCount(count + 1);      <span class="cm">// 👈 closed over count from render #0, forever</span>
+    }, 1000);
+    <span class="kw">return</span> () =&gt; clearInterval(id);
+  }, []);                       <span class="cm">// 👈 empty deps: this effect never re-runs</span>
+
+  <span class="kw">return</span> &lt;p&gt;{count}&lt;/p&gt;;         <span class="out">// → sticks at 1 forever</span>
+}</code></pre>
+</div>
+
+<p>The effect ran once, on the first render, where <code>count</code> was <code>0</code>. The interval callback closed over that render's scope. It doesn't matter how many times the component re-renders afterwards — <em>that</em> callback is still looking at <em>that</em> table, where <code>count</code> is eternally <code>0</code>. So every tick computes <code>0 + 1</code>.</p>
+
+<p>This is exactly the <code>var</code> loop bug wearing a React costume. Same cause: a function outliving the moment its captured value was correct.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Two ways out</span>
+<pre><code><span class="cm">// A) Don't read the stale value — let React hand you the fresh one.</span>
+setCount(c =&gt; c + 1);           <span class="cm">// functional update, no closure over count</span>
+
+<span class="cm">// B) Or let the effect re-run so it closes over a fresh scope.</span>
+useEffect(() =&gt; { <span class="cm">/* … */</span> }, [count]);</code></pre>
+</div>
+
+<p>That's also the honest answer to "why does the exhaustive-deps lint rule exist?" — it's protecting you from stale closures. Every value from the render scope that your effect reads must be in the deps array, or the effect keeps looking at an old scope.</p>
+
+<div class="box iv">
+  <span class="box-title">In an interview</span>
+  <p>Connecting these two — "the React stale closure bug and the <code>var</code> loop bug are the same bug" — is one of the highest-value sentences you can say in a frontend interview. It shows you understand the <em>mechanism</em> well enough to recognise it in an unfamiliar costume, which is the actual thing they're screening for.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="followups"><span class="num">Part 13</span>The follow-up questions</h2>
+
+<p>This is the part that decides the interview. The first question is usually recall; the follow-ups are where they find out whether you understand it. Answers are collapsed so you can quiz yourself.</p>
+
+<h3>How this gets asked</h3>
+
+<p>The literal phrasings, so none of them surprise you:</p>
+
+<ul>
+  <li>"What's a closure? Can you give me an example?"</li>
+  <li>"What's the difference between <code>var</code>, <code>let</code>, and <code>const</code>?"</li>
+  <li>"What does this log?" <em>(the loop, every single time)</em></li>
+  <li>"Explain hoisting."</li>
+  <li>"What's the Temporal Dead Zone?"</li>
+  <li>"How would you make a private variable in JavaScript?"</li>
+  <li>"Implement <code>once</code> / <code>debounce</code> / <code>memoize</code>." <em>(a closure question in disguise)</em></li>
+</ul>
+
+<h4>The model answer for "what's a closure?"</h4>
+
+<div class="say">
+  <p>"A closure is a function together with the scope it was created in. In JavaScript scope is lexical, so a function's parent scope is fixed by where it's <em>written</em>, not where it's called — and it keeps a live reference to that scope. So when a function outlives the call that created it, the variables it captured are still alive and still shared, not copied. Practically, I use that any time I need state that survives between calls but shouldn't be public — a cache in a memoize wrapper, the timer id in a debounce, or a <code>hasRun</code> flag in a <code>once</code> helper."</p>
+</div>
+
+<p><strong>Why that lands:</strong> it defines the thing without using the word "remembers", names the mechanism (<em>lexical</em>, <em>live reference</em>, <em>shared not copied</em>), and lands on real code instead of a counter. It also plants three follow-ups you're ready for. Roughly 25 seconds spoken — long enough to show depth, short enough that you're not monologuing.</p>
+
+<div class="followups">
+
+<details>
+  <summary>"Why not just use <code>let</code> everywhere? Is <code>var</code> ever OK?"</summary>
+  <p>Do use <code>let</code> and <code>const</code> everywhere in new code — <code>const</code> by default, <code>let</code> when you genuinely reassign. That's not controversial.</p>
+  <p>But the honest answer to "is <code>var</code> ever OK" isn't a flat no, it's: <em>there's no case where <code>var</code> is better, but there are cases where it's deliberate.</em> Its one distinguishing behaviour is that a top-level <code>var</code> creates a property on <code>window</code>, which old scripts occasionally relied on to expose globals across <code>&lt;script&gt;</code> tags. Modern code uses modules and explicit exports instead. And you'll still read <code>var</code> constantly in legacy code and transpiler output, which is why you need to <em>understand</em> it even though you won't write it.</p>
+  <p>The strong version: "I'd never reach for <code>var</code>, but I don't treat it as forbidden knowledge — the function-scoping is the thing you have to hold in your head when reading older code."</p>
+</details>
+
+<details>
+  <summary>"Do closures cause memory leaks?"</summary>
+  <p>"Not by themselves. A closure holds its captured scope alive as long as the closure itself is reachable — that's the feature, not a bug. It becomes a leak when the closure lives longer than you need what it captured: an event listener on <code>window</code>, a <code>setInterval</code>, a subscription that's never torn down. The fixes are to capture the smallest thing you need rather than a whole large object, and to give every long-lived subscription an explicit teardown — which is exactly what a <code>useEffect</code> cleanup is."</p>
+  <p><em>Bonus if they push:</em> mention that you'd confirm with a heap snapshot in DevTools rather than guessing — take a snapshot, do the thing, take another, and compare retained size. Naming a diagnostic tool is a strong senior signal.</p>
+</details>
+
+<details>
+  <summary>"Is <code>const</code> immutable?"</summary>
+  <p>"No — <code>const</code> freezes the binding, not the value. The variable can never be reassigned to point at something else, but if it points at an object or array, the contents are completely mutable. <code>Object.freeze</code> gets you a shallow freeze of the value itself; for deep immutability you'd need a recursive freeze or a library."</p>
+  <p><em>Trap to avoid:</em> saying "yes, const means constant." That's the single most common wrong answer to this question.</p>
+</details>
+
+<details>
+  <summary>"What's the output of the loop?" <em>(and the two variants they'll try)</em></summary>
+  <p><code>var</code> version: <code>3 3 3</code>. <code>let</code> version: <code>0 1 2</code>. Reason: one shared binding vs. a fresh binding per iteration.</p>
+  <p><strong>Variant 1 — no async at all:</strong></p>
+  <pre><code><span class="kw">const</span> fns = [];
+<span class="kw">for</span> (<span class="kw">var</span> i = 0; i &lt; 3; i++) fns.push(() =&gt; i);
+fns.map(f =&gt; f());     <span class="out">// → [3, 3, 3]</span></code></pre>
+  <p>Still three 3s. This is the trap for anyone who answered "because <code>setTimeout</code> is async."</p>
+  <p><strong>Variant 2 — what about a <code>for…of</code> or <code>forEach</code>?</strong> Both give <code>0 1 2</code> even with sloppy code: <code>forEach</code> because every iteration is a real function call with its own scope, and <code>for…of</code> with <code>let</code>/<code>const</code> because it creates a fresh binding per iteration too.</p>
+</details>
+
+<details>
+  <summary>"Implement a private counter — and now do it without a closure."</summary>
+  <pre><code><span class="cm">// With a closure:</span>
+<span class="kw">function</span> createCounter() {
+  <span class="kw">let</span> count = 0;
+  <span class="kw">return</span> { increment: () =&gt; ++count, get value() { <span class="kw">return</span> count; } };
+}
+
+<span class="cm">// Without — private class fields (ES2022):</span>
+<span class="kw">class</span> Counter {
+  #count = 0;
+  increment() { <span class="kw">return</span> ++<span class="kw">this</span>.#count; }
+  get value() { <span class="kw">return</span> <span class="kw">this</span>.#count; }
+}</code></pre>
+  <p>The interesting comparison: closures give one private copy per <em>call</em>, and the privacy comes from the scope chain being one-directional. <code>#</code> fields give one per <em>instance</em>, enforced by the language, and they're inspectable in DevTools while closure variables largely aren't. Closure-based privacy also costs one function object per method per instance; class methods are shared on the prototype. Knowing that trade-off is well past what most candidates offer.</p>
+</details>
+
+<details>
+  <summary>"Why do closures matter in React specifically?"</summary>
+  <p>"Because a function component re-runs top to bottom on every render, so every render creates a fresh scope. Every handler, effect and callback you define inside closes over <em>that render's</em> variables. If a function outlives its render — an interval, an event listener, an effect with empty deps — it keeps reading that old scope, and you get a stale closure. That's what the exhaustive-deps lint rule is protecting you from, and it's why the functional form of <code>setState</code> exists: <code>setCount(c =&gt; c + 1)</code> never reads a captured value at all."</p>
+</details>
+
+<details>
+  <summary>"Are <code>let</code> and <code>const</code> hoisted?"</summary>
+  <p>"Yes — they're registered in the scope during the creation phase, they're just not <em>initialized</em>. That gap is the Temporal Dead Zone. You can prove they're hoisted: if a block declares its own <code>const theme</code>, then a reference above that line throws instead of finding the outer <code>theme</code> — which means the engine already knew about the inner one."</p>
+  <p><em>Why this lands:</em> most candidates say "no, only <code>var</code> is hoisted." Being able to <em>prove</em> the opposite with a three-line snippet is memorable.</p>
+</details>
+
+<details>
+  <summary>"Why does the TDZ exist? Isn't it just annoying?"</summary>
+  <p>"Two reasons. First, if early access silently gave you <code>undefined</code>, you couldn't tell a real ordering bug from a variable that legitimately holds <code>undefined</code> — the TDZ turns a silent wrong value into a loud error at the exact line that caused it. Second, <code>const</code> couldn't work otherwise: auto-initializing it to <code>undefined</code> would mean your actual assignment is the second one, which is the thing <code>const</code> forbids."</p>
+</details>
+
+<details>
+  <summary>"Does every function create a closure?"</summary>
+  <p>Technically yes — every function is created with a reference to its outer scope, so every function is a closure in the spec sense. But in practice engines only allocate a heap context when the inner function actually references something from the outer scope, and colloquially we say "closure" when that captured state <em>outlives</em> the outer call. Both answers are right; showing you know both is the point.</p>
+</details>
+
+<details>
+  <summary>"Two closures from the same call — do they share state or each get a copy?"</summary>
+  <p>They share. Same scope table, same live variables — that's the <code>makeAccount</code> example, where <code>deposit</code> and <code>getBalance</code> both see the same <code>balance</code>. Two <em>separate calls</em> to the factory produce two independent tables. So: one call = one shared private state; N calls = N independent states. Getting this backwards is the most common way people misuse factory functions.</p>
+</details>
+
+<details>
+  <summary>"Does an arrow function fix the loop bug?"</summary>
+  <p>"No. Arrow functions close over scope identically to regular functions — the only things they handle differently are <code>this</code>, <code>arguments</code>, and <code>super</code>. The broken loop example usually <em>already uses</em> an arrow. The fix is <code>let</code>, or manufacturing a new scope per iteration with an IIFE."</p>
+</details>
+
+</div>
+
+<div class="box myth">
+  <span class="box-title">Traps, collected</span>
+  <p>The specific wrong answers that get people dinged:</p>
+  <ul>
+    <li>"Hoisting moves declarations to the top." → It's a two-phase setup; nothing moves.</li>
+    <li>"<code>let</code> and <code>const</code> aren't hoisted." → They are; they're just uninitialized.</li>
+    <li>"<code>const</code> makes it immutable." → Binding, not value.</li>
+    <li>"The loop logs 3,3,3 because <code>setTimeout</code> is async." → It's the shared binding; remove the async and it still happens.</li>
+    <li>"A closure remembers the values of its variables." → It shares the live scope. Values change under it.</li>
+    <li>"Closures cause memory leaks." → Long-lived closures over large data do. That's a lifetime problem, not a closure problem.</li>
+    <li>"Arrow functions fix the loop." → They're irrelevant to it.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat"><span class="num">Part 14</span>Interview cheat sheet</h2>
+
+<p>Read this on the train. One crisp line each.</p>
+
+<div class="cheat">
+
+<h3>Scope</h3>
+<p>A lookup table of names → values, created per function call and per block. Lookups walk <em>up</em> the chain of parent tables, never down.</p>
+
+<h3>Lexical scope</h3>
+<p>A function's parent scope is decided by where it's <strong>written</strong>, not where it's called. (Unlike <code>this</code> in a regular function, which is decided by the caller.)</p>
+
+<h3><code>var</code></h3>
+<p>Function-scoped, redeclarable, initialized to <code>undefined</code> during the creation phase, creates a <code>window</code> property at top level.</p>
+
+<h3><code>let</code> / <code>const</code></h3>
+<p>Block-scoped, not redeclarable, hoisted but uninitialized (TDZ). <code>const</code> additionally can't be reassigned.</p>
+
+<h3><code>const</code></h3>
+<p>Freezes the <strong>binding</strong>, not the value. Objects and arrays behind a <code>const</code> are fully mutable. <code>Object.freeze</code> is shallow.</p>
+
+<h3>Hoisting</h3>
+<p>Two phases per scope. Creation: register all declared names (functions ready, <code>var</code> = <code>undefined</code>, <code>let</code>/<code>const</code> = uninitialized). Execution: run lines, fill in values.</p>
+
+<h3>Function declaration vs expression vs arrow</h3>
+<p>Declarations are fully usable before their line. Expressions/arrows hoist only the <em>variable</em> — so calling early gives <code>TypeError</code> with <code>var</code>, <code>ReferenceError</code> with <code>const</code>.</p>
+
+<h3>Temporal Dead Zone</h3>
+<p>The window between a <code>let</code>/<code>const</code> being registered and being initialized. Access throws — even <code>typeof</code>. It exists so ordering bugs fail loudly and so <code>const</code>'s one-assignment rule holds.</p>
+
+<h3>Closure</h3>
+<p>A function plus a live reference to the scope it was created in. It keeps that scope alive after the outer call returns. Shared, not copied.</p>
+
+<h3>The loop</h3>
+<p><code>var</code> → <code>3 3 3</code> (one binding). <code>let</code> → <code>0 1 2</code> (fresh binding per iteration). Not about async.</p>
+
+<h3>Closure use cases</h3>
+<p><code>once</code>, memoize, debounce/throttle, function factories, event handlers with context, module privacy. Shape: state that outlives a call but stays private.</p>
+
+<h3>Memory</h3>
+<p>Closures retain what they capture for as long as they're reachable. Capture the smallest thing; tear down long-lived subscriptions.</p>
+
+<h3>IIFE / module pattern</h3>
+<p>Pre-ES6 encapsulation: wrap a file in an immediately-called function, return a public API object. It's a closure. ES modules replaced it.</p>
+
+<h3>React</h3>
+<p>Every render is a new scope. Functions defined in a render close over <em>that</em> render. Effects with stale deps read old scopes — hence exhaustive-deps and <code>setState(prev =&gt; …)</code>.</p>
+
+</div>
+
+<hr>
+
+<p>If you only keep one sentence from all of this, keep this one:</p>
+
+<p style="font-size:1.16rem; line-height:1.6; border-left:4px solid var(--accent); padding-left:18px; margin:24px 0;"><strong>A function is permanently attached to the scope it was written in, and that attachment keeps the scope alive.</strong></p>
+
+<p>Hoisting is what fills those scopes in. The TDZ is the gap before they're filled. <code>var</code> vs <code>let</code> is a disagreement about how many scopes there are. And a closure is what you call it when a function walks off with one.</p>
+
+<p>Same idea, four hats. Go get the job. 🎯</p>
+
+</div>
+</body>
+</html>

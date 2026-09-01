@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing Frontend: What to Test, and What Not To</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --panel: #ffffff;
+    --ink: #22201d;
+    --ink-soft: #55504a;
+    --line: #e6e1da;
+    --accent: #2f6f5e;
+    --accent-soft: #e7f1ee;
+    --red: #a83232;
+    --red-soft: #fdeeec;
+    --green: #2c6e49;
+    --green-soft: #eaf5ee;
+    --amber: #8a6100;
+    --amber-soft: #fdf3dd;
+    --violet: #5b4a8a;
+    --violet-soft: #f0ecf8;
+    --code-bg: #262220;
+    --code-ink: #f2ece4;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 20px 120px;
+  }
+
+  header.hero {
+    padding: 72px 0 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 40px;
+  }
+
+  .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 2.9rem);
+    line-height: 1.14;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+  }
+
+  .standfirst {
+    font-size: 1.16rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    margin: 68px 0 6px;
+    letter-spacing: -0.015em;
+    scroll-margin-top: 20px;
+  }
+
+  h2 + .section-sub {
+    color: var(--ink-soft);
+    margin: 0 0 22px;
+    font-size: 1rem;
+  }
+
+  h3 {
+    font-size: 1.24rem;
+    margin: 42px 0 10px;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 20px;
+  }
+
+  h4 {
+    font-size: 1.03rem;
+    margin: 28px 0 8px;
+    text-transform: none;
+  }
+
+  p { margin: 0 0 20px; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 20px; padding-left: 1.3em; }
+  li { margin-bottom: 9px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: #efeae2;
+    padding: 0.12em 0.36em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 0 0 10px 10px;
+    overflow-x: auto;
+    margin: 0 0 22px;
+    font-size: 0.85rem;
+    line-height: 1.62;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  pre.solo { border-radius: 10px; }
+
+  .code-label {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .code-label.bad { background: #f6d5d0; color: #7d221a; }
+  .code-label.good { background: #cfe8d8; color: #1e5236; }
+  .code-label.neutral { background: #e3ddd4; color: #4a443c; }
+
+  .cmt { color: #9fb0a8; }
+  .str { color: #e3c08a; }
+  .kw  { color: #ff9ab0; }
+  .fn  { color: #8fd0f0; }
+
+  /* Callouts */
+  .callout {
+    border-radius: 10px;
+    padding: 18px 20px 4px;
+    margin: 26px 0;
+    border: 1px solid;
+  }
+  .callout .ctitle {
+    font-weight: 700;
+    font-size: 0.94rem;
+    margin: 0 0 8px;
+    display: block;
+  }
+  .callout p:last-child { margin-bottom: 16px; }
+  .callout ul { margin-bottom: 16px; }
+
+  .wait      { background: var(--accent-soft); border-color: #bcd8ce; }
+  .wait .ctitle { color: var(--accent); }
+
+  .miscon    { background: var(--red-soft); border-color: #f0cdc7; }
+  .miscon .ctitle { color: var(--red); }
+
+  .hood      { background: var(--violet-soft); border-color: #d8cff0; }
+  .hood .ctitle { color: var(--violet); }
+
+  .interview { background: var(--amber-soft); border-color: #ecd7a2; }
+  .interview .ctitle { color: var(--amber); }
+
+  .say {
+    background: var(--panel);
+    border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 0 0 14px;
+    font-size: 1.02rem;
+  }
+  .say strong.who {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+
+  .signal {
+    font-size: 0.93rem;
+    color: var(--ink-soft);
+  }
+
+  /* TOC */
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 26px 18px;
+    margin-bottom: 46px;
+  }
+  nav.toc h2 {
+    margin: 0 0 10px;
+    font-size: 0.78rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  nav.toc ol { margin: 0; padding-left: 1.25em; }
+  nav.toc li { margin-bottom: 5px; font-size: 0.96rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* details / reveal */
+  details {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 9px;
+    padding: 12px 16px;
+    margin: 0 0 12px;
+  }
+  details[open] { padding-bottom: 2px; }
+  summary {
+    cursor: pointer;
+    font-weight: 650;
+    font-size: 1rem;
+  }
+  summary::marker { color: var(--accent); }
+  details > *:not(summary) { margin-top: 12px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 24px;
+    font-size: 0.93rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    background: #f2eee7;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  figure {
+    margin: 30px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 18px 8px;
+  }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    padding: 10px 4px 8px;
+    text-align: center;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 56px 0;
+  }
+
+  .cheat td:first-child { font-weight: 650; width: 34%; }
+
+  .pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  blockquote {
+    margin: 26px 0;
+    padding: 2px 0 2px 20px;
+    border-left: 3px solid var(--accent);
+    color: var(--ink-soft);
+    font-size: 1.06rem;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Prep · Guide 25</p>
+  <h1>Testing Frontend: What to Test, and What Not To</h1>
+  <p class="standfirst">Almost nobody gets asked “what is Jest?” in an interview. What they actually get asked — in a dozen different disguises — is whether they understand what a test is <em>for</em>.</p>
+</header>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#broken">Two tests, both useless</a></li>
+    <li><a href="#whatfor">What a test is actually for</a></li>
+    <li><a href="#basics">The absolute basics (skip if you've written a test)</a></li>
+    <li><a href="#levels">Unit, integration, E2E — one feature, three tests</a></li>
+    <li><a href="#brittle">The big one: implementation details vs behaviour</a></li>
+    <li><a href="#queries">Testing Library's query priority, and why it exists</a></li>
+    <li><a href="#mocking">Mocking: the useful kind and the poisonous kind</a></li>
+    <li><a href="#async">Testing async UI without going insane</a></li>
+    <li><a href="#snapshots">Snapshot tests and why everyone ignores them</a></li>
+    <li><a href="#flake">Flakiness, a first-class topic</a></li>
+    <li><a href="#checkout">“Checkout broke. What would you test before merging?”</a></li>
+    <li><a href="#pyramid">The pyramid, the trophy, the honeycomb, and coverage</a></li>
+    <li><a href="#visual">Visual regression testing</a></li>
+    <li><a href="#contract">Contract testing</a></li>
+    <li><a href="#followups">The follow-up questions, answered</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="broken">Two tests, both useless</h2>
+
+<p>I want to start with two real-ish tests, because I think the whole subject clicks faster from failure than from definitions.</p>
+
+<p>Here's the first one. It's testing a login form.</p>
+
+<div class="code-label bad">❌ Test A</div>
+<pre><code>test(<span class="str">'email state updates'</span>, () =&gt; {
+  <span class="kw">const</span> wrapper = shallow(&lt;LoginForm /&gt;);
+  wrapper.find(<span class="str">'#input-email'</span>).simulate(<span class="str">'change'</span>, {
+    target: { value: <span class="str">'ada@example.com'</span> },
+  });
+  expect(wrapper.state(<span class="str">'email'</span>)).toBe(<span class="str">'ada@example.com'</span>); <span class="cmt">// 👈 hmm</span>
+});</code></pre>
+
+<p>This test passes. It will keep passing. And here's the thing that should bother you: the login form could be <em>completely broken</em> — the submit button disabled forever, the password field invisible, the network call pointed at the wrong URL — and this test would still be sitting there, green, telling you everything is fine.</p>
+
+<p>Now the second one.</p>
+
+<div class="code-label bad">❌ Test B</div>
+<pre><code>test(<span class="str">'renders the login form'</span>, () =&gt; {
+  <span class="kw">const</span> { container } = render(&lt;LoginForm /&gt;);
+  expect(container.firstChild).toMatchSnapshot(); <span class="cmt">// 400 lines of HTML</span>
+});</code></pre>
+
+<p>This one has the opposite problem. Someone changes a wrapper <code>&lt;div&gt;</code> to a <code>&lt;section&gt;</code> for accessibility reasons — an improvement, zero behaviour change — and this test goes red. The developer looks at a 400-line diff they cannot possibly review, shrugs, presses <kbd>u</kbd> to update the snapshot, and moves on. Which means the next time it catches a <em>real</em> bug, they'll do exactly the same thing.</p>
+
+<p>Test A fails to fail when things break. Test B fails when nothing broke. Those are the only two ways a test can be bad, and pretty much everything in this guide is about staying out of both ditches.</p>
+
+<h2 id="whatfor">What a test is actually for</h2>
+
+<p>Let me give you the sentence that the rest of this guide hangs off. If you remember one thing, remember this one:</p>
+
+<blockquote><p>A test exists to give you confidence that a change didn't break behaviour a user cares about.</p></blockquote>
+
+<p>Read it again slowly, because there are four load-bearing words in there.</p>
+
+<p><strong>“Confidence”</strong> — a test is not proof. It's evidence. You're buying belief, and belief has a price (writing the test, running it, maintaining it). Every testing decision is really a question of whether the confidence is worth the price.</p>
+
+<p><strong>“A change”</strong> — tests are for the future, not the present. You mostly already know your code works right now; you just clicked it. The test's job is to still be watching six months from now when someone who's never met you refactors it.</p>
+
+<p><strong>“Break”</strong> — which means a test that goes red when nothing broke is actively lying to you, and a test that stays green when something broke is also lying to you. Both are bugs in the test.</p>
+
+<p><strong>“Behaviour a user cares about”</strong> — not the shape of your state object. Not the name of your CSS class. Not whether you used <code>useReducer</code> or <code>useState</code>. What the user can see, click, read, and get.</p>
+
+<p>Here's an analogy I like. Testing is a <strong>smoke alarm</strong>, not a <strong>building inspection</strong>. A building inspection proves the whole structure is correct according to code — expensive, exhaustive, done once. A smoke alarm just screams when something's on fire, and you keep it forever. Tests are smoke alarms. Which reframes two things immediately: an alarm that never goes off is worthless (Test A), and an alarm that goes off every time you make toast gets the battery pulled out (Test B). That second one is the more common failure in real codebases, and it's the one interviewers probe hardest.</p>
+
+<p>The analogy isn't perfect — a smoke alarm doesn't help you locate the fire, whereas a good unit test tells you exactly which function is burning. Hold onto that difference; it comes back when we talk about test levels.</p>
+
+<div class="interview callout">
+  <span class="ctitle">In an interview</span>
+  <p>When someone asks “how do you approach testing?”, the low-signal answer names tools: “I use Jest and React Testing Library, and Playwright for E2E.” Every candidate says that. The high-signal answer starts from purpose: “I try to write tests that fail when a user-visible behaviour breaks and don't fail otherwise — which mostly means testing through the UI the way a user would, and being pretty stingy about testing internals.” Now you're having a conversation instead of reciting a package.json.</p>
+</div>
+
+<h2 id="basics">The absolute basics <span class="pill">skip if you've written a test</span></h2>
+
+<p>I promised to assume nothing, so: what <em>is</em> a test, mechanically?</p>
+
+<p>A test is just a program that runs your program and complains if it sees something it doesn't like. That's it. There's no magic.</p>
+
+<div class="code-label neutral">the entire concept</div>
+<pre><code><span class="kw">function</span> <span class="fn">formatPrice</span>(cents) {
+  <span class="kw">return</span> <span class="str">'$'</span> + (cents / 100).toFixed(2);
+}
+
+<span class="cmt">// the "test":</span>
+<span class="kw">if</span> (<span class="fn">formatPrice</span>(1999) !== <span class="str">'$19.99'</span>) {
+  <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'formatPrice is broken'</span>);
+}</code></pre>
+
+<p>A <strong>test runner</strong> (Jest, Vitest) is a tool that finds all the files ending in <code>.test.js</code>, runs them, catches the errors, and prints a nice report instead of blowing up. An <strong>assertion</strong> is the “complain if” part, dressed up: <code>expect(formatPrice(1999)).toBe('$19.99')</code>. It throws a descriptive error when the values don't match.</p>
+
+<p>Two more words you need before we go further:</p>
+
+<p><strong>jsdom.</strong> Browser code needs a browser — <code>document</code>, <code>window</code>, elements. But spinning up Chrome for every test is slow. jsdom is a fake browser written in JavaScript: it implements the DOM API in memory, with no actual pixels, no layout engine, no rendering. Jest and Vitest run your component tests inside it. This is why a jsdom test can't tell you whether a button is visually covered by a modal — there's no visual. Remember that; it's the seed of the visual regression section later.</p>
+
+<p><strong>Testing Library</strong> (usually React Testing Library, RTL). A small library that renders your component into jsdom and then gives you functions to find things <em>the way a user would</em> — by the button's label, by the form field's name, by the visible text. Its whole design philosophy is a single sentence from its author, Kent C. Dodds:</p>
+
+<blockquote><p>The more your tests resemble the way your software is used, the more confidence they can give you.</p></blockquote>
+
+<p>That sentence is basically the exam. Almost every “right answer” in a frontend testing interview is a specific application of it.</p>
+
+<h2 id="levels">Unit, integration, E2E — one feature, three tests</h2>
+<p class="section-sub">The vocabulary everyone uses, plus the tradeoff underneath it.</p>
+
+<p>People throw these three words around as if they were categories in a filing cabinet. They're not. They're three points on a single sliding scale, and the scale is:</p>
+
+<figure>
+<svg viewBox="0 0 700 210" role="img" aria-label="A spectrum from isolation to realism, with unit tests at the isolated end and end-to-end tests at the realistic end">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#cfe3dc"/>
+      <stop offset="100%" stop-color="#f0d9c4"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="60" width="620" height="26" rx="13" fill="url(#g1)"/>
+  <text x="40" y="46" font-size="15" font-weight="700" fill="#2f6f5e">ISOLATION</text>
+  <text x="660" y="46" font-size="15" font-weight="700" fill="#8a6100" text-anchor="end">REALISM</text>
+
+  <circle cx="110" cy="73" r="9" fill="#2f6f5e"/>
+  <text x="110" y="112" font-size="14" font-weight="700" text-anchor="middle" fill="#22201d">Unit</text>
+  <text x="110" y="132" font-size="12" text-anchor="middle" fill="#55504a">~1ms</text>
+  <text x="110" y="150" font-size="12" text-anchor="middle" fill="#55504a">exact failure</text>
+  <text x="110" y="168" font-size="12" text-anchor="middle" fill="#55504a">location</text>
+
+  <circle cx="350" cy="73" r="9" fill="#5b4a8a"/>
+  <text x="350" y="112" font-size="14" font-weight="700" text-anchor="middle" fill="#22201d">Integration</text>
+  <text x="350" y="132" font-size="12" text-anchor="middle" fill="#55504a">~50ms</text>
+  <text x="350" y="150" font-size="12" text-anchor="middle" fill="#55504a">best confidence</text>
+  <text x="350" y="168" font-size="12" text-anchor="middle" fill="#55504a">per unit of effort</text>
+
+  <circle cx="600" cy="73" r="9" fill="#a83232"/>
+  <text x="600" y="112" font-size="14" font-weight="700" text-anchor="middle" fill="#22201d">E2E</text>
+  <text x="600" y="132" font-size="12" text-anchor="middle" fill="#55504a">~10s</text>
+  <text x="600" y="150" font-size="12" text-anchor="middle" fill="#55504a">flaky, slow,</text>
+  <text x="600" y="168" font-size="12" text-anchor="middle" fill="#55504a">hard to debug</text>
+
+  <text x="350" y="200" font-size="12.5" text-anchor="middle" fill="#55504a" font-style="italic">the same axis, said differently: speed ⟷ confidence</text>
+</svg>
+<figcaption>One dial, not three boxes. Turning it right buys realism and pays in seconds and flakiness.</figcaption>
+</figure>
+
+<p>Every test you write replaces some real things with fake things. A unit test replaces nearly everything: no real network, no real router, no real child components sometimes. An E2E test replaces almost nothing: real browser, real clicks, real HTTP. <strong>The more you fake, the faster and more precise the test — and the further it drifts from the thing your users actually run.</strong></p>
+
+<p>Let's make it concrete with one feature: a login form. Same feature, three tests.</p>
+
+<h3>Unit: one thing, alone</h3>
+
+<p>A unit test takes one function (or one small component) and checks it in isolation.</p>
+
+<div class="code-label neutral">unit</div>
+<pre><code><span class="cmt">// validateCredentials.test.js</span>
+test(<span class="str">'rejects an email with no @'</span>, () =&gt; {
+  <span class="kw">const</span> result = <span class="fn">validateCredentials</span>({
+    email: <span class="str">'ada.example.com'</span>,
+    password: <span class="str">'hunter2hunter2'</span>,
+  });
+  expect(result.errors.email).toBe(<span class="str">'Enter a valid email address'</span>);
+});</code></pre>
+
+<p>This runs in about a millisecond. If it fails, you know <em>exactly</em> where the bug is — it's in <code>validateCredentials</code>, there's nowhere else it could be. That precision is the real product of a unit test.</p>
+
+<p>But here's the catch, and it's a big one. <strong>Units passing individually says almost nothing about whether they work together.</strong> <code>validateCredentials</code> can be flawless while the form never calls it, or calls it with <code>{ username }</code> instead of <code>{ email }</code>, or renders <code>result.error</code> (singular) so the message never appears. Every one of those is a real, user-facing bug, and all your unit tests are green.</p>
+
+<p>That's the classic image: two perfectly-tested drawer units and a wardrobe you can't open. Which is why...</p>
+
+<h3>Integration: several units, wired up for real</h3>
+
+<p>An integration test uses <em>multiple real pieces together</em>. On the frontend, that almost always means: render a chunk of the component tree, then interact with it like a person would.</p>
+
+<div class="code-label good">✅ integration (the sweet spot)</div>
+<pre><code>test(<span class="str">'shows an error when the email is malformed'</span>, <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> user = userEvent.<span class="fn">setup</span>();
+  <span class="fn">render</span>(&lt;LoginForm onSuccess={vi.<span class="fn">fn</span>()} /&gt;);
+
+  <span class="kw">await</span> user.<span class="fn">type</span>(screen.<span class="fn">getByLabelText</span>(<span class="str">/email/i</span>), <span class="str">'ada.example.com'</span>);
+  <span class="kw">await</span> user.<span class="fn">type</span>(screen.<span class="fn">getByLabelText</span>(<span class="str">/password/i</span>), <span class="str">'hunter2hunter2'</span>);
+  <span class="kw">await</span> user.<span class="fn">click</span>(screen.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">/log in/i</span> }));
+
+  expect(<span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">/enter a valid email address/i</span>)).<span class="fn">toBeVisible</span>();
+});</code></pre>
+
+<p>Look at what this test just covered <em>without mentioning any of it</em>: the label is correctly associated with the input (or <code>getByLabelText</code> would have thrown), the button is a real button with an accessible name, the submit handler is wired, validation runs, the error is rendered, and it's rendered somewhere visible. One test, six potential bugs caught, and not one line of it names an internal implementation detail. If you rewrite <code>LoginForm</code> from class component to hooks to a form library, this test doesn't move.</p>
+
+<p>This is why I'd claim — and I'd claim it out loud in an interview — that for frontend work, <strong>integration tests give the most confidence per unit of effort.</strong> They're one order of magnitude slower than unit tests (tens of milliseconds, not one), which is nothing, and they're two or three orders faster than E2E.</p>
+
+<h3>E2E: the real thing</h3>
+
+<p>End-to-end tests drive an actual browser. Real Chrome, real URL bar, real network, usually a real (or realistic) backend.</p>
+
+<div class="code-label neutral">E2E (Playwright)</div>
+<pre><code>test(<span class="str">'a user can log in and reach the dashboard'</span>, <span class="kw">async</span> ({ page }) =&gt; {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/login'</span>);
+  <span class="kw">await</span> page.<span class="fn">getByLabel</span>(<span class="str">'Email'</span>).<span class="fn">fill</span>(<span class="str">'ada@example.com'</span>);
+  <span class="kw">await</span> page.<span class="fn">getByLabel</span>(<span class="str">'Password'</span>).<span class="fn">fill</span>(<span class="str">'hunter2hunter2'</span>);
+  <span class="kw">await</span> page.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">'Log in'</span> }).<span class="fn">click</span>();
+
+  <span class="kw">await</span> expect(page.<span class="fn">getByRole</span>(<span class="str">'heading'</span>, { name: <span class="str">'Your dashboard'</span> })).<span class="fn">toBeVisible</span>();
+});</code></pre>
+
+<p>This one covers things nothing else can: that the auth cookie is actually set with the right flags, that the redirect happens, that the router config is right, that the bundle even builds, that the backend accepts the payload shape you're sending. Real confidence.</p>
+
+<p>And it costs. It takes seconds instead of milliseconds. It needs a running server and a seeded database. When it fails, the message is “expected heading to be visible, timed out after 5000ms” — which could be a frontend bug, a backend 500, a slow CI machine, a stale test user, or an expired seed script. And it will fail sometimes for none of those reasons, which we'll get to in the flakiness section.</p>
+
+<div class="wait callout">
+  <span class="ctitle">Wait — where's the line between integration and E2E, really?</span>
+  <p>Genuinely blurry, and you should say so if asked. Is an RTL test that renders your whole <code>&lt;App /&gt;</code> with a memory router and a mocked network layer a “unit” test or an “integration” test? Kent C. Dodds — who wrote RTL — calls most RTL tests integration tests. Plenty of teams file every Jest test under “unit tests” because they run in the unit-test job in CI. Both are defensible.</p>
+  <p>The useful move in an interview isn't to pick the One True Definition; it's to show you know the definitions are fuzzy and that the fuzziness doesn't matter. What matters is: <em>how much is real, and how much is faked?</em> Say “I'd call it an integration test because it renders several real components together and only fakes the network — but I know teams that'd file it under unit, and I don't think the label changes what it's worth.” That answer sounds like someone who's argued about this on a real team.</p>
+</div>
+
+<h3>So how do you decide?</h3>
+
+<p>Here's the heuristic I'd actually give:</p>
+
+<p><strong>Reach for a unit test when the logic is intricate and self-contained.</strong> Date-range math, a price/tax/discount calculator, a permissions resolver, a reducer with a dozen action types, a URL-parsing utility. These have many input combinations and no UI. Driving all fifteen edge cases through clicks would be miserable and slow; calling the function fifteen times is a joy.</p>
+
+<p><strong>Reach for an integration test when the risk is in the wiring.</strong> Which is most frontend code, honestly. Forms, lists with filters, modals, anything with loading and error states. The bugs here are “the pieces don't fit”, and only a test that assembles the pieces will find them.</p>
+
+<p><strong>Reach for E2E when a failure would be catastrophic and crosses system boundaries.</strong> Sign-up, login, checkout, payment. Keep the number small — a handful of critical user journeys, not a mirror of your integration suite.</p>
+
+<h2 id="brittle">The big one: implementation details vs behaviour</h2>
+<p class="section-sub">If you only get five minutes to prepare, spend them here.</p>
+
+<p>Let's go back to Test A from the top of the guide, because I want to name precisely what's wrong with it.</p>
+
+<div class="code-label bad">❌ Brittle</div>
+<pre><code>expect(wrapper.state(<span class="str">'email'</span>)).toBe(<span class="str">'ada@example.com'</span>);</code></pre>
+
+<p>Ask yourself: <em>does a user know or care that there's a piece of state called <code>email</code>?</em> No. Users know that when they type into a box, letters appear in the box, and when they submit, the right thing happens. The existence of a state variable named <code>email</code> is a decision you made this afternoon and might unmake tomorrow.</p>
+
+<p>That's the definition of an <strong>implementation detail</strong>: something your users can't observe, that you're free to change without changing what the app does.</p>
+
+<p>And this is the diagnostic — the one sentence to have loaded and ready:</p>
+
+<blockquote><p><strong>If I refactor without changing behaviour, does the test fail? Then the test was testing the wrong thing.</strong></p></blockquote>
+
+<p>Rename <code>email</code> to <code>emailValue</code>: Test A breaks. Move from <code>useState</code> to <code>useReducer</code>: Test A breaks. Adopt React Hook Form: Test A breaks. The user experience is byte-for-byte identical in all three cases. Every one of those failures is a false alarm — a test screaming at you while you make toast.</p>
+
+<h3>The usual suspects</h3>
+
+<p>Here's what testing implementation details looks like in the wild. I've written every single one of these, so no judgement.</p>
+
+<div class="code-label bad">❌ Four flavours of brittle</div>
+<pre><code><span class="cmt">// 1. Internal state</span>
+expect(wrapper.state(<span class="str">'isOpen'</span>)).toBe(<span class="kw">true</span>);
+
+<span class="cmt">// 2. Internal method calls</span>
+<span class="kw">const</span> spy = vi.<span class="fn">spyOn</span>(instance, <span class="str">'handleSubmit'</span>);
+expect(spy).<span class="fn">toHaveBeenCalled</span>();
+
+<span class="cmt">// 3. CSS class names</span>
+expect(container.<span class="fn">querySelector</span>(<span class="str">'.btn--loading'</span>)).not.<span class="fn">toBeNull</span>();
+
+<span class="cmt">// 4. Exact DOM structure</span>
+expect(container.firstChild.children[<span class="str">1</span>].tagName).toBe(<span class="str">'SPAN'</span>);</code></pre>
+
+<p>And here is the same set of intentions, written in terms a user would recognise:</p>
+
+<div class="code-label good">✅ The same four, made resilient</div>
+<pre><code><span class="cmt">// 1. the menu is actually open — because you can see its items</span>
+expect(screen.<span class="fn">getByRole</span>(<span class="str">'menu'</span>)).<span class="fn">toBeVisible</span>();
+
+<span class="cmt">// 2. submitting did the thing the user wanted</span>
+expect(<span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">/order confirmed/i</span>)).<span class="fn">toBeVisible</span>();
+
+<span class="cmt">// 3. the button reports itself as busy — to users AND screen readers</span>
+expect(screen.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">/pay now/i</span> })).<span class="fn">toBeDisabled</span>();
+expect(screen.<span class="fn">getByText</span>(<span class="str">/processing/i</span>)).<span class="fn">toBeVisible</span>();
+
+<span class="cmt">// 4. the content is there; nobody cares which tag holds it</span>
+expect(screen.<span class="fn">getByText</span>(<span class="str">'$24.99'</span>)).<span class="fn">toBeVisible</span>();</code></pre>
+
+<p>Notice something about the fixed versions: they read like a description of the feature. If you deleted the code and handed only these assertions to another developer, they could rebuild the behaviour. That's the tell. <strong>A good test doubles as a specification; a brittle test doubles as a diff of your last refactor.</strong></p>
+
+<div class="miscon callout">
+  <span class="ctitle">A common misconception: “but the state IS the behaviour”</span>
+  <p>The objection goes: if <code>isOpen</code> is true, the menu is open — same thing, and checking the state is more direct.</p>
+  <p>It isn't the same thing, and the gap is exactly where bugs live. <code>isOpen</code> can be <code>true</code> while the menu is invisible because you forgot to pass the prop down, or because a CSS class hides it, or because it renders into a portal that isn't mounted, or because an error boundary swallowed it. State is your <em>intention</em>. The rendered output is the <em>result</em>. Tests should check results, because users experience results. Checking the intention is checking your own homework with your own answer key.</p>
+</div>
+
+<h3>Why brittle tests are worse than no tests</h3>
+
+<p>This claim sounds like an exaggeration and it isn't, so let me argue it properly.</p>
+
+<p>With no tests, you know you have no safety net. You're careful. You click through the feature manually. You're honest with yourself about the risk.</p>
+
+<p>With brittle tests, three bad things happen in sequence.</p>
+
+<p><strong>First, they punish the good behaviour.</strong> A developer starts a clean refactor, and 40 tests go red. Not because they broke anything — because the tests were welded to the old internals. Now the refactor costs three times what it should, and the rational response is to not refactor. Your test suite is now actively preserving bad code.</p>
+
+<p><strong>Second, they train people to update tests without reading them.</strong> When red usually means “the test is out of date”, people stop treating red as information. They fix the test to match the new reality reflexively. And the day the test is right and the code is wrong, they'll do the same thing on autopilot. The alarm has been disconnected — not officially, just in everybody's head.</p>
+
+<p><strong>Third, they poison trust in the entire suite.</strong> This is the killer. A suite is judged as a whole. Once “the tests are flaky/annoying/always broken” becomes team folklore, nobody looks carefully at <em>any</em> failure, including the ones from your careful, well-written tests. You can't have a partially trusted smoke alarm.</p>
+
+<div class="interview callout">
+  <span class="ctitle">In an interview</span>
+  <div class="say">
+    <strong class="who">Say this out loud</strong>
+    <p>“The main thing I watch for is whether a test is coupled to implementation details. My rule of thumb is: if I refactor the component without changing what the user sees, and the test fails, the test was wrong. So I try not to assert on state, internal function calls, or class names — I query by role and text and assert on what's actually rendered. Brittle tests are worse than no tests in my experience, because they get updated on autopilot and then people stop trusting failures at all.”</p>
+  </div>
+  <p class="signal"><strong>Why it lands:</strong> it gives a <em>criterion</em>, not a preference. Anyone can say “test behaviour not implementation” — it's a slogan. Giving the refactor test shows you can apply it to a case you've never seen, which is what the interviewer is really checking.</p>
+</div>
+
+<h2 id="queries">Testing Library's query priority, and why it exists</h2>
+
+<p>Okay, so you're sold on “query things the way a user would”. But a user finds a button by looking at it. How does a test do that?</p>
+
+<p>Testing Library answers with a ranked list of ways to find elements. The ranking isn't arbitrary — it's ordered by <strong>how close the query is to how a human (or a screen reader) identifies the thing</strong>.</p>
+
+<figure>
+<svg viewBox="0 0 700 260" role="img" aria-label="Testing Library query priority from getByRole at the top down to getByTestId at the bottom">
+  <rect x="30" y="14" width="640" height="40" rx="8" fill="#e7f1ee" stroke="#bcd8ce"/>
+  <text x="48" y="39" font-size="15" font-weight="700" fill="#2f6f5e" font-family="ui-monospace, monospace">getByRole</text>
+  <text x="230" y="39" font-size="13.5" fill="#3b463f">how everyone perceives it — button, heading, textbox</text>
+
+  <rect x="30" y="62" width="640" height="40" rx="8" fill="#eef5f2" stroke="#cfe0d9"/>
+  <text x="48" y="87" font-size="15" font-weight="700" fill="#2f6f5e" font-family="ui-monospace, monospace">getByLabelText</text>
+  <text x="230" y="87" font-size="13.5" fill="#3b463f">how you find a form field</text>
+
+  <rect x="30" y="110" width="640" height="40" rx="8" fill="#f5f2ec" stroke="#e0d8cb"/>
+  <text x="48" y="135" font-size="15" font-weight="700" fill="#6b5a2e" font-family="ui-monospace, monospace">getByPlaceholderText</text>
+  <text x="230" y="135" font-size="13.5" fill="#3b463f">only when there's genuinely no label</text>
+
+  <rect x="30" y="158" width="640" height="40" rx="8" fill="#fdf3dd" stroke="#ecd7a2"/>
+  <text x="48" y="183" font-size="15" font-weight="700" fill="#8a6100" font-family="ui-monospace, monospace">getByText</text>
+  <text x="230" y="183" font-size="13.5" fill="#3b463f">non-interactive content: copy, prices, messages</text>
+
+  <rect x="30" y="206" width="640" height="40" rx="8" fill="#fdeeec" stroke="#f0cdc7"/>
+  <text x="48" y="231" font-size="15" font-weight="700" fill="#a83232" font-family="ui-monospace, monospace">getByTestId</text>
+  <text x="230" y="231" font-size="13.5" fill="#3b463f">escape hatch — invisible to users, so it proves less</text>
+</svg>
+<figcaption>Top to bottom: closest to the user's experience, down to furthest from it.</figcaption>
+</figure>
+
+<p><strong>Why <code>getByRole</code> sits at the top.</strong> A “role” is what an element <em>is</em> in the accessibility tree — the parallel representation of your page that screen readers and other assistive tech consume. A <code>&lt;button&gt;</code> has role <code>button</code>. An <code>&lt;h2&gt;</code> has role <code>heading</code> with level 2. An <code>&lt;input type="text"&gt;</code> has role <code>textbox</code>. And crucially, you can query by role <em>and</em> accessible name: <code>getByRole('button', { name: /log in/i })</code>.</p>
+
+<p>Here's the lovely consequence. If that query passes, you have simultaneously proven that (a) there's a button, (b) it's a real button rather than a clickable <code>&lt;div&gt;</code>, and (c) it has an accessible name that a screen-reader user would hear. You got an accessibility assertion for free, without writing one. If someone later swaps the button for a <code>&lt;div onClick&gt;</code>, your test fails — and it <em>should</em>, because that genuinely broke behaviour for keyboard and screen-reader users.</p>
+
+<div class="hood callout">
+  <span class="ctitle">Under the hood: what's an “accessible name”?</span>
+  <p>It's the label the accessibility tree computes for an element, using a defined algorithm. Roughly, in order: an <code>aria-labelledby</code> reference, then <code>aria-label</code>, then the element's own text content, then things like <code>alt</code> on images or the associated <code>&lt;label&gt;</code> for form fields. So <code>&lt;button&gt;Log in&lt;/button&gt;</code> and <code>&lt;button aria-label="Log in"&gt;&lt;SvgArrow /&gt;&lt;/button&gt;</code> both have the accessible name “Log in”, and both match the same query. That's the right behaviour: to a screen-reader user they <em>are</em> the same button.</p>
+</div>
+
+<p><strong>Why <code>getByTestId</code> sits at the bottom.</strong> A <code>data-testid</code> attribute is invisible to users, so it can't be wrong from their perspective — which means it can't detect anything from their perspective either. A test id survives you removing the label, breaking the accessible name, or replacing the button with a div. Everything still passes. It's not <em>forbidden</em> — it's genuinely the right tool for something with no accessible identity, like a chart container or a specific list row among identical ones. But every test id is a small admission that you couldn't find the thing the way a user would, and that's worth a second's thought each time.</p>
+
+<div class="wait callout">
+  <span class="ctitle">Wait — what about <code>getBy</code> vs <code>queryBy</code> vs <code>findBy</code>?</span>
+  <p>They differ in two dimensions and it's worth nailing now, because the async section leans on it.</p>
+  <ul>
+    <li><code>getBy*</code> — synchronous. Throws a helpful error if not found. Use for things that should already be on screen.</li>
+    <li><code>queryBy*</code> — synchronous. Returns <code>null</code> if not found. This is the <em>only</em> one you use to assert absence: <code>expect(screen.queryByText('Error')).not.toBeInTheDocument()</code>. Using <code>getBy</code> there would throw before you ever reach the assertion.</li>
+    <li><code>findBy*</code> — asynchronous, returns a Promise. Retries for a bit (1 second by default) until the element shows up, then resolves. Use for things that appear <em>after</em> something async finishes.</li>
+  </ul>
+  <p>And each has an <code>*AllBy*</code> sibling (<code>getAllByRole</code>) for when you expect several matches — the singular versions throw if they find more than one, which is a feature, not a bug.</p>
+</div>
+
+<h2 id="mocking">Mocking: the useful kind and the poisonous kind</h2>
+
+<p>A <strong>mock</strong> is a fake version of something real, swapped in during the test. That's the whole idea. But <em>why</em> would you want fakes in a test that's supposed to be realistic? Four honest reasons.</p>
+
+<p><strong>1. It's slow.</strong> A real API call takes 200ms, and you have 800 tests.</p>
+
+<p><strong>2. It's nondeterministic.</strong> Anything that gives a different answer each run: <code>Date.now()</code>, <code>Math.random()</code>, a live API whose data changes, a timezone. A test that passes in London and fails in Tokyo isn't a test, it's a coin flip.</p>
+
+<p><strong>3. It's hard to steer.</strong> You need to check the “payment declined” UI. Are you going to make a real card actually get declined, on every CI run? You need control over the response.</p>
+
+<p><strong>4. You don't own it.</strong> Stripe's servers, an analytics SDK, a maps provider. Your test failing because a third party had a bad afternoon is noise, and hitting their API from CI is rude and possibly expensive.</p>
+
+<p>Underneath all four: <strong>mock things at the edge of your system that you can't control or can't afford.</strong> Which is the seed of the rule that matters.</p>
+
+<h3>The rule: mock at the boundary, not inside your own code</h3>
+
+<p>Picture your app as a house. The boundaries are the doors and pipes: HTTP requests, <code>localStorage</code>, the system clock, <code>window.location</code>, third-party SDKs. Everything inside — your components, hooks, reducers, utilities — is furniture. <strong>Fake the pipes. Don't fake the furniture.</strong> Every piece of furniture you replace with a cardboard cut-out is a piece of your own app that stopped being tested.</p>
+
+<p>Let's see the difference, because it's very concrete.</p>
+
+<div class="code-label bad">❌ Mocking inside your own code</div>
+<pre><code>vi.<span class="fn">mock</span>(<span class="str">'../api/cart'</span>, () =&gt; ({
+  fetchCart: vi.<span class="fn">fn</span>(() =&gt; <span class="fn">Promise</span>.<span class="fn">resolve</span>({ items: [], total: <span class="str">0</span> })),
+}));</code></pre>
+
+<p>You've now replaced your own <code>api/cart</code> module. Everything it does — building the URL, setting auth headers, parsing the response, mapping snake_case to camelCase, throwing on a 401 — is untested from here on. And notice the subtler trap: your fake returns <code>{ items, total }</code>. If the real module returns <code>{ items, totalCents }</code>, your test is green and your app is broken. You've encoded your <em>belief</em> about your own code into the test, and then tested against the belief.</p>
+
+<div class="code-label good">✅ Mocking at the network boundary (MSW)</div>
+<pre><code><span class="kw">const</span> server = <span class="fn">setupServer</span>(
+  http.<span class="fn">get</span>(<span class="str">'/api/cart'</span>, () =&gt; <span class="fn">HttpResponse</span>.<span class="fn">json</span>({
+    items: [{ id: <span class="str">'sku-1'</span>, name: <span class="str">'Kettle'</span>, price_cents: <span class="str">2499</span> }],
+  }))
+);
+
+beforeAll(() =&gt; server.<span class="fn">listen</span>());
+afterEach(() =&gt; server.<span class="fn">resetHandlers</span>()); <span class="cmt">// 👈 stops tests leaking into each other</span>
+afterAll(() =&gt; server.<span class="fn">close</span>());</code></pre>
+
+<p>MSW (Mock Service Worker) intercepts requests at the network layer — the level of “an HTTP request left the app”. So your real <code>api/cart</code> module runs: real URL construction, real headers, real response parsing, real error handling. The only fake thing is the server on the other end, which is precisely the part you don't own.</p>
+
+<p>There's a second, underrated benefit: the same handlers work in the browser during development, in your integration tests, and in Storybook. One definition of “what the backend does”, shared. That's harder to let drift.</p>
+
+<div class="wait callout">
+  <span class="ctitle">Wait — why not just stub <code>global.fetch</code>?</span>
+  <p>You can, and it's better than mocking your own module. But you end up hand-rolling a bad HTTP server: you have to fake <code>ok</code>, <code>status</code>, <code>json()</code>, <code>headers</code>, and if you forget one, your code hits <code>undefined</code> in a way it never would in production. You also can't easily assert on the request body, and it breaks the moment someone switches to <code>axios</code> or the app starts using <code>XMLHttpRequest</code> somewhere. MSW handles all of it because it works below the client library. If someone asks “why MSW?”, that's the answer: <em>it's the lowest boundary you can fake, so the most of your real code runs.</em></p>
+</div>
+
+<h3>The vocabulary: fakes, stubs, spies, mocks</h3>
+
+<p>People use these interchangeably in conversation, but knowing the distinctions is cheap signal.</p>
+
+<table>
+  <tr><th>Term</th><th>What it is</th><th>Example</th></tr>
+  <tr><td><strong>Stub</strong></td><td>Returns a canned answer. Doesn't care how it's called.</td><td><code>getUser</code> always returns <code>{ name: 'Ada' }</code></td></tr>
+  <tr><td><strong>Spy</strong></td><td>Wraps the <em>real</em> thing and records the calls. Behaviour unchanged.</td><td><code>vi.spyOn(console, 'warn')</code> to check a deprecation warning fired</td></tr>
+  <tr><td><strong>Mock</strong></td><td>A fake you assert <em>against</em> — you check it was called, with what, how often.</td><td><code>expect(onCheckout).toHaveBeenCalledWith({ id: 'sku-1' })</code></td></tr>
+  <tr><td><strong>Fake</strong></td><td>A real, working implementation — just a simpler one.</td><td>An in-memory <code>localStorage</code>; SQLite instead of Postgres</td></tr>
+</table>
+
+<p>The practical takeaway: <strong>fakes and stubs are usually safer than mocks</strong>, because asserting “this function was called with these arguments” is an assertion about your <em>implementation</em>. It's the brittleness problem wearing a different hat. Assert on outcomes where you can; assert on calls only when the call <em>is</em> the outcome — like “clicking Pay actually called the payment provider with the right amount”, where there's nothing else visible to check.</p>
+
+<h3>Fake timers, for anything with a delay</h3>
+
+<p>Some things are slow on purpose. A search box that waits 300ms after you stop typing (a <strong>debounce</strong>) has a real 300ms in it. Multiply by fifty tests and your suite crawls. Worse, real timers plus a busy CI machine equals flakiness.</p>
+
+<p>So you fake the clock. The test runner replaces <code>setTimeout</code>, <code>setInterval</code>, and <code>Date</code> with controllable versions, and you move time yourself.</p>
+
+<div class="code-label good">✅ Testing a debounced search input</div>
+<pre><code>test(<span class="str">'only searches once after the user stops typing'</span>, <span class="kw">async</span> () =&gt; {
+  vi.<span class="fn">useFakeTimers</span>();
+  <span class="kw">const</span> user = userEvent.<span class="fn">setup</span>({ advanceTimers: vi.advanceTimersByTime }); <span class="cmt">// 👈 essential</span>
+  <span class="kw">const</span> onSearch = vi.<span class="fn">fn</span>();
+  <span class="fn">render</span>(&lt;SearchBox onSearch={onSearch} delay={<span class="str">300</span>} /&gt;);
+
+  <span class="kw">await</span> user.<span class="fn">type</span>(screen.<span class="fn">getByRole</span>(<span class="str">'searchbox'</span>), <span class="str">'kettle'</span>);
+  expect(onSearch).not.<span class="fn">toHaveBeenCalled</span>();   <span class="cmt">// → still quiet mid-typing</span>
+
+  <span class="fn">act</span>(() =&gt; vi.<span class="fn">advanceTimersByTime</span>(<span class="str">300</span>));
+  expect(onSearch).<span class="fn">toHaveBeenCalledTimes</span>(<span class="str">1</span>);
+  expect(onSearch).<span class="fn">toHaveBeenCalledWith</span>(<span class="str">'kettle'</span>);  <span class="cmt">// → not 'k','ke','ket'...</span>
+});</code></pre>
+
+<p>Read what that test asserts, because it's a nice example of testing behaviour rather than mechanism. It never mentions <code>setTimeout</code>, or <code>clearTimeout</code>, or a ref holding a timer id. It says: <em>while you're typing, nothing happens; 300ms after you stop, exactly one search runs with the full query.</em> That's the actual promise a debounce makes. Swap the implementation for lodash's debounce, or a <code>useDeferredValue</code>, and the test still holds.</p>
+
+<p>The <code>advanceTimers</code> option on <code>userEvent.setup</code> is the gotcha that eats an afternoon: <code>userEvent</code> internally uses timers to simulate realistic typing, so with fake timers installed and no wiring, <code>await user.type(...)</code> hangs forever.</p>
+
+<h3>The real danger: contract drift</h3>
+
+<p>Now the thing that makes over-mocking genuinely dangerous, rather than just a bit lazy.</p>
+
+<p>Every mock is a <strong>claim about how something else behaves</strong>. Your MSW handler says <code>/api/cart</code> returns <code>{ items: [{ price_cents }] }</code>. That was true when you wrote it. Then a backend engineer ships a change: <code>price_cents</code> becomes <code>price</code>, as a decimal string.</p>
+
+<p>Your tests? All green. Every last one. Because they're testing your code against a description of the backend that no longer matches the backend. The app is broken in production and your suite is celebrating. This is <strong>contract drift</strong>, and it is the single biggest hole in a heavily-mocked frontend test suite.</p>
+
+<p>You can't fix it with more mocking. You fix it with three things, and knowing this makes you sound like someone who's shipped: a few E2E tests that hit a real (staging) backend, so drift fails <em>somewhere</em>; generated types from the API schema, so drift becomes a TypeScript error at build time; or proper contract tests. The last two get their own section later.</p>
+
+<div class="interview callout">
+  <span class="ctitle">In an interview: “when is mocking harmful?”</span>
+  <div class="say">
+    <strong class="who">Say this out loud</strong>
+    <p>“It's harmful when you mock inside your own code, because everything you replaced stops being tested and you end up asserting against your own assumptions. My rule is to mock at the boundary — the network, the clock, third-party SDKs — and let all my own code run for real. The bigger risk is contract drift: my mock says the API returns one shape, the deployed API returns another, and every test passes while production is broken. That's why I want either generated types from the schema or a couple of real E2E tests, so drift fails somewhere before a user finds it.”</p>
+  </div>
+  <p class="signal"><strong>Why it lands:</strong> most candidates can say “don't over-mock.” Naming <em>contract drift</em> and then naming the specific mitigations shows you've felt the pain, not just read the blog post.</p>
+</div>
+
+<h2 id="async">Testing async UI without going insane</h2>
+
+<p>Almost every interesting component fetches something. And the moment it does, it stops having one state and starts having at least three.</p>
+
+<figure>
+<svg viewBox="0 0 700 180" role="img" aria-label="A component that fetches data has an idle state, a loading state, and then branches into success or error">
+  <rect x="20" y="66" width="110" height="48" rx="10" fill="#f2eee7" stroke="#ddd5c9"/>
+  <text x="75" y="95" font-size="14" text-anchor="middle" fill="#22201d" font-weight="650">idle</text>
+
+  <line x1="130" y1="90" x2="180" y2="90" stroke="#a99e8e" stroke-width="2"/>
+  <polygon points="180,90 172,86 172,94" fill="#a99e8e"/>
+
+  <rect x="182" y="66" width="130" height="48" rx="10" fill="#f0ecf8" stroke="#d8cff0"/>
+  <text x="247" y="95" font-size="14" text-anchor="middle" fill="#5b4a8a" font-weight="650">loading</text>
+
+  <line x1="312" y1="80" x2="392" y2="42" stroke="#a99e8e" stroke-width="2"/>
+  <polygon points="392,42 383,42 387,50" fill="#a99e8e"/>
+  <line x1="312" y1="100" x2="392" y2="138" stroke="#a99e8e" stroke-width="2"/>
+  <polygon points="392,138 383,130 383,138" fill="#a99e8e"/>
+
+  <rect x="394" y="18" width="150" height="48" rx="10" fill="#eaf5ee" stroke="#c4e0cf"/>
+  <text x="469" y="47" font-size="14" text-anchor="middle" fill="#2c6e49" font-weight="650">success</text>
+
+  <rect x="394" y="114" width="150" height="48" rx="10" fill="#fdeeec" stroke="#f0cdc7"/>
+  <text x="469" y="143" font-size="14" text-anchor="middle" fill="#a83232" font-weight="650">error</text>
+
+  <text x="560" y="47" font-size="12.5" fill="#55504a">everybody tests this</text>
+  <text x="560" y="143" font-size="12.5" fill="#a83232">almost nobody tests this</text>
+</svg>
+<figcaption>The error branch is where the bugs are, precisely because nobody exercises it by hand.</figcaption>
+</figure>
+
+<p>Here's my strongest opinion in this section: <strong>if a component fetches, you owe it two tests — loading → success, and loading → error.</strong> Not one. The error path is the one nobody clicks through manually (how do you make the API fail on your laptop?), which means it's the one where <code>error.message</code> is actually <code>error.response.data.message</code> and nobody ever noticed.</p>
+
+<h3>The three ways to wait, and when to use which</h3>
+
+<p>You cannot assert on data that hasn't arrived yet. So the core skill is expressing “wait for the UI to settle” without hard-coding a delay.</p>
+
+<div class="code-label good">✅ loading → success</div>
+<pre><code>test(<span class="str">'shows the cart once it loads'</span>, <span class="kw">async</span> () =&gt; {
+  <span class="fn">render</span>(&lt;CartPage /&gt;);
+
+  <span class="cmt">// 1. the loading state is real UI — assert on it</span>
+  expect(screen.<span class="fn">getByRole</span>(<span class="str">'status'</span>, { name: <span class="str">/loading/i</span> })).<span class="fn">toBeVisible</span>();
+
+  <span class="cmt">// 2. findBy* retries until it appears (or times out)</span>
+  expect(<span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">'Kettle'</span>)).<span class="fn">toBeVisible</span>();
+
+  <span class="cmt">// 3. queryBy* for absence — the spinner should be gone</span>
+  expect(screen.<span class="fn">queryByRole</span>(<span class="str">'status'</span>)).not.<span class="fn">toBeInTheDocument</span>();
+});</code></pre>
+
+<p>Three tools, three jobs:</p>
+
+<ul>
+  <li><code>getBy*</code> — “this is on screen <em>now</em>.” No waiting.</li>
+  <li><code>findBy*</code> — “this will be on screen soon.” Retries until it appears. This is your default for anything post-async.</li>
+  <li><code>waitFor(cb)</code> — “retry this whole callback until it stops throwing.” Use it when the thing you're waiting on isn't an element appearing — a mock having been called, an element <em>disappearing</em>, a value changing.</li>
+</ul>
+
+<p>A useful bit of trivia that doubles as understanding: <code>findByText(x)</code> is literally <code>waitFor(() =&gt; getByText(x))</code>. It's sugar. Prefer it when it fits, because the failure message is much better — it prints the DOM and tells you what it couldn't find, whereas a bare <code>waitFor</code> often just says “timed out”.</p>
+
+<div class="code-label bad">❌ The classic flake generator</div>
+<pre><code><span class="kw">await new</span> <span class="fn">Promise</span>((r) =&gt; <span class="fn">setTimeout</span>(r, <span class="str">500</span>)); <span class="cmt">// "should be enough"</span>
+expect(screen.<span class="fn">getByText</span>(<span class="str">'Kettle'</span>)).<span class="fn">toBeVisible</span>();</code></pre>
+
+<p>Why is this so bad? Because you've picked a number, and the number is wrong in both directions <em>at the same time</em>. It's too long on your machine — you just added half a second to every test run, forever. And it's too short on the CI box that's running eight jobs in parallel on a shared vCPU, where that render takes 700ms. So the suite is both slower <em>and</em> flakier. Retry-until-true (<code>findBy</code>/<code>waitFor</code>) is faster in the happy case, because it resolves the instant the condition is met, and more reliable in the slow case, because it keeps waiting. There's no scenario where <code>sleep()</code> wins.</p>
+
+<h3><code>act()</code> warnings: what they're actually telling you</h3>
+
+<p>Sooner or later you get this in your console:</p>
+
+<pre class="solo"><code><span class="cmt">Warning: An update to CartPage inside a test was not wrapped in act(...)</span></code></pre>
+
+<p>Most people's response is to sprinkle <code>act()</code> around until it goes away. Let me explain what it means instead, because it's genuinely useful information.</p>
+
+<p>React batches work. When state changes, React doesn't re-render synchronously line-by-line — it schedules, then flushes. <code>act()</code> is React's way of saying “run this, then flush <em>everything</em> — all the re-renders, all the effects — before continuing.” It makes the async internals behave synchronously for the duration of the test, so your next assertion sees a settled UI.</p>
+
+<p>So the warning means: <strong>something updated state after your test had already moved on.</strong> Usually a fetch resolving after the assertions ran — sometimes after the test finished entirely. And that's a real signal, not noise. It's telling you your test isn't waiting for the thing it should be waiting for. Two consequences: your assertions may be running against a half-settled UI, and state may be updating on an unmounted component, which points at a missing cleanup or cancellation in the component itself.</p>
+
+<p>The fix is almost never to wrap things in <code>act()</code> manually. It's to <em>await the right thing</em>: use <code>findBy*</code>/<code>waitFor</code> so the test doesn't proceed until the update has happened. RTL already wraps <code>render</code>, <code>userEvent</code>, and its async utilities in <code>act</code> for you. If you're reaching for a manual <code>act()</code>, the two legitimate cases are advancing fake timers and calling a hook's returned function directly in a hook test.</p>
+
+<h3>Race conditions and cancellation</h3>
+
+<p>Here's a bug class that <em>only</em> shows up in async tests, and it's a great thing to bring up unprompted.</p>
+
+<p>User types “ket”, a request fires. They type “kettle”, a second request fires. The first request happens to be slower, so it resolves <em>after</em> the second. Now the screen shows results for “ket” while the box says “kettle”. Classic. It's invisible on a fast connection and infuriating on a slow one.</p>
+
+<div class="code-label good">✅ Testing that stale responses lose</div>
+<pre><code>test(<span class="str">'ignores a slow response from an older query'</span>, <span class="kw">async</span> () =&gt; {
+  server.<span class="fn">use</span>(
+    http.<span class="fn">get</span>(<span class="str">'/api/search'</span>, <span class="kw">async</span> ({ request }) =&gt; {
+      <span class="kw">const</span> q = <span class="kw">new</span> <span class="fn">URL</span>(request.url).searchParams.<span class="fn">get</span>(<span class="str">'q'</span>);
+      <span class="kw">if</span> (q === <span class="str">'ket'</span>) <span class="kw">await</span> <span class="fn">delay</span>(<span class="str">200</span>);   <span class="cmt">// 👈 the old one is slower</span>
+      <span class="kw">return</span> <span class="fn">HttpResponse</span>.<span class="fn">json</span>({ results: [q] });
+    })
+  );
+
+  <span class="kw">await</span> user.<span class="fn">type</span>(screen.<span class="fn">getByRole</span>(<span class="str">'searchbox'</span>), <span class="str">'kettle'</span>);
+
+  expect(<span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">'kettle'</span>)).<span class="fn">toBeVisible</span>();
+  <span class="kw">await</span> <span class="fn">waitFor</span>(() =&gt; expect(screen.<span class="fn">queryByText</span>(<span class="str">'ket'</span>)).not.<span class="fn">toBeInTheDocument</span>());
+});</code></pre>
+
+<p>Being able to <em>control latency per request</em> is the superpower here, and it's another reason MSW beats a hand-rolled <code>fetch</code> stub. The fix in the component is either an <code>AbortController</code> that cancels the previous request, or a “request id” guard that drops results from anything but the latest query — and this test verifies either one without caring which you chose.</p>
+
+<h3>Optimistic updates and rollback</h3>
+
+<p>An <strong>optimistic update</strong> is when you update the UI immediately, before the server confirms, because you're fairly confident it'll succeed — it makes the app feel instant. Click the heart, it fills in right away; the request goes off in the background.</p>
+
+<p>The interesting half is what happens when you were wrong. The request fails, and the UI has to <em>roll back</em> — un-fill the heart, put the item back in the cart, show a message. That rollback path is under-tested almost everywhere, because triggering it by hand means deliberately breaking your own API.</p>
+
+<div class="code-label good">✅ Optimistic update, then rollback</div>
+<pre><code>test(<span class="str">'restores the item when removal fails'</span>, <span class="kw">async</span> () =&gt; {
+  server.<span class="fn">use</span>(http.<span class="fn">delete</span>(<span class="str">'/api/cart/sku-1'</span>, () =&gt;
+    <span class="kw">new</span> <span class="fn">HttpResponse</span>(<span class="kw">null</span>, { status: <span class="str">500</span> })));
+
+  <span class="fn">render</span>(&lt;CartPage /&gt;);
+  <span class="kw">await</span> user.<span class="fn">click</span>(<span class="kw">await</span> screen.<span class="fn">findByRole</span>(<span class="str">'button'</span>, { name: <span class="str">/remove kettle/i</span> }));
+
+  <span class="cmt">// optimistic: gone immediately, before the server has answered</span>
+  expect(screen.<span class="fn">queryByText</span>(<span class="str">'Kettle'</span>)).not.<span class="fn">toBeInTheDocument</span>();
+
+  <span class="cmt">// rollback: it comes back, and the user is told why</span>
+  expect(<span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">'Kettle'</span>)).<span class="fn">toBeVisible</span>();
+  expect(<span class="kw">await</span> screen.<span class="fn">findByRole</span>(<span class="str">'alert'</span>)).<span class="fn">toHaveTextContent</span>(<span class="str">/couldn't remove/i</span>);
+});</code></pre>
+
+<p>I love this test because the middle assertion is doing something subtle: it proves the update really was <em>optimistic</em>. If someone “simplifies” the code to wait for the server response, that line fails — correctly, because the snappy feel the feature existed for is gone. The test is guarding a UX property, not a code shape.</p>
+
+<h2 id="snapshots">Snapshot tests and why everyone ignores them</h2>
+
+<p>A snapshot test serialises something to a string, saves it to a file the first time, and on every subsequent run compares against the saved copy. Different? Fail.</p>
+
+<div class="code-label neutral">the whole idea</div>
+<pre><code>test(<span class="str">'renders the product card'</span>, () =&gt; {
+  <span class="kw">const</span> { container } = <span class="fn">render</span>(&lt;ProductCard product={kettle} /&gt;);
+  expect(container).<span class="fn">toMatchSnapshot</span>();
+});</code></pre>
+
+<p>The appeal is obvious and, honestly, real: one line, and you've “covered” a component. Coverage number goes up. It takes ten seconds to write.</p>
+
+<p>And then, on most teams, it quietly rots. Four reasons, and they compound.</p>
+
+<p><strong>They're unreviewable at size.</strong> A snapshot of a real component is 200–600 lines of serialised DOM. Nobody reads that in a pull request. So the file gets approved unread, which means it has stopped being a check on anything.</p>
+
+<p><strong>They generate noise on every cosmetic change.</strong> Change a class name, add a wrapper div, upgrade a design-system component, reorder two attributes — red. None of that is a behaviour change. This is the brittleness problem from earlier, at industrial scale.</p>
+
+<p><strong>“Just press <kbd>u</kbd>.”</strong> Because failures are usually noise, the reflex becomes <code>jest -u</code>, commit, move on. At that point the snapshot doesn't assert that the output is <em>correct</em>. It asserts that the output is <em>whatever it currently is</em>, which is a tautology. And the one time the diff contains a real bug — a price field that vanished — it goes through with everything else.</p>
+
+<p><strong>They assert on structure, not behaviour.</strong> This is the deepest one. A snapshot has no opinion. It can't tell you the button is disabled when it shouldn't be, or that the total is wrong — it only knows the string changed. It's brittle <em>by construction</em>, because it asserts on <em>everything</em>, and most of everything is implementation detail.</p>
+
+<div class="miscon callout">
+  <span class="ctitle">A common misconception: “a failing snapshot means something broke”</span>
+  <p>A failing snapshot means the serialised output changed. That's all. The reviewer has to decide whether the change was intended — and the value of the test is entirely in the quality of that human judgement. A 400-line diff makes good judgement impossible, so a big snapshot is a test whose only working part has been designed out. That's worth saying in an interview: the snapshot doesn't fail; the <em>review</em> fails.</p>
+</div>
+
+<h3>Where they're actually great</h3>
+
+<p>I'm not anti-snapshot. I'm anti-<em>huge</em> snapshot. They shine when the output is small, meaningful, and hand-readable:</p>
+
+<ul>
+  <li><strong>Serialised data and config.</strong> The output of a normaliser, a resolved theme object, a generated GraphQL query string, a webpack/vite config, a formatted CSV row. Structure <em>is</em> the behaviour here.</li>
+  <li><strong>Error messages.</strong> A validation error object is exactly the kind of thing you want to see change explicitly in a diff.</li>
+  <li><strong>Small focused fragments.</strong> Snapshot the rendered price line, not the whole page.</li>
+</ul>
+
+<p>And the format upgrade that fixes most of the problem: <strong>inline snapshots</strong>.</p>
+
+<div class="code-label good">✅ Inline snapshot — the diff lives where you'll read it</div>
+<pre><code>expect(<span class="fn">summarise</span>(cart)).<span class="fn">toMatchInlineSnapshot</span>(`
+  {
+    "itemCount": 3,
+    "subtotal": "$74.97",
+    "shipping": "Free",
+  }
+`);</code></pre>
+
+<p>The expected value sits in the test file, right next to the code. It shows up in the PR diff where a reviewer is already looking, it's small enough to read, and it's obviously wrong when it's wrong. That's a snapshot doing its job.</p>
+
+<h2 id="flake">Flakiness, a first-class topic</h2>
+
+<p>A <strong>flaky</strong> test is one that passes and fails on the same code. Same commit, same everything — run it five times, get four greens and a red.</p>
+
+<p>People treat flakiness as a nuisance. It isn't. It's a suite-level emergency, for a reason that's worth thinking through: <strong>a test suite's entire value comes from the meaning of red.</strong> Red must mean “stop, you broke something.” The moment red sometimes means “eh, run it again”, every red in the suite becomes ambiguous — including reds from tests that are perfectly sound. One tolerated flaky test degrades the signal from <em>all</em> of them. It's one drop of ink in the glass of water.</p>
+
+<p>The main causes, roughly in order of how often I've seen them:</p>
+
+<p><strong>Timing.</strong> Arbitrary <code>sleep()</code>s, animations that need to finish, debounces, transitions, waiting on a fixed duration instead of a condition. Fix: wait for conditions (<code>findBy</code>/<code>waitFor</code>, Playwright's auto-waiting assertions), and disable animations in the test environment (<code>prefers-reduced-motion</code>, or a global CSS override that zeroes durations).</p>
+
+<p><strong>Shared state between tests.</strong> A module-level cache, a <code>localStorage</code> entry, a MSW handler overridden with <code>server.use()</code> and never reset, a mock whose call count carries over. The tell: the test passes alone and fails in the suite. Fix: reset everything in <code>afterEach</code>, and don't let modules hold mutable state across tests.</p>
+
+<p><strong>Test order dependence.</strong> Test B only passes because Test A logged a user in. Then someone adds a test, or the runner shuffles order, or parallelises — boom. The diagnostic is delightful: run the suite in random order. If it breaks, you have hidden dependencies. Every test should be able to run alone, first, and in any order.</p>
+
+<p><strong>Real network.</strong> Any test that touches a live service inherits that service's uptime, latency, and rate limits. Even a “fast” API occasionally takes 3 seconds.</p>
+
+<p><strong>Real time and locale.</strong> Tests that pass except at midnight, or on the last day of the month, or in a timezone west of UTC, or during a DST changeover. Freeze the clock and pin the timezone in CI.</p>
+
+<div class="interview callout">
+  <span class="ctitle">In an interview: “how do you deal with a flaky test?”</span>
+  <div class="say">
+    <strong class="who">Say this out loud</strong>
+    <p>“First I stop it hurting people — quarantine it, so it's not blocking merges, with a ticket attached so it can't be forgotten. Then I try to reproduce it: run it in a loop, run it alone versus in the suite, shuffle the order. That usually tells me if it's timing or shared state. Most of the ones I've fixed came down to waiting on a duration instead of a condition, or state leaking between tests. What I try hard not to do is add a blanket retry, because that hides the flake instead of fixing it — and sometimes the flake is a real race condition in the product that users are also hitting.”</p>
+  </div>
+  <p class="signal"><strong>Why it lands:</strong> two things. Quarantine-with-a-ticket shows you understand the team dynamics, not just the debugging. And “sometimes the flake is a real bug” is the sentence senior engineers nod at — a race condition that makes a test flaky makes the app flaky too.</p>
+</div>
+
+<h2 id="checkout">“Checkout broke. What would you test before merging?”</h2>
+
+<p>This exact prompt gets asked constantly, and it's a trap in a friendly way. The tempting answer is to reel off a list of test cases. But a list is guessable; what the interviewer wants to hear is a <strong>method</strong> — because a method works on a bug they describe that you've never seen.</p>
+
+<p>Here's the one I'd walk through, in order.</p>
+
+<h3>1. Reproduce it in a failing test, before you fix anything</h3>
+
+<p>The first test you write should <em>fail</em>, for the same reason the bug exists. This is non-negotiable, and here's why: a test written after the fix has never been observed to fail. You have no evidence it can detect the bug at all. Maybe it passes for an unrelated reason. Writing it first turns red→green into <em>proof</em> that this test catches this bug.</p>
+
+<p>This is a <strong>regression test</strong> — it exists to make sure this specific bug can never come back silently. It's the highest-value test in the whole exercise, because you know for a fact this failure mode is reachable. Somebody already reached it.</p>
+
+<h3>2. Choose the right level for it</h3>
+
+<p>Now, where does that test go? Ask where the bug actually lived.</p>
+
+<ul>
+  <li>Tax computed wrong for a specific region? That's <strong>logic</strong> — unit test the calculator, and hammer the edge cases while you're in there.</li>
+  <li>The button stayed enabled after submit, so people double-charged? That's <strong>wiring</strong> — integration test on the checkout form.</li>
+  <li>Redirect after payment lost the session, or the webhook never fired? That's <strong>crossing systems</strong> — E2E.</li>
+</ul>
+
+<p>Pick the lowest level that can actually catch it. Lower is faster and more precise. But be honest: if the bug was in the seam between two units, no unit test will ever see it, and forcing it down a level gives you a green test and a broken checkout.</p>
+
+<h3>3. Then widen, deliberately</h3>
+
+<p>With the regression pinned, expand outward in rings:</p>
+
+<p><strong>The happy path.</strong> If checkout broke and there was no test for a successful checkout, that's the actual finding. Add it.</p>
+
+<p><strong>The specific failure mode, generalised.</strong> The bug was “tax wrong in Quebec.” Test a few other regions too — the bug was probably a pattern, not a single value.</p>
+
+<p><strong>Adjacent states.</strong> This is where you show range, and I'd name these explicitly:</p>
+
+<ul>
+  <li><strong>Empty cart</strong> — can you even reach checkout? What does it say?</li>
+  <li><strong>Payment declined</strong> — is the error message human, and is the cart still intact so they can retry?</li>
+  <li><strong>Network timeout mid-submit</strong> — the scariest one, because the user has no idea whether they were charged. Does the UI say something honest?</li>
+  <li><strong>Double-submit</strong> — impatient double-click, or the Enter key twice. Does it place two orders? (An idempotency key belongs here, and mentioning it is a nice signal.)</li>
+  <li><strong>Stale price</strong> — item price changed while it sat in the cart.</li>
+  <li><strong>Back button after payment</strong> — resubmits? Shows a stale summary?</li>
+</ul>
+
+<h3>4. Ask whether a test is even the right fix</h3>
+
+<p>This is the step that separates a good answer from a great one. Some bug classes shouldn't be caught by tests at all — they should be made <em>unrepresentable</em>.</p>
+
+<p>If the bug was that someone passed cents where dollars were expected, no number of tests fixes the class of bug. A branded type does:</p>
+
+<div class="code-label good">✅ Make the bug unrepresentable</div>
+<pre><code><span class="kw">type</span> Cents = number &amp; { readonly __brand: <span class="str">'Cents'</span> };
+<span class="kw">type</span> Dollars = number &amp; { readonly __brand: <span class="str">'Dollars'</span> };
+
+<span class="kw">function</span> <span class="fn">chargeCard</span>(amount: Cents) { <span class="cmt">/* ... */</span> }
+
+<span class="fn">chargeCard</span>(cart.totalDollars); <span class="cmt">// → compile error. No test needed, ever.</span></code></pre>
+
+<p>Same with state. If the bug was “the app showed both a spinner and an error at once”, the fix isn't a test asserting that can't happen — it's modelling status as <code>'idle' | 'loading' | 'success' | 'error'</code> instead of three independent booleans, so the impossible state literally can't be constructed. Or: if the double-submit bug was possible because the handler was re-entrant, the design fix (disable on submit, plus a server-side idempotency key) is worth more than the test.</p>
+
+<blockquote><p>Tests catch bugs. Types and design <em>prevent</em> whole categories of them. Prefer prevention where you can get it, and use tests for everything that can't be made impossible.</p></blockquote>
+
+<h3>5. Close the loop in CI</h3>
+
+<p>Finally — and interviewers love that you got here on your own — what stops this recurring?</p>
+
+<ul>
+  <li>The regression test runs on <strong>every PR</strong>, not nightly. A test that runs after merge doesn't prevent merges.</li>
+  <li>The critical-path E2E (add to cart → pay → confirmation) runs pre-merge, even though it's slow. Checkout is worth the two minutes.</li>
+  <li>A smoke test against production/staging after deploy, so if the backend contract shifts you hear it from a robot rather than from support.</li>
+  <li>If the root cause was a type or schema mismatch, wire schema-generated types into the build so drift is a compile error.</li>
+  <li>And the boring one that actually works: put the bug in the PR template as a checkbox for the next person touching checkout.</li>
+</ul>
+
+<h2 id="pyramid">The pyramid, the trophy, the honeycomb, and coverage</h2>
+
+<p>You'll get asked about the test pyramid. It's worth knowing the original argument, and worth knowing why a lot of frontend people have moved off it.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="The test pyramid next to the testing trophy">
+  <text x="165" y="22" font-size="14" font-weight="700" text-anchor="middle" fill="#22201d">The pyramid (2009)</text>
+  <polygon points="165,42 250,110 80,110" fill="#fdeeec" stroke="#f0cdc7"/>
+  <text x="165" y="90" font-size="11.5" text-anchor="middle" fill="#a83232">E2E</text>
+  <rect x="80" y="112" width="170" height="46" fill="#f0ecf8" stroke="#d8cff0"/>
+  <text x="165" y="140" font-size="12" text-anchor="middle" fill="#5b4a8a">integration</text>
+  <rect x="55" y="160" width="220" height="58" fill="#e7f1ee" stroke="#bcd8ce"/>
+  <text x="165" y="195" font-size="12.5" text-anchor="middle" fill="#2f6f5e">unit (lots and lots)</text>
+  <text x="165" y="238" font-size="11.5" text-anchor="middle" fill="#55504a">slow &amp; expensive at the top → have fewer</text>
+
+  <line x1="350" y1="30" x2="350" y2="230" stroke="#e6e1da" stroke-width="1"/>
+
+  <text x="535" y="22" font-size="14" font-weight="700" text-anchor="middle" fill="#22201d">The trophy (2018)</text>
+  <rect x="500" y="40" width="70" height="26" rx="4" fill="#fdeeec" stroke="#f0cdc7"/>
+  <text x="535" y="58" font-size="11" text-anchor="middle" fill="#a83232">E2E</text>
+  <rect x="450" y="68" width="170" height="60" rx="4" fill="#f0ecf8" stroke="#d8cff0"/>
+  <text x="535" y="103" font-size="13" text-anchor="middle" fill="#5b4a8a" font-weight="650">integration</text>
+  <rect x="485" y="130" width="100" height="34" rx="4" fill="#e7f1ee" stroke="#bcd8ce"/>
+  <text x="535" y="152" font-size="11.5" text-anchor="middle" fill="#2f6f5e">unit</text>
+  <rect x="440" y="166" width="190" height="34" rx="4" fill="#f2eee7" stroke="#ddd5c9"/>
+  <text x="535" y="188" font-size="11.5" text-anchor="middle" fill="#4a443c">static: types + lint</text>
+  <text x="535" y="238" font-size="11.5" text-anchor="middle" fill="#55504a">weight where confidence-per-effort is best</text>
+</svg>
+<figcaption>Same tests, different shape. The argument is about where the weight goes.</figcaption>
+</figure>
+
+<p><strong>The pyramid's argument</strong> (Mike Cohn, mid-2000s) is basically economic: tests at the top are slow, expensive to write, and fragile, so have very few of them; tests at the bottom are cheap and fast, so have loads. Broad base, narrow tip. As a statement about cost, it's still completely correct.</p>
+
+<p><strong>The pushback</strong> is that cost isn't the only axis — confidence is the other one, and the pyramid doesn't weigh it. Push it to its logical end on a frontend codebase and you get a suite that's 90% unit tests, hits 95% coverage, and still lets a broken login form through, because every unit passed and the wiring was never exercised. High coverage, low confidence. That's the signature failure of a pyramid-shaped frontend suite, and if you've worked somewhere with one you'll recognise it instantly.</p>
+
+<p><strong>The testing trophy</strong> (Kent C. Dodds) rebalances. Static analysis at the base — TypeScript and ESLint catch a surprising slice of real bugs (typos, wrong argument types, unhandled null, unused variables, missing hook dependencies) at zero runtime cost and zero maintenance. Then a modest layer of unit tests for gnarly logic. Then <em>integration as the widest band</em>, because that's where the confidence-per-effort peaks for UI code. Then a thin cap of E2E.</p>
+
+<p><strong>The honeycomb</strong> (from Spotify's backend world) makes a similar move for services: fat middle of integration tests, thin unit and end-to-end layers. Different domain, same insight.</p>
+
+<h3>Have an opinion</h3>
+
+<p>Interviewers ask about shapes to see whether you'll recite one or reason about one. So reason:</p>
+
+<div class="say">
+  <strong class="who">Say this out loud</strong>
+  <p>“I think the pyramid's economics are right but its shape is wrong for frontend. Most of our bugs aren't wrong logic inside one function — they're wrong wiring between components, or a mismatch with the API. Unit tests structurally can't see either. So I weight toward integration tests, which for React means rendering a component tree and driving it like a user, with the network mocked at the boundary. Under that I lean hard on TypeScript, which removes a whole class of bugs I'd otherwise be writing tests for. And I keep a handful of E2E tests on the paths where a failure means lost revenue.”</p>
+</div>
+<p class="signal"><strong>Why it lands:</strong> you named the model, named its limitation, and justified your position with the <em>kind of bug your domain actually produces</em>. That last part is what makes it sound earned rather than memorised.</p>
+
+<h3>Coverage, and why 100% is a bad goal</h3>
+
+<p><strong>Code coverage</strong> measures which lines/branches ran while the tests ran. That's genuinely all it measures. It does not check that anything was asserted.</p>
+
+<div class="code-label bad">❌ 100% coverage, zero value</div>
+<pre><code>test(<span class="str">'renders'</span>, () =&gt; {
+  <span class="fn">render</span>(&lt;CheckoutPage /&gt;);
+}); <span class="cmt">// no assertions. Coverage: through the roof. Bugs caught: none.</span></code></pre>
+
+<p>Coverage is a <strong>lower bound on ignorance</strong>, and it's only useful in one direction. If a file is at 0%, you know nothing about it — that's real information. If it's at 95%, you know the lines executed. You don't know whether anything was checked, and you certainly don't know whether the right <em>behaviours</em> were checked.</p>
+
+<p>Why is 100% specifically a bad target? Because the last stretch — roughly 90% to 100% — is where the cost curve goes vertical and the value curve goes flat. That final 10% is defensive branches that can't happen, error handlers for impossible states, generated code, third-party glue. Getting to it means writing contorted tests that mock deep internals just to reach a line, and those are exactly the brittle tests we spent this whole guide trying to avoid. <strong>Chasing 100% actively produces bad tests.</strong> Worse, it converts coverage from a diagnostic into a target — and once it's a target, people write assertion-free tests to hit it, and now the number means nothing at all.</p>
+
+<div class="interview callout">
+  <span class="ctitle">In an interview: “what's your target code coverage?”</span>
+  <p>The trap is naming a confident number (“90%!”). It signals you think coverage is the goal.</p>
+  <div class="say">
+    <strong class="who">Say this out loud</strong>
+    <p>“I don't manage to a global number, because coverage measures execution, not verification — you can hit 100% with tests that assert nothing. I do use it as a diagnostic: I look at what's uncovered and ask whether it's risky. Something like 70–80% falls out naturally on a well-tested codebase, and I'd want critical paths like checkout much higher than that. The thing I'd actually push for is a rule that coverage can't <em>drop</em> in a PR, plus a look at what's uncovered in the diff — that catches the untested new code without turning the number into a target people game.”</p>
+  </div>
+  <p class="signal"><strong>Why it lands:</strong> you refused the number, explained the metric's actual limitation, <em>and then</em> gave a workable policy. Refusing without offering an alternative reads as dodging.</p>
+</div>
+
+<h2 id="visual">Visual regression testing</h2>
+
+<p>Remember jsdom — the fake browser with no rendering? Here's the consequence.</p>
+
+<p>Every test we've written so far can be completely green while the app is visually destroyed. Your submit button can be white text on a white background. Your modal can render behind the page overlay. A CSS change can collapse the layout to zero height. Your dark theme can be unreadable. <code>getByRole('button')</code> finds it every time, <code>toBeVisible()</code> passes (it only checks things like <code>display: none</code>, <code>visibility</code>, and <code>hidden</code> — not whether pixels actually reached the screen), and the test suite reports success.</p>
+
+<p><strong>Visual regression testing</strong> closes that gap by taking screenshots in a real browser and diffing them, pixel by pixel, against approved baselines. If pixels changed, a human reviews the diff and either approves it (intended redesign) or rejects it (regression).</p>
+
+<p>So it catches the whole class of things assertions structurally can't see: CSS regressions from a specificity change three files away, layout breaks and text clipping, a theme token that's fine in light mode and invisible in dark, spacing drift after a design-system bump.</p>
+
+<p>Now the honest part, which is what an interviewer is actually listening for. Two costs dominate:</p>
+
+<p><strong>Rendering differs across platforms.</strong> Your Mac and the Linux CI container antialias text differently and ship different fonts, so you get thousands of changed pixels on a screenshot where nothing changed. The fix is to always render in one pinned environment — a Docker image or the hosted service's browsers — and never to generate baselines from a laptop.</p>
+
+<p><strong>Dynamic content flags everything.</strong> Relative timestamps, random avatars, animations mid-flight. You have to freeze time, seed randomness and disable animations, and that's real work. Add review overhead — a design-system bump can produce 200 changed screenshots, and "approve all" is the snapshot-<kbd>u</kbd> problem in a nicer UI.</p>
+
+<p>Names worth having: <strong>Chromatic</strong> (Storybook team — snapshots your existing stories, so the marginal cost is low if you already have Storybook), <strong>Percy</strong>, and Playwright's built-in <code>toHaveScreenshot()</code>.</p>
+
+<p>The defensible take to offer: visual regression pays for itself on <em>design systems and shared components</em>, where one CSS change fans out to a hundred usages. On feature pages that change every sprint, the noise outweighs the catches. Target it; don't blanket it.</p>
+
+<h2 id="contract">Contract testing</h2>
+
+<p>Let's go back to contract drift, because it deserves a proper answer.</p>
+
+<p>The situation: your frontend tests use mocks. Your backend has its own tests, with its own idea of what it returns. Both suites are green. Both teams are happy. And nothing, anywhere, has ever verified that the two agree. The first thing that checks is the deployed app, in front of a user.</p>
+
+<figure>
+<svg viewBox="0 0 700 170" role="img" aria-label="Frontend tests pass against mocks, backend tests pass against itself, and nothing verifies the two agree">
+  <rect x="30" y="40" width="180" height="70" rx="10" fill="#e7f1ee" stroke="#bcd8ce"/>
+  <text x="120" y="68" font-size="13.5" text-anchor="middle" fill="#22201d" font-weight="650">Frontend tests</text>
+  <text x="120" y="90" font-size="12" text-anchor="middle" fill="#2f6f5e">green ✓ (vs. mocks)</text>
+
+  <rect x="490" y="40" width="180" height="70" rx="10" fill="#e7f1ee" stroke="#bcd8ce"/>
+  <text x="580" y="68" font-size="13.5" text-anchor="middle" fill="#22201d" font-weight="650">Backend tests</text>
+  <text x="580" y="90" font-size="12" text-anchor="middle" fill="#2f6f5e">green ✓ (vs. itself)</text>
+
+  <line x1="215" y1="75" x2="485" y2="75" stroke="#a83232" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="350" y="60" font-size="13" text-anchor="middle" fill="#a83232" font-weight="700">nobody tests this</text>
+  <text x="350" y="106" font-size="12" text-anchor="middle" fill="#55504a">price_cents: number  vs.  price: "24.99"</text>
+  <text x="350" y="145" font-size="12.5" text-anchor="middle" fill="#a83232" font-style="italic">first failure: production</text>
+</svg>
+<figcaption>Two green suites, one broken app. The gap is the contract.</figcaption>
+</figure>
+
+<p><strong>Contract testing</strong> puts a test in that dashed line. The contract is the agreed shape of the exchange: this endpoint, given this request, returns a response with these fields and these types.</p>
+
+<h3>The formal approach: Pact <span class="pill">recognise the name, that's enough</span></h3>
+
+<p>In one pass: your frontend writes tests describing what it expects from an endpoint, which produces a <strong>pact file</strong> — and your own mocks are built from that same file, so they can't drift from it. The pact gets published, and the backend runs <em>its</em> suite against every published pact, replaying those requests against the real service. If a backend change would break your frontend, <strong>the backend's build fails</strong>, before deploy, with no release coordination.</p>
+
+<p><em>Consumer-driven</em> is the key word: expectations come from actual consumers, so the provider only guarantees what someone depends on rather than its whole API surface.</p>
+
+<p>The honest downside, and the reason it stays a name for most frontend engineers: Pact is real infrastructure — a broker, CI wiring in two repos, and a backend team who now have a build that can fail because of your file. Great for microservices with many consumers, heavy for one frontend and one backend.</p>
+
+<h3>The lightweight approach: generate from the schema</h3>
+
+<p>Which is why most frontend teams I'd advise reach for this instead. If the backend publishes an OpenAPI spec or a GraphQL schema, that document <em>is</em> a contract. Point a code generator at it and get TypeScript types out.</p>
+
+<div class="code-label good">✅ Drift becomes a build failure</div>
+<pre><code><span class="cmt"># in CI, before typecheck:</span>
+npx openapi-typescript https://api.example.com/openapi.json -o src/api/schema.d.ts
+
+<span class="cmt"># then the backend renames price_cents → price:</span>
+<span class="cmt"># src/CartPage.tsx:42 — Property 'price_cents' does not exist on type 'CartItem'.</span>
+<span class="cmt"># → the build fails. Nobody had to write a test. ✅</span></code></pre>
+
+<p>Regenerate types in CI from the deployed schema, and any drift surfaces as a compile error in whichever build runs next. You get most of the protection for a fraction of the setup. The same trick applies to mocks: tools can generate MSW handlers from an OpenAPI spec, and GraphQL codegen gives you typed operations plus mock data — so your fake responses are structurally guaranteed to match the schema rather than matching your memory of it.</p>
+
+<p>What this <em>doesn't</em> catch is semantic drift: the field is still called <code>status</code> and still typed <code>string</code>, but the backend started sending <code>"PENDING_REVIEW"</code> where it used to send <code>"pending"</code>. Types can't see that. Which is the standing argument for keeping a few real E2E tests against staging — the last line of defence when the shape is right and the meaning changed.</p>
+
+<h2 id="followups">The follow-up questions, answered</h2>
+<p class="section-sub">Click each one to expand. These are the ones that come after your first answer, where the real evaluation happens.</p>
+
+<details>
+  <summary>“What would you <em>not</em> test?”</summary>
+  <p>This is one of my favourite questions to be asked, because saying “everything!” is a wrong answer and most people don't realise it. Testing has a cost, and a test that can't fail meaningfully is pure cost.</p>
+  <p>I wouldn't test: <strong>third-party libraries</strong> (React's <code>useState</code> works; don't test it), <strong>the framework</strong> (that a prop passed down arrives), <strong>trivial pass-throughs</strong> (a component that renders <code>{children}</code>), <strong>static markup</strong> with no logic or interaction, <strong>implementation details</strong> generally, <strong>exact styling values</strong> in jsdom (that's visual regression's job, and asserting <code>margin-top: 8px</code> is testing your stylesheet against itself), and <strong>anything the type system already guarantees</strong> — writing a test that a function rejects a string when the signature says <code>number</code> is testing TypeScript.</p>
+  <p>The framing that makes this crisp: <em>“I don't write tests that can only fail if React is broken, or if I've changed code without changing behaviour.”</em></p>
+</details>
+
+<details>
+  <summary>“How do you decide unit vs integration?”</summary>
+  <p>I ask where the risk lives. If the risk is in <em>logic</em> — many input combinations, tricky rules, pure computation — that's a unit test, because driving twenty cases through the UI is slow and painful and the failure message would be vague. If the risk is in the <em>wiring</em> — does the click reach the handler, does the error render, is the label attached to the input — that's an integration test, because unit tests structurally cannot see seams.</p>
+  <p>My default for frontend is integration, because most frontend code is glue. I drop to unit when a piece of logic is complex enough to deserve its own exhaustive case list, which usually also means it deserves to be extracted into its own module.</p>
+</details>
+
+<details>
+  <summary>“Why is testing state a bad idea?”</summary>
+  <p>Two reasons, and the second is the interesting one.</p>
+  <p>First, state is an implementation detail: rename it, restructure it, move to a reducer or a form library, and the test breaks despite identical behaviour. That's a false alarm, and false alarms erode trust in the suite.</p>
+  <p>Second — and this is the part worth saying — <strong>state is your intention; the DOM is the result.</strong> The bug is almost always in the gap between them. <code>isOpen: true</code> with the menu invisible is a completely normal bug: the prop wasn't threaded through, a CSS rule hides it, a portal didn't mount, a parent short-circuits the render. Asserting on state checks that you set the variable you meant to set, which you already know. It skips the part that can actually be wrong.</p>
+</details>
+
+<details>
+  <summary>“When is mocking harmful?”</summary>
+  <p>When you mock inside your own code, because everything you replaced stops being tested — and the mock encodes your <em>assumption</em> about that code, so the test can pass while the real module returns a different shape.</p>
+  <p>It's also harmful when it makes the test unfalsifiable in practice: mock enough and you're testing the mocks. The specific danger to name is <strong>contract drift</strong> — mocks are frozen claims about a system that keeps moving, so a fully-mocked suite is green by construction. Mitigate with mocks at the boundary (MSW), schema-generated types, and a few real E2E tests.</p>
+  <p>One more: mocking a component's own children is usually a smell. It's the fastest way to get a test that passes while the composed page is broken.</p>
+</details>
+
+<details>
+  <summary>“Why do snapshot tests get ignored?”</summary>
+  <p>Because they fail constantly for reasons that don't matter, and the diffs are too big to review. Any cosmetic change — a class name, an added wrapper, a library upgrade — turns them red, and the diff is 300 lines of serialised DOM that nobody can meaningfully read in a PR. So the culture becomes “press <kbd>u</kbd> and move on”, and at that point the test no longer asserts correctness; it asserts that the output is whatever it currently is.</p>
+  <p>The root cause is that a snapshot asserts on <em>everything</em>, and most of everything is implementation detail — so it's brittle by construction. I use them where the output is small and meaningful: serialised data, config objects, error messages. And I prefer inline snapshots, because the expected value sits in the test file where a reviewer will actually see it.</p>
+</details>
+
+<details>
+  <summary>“How do you test a component that fetches data?”</summary>
+  <p>I mock at the network boundary with MSW, so my real fetching code, URL building, and response parsing all still run — the only fake thing is the server. Then I test at least two paths: loading → success and loading → error. The error path especially, because that's the one nobody exercises manually.</p>
+  <p>Mechanically: assert the loading state is visible, then <code>await screen.findByText(...)</code> for the loaded content — <code>findBy*</code> retries until it appears, so I never hard-code a delay. Then assert the spinner is gone with <code>queryBy*</code>, which returns null rather than throwing. If I get an <code>act()</code> warning, I treat it as a signal that I'm not awaiting something I should be, not as noise to silence.</p>
+  <p>If the component can be raced — a search box, a tab switcher — I'll add a test where an older request resolves after a newer one, to prove stale responses get discarded.</p>
+</details>
+
+<details>
+  <summary>“What's your target code coverage?”</summary>
+  <p>I don't set a global target, because coverage measures which lines executed, not whether anything was verified — a test with zero assertions still counts as coverage. Pushing for 100% makes it worse: the last 10% is unreachable branches and defensive handlers, and reaching them means mocking deep internals, which produces exactly the brittle tests I'm trying to avoid.</p>
+  <p>What I do use it for is finding blind spots: a 0% file is genuinely informative. In practice something like 70–80% falls out of a well-tested codebase, with critical paths much higher. As policy I'd rather enforce “coverage doesn't drop in a PR” and review coverage on the diff, which catches untested new code without turning the number into a target people game.</p>
+</details>
+
+<details>
+  <summary>“How do you deal with a flaky test?”</summary>
+  <p>Quarantine first so it stops blocking merges, with a ticket so it can't be quietly forgotten — a flaky test left in the suite teaches everyone to ignore red, which devalues every other test.</p>
+  <p>Then reproduce: run it in a loop, run it alone versus in the full suite, run the suite in random order. Alone-passes/suite-fails points at shared state; random-order-fails points at test order dependence. Most of what I've fixed has been waiting on a duration instead of a condition, unreset mocks or <code>localStorage</code>, or animations that hadn't finished.</p>
+  <p>What I avoid is a blanket retry policy. Retries hide the symptom, and sometimes the flake is a real race condition — which means users are hitting it too, just less reproducibly.</p>
+</details>
+
+<details>
+  <summary>“How would you test a debounced search input?”</summary>
+  <p>With fake timers, and asserting on the promise the debounce makes rather than on its mechanism. Install fake timers, wire <code>userEvent.setup({ advanceTimers })</code> so typing doesn't hang, type a query, assert the search callback has <em>not</em> fired, advance the clock past the delay, then assert it fired exactly once with the complete query — not once per keystroke.</p>
+  <p>Notice what that never mentions: <code>setTimeout</code>, <code>clearTimeout</code>, or a ref holding a timer id. Swap in lodash <code>debounce</code> or a <code>useDeferredValue</code> and the test still passes, which is the point.</p>
+  <p>If they push further, the good follow-ons are: a trailing keystroke should reset the timer rather than queue a second call; unmounting mid-delay shouldn't fire or warn; and if the search is async, a slow older response must not overwrite a newer one.</p>
+</details>
+
+<details>
+  <summary>“Should you test the implementation of a custom hook?”</summary>
+  <p>Usually not directly. A hook is an implementation detail of the components that use it — nobody ships a hook to a user. My default is to test the component that consumes it, because that covers the hook <em>and</em> the wiring, and it survives me inlining or restructuring the hook later.</p>
+  <p>The exception is a hook that's a genuine public API: something in a shared package, or one with enough state-machine complexity (<code>usePagination</code>, <code>useUndoRedo</code>) that exercising all its transitions through a component would be absurd. Then I'd test it directly with <code>renderHook</code> — but still through its public surface: call the returned functions, assert on the returned values, never reach into internal refs or the state variable names.</p>
+  <p>And even then, I'd want at least one integration test of a real component using it, because a hook that's correct in isolation can still be wired up wrong.</p>
+</details>
+
+<details>
+  <summary>“Why not just write E2E tests for everything? They're the most realistic.”</summary>
+  <p>Because realism isn't the only thing you're buying. A full E2E suite is slow enough to stop being run on every PR, which is where tests earn their keep. It's flaky in ways that erode trust. And the failure messages are terrible — “timed out waiting for heading” could be a frontend bug, a backend 500, a bad seed, or a slow runner, so debugging costs are high.</p>
+  <p>There's also a coverage-shape problem: driving twenty validation edge cases through a real browser is agonising, and you'll quietly stop testing them. I want E2E for a handful of critical journeys where crossing system boundaries is the point, and integration tests for the breadth.</p>
+</details>
+
+<details>
+  <summary>“How do you decide something is worth testing at all?”</summary>
+  <p>I ask two questions: how likely is this to break, and how bad is it if it does? High likelihood usually means complex logic or code that changes often. High impact means revenue, data loss, security, or accessibility.</p>
+  <p>Anything high on both gets tested thoroughly and runs on every PR. High-impact-but-stable (checkout) still gets solid coverage, because the downside is severe even if the probability is low. Low-impact-and-stable — a marketing page's static markup — I'll leave alone, and I don't feel bad about it.</p>
+  <p>I'd also mention that “has broken before” is the strongest predictor there is. Bugs cluster. A regression test on a module with a history is worth three speculative tests somewhere quiet.</p>
+</details>
+
+<h2 id="cheat">Interview cheat sheet</h2>
+<p class="section-sub">The morning-of version. One line each.</p>
+
+<table class="cheat">
+  <tr><th>Concept</th><th>The crisp answer</th></tr>
+  <tr><td>What a test is for</td><td>Confidence that a change didn't break behaviour a user cares about.</td></tr>
+  <tr><td>The core tradeoff</td><td>Isolation vs realism — equivalently, speed vs confidence. One dial, not three boxes.</td></tr>
+  <tr><td>Unit</td><td>One function/component alone. Milliseconds, exact failure location. Passing units can still compose into a broken app.</td></tr>
+  <tr><td>Integration</td><td>Several real pieces together — for frontend, render a tree and drive it like a user. Best confidence per effort.</td></tr>
+  <tr><td>E2E</td><td>Real browser, real routing, often a real backend. Highest confidence, slowest, flakiest, hardest to debug. Keep it to critical journeys.</td></tr>
+  <tr><td>Brittleness diagnostic</td><td>If I refactor without changing behaviour and the test fails, the test was testing the wrong thing.</td></tr>
+  <tr><td>Implementation details</td><td>State, internal method calls, class names, exact DOM structure. Users can't observe any of them.</td></tr>
+  <tr><td>Why brittle &gt; no tests is false</td><td>They punish refactoring, train people to update on autopilot, and destroy trust in every other test.</td></tr>
+  <tr><td>Query priority</td><td>role → label → placeholder → text → test id. <code>getByRole</code> asserts accessibility for free.</td></tr>
+  <tr><td>get / query / find</td><td><code>getBy</code> = now (throws). <code>queryBy</code> = absence (returns null). <code>findBy</code> = eventually (retries).</td></tr>
+  <tr><td>Mock what</td><td>Network, time, randomness, expensive/nondeterministic things, things you don't own.</td></tr>
+  <tr><td>Mocking rule</td><td>Mock at the boundary, not inside your own code. MSW &gt; stubbing <code>fetch</code> &gt; mocking your API module.</td></tr>
+  <tr><td>Contract drift</td><td>Mocks are frozen claims about a moving system. Green suite, broken production. Fix with generated types + a few real E2E.</td></tr>
+  <tr><td>Fetching component</td><td>Always test loading → success <em>and</em> loading → error. Never <code>sleep()</code>; use <code>findBy</code>/<code>waitFor</code>.</td></tr>
+  <tr><td><code>act()</code> warning</td><td>Something updated state after the test moved on. Await the right thing; don't sprinkle <code>act</code>.</td></tr>
+  <tr><td>Snapshots</td><td>Assert on everything, so they're brittle by construction, unreviewable at size, and get <kbd>u</kbd>'d. Good small: data, config, errors. Prefer inline.</td></tr>
+  <tr><td>Flakiness</td><td>Timing, shared state, order dependence, real network, animations. One tolerated flake devalues every red in the suite.</td></tr>
+  <tr><td>Bug arrives</td><td>Failing regression test first → right level → widen (happy path, failure mode, adjacent states) → ask if types/design should prevent it → wire into CI.</td></tr>
+  <tr><td>Pyramid vs trophy</td><td>Pyramid's economics are right, its shape is wrong for frontend: unit-heavy gives high coverage, low confidence. Weight integration; types at the base.</td></tr>
+  <tr><td>Coverage</td><td>Measures execution, not verification. 100% is a bad goal — the last 10% produces brittle tests. Use it as a diagnostic, enforce "doesn't drop".</td></tr>
+  <tr><td>Visual regression</td><td>Catches what jsdom can't see: CSS, layout, theme. Pains: cross-platform rendering, dynamic content, review overhead. Chromatic / Percy / Playwright.</td></tr>
+  <tr><td>Contract testing</td><td>Verifies your mocks match the real API. Pact (consumer-driven) formally; generated types from OpenAPI/GraphQL cheaply.</td></tr>
+  <tr><td>What not to test</td><td>Libraries, the framework, trivial pass-throughs, static markup, styling values in jsdom, anything types already guarantee.</td></tr>
+</table>
+
+<hr>
+
+<p>If you take away one movement from this guide, make it this: every question above is the same question wearing a different costume. <em>Does this test fail when a user-visible behaviour breaks, and stay quiet otherwise?</em> Brittleness, mocking, snapshots, coverage, flakiness, the pyramid — they're all just that question applied to a different corner of the problem.</p>
+
+<p>Which is genuinely good news for an interview, because you don't have to memorise twenty positions. You have to hold one principle and be willing to reason out loud from it. That's what the person across the table is listening for. 🎯</p>
+
+</div>
+</body>
+</html>

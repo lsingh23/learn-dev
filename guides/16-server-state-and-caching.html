@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server State: React Query, SWR &amp; Why It's Different</title>
+<style>
+  :root {
+    --ink: #1c1f26;
+    --ink-soft: #4a5160;
+    --bg: #fdfcfa;
+    --rule: #e6e2db;
+    --accent: #2f6f4e;
+    --accent-soft: #eaf4ee;
+    --warn: #b23b2e;
+    --warn-soft: #fdeeec;
+    --amber: #8a6100;
+    --amber-soft: #fdf4e0;
+    --blue: #2b5f9e;
+    --blue-soft: #eaf1fa;
+    --purple: #6a3f9e;
+    --purple-soft: #f2ecfa;
+    --code-bg: #1f2430;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    padding: 0 20px 120px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  main { max-width: 750px; margin: 0 auto; }
+
+  header.hero {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 70px 0 28px;
+    border-bottom: 3px solid var(--ink);
+  }
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 4rem 0 1rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 1.24rem;
+    margin: 2.6rem 0 0.7rem;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.8rem 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 1.05rem 0; }
+
+  a { color: var(--accent); }
+
+  ul, ol { padding-left: 1.35rem; }
+  li { margin: 0.5rem 0; }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.87em;
+    background: #f0ece4;
+    border-radius: 4px;
+    padding: 0.12em 0.36em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: #e6e9ef;
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.62;
+    margin: 0 0 1.4rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 1em;
+    color: inherit;
+  }
+  pre .c { color: #8b93a7; font-style: italic; }
+  pre .k { color: #d3a0f0; }
+  pre .s { color: #a5d6a7; }
+  pre .f { color: #90c4f5; }
+  pre .n { color: #f3b57a; }
+  pre .hl { color: #ffd479; font-weight: 600; }
+
+  .codehead {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 8px 8px 0 0;
+    margin-top: 1.5rem;
+  }
+  .codehead + pre { border-radius: 0 0 10px 10px; margin-top: 0; }
+  .bad { background: var(--warn-soft); color: var(--warn); border: 1px solid #f3cdc7; border-bottom: none; }
+  .good { background: var(--accent-soft); color: var(--accent); border: 1px solid #c6e0d2; border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 2rem 0;
+    border: 1px solid;
+    font-size: 0.97rem;
+  }
+  .callout .label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .callout p:first-of-type { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .wait { background: var(--blue-soft); border-color: #cfe0f2; }
+  .wait .label { color: var(--blue); }
+
+  .miscon { background: var(--warn-soft); border-color: #f3cdc7; }
+  .miscon .label { color: var(--warn); }
+
+  .hood { background: #f2f1ee; border-color: var(--rule); }
+  .hood .label { color: var(--ink-soft); }
+
+  .interview { background: var(--purple-soft); border-color: #ddd0f0; }
+  .interview .label { color: var(--purple); }
+
+  .answer {
+    background: #fff;
+    border-left: 4px solid var(--purple);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 0.9rem 0;
+    font-size: 0.97rem;
+  }
+  .answer .who {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--purple);
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+  }
+
+  .trap { background: var(--amber-soft); border-color: #f0dfb4; }
+  .trap .label { color: var(--amber); }
+
+  details {
+    background: #f4f2ee;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 18px;
+    margin: 1.5rem 0;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 0.6rem; }
+  details p:last-child { margin-bottom: 0.2rem; }
+
+  nav.toc {
+    background: #f4f2ee;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 2.5rem 0 1rem;
+    font-size: 0.94rem;
+  }
+  nav.toc h2 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 0 0 0.6rem;
+    border: none;
+    padding: 0;
+    color: var(--ink-soft);
+  }
+  nav.toc ol { margin: 0; padding-left: 1.2rem; }
+  nav.toc li { margin: 0.28rem 0; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  figure { margin: 2rem 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 0.6rem;
+    font-style: italic;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin: 1.6rem 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    border-bottom: 2px solid var(--ink);
+  }
+  .scroller { overflow-x: auto; }
+  .scroller table { min-width: 560px; }
+
+  .cheat {
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 8px 24px 20px;
+    margin: 2rem 0;
+    background: #fff;
+  }
+  .cheat dl { margin: 0; }
+  .cheat dt {
+    font-weight: 700;
+    margin-top: 1.1rem;
+    color: var(--ink);
+  }
+  .cheat dd {
+    margin: 0.2rem 0 0;
+    color: var(--ink-soft);
+    font-size: 0.96rem;
+  }
+
+  .big-q {
+    font-size: 1.1rem;
+    font-weight: 650;
+    color: var(--ink);
+    margin: 2rem 0 0.6rem;
+  }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    header.hero h1 { font-size: 1.95rem; }
+    h2 { font-size: 1.45rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Guide · 16</p>
+  <h1>Server State: React&nbsp;Query, SWR &amp; Why It's Different</h1>
+  <p>Or: the reason your <code>useEffect</code> fetch was never going to be enough, and the one distinction interviewers use to tell whether you actually understand the problem.</p>
+</header>
+
+<main>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#naive">The 12-line component that has nine bugs</a></li>
+    <li><a href="#two-kinds">The big idea: two kinds of state</a></li>
+    <li><a href="#bugs">Every bug in the naive fetch, named</a></li>
+    <li><a href="#what-is">So what <em>is</em> React Query, really?</a></li>
+    <li><a href="#keys">Query keys: addresses in a cache</a></li>
+    <li><a href="#stale-gc">staleTime vs gcTime (the confusing pair)</a></li>
+    <li><a href="#lifecycle">The query lifecycle &amp; refetch triggers</a></li>
+    <li><a href="#swr">Stale-while-revalidate</a></li>
+    <li><a href="#invalidation">Invalidation: the three tools</a></li>
+    <li><a href="#redux">Why not just put it in Redux?</a></li>
+    <li><a href="#mutations">Mutations &amp; optimistic updates</a></li>
+    <li><a href="#odds">Retries, dedup, pagination, infinite queries</a></li>
+    <li><a href="#compare">RTK Query vs TanStack Query vs SWR</a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="naive">The 12-line component that has nine bugs</h2>
+
+<p>I want to start with a piece of code you have almost certainly written. Not a contrived example — the real thing, the one that ships:</p>
+
+<pre><code><span class="k">function</span> <span class="f">UserProfile</span>({ userId }) {
+  <span class="k">const</span> [user, setUser] = <span class="f">useState</span>(<span class="k">null</span>);
+  <span class="k">const</span> [isLoading, setIsLoading] = <span class="f">useState</span>(<span class="k">true</span>);
+  <span class="k">const</span> [error, setError] = <span class="f">useState</span>(<span class="k">null</span>);
+
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="f">setIsLoading</span>(<span class="k">true</span>);
+    <span class="f">fetch</span>(<span class="s">`/api/users/</span>${userId}<span class="s">`</span>)
+      .<span class="f">then</span>(res =&gt; res.<span class="f">json</span>())
+      .<span class="f">then</span>(data =&gt; { <span class="f">setUser</span>(data); <span class="f">setIsLoading</span>(<span class="k">false</span>); })
+      .<span class="f">catch</span>(err =&gt; { <span class="f">setError</span>(err); <span class="f">setIsLoading</span>(<span class="k">false</span>); });
+  }, [userId]);
+
+  <span class="k">if</span> (isLoading) <span class="k">return</span> &lt;Spinner /&gt;;
+  <span class="k">if</span> (error) <span class="k">return</span> &lt;ErrorMessage /&gt;;
+  <span class="k">return</span> &lt;h1&gt;{user.name}&lt;/h1&gt;;
+}</code></pre>
+
+<p>Take a second and actually look at it. It's clean. It handles loading. It handles errors. It re-fetches when <code>userId</code> changes. By the standards of a code review at most companies, this passes.</p>
+
+<p>And it is, genuinely, broken in about nine different ways. Not "could be nicer" — broken. Users will hit these.</p>
+
+<p>Here's my favourite of the nine, because it's so easy to miss. Imagine a user list where hovering a row shows that user's profile in a panel. The user sweeps their mouse down the list: user 1, user 2, user 3. Three fetches go out. But the network doesn't guarantee order — request 1 might take 800ms while request 3 takes 40ms. So the responses come back <em>3, 2, 1</em>. And since each response just calls <code>setUser(data)</code> with no awareness of the others, the last one to arrive wins.</p>
+
+<p>The panel now shows <strong>user 1</strong> while the mouse is sitting on <strong>user 3</strong>. Nothing crashed. No error in the console. The UI is just quietly, confidently lying.</p>
+
+<figure>
+<svg viewBox="0 0 700 210" role="img" aria-label="Diagram of a race condition: three requests fired in order but resolving out of order, so stale data wins">
+  <text x="0" y="14" font-size="12" font-family="monospace" fill="#4a5160">time →</text>
+  <line x1="0" y1="24" x2="700" y2="24" stroke="#e6e2db" stroke-width="1"/>
+
+  <rect x="10" y="38" width="470" height="26" rx="6" fill="#fdeeec" stroke="#e0a89f"/>
+  <text x="20" y="56" font-size="12.5" font-family="monospace" fill="#b23b2e">fetch(user 1) ────────────────────── slow</text>
+  <circle cx="480" cy="51" r="6" fill="#b23b2e"/>
+  <text x="494" y="56" font-size="12.5" font-family="monospace" fill="#b23b2e">setUser(1) 💥</text>
+
+  <rect x="60" y="82" width="230" height="26" rx="6" fill="#f4f2ee" stroke="#cfcac1"/>
+  <text x="70" y="100" font-size="12.5" font-family="monospace" fill="#4a5160">fetch(user 2) ─────────</text>
+  <circle cx="290" cy="95" r="6" fill="#8b93a7"/>
+  <text x="304" y="100" font-size="12.5" font-family="monospace" fill="#8b93a7">setUser(2)</text>
+
+  <rect x="110" y="126" width="100" height="26" rx="6" fill="#eaf4ee" stroke="#a9cdb8"/>
+  <text x="120" y="144" font-size="12.5" font-family="monospace" fill="#2f6f4e">fetch(3) ──</text>
+  <circle cx="210" cy="139" r="6" fill="#2f6f4e"/>
+  <text x="224" y="144" font-size="12.5" font-family="monospace" fill="#2f6f4e">setUser(3) ← what we want</text>
+
+  <line x1="480" y1="30" x2="480" y2="175" stroke="#b23b2e" stroke-dasharray="4 4" stroke-width="1.5"/>
+  <text x="300" y="192" font-size="12.5" fill="#b23b2e" font-weight="600">The slowest, oldest response lands last — and overwrites the correct one.</text>
+</svg>
+<figcaption>A race condition. Requests are ordered; responses are not.</figcaption>
+</figure>
+
+<p>You could fix that specific bug. There's a well-known pattern with an <code>ignore</code> flag in the effect cleanup. But then there are eight more bugs, and each one has its own well-known pattern, and by the time you've applied all nine you have written — and I mean this literally — <strong>a cache library</strong>. A bad one. In every component.</p>
+
+<p>That's the whole story of this guide. But to see <em>why</em> it keeps happening, we need to back all the way up and ask a question that sounds almost too simple.</p>
+
+<h2 id="two-kinds">The big idea: two kinds of state</h2>
+
+<p>Here's the framing question, and I want to flag clearly: <strong>this is the thing interviewers are actually probing for.</strong> Everything else in this guide — <code>staleTime</code>, invalidation, optimistic updates — is downstream of it. Candidates who've read the React Query docs can list the features. Candidates who've understood <em>this</em> can explain why the features exist. Those are very different interviews.</p>
+
+<p>The question is: <strong>is all state the same kind of thing?</strong></p>
+
+<p>Think about the state in a typical app. Whether a modal is open. What the user has typed into a search box. Which tab is selected. Dark mode on or off. Now think about a different set: the list of products from the API, the logged-in user's profile, the current cart contents as the server knows them.</p>
+
+<p>React's <code>useState</code> treats these identically. They're both "state." But they behave nothing alike, and the differences are not small.</p>
+
+<h3>Client state: you own it</h3>
+
+<p>Take "is the modal open." Where does the truth about that live? In your browser tab. Nowhere else. Nobody else on Earth has an opinion about whether your modal is open.</p>
+
+<p>Three consequences follow, and they're the good kind:</p>
+
+<p><strong>It's synchronous.</strong> You call <code>setIsOpen(true)</code> and the new truth exists immediately. There's no waiting, no network, no failure mode. There's no such thing as a "loading" modal-open-state.</p>
+
+<p><strong>You're the only writer.</strong> Nothing can change it behind your back. If you don't set it, it doesn't change.</p>
+
+<p><strong>Therefore it's always correct.</strong> This is the big one. Your copy of the value <em>is</em> the value. There's no original somewhere else that yours might have drifted from. Asking "is my modal state stale?" is a nonsense question — stale relative to what?</p>
+
+<h3>Server state: you're borrowing it</h3>
+
+<p>Now take "the list of products." Where does the truth live? On a database, in a datacentre, on a machine you don't control, being written to right now by other people.</p>
+
+<p>What you have in <code>useState</code> is not the truth. It's a <strong>photocopy of the truth, taken at a moment in the past.</strong></p>
+
+<p>And that changes everything:</p>
+
+<p><strong>It's asynchronous.</strong> Getting it takes time and can fail. So every piece of server state drags along two extra pieces of state — <em>are we fetching?</em> and <em>did it fail?</em> — which is why you keep writing those same three <code>useState</code> calls.</p>
+
+<p><strong>It's shared.</strong> Other users are reading and writing the same data. Another admin can delete a product while you're staring at it.</p>
+
+<p><strong>And this is the killer: your copy is potentially stale the instant it arrives.</strong> Not "might go stale eventually." The response was already a snapshot of the past by the time it left the server. Somebody could have changed the row during the 200ms the response spent in flight.</p>
+
+<div class="callout wait">
+  <span class="label">Wait, what about…?</span>
+  <p>"Isn't that a bit dramatic? If nobody's editing products right now, my copy is fine."</p>
+  <p>Sure — <em>usually</em> it's fine. The point isn't that your data is constantly wrong. It's that <strong>you have no way of knowing</strong>. Correctness is no longer something you can guarantee by reasoning about your own code; it's a probability that decays with time. That's a completely different engineering problem, and it needs completely different tooling. Client state you <em>prove</em> correct. Server state you <em>manage the staleness of</em>.</p>
+</div>
+
+<h3>The analogy: your notebook vs a library book</h3>
+
+<p>Client state is a notebook you carry around. Whatever's written in it is what's true, because you're the only one who writes in it. If you want to know what it says, you look.</p>
+
+<p>Server state is a book you've photocopied at the library. The library still has the original. Someone might be correcting it, replacing it, or throwing it away. Your photocopy is <em>useful</em> — instantly readable, no trip required — but it comes with an unavoidable question that the notebook never had: <strong>how old is this, and do I need a fresh copy?</strong></p>
+
+<p>And notice the shape of the answer. You don't run back to the library before every single sentence you read — that would be absurd, and slow. You read the photocopy, and you go get a fresh one when it seems worth it: when you come back to your desk, when a while has passed, when you know someone just edited it.</p>
+
+<p><em>That policy — read the copy now, refresh in the background when it makes sense — is essentially the entire design of React Query.</em> Everything else is detail.</p>
+
+<p>Where does the analogy break? A photocopy can't tell you it's out of date, and it can't quietly update itself while you're reading. React Query's copy can do both, because it can keep talking to the library. So it's better than a photocopy — but the <em>ownership</em> part, the part where the original is somewhere else and can change without telling you, is exactly right.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p>"What's the difference between client state and server state?" is a question with an obvious-sounding answer ("one's local, one's from the API") and a good answer. Here's the good one:</p>
+  <div class="answer">
+    <span class="who">Say this out loud</span>
+    <p>"Client state is state I own — it's synchronous, I'm the only writer, so it's correct by construction. Server state I don't own; it lives on a machine I don't control, it's shared with other users, and my copy is a snapshot that's potentially stale the moment I receive it. So server state needs a whole set of things client state never needs: caching, deduplication, background refresh, and invalidation. If I keep it in <code>useState</code> or Redux, I end up hand-writing all of that myself — which is exactly what a library like React Query already is."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you named <em>ownership</em> as the root cause and derived the feature list from it, rather than reciting the feature list. That's the signal that you've hit the problem in production rather than skimmed a README.</p>
+</div>
+
+<h2 id="bugs">Every bug in the naive fetch, named</h2>
+
+<p>Let's go back to that <code>UserProfile</code> component with the new lens on. Each of these is a direct consequence of pretending a photocopy is a notebook.</p>
+
+<p><strong>1. There is no cache.</strong> The data lives in that component's state and dies with it. Navigate away and back and it's gone forever, even though you had it two seconds ago.</p>
+
+<p><strong>2. It refetches on every mount.</strong> Which follows from #1: with nowhere to keep the data, the only option is to ask again. Every tab switch, every route change, full spinner, from zero.</p>
+
+<p><strong>3. Race conditions.</strong> The one we drew above. Responses can arrive out of order and the stale one wins.</p>
+
+<p><strong>4. No deduplication.</strong> If <code>&lt;Header /&gt;</code> and <code>&lt;Sidebar /&gt;</code> and <code>&lt;ProfileCard /&gt;</code> all need the current user, that's three identical requests on the same render pass. They don't know about each other. There's no shared place for them to meet.</p>
+
+<p><strong>5. No retry.</strong> One flaky mobile connection, one dropped request, and the user gets an error screen with no way out except a manual page reload — even though a retry 500ms later would have worked.</p>
+
+<p><strong>6. No background refresh.</strong> Leave the dashboard open on a second monitor for three hours and it faithfully shows you three-hour-old numbers, with no visual hint that anything's wrong.</p>
+
+<p><strong>7. No invalidation story.</strong> This one is worth sitting with. You edit the user's name in a settings form somewhere else in the app. The PATCH succeeds. Now: how does <code>UserProfile</code> find out? It has its own private <code>user</code> in its own private <code>useState</code>. There is no mechanism. Your options are to lift the state up until it's shared (and now you're building a store), or to pass a callback down through six components, or to just... reload the page. Everyone picks reload the page.</p>
+
+<p><strong>8. Loading and error handling are re-implemented, differently, everywhere.</strong> Three <code>useState</code> calls per fetch, times every component that fetches, each with slightly different edge-case behaviour. Does yours set <code>isLoading</code> back to <code>true</code> when <code>userId</code> changes? This one does. The one your colleague wrote doesn't, so it shows the previous user's name during the fetch.</p>
+
+<p><strong>9. Memory leak / warning on unmount.</strong> If the component unmounts while the request is in flight, the <code>.then</code> still fires and calls <code>setUser</code> on a component that no longer exists. React used to shout at you about this in the console. It doesn't anymore, but the underlying waste is real: you're holding a closure over a dead component and doing work nobody will see.</p>
+
+<div class="callout miscon">
+  <span class="label">A common misconception</span>
+  <p><em>"Okay, but I can fix all of those. It's just a custom hook."</em></p>
+  <p>You can! And people do. But look at what you'd need: a module-level store to hold data across unmounts (#1, #2, #4), keyed by something so different params don't collide, with reference counting so entries get cleaned up eventually (#9), plus request tracking so only the newest response applies (#3), plus a subscription mechanism so every component using a key re-renders together (#4, #7), plus retry with backoff (#5), plus refetch-on-focus (#6), plus a pub/sub API for marking entries out of date (#7).</p>
+  <p>That's not a custom hook. That's a caching library with a React binding — which is precisely what React Query is. The question was never "library or no library." It was "the well-tested one, or the one you maintain at 6pm on a Friday."</p>
+</div>
+
+<h2 id="what-is">So what <em>is</em> React Query, really?</h2>
+
+<p>Quick vocabulary, because the names get used loosely. <strong>TanStack Query</strong> is the current name of the library everyone still calls <strong>React Query</strong> (it grew adapters for Vue, Svelte, Solid and Angular, so it dropped "React" from the name). <strong>SWR</strong> is a smaller, similar library from Vercel. I'll use React Query for the examples and cover the differences later.</p>
+
+<p>Here's the one-sentence version I'd want you to carry out of this guide:</p>
+
+<p style="font-size:1.12rem; border-left:4px solid var(--accent); padding-left:18px; color:var(--ink);"><strong>React Query is a cache that lives outside React, keyed by whatever you say, that lets components subscribe to entries and tells you the status of each entry.</strong></p>
+
+<p>It is not a data fetching library. It never makes a network request itself — you hand it a function that returns a promise, and it doesn't care whether that function uses <code>fetch</code>, <code>axios</code>, GraphQL, or reads from a local file. It manages the <em>lifecycle</em> around your function: when to call it, whether to call it at all, what to do while it's pending, and how long to keep the result.</p>
+
+<p>Our nine-bug component becomes this:</p>
+
+<div class="codehead good">✅ Fixed — and every one of the nine is handled</div>
+<pre><code><span class="k">function</span> <span class="f">UserProfile</span>({ userId }) {
+  <span class="k">const</span> { data: user, isPending, isError } = <span class="f">useQuery</span>({
+    queryKey: [<span class="s">'user'</span>, userId],           <span class="c">// 👈 the cache address</span>
+    queryFn: () =&gt; <span class="f">fetchUser</span>(userId),      <span class="c">// 👈 just a promise</span>
+  });
+
+  <span class="k">if</span> (isPending) <span class="k">return</span> &lt;Spinner /&gt;;
+  <span class="k">if</span> (isError) <span class="k">return</span> &lt;ErrorMessage /&gt;;
+  <span class="k">return</span> &lt;h1&gt;{user.name}&lt;/h1&gt;;
+}</code></pre>
+
+<p>Same shape, roughly the same line count. The difference is that <code>useState</code> put the data <em>inside this component</em>, while <code>useQuery</code> puts it in a shared cache and gives this component a <em>view</em> of it. Ten components can hold the same view. One network request feeds all of them. Any of them can mark it out of date and they all update together.</p>
+
+<p>Two of those lines are doing all the work, and the first one deserves its own section.</p>
+
+<h2 id="keys">Query keys: addresses in a cache</h2>
+
+<p>A cache is a box of things, and a box of things is useless unless you can find one again. The <code>queryKey</code> is how you find one again. It's the address.</p>
+
+<p>Mentally, the cache is a <code>Map</code>:</p>
+
+<pre><code>[<span class="s">'user'</span>, <span class="n">7</span>]            →  { name: <span class="s">'Ada'</span>, ... }
+[<span class="s">'user'</span>, <span class="n">9</span>]            →  { name: <span class="s">'Linus'</span>, ... }
+[<span class="s">'todos'</span>]              →  [ ... ]
+[<span class="s">'todos'</span>, { done: <span class="k">true</span> }] →  [ ... ]</code></pre>
+
+<p>Keys are arrays, and they're compared by <strong>deep value equality</strong>, not by reference. So <code>['user', 7]</code> written in two different files hits the same cache entry — which is exactly how deduplication works, and why you never have to wire components together.</p>
+
+<p>Two rules make key design almost automatic:</p>
+
+<p><strong>Rule 1: every input to <code>queryFn</code> belongs in the key.</strong> If your fetch reads <code>userId</code>, <code>userId</code> is in the key. If it reads a page number and a filter, those are in the key too. Break this and you get the classic bug: switching users shows the previous user's data forever, because the key never changed so the cache never looked for anything new.</p>
+
+<p><strong>Rule 2: order keys from generic to specific</strong>, like a file path.</p>
+
+<pre><code>[<span class="s">'todos'</span>]                                <span class="c">// everything todo-ish</span>
+[<span class="s">'todos'</span>, <span class="s">'list'</span>, { status: <span class="s">'done'</span> }]      <span class="c">// one filtered list</span>
+[<span class="s">'todos'</span>, <span class="s">'detail'</span>, todoId]               <span class="c">// one todo</span></code></pre>
+
+<p>Why does the order matter so much? Because invalidation matches on <strong>prefixes</strong>. Ask React Query to invalidate <code>['todos']</code> and it marks every key <em>starting with</em> <code>'todos'</code> — the lists, the details, all of it. That's a single line that correctly refreshes a whole feature area, and you only get it if your keys are structured hierarchically.</p>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p>The key is hashed into a stable string with a JSON serialiser that sorts object properties. That's why <code>{ page: 1, sort: 'asc' }</code> and <code>{ sort: 'asc', page: 1 }</code> are the same key. It's also why keys must be JSON-serialisable — don't put a <code>Date</code>, a class instance, or a function in there. And don't put anything that changes identity every render (a fresh object literal is fine — it's compared by value — but <code>Date.now()</code> is not, since it makes a new key every render and every key misses the cache).</p>
+</div>
+
+<h2 id="stale-gc">staleTime vs gcTime (the confusing pair)</h2>
+
+<p>Right. This is the one. If an interviewer asks you exactly one detail question about React Query, there's a very good chance it's this one, and there's a very good chance the person before you got it wrong.</p>
+
+<p>Both are durations in milliseconds. Both are about time and caching. They sound like synonyms. They answer <strong>completely different questions</strong>, and the trick to never mixing them up again is to hold both questions in your head at once:</p>
+
+<div class="scroller">
+<table>
+  <thead>
+    <tr><th></th><th>staleTime</th><th>gcTime</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Question</strong></td>
+      <td>How long is this data allowed to be trusted without re-checking?</td>
+      <td>How long do we keep data nobody is currently using before deleting it?</td>
+    </tr>
+    <tr>
+      <td><strong>About</strong></td>
+      <td>Network traffic — <em>should I refetch?</em></td>
+      <td>Memory — <em>should I delete?</em></td>
+    </tr>
+    <tr>
+      <td><strong>Clock starts</strong></td>
+      <td>When the data arrives</td>
+      <td>When the <em>last</em> component using it unmounts</td>
+    </tr>
+    <tr>
+      <td><strong>Default</strong></td>
+      <td><code>0</code> — stale immediately</td>
+      <td><code>5 * 60 * 1000</code> — 5 minutes</td>
+    </tr>
+    <tr>
+      <td><strong>When it expires</strong></td>
+      <td>Data stays in cache, just gets refetched in the background on the next trigger</td>
+      <td>Data is deleted from the cache entirely</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>The line I'd memorise: <strong><code>staleTime</code> is about freshness, <code>gcTime</code> is about eviction.</strong> One decides whether to <em>ask the server again</em>. The other decides whether to <em>free the memory</em>.</p>
+
+<p>And crucially — <code>gcTime</code>'s clock only runs while the query is <strong>inactive</strong>, meaning zero mounted components are using it. As long as something's on screen watching that key, <code>gcTime</code> is irrelevant; the data is never collected.</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Timeline showing staleTime measured from data arrival, and gcTime measured from the last unmount">
+  <!-- staleTime track -->
+  <text x="0" y="16" font-size="13" font-weight="700" fill="#2f6f4e">staleTime — freshness clock (starts when data arrives)</text>
+
+  <rect x="0" y="30" width="230" height="34" rx="6" fill="#eaf4ee" stroke="#a9cdb8"/>
+  <text x="14" y="52" font-size="12.5" font-family="monospace" fill="#2f6f4e">FRESH · no refetching</text>
+
+  <rect x="230" y="30" width="470" height="34" rx="6" fill="#fdf4e0" stroke="#e3cd97"/>
+  <text x="244" y="52" font-size="12.5" font-family="monospace" fill="#8a6100">STALE · refetch on next trigger</text>
+
+  <line x1="0" y1="70" x2="0" y2="86" stroke="#4a5160"/>
+  <text x="4" y="98" font-size="11.5" fill="#4a5160">data arrives (t=0)</text>
+  <line x1="230" y1="70" x2="230" y2="86" stroke="#4a5160"/>
+  <text x="234" y="98" font-size="11.5" fill="#4a5160">staleTime elapsed</text>
+
+  <text x="0" y="122" font-size="12" fill="#4a5160">Data is still in the cache the whole time. Stale ≠ deleted.</text>
+
+  <line x1="0" y1="140" x2="700" y2="140" stroke="#e6e2db"/>
+
+  <!-- gcTime track -->
+  <text x="0" y="168" font-size="13" font-weight="700" fill="#2b5f9e">gcTime — eviction clock (starts at the LAST unmount)</text>
+
+  <rect x="0" y="182" width="330" height="34" rx="6" fill="#eaf1fa" stroke="#a8c4e2"/>
+  <text x="14" y="204" font-size="12.5" font-family="monospace" fill="#2b5f9e">ACTIVE · a component is subscribed</text>
+
+  <rect x="330" y="182" width="250" height="34" rx="6" fill="#f4f2ee" stroke="#cfcac1"/>
+  <text x="344" y="204" font-size="12.5" font-family="monospace" fill="#4a5160">INACTIVE · gcTime counting…</text>
+
+  <rect x="580" y="182" width="120" height="34" rx="6" fill="#fdeeec" stroke="#e0a89f"/>
+  <text x="592" y="204" font-size="12.5" font-family="monospace" fill="#b23b2e">DELETED 🗑</text>
+
+  <line x1="330" y1="222" x2="330" y2="238" stroke="#4a5160"/>
+  <text x="290" y="252" font-size="11.5" fill="#4a5160">last unmount</text>
+  <line x1="580" y1="222" x2="580" y2="238" stroke="#4a5160"/>
+  <text x="520" y="252" font-size="11.5" fill="#4a5160">gcTime elapsed</text>
+
+  <text x="0" y="278" font-size="12" fill="#4a5160">Remount before the clock runs out and the data is instantly there — the clock resets.</text>
+</svg>
+<figcaption>Two separate clocks, started by two separate events, with two separate consequences.</figcaption>
+</figure>
+
+<h3>Why the default <code>staleTime: 0</code> feels so aggressive</h3>
+
+<p>The first time people use React Query they open the Network tab and get a fright: requests firing on every mount, every time they click back into the browser window. "I thought this thing was supposed to cache!"</p>
+
+<p>It <em>is</em> caching. <code>staleTime: 0</code> means data is considered stale the moment it lands, so any refetch trigger will refetch. But — and this is the part that makes the default defensible — <strong>you still get the cached data instantly while that refetch happens.</strong> No spinner. The refetch is silent, and if the data hasn't changed, nothing re-renders visibly.</p>
+
+<p>So the default is "always show something immediately, always verify in the background." It's the maximally-correct default: you can never be looking at old data for long. It's also chatty.</p>
+
+<p>Tuning it is a product question, not a technical one — <em>how out of date is this data allowed to be?</em></p>
+
+<pre><code><span class="c">// A list of countries. It has not changed since 2011.</span>
+<span class="f">useQuery</span>({ queryKey: [<span class="s">'countries'</span>], queryFn: fetchCountries,
+           staleTime: <span class="n">Infinity</span> })
+
+<span class="c">// A product page. Minutes-old is fine.</span>
+<span class="f">useQuery</span>({ queryKey: [<span class="s">'product'</span>, id], queryFn: () =&gt; <span class="f">fetchProduct</span>(id),
+           staleTime: <span class="n">5</span> * <span class="n">60</span> * <span class="n">1000</span> })
+
+<span class="c">// A live order book. Never trust it. (the default)</span>
+<span class="f">useQuery</span>({ queryKey: [<span class="s">'orders'</span>], queryFn: fetchOrders,
+           staleTime: <span class="n">0</span> })</code></pre>
+
+<div class="callout wait">
+  <span class="label">Wait, what about…?</span>
+  <p>"What if <code>staleTime</code> is longer than <code>gcTime</code>? Isn't that a contradiction?"</p>
+  <p>Nope, and this is a great way to prove you've separated them. Say <code>staleTime: Infinity</code> and <code>gcTime: 5min</code> (a very common combo). While something's on screen using the data, it's never refetched. Unmount everything, wait five minutes, and the entry is deleted. Mount again and it fetches — <strong>not because it went stale</strong>, but because there's nothing in the cache anymore. Freshness and existence are independent properties.</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">Trap</span>
+  <p>The wrong answer that gets people dinged: <em>"staleTime is how long data is cached, and gcTime is how long it's cached in the background."</em> That's two vague sentences describing the same imaginary thing. Say <strong>freshness vs eviction</strong>, and say what event starts each clock. Bonus point available for knowing <code>gcTime</code> was called <code>cacheTime</code> before v5 — the rename happened precisely because "cacheTime" made everyone think it meant staleTime.</p>
+</div>
+
+<h2 id="lifecycle">The query lifecycle &amp; refetch triggers</h2>
+
+<p>Put the two clocks together and you get four states a cache entry moves through:</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Query lifecycle: fresh to stale to inactive to garbage collected">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a5160"/>
+    </marker>
+  </defs>
+
+  <rect x="10" y="40" width="140" height="58" rx="9" fill="#eaf4ee" stroke="#2f6f4e" stroke-width="1.5"/>
+  <text x="80" y="65" font-size="14" font-weight="700" text-anchor="middle" fill="#2f6f4e">FRESH</text>
+  <text x="80" y="85" font-size="11" text-anchor="middle" fill="#2f6f4e">never refetched</text>
+
+  <rect x="195" y="40" width="140" height="58" rx="9" fill="#fdf4e0" stroke="#8a6100" stroke-width="1.5"/>
+  <text x="265" y="65" font-size="14" font-weight="700" text-anchor="middle" fill="#8a6100">STALE</text>
+  <text x="265" y="85" font-size="11" text-anchor="middle" fill="#8a6100">refetch on trigger</text>
+
+  <rect x="380" y="40" width="140" height="58" rx="9" fill="#f4f2ee" stroke="#4a5160" stroke-width="1.5"/>
+  <text x="450" y="65" font-size="14" font-weight="700" text-anchor="middle" fill="#4a5160">INACTIVE</text>
+  <text x="450" y="85" font-size="11" text-anchor="middle" fill="#4a5160">no subscribers</text>
+
+  <rect x="565" y="40" width="125" height="58" rx="9" fill="#fdeeec" stroke="#b23b2e" stroke-width="1.5"/>
+  <text x="627" y="65" font-size="14" font-weight="700" text-anchor="middle" fill="#b23b2e">DELETED</text>
+  <text x="627" y="85" font-size="11" text-anchor="middle" fill="#b23b2e">gone from cache</text>
+
+  <line x1="152" y1="69" x2="190" y2="69" stroke="#4a5160" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="171" y="30" font-size="10.5" text-anchor="middle" fill="#4a5160">staleTime</text>
+  <text x="171" y="20" font-size="10.5" text-anchor="middle" fill="#4a5160">elapses</text>
+
+  <line x1="337" y1="69" x2="375" y2="69" stroke="#4a5160" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="356" y="30" font-size="10.5" text-anchor="middle" fill="#4a5160">last</text>
+  <text x="356" y="20" font-size="10.5" text-anchor="middle" fill="#4a5160">unmount</text>
+
+  <line x1="522" y1="69" x2="560" y2="69" stroke="#4a5160" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="541" y="30" font-size="10.5" text-anchor="middle" fill="#4a5160">gcTime</text>
+  <text x="541" y="20" font-size="10.5" text-anchor="middle" fill="#4a5160">elapses</text>
+
+  <path d="M 265 100 Q 265 150 82 150 Q 80 150 80 102" fill="none" stroke="#2f6f4e" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <text x="175" y="167" font-size="11" text-anchor="middle" fill="#2f6f4e">a refetch succeeds → fresh again</text>
+
+  <path d="M 450 100 Q 450 200 82 200 Q 80 200 80 102" fill="none" stroke="#2b5f9e" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <text x="265" y="217" font-size="11" text-anchor="middle" fill="#2b5f9e">a component mounts again → instantly served from cache</text>
+
+  <text x="10" y="243" font-size="11" fill="#8b93a7">Note: “inactive” is orthogonal to fresh/stale — an entry can be inactive and fresh, or inactive and stale.</text>
+</svg>
+<figcaption>The four states. The dashed arrows are the ones that make the UX feel fast.</figcaption>
+</figure>
+
+<p>Notice that <strong>stale doesn't mean gone, and it doesn't mean a refetch happens right now.</strong> Stale means "eligible for refetching." Something has to actually pull the trigger. By default there are four triggers:</p>
+
+<ul>
+  <li><strong>A new component mounts</strong> with that key (<code>refetchOnMount</code>)</li>
+  <li><strong>The window regains focus</strong> — you tab back to the app (<code>refetchOnWindowFocus</code>)</li>
+  <li><strong>The network reconnects</strong> after being offline (<code>refetchOnReconnect</code>)</li>
+  <li><strong>An interval fires</strong>, if you set <code>refetchInterval</code> (off by default — this is polling)</li>
+</ul>
+
+<p>Refetch-on-focus is the one people either love or immediately disable, and it's worth understanding rather than just switching off. The reasoning: if you've been looking at another tab for ten minutes, your app's data is ten minutes old, and the moment your eyes come back is exactly when you'd want it current. It's the digital version of glancing at the arrivals board again when you look up. If it feels excessive, that's usually a sign your <code>staleTime</code> is too low — raise that rather than killing the trigger, because a focus refetch on <em>fresh</em> data does nothing at all.</p>
+
+<h2 id="swr">Stale-while-revalidate</h2>
+
+<p>Time to name the pattern that all of this is built on — the one SWR is literally named after.</p>
+
+<p>Classic fetching gives the user a binary: either you have data, or you have a spinner. Every navigation back to a page you've already visited resets you to the spinner, even though you had perfectly good data for that page thirty seconds ago.</p>
+
+<p>Stale-while-revalidate says: <strong>show the stale data immediately, and revalidate in the background.</strong> Two steps, both of which happen:</p>
+
+<pre><code><span class="c">// t = 0ms    user clicks back to the product page</span>
+<span class="c">//            → cache hit, render instantly with 40-second-old data</span>
+<span class="c">//            → in parallel, a silent refetch goes out</span>
+<span class="c">// t = 180ms  fresh response arrives</span>
+<span class="c">//            → identical? nothing visibly changes.</span>
+<span class="c">//            → different? the price quietly updates in place.</span></code></pre>
+
+<p>The user perceives this as <strong>instant</strong>, because it is instant. There was never a moment without content. And the data is never more than one round-trip out of date.</p>
+
+<p>Compare that to the two alternatives. "Always show a spinner" is correct but feels slow every single time. "Only fetch once and trust the cache forever" feels fast but shows wrong data. Stale-while-revalidate takes the perceived speed of the cache and the correctness of the refetch, and the only cost is a brief window where you're showing data that's about to be replaced.</p>
+
+<p>React Query gives you a flag to reflect this in the UI when you want it:</p>
+
+<pre><code><span class="k">const</span> { data, isPending, isFetching } = <span class="f">useQuery</span>({ ... });
+
+<span class="c">// isPending  → no data at all yet. Show a skeleton.</span>
+<span class="c">// isFetching → a request is in flight (may be a background one).</span>
+
+<span class="k">if</span> (isPending) <span class="k">return</span> &lt;Skeleton /&gt;;
+<span class="k">return</span> (
+  &lt;div style={{ opacity: isFetching ? <span class="n">0.7</span> : <span class="n">1</span> }}&gt;   <span class="c">// 👈 subtle "updating…" hint</span>
+    &lt;ProductPrice value={data.price} /&gt;
+  &lt;/div&gt;
+);</code></pre>
+
+<p>Getting <code>isPending</code> and <code>isFetching</code> the right way round is a small thing that reads as real experience. <code>isPending</code> means <em>we have nothing</em>. <code>isFetching</code> means <em>we're checking</em>, and we might well have perfectly good data on screen while it's true.</p>
+
+<div class="callout hood">
+  <span class="label">Under the hood</span>
+  <p>Stale-while-revalidate didn't start in JavaScript. It's an HTTP caching directive from <a href="#">RFC 5861</a>:</p>
+  <pre style="margin-top:0.8rem;"><code>Cache-Control: max-age=60, stale-while-revalidate=600</code></pre>
+  <p>Which tells a browser or CDN: for 60 seconds serve this from cache with no questions asked; for the following 600 seconds keep serving the cached copy <em>and</em> quietly fetch a new one. Compare with the React Query pair — <code>max-age</code> plays the role of <code>staleTime</code>, and the cache holds the entry beyond it just like <code>gcTime</code> does. Same idea, different layer: HTTP applies it per URL in the browser's HTTP cache, React Query applies it per query key in memory, and they compose happily. Knowing this is the same principle at two layers is a nice thing to drop into an interview.</p>
+</div>
+
+<h2 id="invalidation">Invalidation: the three tools</h2>
+
+<p>Caching is easy. Knowing when your cached copy is wrong is the hard part — hence the old joke about the two hard problems in computer science being cache invalidation and naming things.</p>
+
+<p>React Query gives you three ways to say "this entry is no longer trustworthy," and mixing them up is a very common interview stumble because they sound interchangeable and aren't.</p>
+
+<h3><code>invalidateQueries</code> — the one you want 90% of the time</h3>
+
+<pre><code>queryClient.<span class="f">invalidateQueries</span>({ queryKey: [<span class="s">'todos'</span>] });</code></pre>
+
+<p>Say precisely what this does, because the name undersells it. It does <strong>two</strong> things:</p>
+
+<ol>
+  <li>Marks every matching entry as <strong>stale</strong>, regardless of <code>staleTime</code>.</li>
+  <li>For entries that are <strong>active</strong> (something is on screen using them), immediately refetches.</li>
+</ol>
+
+<p>Inactive entries aren't refetched — that would be wasteful, since nobody's looking. They're just flagged, so the next time a component mounts and needs them, it refetches. And remember the prefix match: that one line hits <code>['todos']</code>, <code>['todos', 'list', {...}]</code> and <code>['todos', 'detail', 5]</code> together.</p>
+
+<p>This is the right default because it's declarative. You're not saying "go fetch now" — you're saying "what I have is out of date," and letting the library decide what's worth acting on.</p>
+
+<h3><code>refetch</code> — the imperative hammer</h3>
+
+<pre><code><span class="k">const</span> { data, refetch } = <span class="f">useQuery</span>({ ... });
+&lt;button onClick={() =&gt; <span class="f">refetch</span>()}&gt;Refresh&lt;/button&gt;</code></pre>
+
+<p>Refetches <em>this</em> query, now, ignoring staleness entirely. It's for user-initiated refreshes — a pull-to-refresh, a "reload" button. It doesn't do prefix matching and it doesn't communicate anything to the rest of the cache. Reaching for <code>refetch</code> after a mutation is a small smell: you'll refresh the one query you remembered and miss the four related ones.</p>
+
+<h3><code>setQueryData</code> — write directly into the cache</h3>
+
+<pre><code>queryClient.<span class="f">setQueryData</span>([<span class="s">'todo'</span>, todo.id], updatedTodo);</code></pre>
+
+<p>No network request. You're putting a value into a cache slot by hand, and every component subscribed to that key re-renders immediately. Two good uses: seeding a detail cache from a list you already fetched (so clicking a row renders instantly), and optimistic updates, which we'll get to next.</p>
+
+<p>The catch: you've now made a claim about server data <em>without asking the server</em>. If your local guess doesn't match what the server actually stored — a computed field, a normalised address, a server-side timestamp — your cache is now confidently wrong. Which is why the standard move is <strong>setQueryData for the instant feel, invalidateQueries afterwards for the truth.</strong></p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"How do you invalidate related caches after a mutation?"</strong></p>
+  <div class="answer">
+    <span class="who">Say this out loud</span>
+    <p>"In the mutation's <code>onSuccess</code> I call <code>invalidateQueries</code> with the broadest key that covers everything affected — usually the feature prefix, like <code>['todos']</code>, since keys match by prefix so that catches the list and every detail in one call. Invalidating marks them stale and refetches whichever ones are actually on screen; the rest just refetch next time they mount. If a mutation touches more than one area — say, adding a todo changes both the list and a counter — I invalidate both keys. And that's exactly why I design keys hierarchically from generic to specific: it makes invalidation a one-liner instead of a list of individual refetches I have to keep in sync."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you connected key <em>design</em> to invalidation <em>ergonomics</em>. That's the causal link that separates "I've used the API" from "I've maintained a codebase using the API."</p>
+</div>
+
+<h2 id="redux">Why not just put it in Redux?</h2>
+
+<p>Here comes the classic "why not just—". And it deserves a real answer, not a dismissal, because for about a decade putting API data in Redux <em>was</em> the standard advice.</p>
+
+<p>Here's the shape of the problem. A Redux store (or Zustand, or a Context provider — same argument) is a <strong>notebook</strong>: a place for state you own. The moment you write server data into it, you've made a claim of ownership over something you don't own. And you inherit the full job:</p>
+
+<p><strong>You now own freshness.</strong> The store has no concept of "this value arrived at 14:32 and might be old." It's just a value. Any answer to "should we refetch?" has to be built by you — timestamps in the slice, comparisons, refetch decisions in thunks.</p>
+
+<p><strong>You now own deduplication.</strong> Two components dispatch <code>fetchUser(7)</code> in the same tick. Redux will happily run both thunks. Preventing that means tracking in-flight requests by key in the store and having the thunk bail if one is pending. That's real code, and you'll write it once per resource.</p>
+
+<p><strong>You now own invalidation.</strong> After <code>updateUser</code> succeeds, which slices are wrong? <code>users</code>, obviously. Also <code>currentUser</code>, if it's the logged-in user. Also the <code>teamMembers</code> list, which embedded a copy of the name. Also the <code>recentActivity</code> feed. Nothing tells you this. You find out from a bug report.</p>
+
+<p><strong>And that last point is the real killer: two slices can disagree.</strong> Once the same user's name is stored in three places, they will drift. The header says "Ada Lovelace," the sidebar says "A. Lovelace," and both are technically in your state tree. This is the cache-sync problem, and it's not a discipline issue — it's structural. Copies of shared data that update independently diverge. React Query avoids it by having exactly one entry per key that everyone subscribes to; a value can't disagree with itself.</p>
+
+<p>Then there's the boilerplate multiplier, which is less profound but more felt day to day:</p>
+
+<div class="codehead bad">❌ One resource, hand-rolled in a store</div>
+<pre><code><span class="c">// slice: data, isLoading, error, lastFetchedAt, inFlight</span>
+<span class="c">// actions: fetchStart, fetchSuccess, fetchFailure, invalidate</span>
+<span class="c">// a thunk with try/catch, dedup check, staleness check</span>
+<span class="c">// selectors: selectUser, selectUserLoading, selectUserError</span>
+<span class="c">// ~80 lines. Now do it again for products. And orders.</span></code></pre>
+
+<div class="codehead good">✅ Same behaviour, plus retries and background refresh</div>
+<pre><code><span class="k">const</span> { data, isPending, isError } = <span class="f">useQuery</span>({
+  queryKey: [<span class="s">'user'</span>, userId],
+  queryFn: () =&gt; <span class="f">fetchUser</span>(userId),
+});</code></pre>
+
+<h3>But — and this matters — sometimes you <em>do</em> want it in the store</h3>
+
+<p>An absolutist answer here is a weaker answer. If you say "never put server data in Redux," a good interviewer will push, and they should. Real cases:</p>
+
+<p><strong>Heavily derived or transformed data.</strong> If the API response is raw material that you normalise, cross-reference against other responses, and reshape into a client-side model — a graph editor, a spreadsheet, a design tool — then what you're holding isn't really the server's data anymore. It's <em>your</em> model, derived from a fetch. That's client state with a network-shaped origin, and a store is a fine home for it. (Common hybrid: React Query fetches, and the transformed result feeds a store or a <code>useMemo</code>.)</p>
+
+<p><strong>Offline-first apps.</strong> If the app must work with no network for hours, with a local write queue that syncs later, then your local copy is temporarily <em>authoritative</em> — the source of truth genuinely is on the device. That inverts the ownership argument. Query libraries have persistence plugins that cover a lot of this, but a serious offline-first app often wants explicit control.</p>
+
+<p><strong>Data the user is actively editing.</strong> A long form pre-filled from the server: the moment they type, the draft is client state. Background-refetching it out from under them would be hostile. Fetch with a query, copy into local state to edit, mutate on save.</p>
+
+<div class="callout interview">
+  <span class="label">In an interview</span>
+  <p><strong>"Why is it bad to store API data in Redux?"</strong></p>
+  <div class="answer">
+    <span class="who">Say this out loud</span>
+    <p>"Because a store is designed for state you own, and API data is state you don't. Putting it there means you personally take on freshness, deduplication, and invalidation — and once the same entity is copied into several slices, they drift, so the header and the sidebar end up showing different names for the same user. That's the cache-sync problem, and it's structural rather than a discipline issue. Plus it's roughly eighty lines of slice, thunk and selectors per resource to get something worse than a five-line <code>useQuery</code>. That said, I wouldn't say never — if the data is heavily transformed into a client-side model, or the app is offline-first where the local copy is genuinely authoritative, a store makes sense. My default is server state in a query cache, client state in a store, and honestly most apps need far less client state than they think once server state moves out."</p>
+  </div>
+  <p><strong>Why it lands:</strong> the last sentence is the one that gets remembered. Teams that adopt React Query routinely delete most of their Redux, and noticing that shows you've been through the migration rather than read about it.</p>
+</div>
+
+<h2 id="mutations">Mutations &amp; optimistic updates</h2>
+
+<p>Queries read. <strong>Mutations</strong> write. They're different enough to need a different hook: a read is idempotent and can be retried freely and fired automatically, while a write has side effects, should generally run once, and must be triggered by an action.</p>
+
+<pre><code><span class="k">const</span> { mutate, isPending } = <span class="f">useMutation</span>({
+  mutationFn: (newTodo) =&gt; <span class="f">api</span>.<span class="f">post</span>(<span class="s">'/todos'</span>, newTodo),
+  onSuccess: () =&gt; {
+    queryClient.<span class="f">invalidateQueries</span>({ queryKey: [<span class="s">'todos'</span>] }); <span class="c">// 👈 the important bit</span>
+  },
+});
+
+&lt;button disabled={isPending} onClick={() =&gt; <span class="f">mutate</span>({ title: <span class="s">'Buy milk'</span> })}&gt;
+  Add
+&lt;/button&gt;</code></pre>
+
+<p>Note that mutations do <strong>not</strong> retry by default, while queries retry three times with exponential backoff. That asymmetry is deliberate: retrying a failed GET is free, retrying a failed POST might create two orders.</p>
+
+<h3>Optimistic updates</h3>
+
+<p>Normally after clicking "Add" you wait — 200ms, maybe 2s on a train — and the item appears. An <strong>optimistic update</strong> flips that: put the item in the UI <em>immediately</em>, assume the server will agree, and undo it if you were wrong.</p>
+
+<p>Think of a restaurant. You order a coffee, and the waiter writes it on your bill straight away rather than waiting for the barista to hand it over. Almost always fine. But if the machine is broken, the waiter has to come back and <strong>cross the line off the bill</strong>. That crossing-off is the part people forget, and it's the part that makes optimism safe. An optimistic update without a rollback isn't optimism; it's just a bug that usually doesn't happen.</p>
+
+<p>The full flow has five steps, and the first two exist for reasons that aren't obvious:</p>
+
+<pre><code><span class="f">useMutation</span>({
+  mutationFn: updateTodo,
+
+  <span class="c">// ── 1 &amp; 2 &amp; 3: fires BEFORE the request goes out ──</span>
+  onMutate: <span class="k">async</span> (newTodo) =&gt; {
+    <span class="c">// 1. cancel in-flight refetches, or one could land</span>
+    <span class="c">//    mid-flight and overwrite our optimistic value</span>
+    <span class="k">await</span> queryClient.<span class="f">cancelQueries</span>({ queryKey: [<span class="s">'todos'</span>] });
+
+    <span class="c">// 2. snapshot the old value — this IS the undo button</span>
+    <span class="k">const</span> previous = queryClient.<span class="f">getQueryData</span>([<span class="s">'todos'</span>]);
+
+    <span class="c">// 3. write the optimistic value into the cache</span>
+    queryClient.<span class="f">setQueryData</span>([<span class="s">'todos'</span>], (old) =&gt;
+      old.<span class="f">map</span>(t =&gt; t.id === newTodo.id ? newTodo : t));
+
+    <span class="k">return</span> { previous };  <span class="c">// 👈 handed to onError as `context`</span>
+  },
+
+  <span class="c">// ── 4: it failed. Cross the line off the bill. ──</span>
+  onError: (err, newTodo, context) =&gt; {
+    queryClient.<span class="f">setQueryData</span>([<span class="s">'todos'</span>], context.previous);
+  },
+
+  <span class="c">// ── 5: win or lose, go ask the server what's actually true ──</span>
+  onSettled: () =&gt; {
+    queryClient.<span class="f">invalidateQueries</span>({ queryKey: [<span class="s">'todos'</span>] });
+  },
+});</code></pre>
+
+<p>Step 1 catches a genuinely nasty bug. If a background refetch was already in flight when you wrote your optimistic value, its response arrives <em>after</em> your write and clobbers it with the old server data — the item you just added flickers out of existence. <code>cancelQueries</code> kills that in-flight request first. Mentioning step 1 unprompted is a strong signal; most people list snapshot-update-rollback and stop.</p>
+
+<p>Step 5 catches the opposite problem. Even on success, your optimistic guess may not match reality — the server assigned a real ID, set <code>updatedAt</code>, trimmed whitespace, applied a rule. Invalidating on settle means the last word always belongs to the server.</p>
+
+<h3>When optimism is a bad idea</h3>
+
+<p>Optimism is a bet that the mutation will succeed, and the cost of losing is showing the user something that wasn't true. So don't bet when the odds are poor or the stakes are high:</p>
+
+<p><strong>High failure rate.</strong> If a mutation fails 10% of the time — server-side validation you can't predict, conflict-prone concurrent edits — then one in ten users watches the UI change and change back. That's worse than a spinner, because it looks like a glitch.</p>
+
+<p><strong>Money.</strong> Never optimistically show a payment as taken, a balance as updated, or an order as placed. If it rolls back, the user has already screenshotted it and is drafting a message to support. Real confirmation only.</p>
+
+<p><strong>Irreversible or externally-visible actions.</strong> Sending an email, publishing a post, deleting an account. Rolling the UI back doesn't unsend the email — and worse, if the mutation actually <em>succeeded</em> but the response was lost, rolling back tells the user it failed when it didn't.</p>
+
+<p>The heuristic: optimism suits <strong>small, reversible, high-success, high-frequency</strong> actions. Toggling a checkbox, liking, reordering a list, marking as read. Those are exactly the interactions where the latency is most annoying and the downside is smallest.</p>
+
+<h2 id="odds">Retries, dedup, pagination, infinite queries</h2>
+
+<p>Four smaller things worth being able to speak to.</p>
+
+<p><strong>Retries.</strong> Queries retry 3 times by default with exponential backoff (roughly 1s, 2s, 4s, capped at 30s). Sensible for flaky networks; less sensible for a 404, where retrying three times just delays the error screen by seven seconds. So it's common to make retries conditional:</p>
+
+<pre><code>retry: (failureCount, error) =&gt; {
+  <span class="k">if</span> (error.status &gt;= <span class="n">400</span> &amp;&amp; error.status &lt; <span class="n">500</span>) <span class="k">return</span> <span class="k">false</span>; <span class="c">// 👈 don't retry client errors</span>
+  <span class="k">return</span> failureCount &lt; <span class="n">3</span>;
+}</code></pre>
+
+<p><strong>Deduplication.</strong> Worth being precise about the mechanism, because it's a favourite follow-up. If a query for a key is already in flight and another component asks for the same key, React Query does not start a second request — it <em>attaches the new subscriber to the existing promise</em>. One request, one response, every subscriber re-rendered. It's not throttling or debouncing; it's a lookup in a map of in-flight requests. Ten components, one network call, no coordination code anywhere.</p>
+
+<p><strong>Pagination.</strong> Since page number lives in the key, changing pages means changing keys — which means an empty cache and a spinner on every page change. <code>placeholderData: keepPreviousData</code> fixes that: while page 3 loads, keep showing page 2 with <code>isFetching</code> true. The table stops jumping around.</p>
+
+<pre><code><span class="f">useQuery</span>({
+  queryKey: [<span class="s">'projects'</span>, page],
+  queryFn: () =&gt; <span class="f">fetchProjects</span>(page),
+  placeholderData: keepPreviousData,  <span class="c">// 👈 no flash of empty table</span>
+});</code></pre>
+
+<p><strong>Infinite queries.</strong> Different shape entirely, so a different hook. Pagination <em>replaces</em> the visible set; infinite scroll <em>accumulates</em> it. <code>useInfiniteQuery</code> stores an array of pages under one key and gives you <code>fetchNextPage</code> plus a <code>getNextPageParam</code> function that reads the last page to work out the next cursor. Choosing between them is a UX decision: a table with page numbers wants <code>useQuery</code>; a feed wants <code>useInfiniteQuery</code>.</p>
+
+<h2 id="compare">RTK Query vs TanStack Query vs SWR</h2>
+
+<p>Three real options, and the honest answer is that all three are good. Having a <em>reasoned</em> preference matters more than picking the "right" one.</p>
+
+<div class="scroller">
+<table>
+  <thead>
+    <tr><th></th><th>TanStack Query</th><th>SWR</th><th>RTK Query</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>From</strong></td><td>TanStack (Tanner Linsley)</td><td>Vercel</td><td>Redux Toolkit</td>
+    </tr>
+    <tr>
+      <td><strong>API surface</strong></td>
+      <td>Large. <code>useQuery</code>, <code>useMutation</code>, infinite, prefetch, suspense, granular cache control.</td>
+      <td>Small. <code>useSWR</code> plus a few extras. Learn it in an afternoon.</td>
+      <td>Declare endpoints once, get generated hooks. More upfront config, less per-call code.</td>
+    </tr>
+    <tr>
+      <td><strong>Mutations</strong></td>
+      <td>First-class <code>useMutation</code> with the full optimistic lifecycle.</td>
+      <td>Thinner — <code>mutate</code>/<code>useSWRMutation</code>. Workable, less structured.</td>
+      <td>Strong, with <code>onQueryStarted</code> for optimism and typed invalidation via tags.</td>
+    </tr>
+    <tr>
+      <td><strong>Invalidation</strong></td>
+      <td>Manual, by key prefix. Flexible; you design it.</td>
+      <td>Manual, by key via <code>mutate()</code>.</td>
+      <td>Declarative tags — endpoints <code>providesTags</code>/<code>invalidatesTags</code> and it wires itself up.</td>
+    </tr>
+    <tr>
+      <td><strong>Devtools</strong></td>
+      <td>Excellent, purpose-built. See every key, its state, its data.</td>
+      <td>Minimal / community.</td>
+      <td>Rides the Redux DevTools — time travel, action log.</td>
+    </tr>
+    <tr>
+      <td><strong>Framework-agnostic</strong></td>
+      <td>Yes — React, Vue, Svelte, Solid, Angular on a shared core.</td>
+      <td>React only.</td>
+      <td>Core is UI-agnostic but in practice React + Redux.</td>
+    </tr>
+    <tr>
+      <td><strong>Bundle size</strong></td>
+      <td>Middle (~12–13kb gzipped).</td>
+      <td>Smallest (~4–5kb).</td>
+      <td>Largest in isolation — but ~free if Redux Toolkit is already in the bundle.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>How I'd actually choose:</p>
+
+<p><strong>Already all-in on Redux? Use RTK Query.</strong> It's already in the bundle, the devtools story is unified, and the tag-based invalidation is genuinely the most declarative of the three — you describe which endpoints provide and invalidate which tags, and the refetching wires itself. Adding a second cache alongside a Redux store you're keeping is the worse trade. What you give up is flexibility: it's opinionated, and it assumes Redux.</p>
+
+<p><strong>Greenfield, or no strong Redux attachment? TanStack Query.</strong> It's the feature-complete default: the deepest cache control, the best devtools, the widest community, and it works outside React if the company later ships a Vue admin panel. It's also the one an interviewer most likely knows, so it's the safest thing to have opinions about.</p>
+
+<p><strong>Small app, or you want the smallest thing that solves it? SWR.</strong> A few kilobytes, one main hook, and it covers the 80% case — cache, dedup, revalidate on focus — beautifully. If you're in Next.js and mostly reading data, it's plenty. You'll feel the limits when mutations get complicated.</p>
+
+<div class="callout trap">
+  <span class="label">Trap</span>
+  <p>"I'd use TanStack Query because it's the best one" is a non-answer. Every one of these questions is really <em>can you reason about trade-offs?</em> Name the axis you're optimising — existing stack, bundle size, mutation complexity, multi-framework future — and pick along it. "RTK Query, because this team already runs Redux everywhere and a second cache is a worse cost than a slightly more opinionated API" beats a ranking every time.</p>
+</div>
+
+<h2 id="followups">Interview follow-ups, answered</h2>
+
+<p>Each of these is a real question people get asked. Try answering before you open it.</p>
+
+<details>
+<summary>"What's wrong with <code>useEffect</code> + <code>fetch</code>?"</summary>
+<p>Nothing, for a one-off. The problem is that it puts server state <em>inside a component</em>, so the data dies on unmount, refetches from scratch on every mount, can't be shared with other components, and can't be told it's out of date after a mutation. On top of that you get race conditions when params change fast, no retry, no background refresh, and loading/error handling re-implemented slightly differently in every component. Every fix for those is a piece of a cache — so you either write a bad cache yourself or use a good one.</p>
+</details>
+
+<details>
+<summary>"<code>staleTime</code> vs <code>gcTime</code>?"</summary>
+<p><code>staleTime</code> is freshness: how long data is trusted without re-checking. Its clock starts when the data arrives, and when it expires the data is <em>still in the cache</em> — it just becomes eligible for a background refetch on the next trigger. <code>gcTime</code> is eviction: how long data with <em>no</em> mounted subscribers is kept in memory before deletion. Its clock starts at the last unmount, and when it expires the entry is gone. Defaults are 0 and 5 minutes. They're independent — <code>staleTime: Infinity</code> with a 5-minute <code>gcTime</code> is a normal, sensible config.</p>
+</details>
+
+<details>
+<summary>"Why is it bad to store API data in Redux?"</summary>
+<p>Because a store is built for state you own, and API data is state you don't. You take on freshness, dedup and invalidation yourself, and once an entity is copied into multiple slices they drift, so two parts of the UI show different values for the same thing. Plus it's a large amount of boilerplate per resource. It's not absolute though — heavily transformed client-side models, or offline-first apps where the local copy is authoritative, are legitimate reasons to keep it in the store.</p>
+</details>
+
+<details>
+<summary>"How do you keep two components from firing the same request twice?"</summary>
+<p>Give them the same query key. The cache is keyed by a deep-equality comparison on the key array, so both components resolve to the same entry. If a request for that key is already in flight, the second component subscribes to the existing promise rather than starting a new one — one request, both components re-render on the response. There's no coordination code and the components don't need to know about each other. Hand-rolled fetching can't do this because the data lives inside each component, so there's no shared place to check.</p>
+</details>
+
+<details>
+<summary>"What happens when a mutation fails after an optimistic update?"</summary>
+<p>You roll back — and that's your responsibility to arrange, it isn't automatic. In <code>onMutate</code>, before writing the optimistic value, you snapshot the current cache with <code>getQueryData</code> and return it; that snapshot arrives in <code>onError</code> as <code>context</code>, and you restore it with <code>setQueryData</code>. You also want <code>cancelQueries</code> at the top of <code>onMutate</code>, otherwise an in-flight background refetch can land after your optimistic write and clobber it. Then in <code>onSettled</code> — success or failure — you invalidate, so the server has the final say either way. And I'd only be optimistic for small reversible actions; never for payments or anything irreversible.</p>
+</details>
+
+<details>
+<summary>"How do you handle a race condition when the user types fast?"</summary>
+<p>Two layers. First, the key: if the search term is part of the query key, each term is its own cache entry, so a late response for <code>"ca"</code> writes into the <code>"ca"</code> entry and can't overwrite the <code>"cat"</code> entry the UI is rendering. That structurally eliminates the last-response-wins bug. Second, volume: debounce the input so you're not firing a request per keystroke, and set a <code>staleTime</code> so backtracking to a previous term is served from cache instantly. Add <code>placeholderData: keepPreviousData</code> so results don't blank out between keystrokes. Hand-rolled, you'd fix this with an <code>ignore</code> flag in the effect cleanup — which works, but only for that one component, and you have to remember it every time.</p>
+</details>
+
+<details>
+<summary>"When would you <em>not</em> use React Query?"</summary>
+<p>When there's no server state to manage. If the app is a calculator, an editor, a game — pure client state — a query cache adds a dependency and solves nothing. Also when your data isn't request/response shaped: a WebSocket or SSE feed is a push stream, and while you can pipe messages into the cache with <code>setQueryData</code>, the library's model of fetch-and-cache isn't buying you much. If you're already on RTK Query or your framework's own loader — Next.js server components with revalidation, or Remix loaders — adding a second cache is redundant. And for genuinely one or two fetches in a tiny app, a hook is fine; the library pays off with scale, not at N=1.</p>
+</details>
+
+<details>
+<summary>"How do you invalidate related caches after a mutation?"</summary>
+<p>In the mutation's <code>onSuccess</code> or <code>onSettled</code>, call <code>invalidateQueries</code> with the broadest key that covers what changed — keys match by prefix, so <code>['todos']</code> catches every list and detail under it in one call. That marks them stale and refetches the ones currently on screen; inactive ones refetch on their next mount. If a mutation crosses feature boundaries, invalidate each root key. This is why keys are designed generic-to-specific. With RTK Query the same job is done declaratively with <code>providesTags</code>/<code>invalidatesTags</code> instead.</p>
+</details>
+
+<details>
+<summary>"Why not just set a huge <code>staleTime</code> and never refetch?"</summary>
+<p>Then you've turned a cache back into a copy, and you're showing users data that can be arbitrarily old with no path to correction short of a page reload. <code>staleTime</code> should reflect how out of date the data is <em>allowed</em> to be for the product: <code>Infinity</code> for a country list is right; <code>Infinity</code> for inventory levels sells things you don't have. And it's not just about the number — you can keep a long <code>staleTime</code> and still stay correct, because mutations invalidate explicitly regardless of staleness. Long <code>staleTime</code> plus disciplined invalidation is a great combination; long <code>staleTime</code> with no invalidation is just a stale app.</p>
+</details>
+
+<details>
+<summary>"Does React Query replace Redux?"</summary>
+<p>It replaces the part of Redux that was caching server data — which in most apps was the majority of the store. What's left is genuine client state: a theme, a sidebar toggle, a multi-step wizard's progress, unsaved form drafts. That's often small enough for <code>useState</code> plus a little Context, or a lightweight store like Zustand. So: not a replacement in principle, usually a big deletion in practice.</p>
+</details>
+
+<h2 id="cheat">Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're ready.</p>
+
+<div class="cheat">
+<dl>
+  <dt>Client state vs server state</dt>
+  <dd>Client state I own — synchronous, single writer, correct by construction. Server state I don't own — asynchronous, shared, and my copy is potentially stale the moment it arrives. Different problem, different tool.</dd>
+
+  <dt>What's wrong with useEffect + fetch</dt>
+  <dd>No cache, refetch on every mount, race conditions, no dedup, no retry, no background refresh, no invalidation story, inconsistent loading/error handling, work done after unmount. Fixing all nine <em>is</em> writing a cache library.</dd>
+
+  <dt>What React Query is</dt>
+  <dd>A cache outside React, keyed by query key, that components subscribe to. It doesn't fetch — you give it a promise; it manages when to call it and how long to keep the result.</dd>
+
+  <dt>staleTime</dt>
+  <dd>Freshness. How long data is trusted without re-checking. Clock starts on arrival. Default 0. Expiring doesn't delete anything — it just allows a background refetch.</dd>
+
+  <dt>gcTime (was cacheTime)</dt>
+  <dd>Eviction. How long <em>unused</em> data stays in memory. Clock starts at the last unmount. Default 5 minutes. Expiring deletes the entry.</dd>
+
+  <dt>Query lifecycle</dt>
+  <dd>fresh → stale (staleTime elapses) → inactive (last unmount) → deleted (gcTime elapses). Refetch triggers: mount, window focus, reconnect, interval.</dd>
+
+  <dt>Stale-while-revalidate</dt>
+  <dd>Serve the cached copy instantly, refetch silently in the background, update in place if it changed. No spinner, never more than one round-trip out of date. Also an HTTP <code>Cache-Control</code> directive — same idea, different layer.</dd>
+
+  <dt>Query keys</dt>
+  <dd>Cache addresses, compared by deep value equality. Every input to the fetch goes in the key. Order generic → specific, because invalidation matches by prefix.</dd>
+
+  <dt>invalidate vs refetch vs setQueryData</dt>
+  <dd><code>invalidateQueries</code>: mark stale + refetch the active ones (the default choice). <code>refetch</code>: force this one query now, imperative. <code>setQueryData</code>: write the cache directly, no network.</dd>
+
+  <dt>Deduplication</dt>
+  <dd>Same key = same cache entry. A second subscriber attaches to the in-flight promise instead of starting a request. Ten components, one network call.</dd>
+
+  <dt>Why not Redux for API data</dt>
+  <dd>You'd own freshness, dedup and invalidation, and duplicated copies across slices drift out of sync. Exceptions: heavily transformed client-side models, and offline-first where the local copy is authoritative.</dd>
+
+  <dt>Optimistic updates</dt>
+  <dd>cancelQueries → snapshot → setQueryData optimistically → rollback from the snapshot in onError → invalidate in onSettled. Good for small reversible actions; never for money or anything irreversible.</dd>
+
+  <dt>Mutations vs queries</dt>
+  <dd>Queries are idempotent reads: automatic, retried 3× by default. Mutations are writes: triggered manually, no retry by default (a retried POST can double-charge).</dd>
+
+  <dt>Pagination vs infinite</dt>
+  <dd>Pagination replaces the set — <code>useQuery</code> with the page in the key plus <code>keepPreviousData</code>. Infinite accumulates it — <code>useInfiniteQuery</code> with <code>getNextPageParam</code>.</dd>
+
+  <dt>Which library</dt>
+  <dd>RTK Query if the team is already all-in on Redux (free in the bundle, tag-based invalidation). TanStack Query as the feature-complete default (best devtools, framework-agnostic). SWR when you want the smallest thing that works and mutations are simple.</dd>
+
+  <dt>When not to use one</dt>
+  <dd>No server state at all; push-based data like WebSockets; a framework loader or RTK Query already doing the job; an app with two fetches total.</dd>
+</dl>
+</div>
+
+<hr class="soft">
+
+<p>If you remember one thing, make it the first line of that sheet. Every feature in these libraries — the two clocks, the keys, the invalidation, the optimism and its rollback — is a consequence of one fact: <strong>the data isn't yours, and your copy started going out of date the instant it arrived.</strong></p>
+
+<p>Once that's the picture in your head, you don't have to memorise the API. You can derive most of it. And that's the difference an interviewer is listening for. 🎯</p>
+
+</main>
+
+</body>
+</html>

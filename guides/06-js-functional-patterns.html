@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Higher-Order Functions, Currying, Debounce &amp; Throttle</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --text: #22212c;
+    --muted: #5f5c72;
+    --rule: #e6e2dc;
+    --accent: #4f46e5;
+    --accent-soft: #eeecfd;
+    --code-bg: #1e1b34;
+    --code-text: #e7e5f2;
+    --green: #0f7b52;
+    --green-soft: #e8f6ef;
+    --red: #b4234a;
+    --red-soft: #fdecef;
+    --amber: #8a5a00;
+    --amber-soft: #fdf3e0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 6rem;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 0.6rem;
+  }
+
+  .standfirst {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0 0 2.5rem;
+    line-height: 1.6;
+  }
+
+  h2 {
+    font-size: 1.65rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.5rem 0 1rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 1.22rem;
+    margin: 2.25rem 0 0.6rem;
+    letter-spacing: -0.008em;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.75rem 0 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  p { margin: 0 0 1.15rem; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.5rem; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+
+  p code, li code, td code, summary code {
+    background: #efece6;
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1.05rem 1.15rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    line-height: 1.55;
+    font-size: 0.93rem;
+    margin: 0 0 1.3rem;
+  }
+
+  pre code { font-size: inherit; background: none; padding: 0; }
+
+  .snippet { margin: 0 0 1.4rem; }
+  .snippet pre { margin-bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+  .label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.85rem;
+    border-radius: 10px 10px 0 0;
+    display: block;
+  }
+
+  .label.bad  { background: var(--red-soft);   color: var(--red);   }
+  .label.good { background: var(--green-soft); color: var(--green); }
+  .label.neutral { background: #ebe8e2; color: var(--muted); }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 1rem 1.15rem 0.35rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.6rem 0;
+  }
+  .callout .tag {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    color: var(--accent);
+  }
+  .callout.warn { border-color: var(--red); background: var(--red-soft); }
+  .callout.warn .tag { color: var(--red); }
+  .callout.hood { border-color: var(--muted); background: #f1efeb; }
+  .callout.hood .tag { color: var(--muted); }
+  .callout.interview { border-color: var(--amber); background: var(--amber-soft); }
+  .callout.interview .tag { color: var(--amber); }
+  .callout pre { margin-bottom: 1rem; }
+
+  .model-answer {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.15rem 0.4rem;
+    margin: 1.2rem 0;
+  }
+  .model-answer .tag {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.4rem;
+  }
+  .model-answer p { font-style: italic; }
+  .model-answer .why {
+    font-style: normal;
+    font-size: 0.93rem;
+    color: var(--muted);
+    border-top: 1px dashed var(--rule);
+    padding-top: 0.7rem;
+  }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    margin: 0 0 1.3rem;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 0.7rem; }
+  details > *:last-child { margin-bottom: 0.3rem; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.4rem;
+    font-size: 0.94rem;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f1efeb; font-weight: 700; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.1rem 1.35rem;
+    margin-bottom: 3rem;
+  }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; }
+  .toc li { margin-bottom: 0.25rem; }
+
+  figure { margin: 1.8rem 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    text-align: center;
+  }
+
+  .cheat td:first-child { width: 34%; font-weight: 600; }
+
+  hr.soft { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Higher-Order Functions, Currying, Debounce &amp; Throttle</h1>
+<p class="standfirst">Everything that happens when you start treating functions as things you can hold, hand around, wrap, and delay. Plus the two interview questions that show up more than almost any other: <em>implement debounce</em> and <em>what's the difference between debounce and throttle?</em></p>
+
+<nav class="toc">
+  <h4>What's in here</h4>
+  <ol>
+    <li><a href="#values">A function is just a value</a></li>
+    <li><a href="#hof">Higher-order functions</a></li>
+    <li><a href="#map">map, filter, and the one everybody fumbles: reduce</a></li>
+    <li><a href="#family">find, some, every, flatMap — and forEach vs map</a></li>
+    <li><a href="#chaining">Chaining vs a single pass</a></li>
+    <li><a href="#pure">Pure functions, side effects, and why React cares</a></li>
+    <li><a href="#curry">Currying and partial application</a></li>
+    <li><a href="#pipe">Composition and pipe</a></li>
+    <li><a href="#debounce">Debounce vs throttle</a></li>
+    <li><a href="#react-debounce">Why your debounce doesn't work in React</a></li>
+    <li><a href="#memo">Memoization</a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="values">1. A function is just a value</h2>
+
+<p>Let's start somewhere that feels almost too basic, because everything else in this guide is built on it, and I've watched a lot of people get quietly stuck here without realising it.</p>
+
+<p>Here's a variable holding a number:</p>
+
+<div class="snippet">
+<pre><code>const cartTotal = 42;
+console.log(cartTotal); // → 42</code></pre>
+</div>
+
+<p>Nothing surprising. Now here's a variable holding a <em>function</em>:</p>
+
+<div class="snippet">
+<pre><code>const double = function (n) {
+  return n * 2;
+};
+
+console.log(double);    // → ƒ (n) { return n * 2; }
+console.log(double(5)); // → 10</code></pre>
+</div>
+
+<p>Look carefully at those two <code>console.log</code>s, because the difference between them is the entire foundation of this topic.</p>
+
+<p><code>double</code> is <strong>the function itself</strong> — the recipe, sitting there, un-run. <code>double(5)</code> is <strong>the result of running it</strong>. Those parentheses aren't decoration; they're the "go" button. Without them, you're holding the recipe. With them, you've cooked the meal and you're holding a plate.</p>
+
+<div class="callout">
+  <span class="tag">The analogy</span>
+  <p>Think of a function as a <strong>recipe card</strong>. You can hand a recipe card to a friend, put it in a drawer, photocopy it, stick it in an envelope, or write a recipe card whose only instruction is "go get another recipe card from the drawer." None of that involves cooking anything. Calling the function — <code>double(5)</code> — is the cooking part, and what you get back is food, not a card.</p>
+  <p><em>Where it breaks down:</em> a real recipe card doesn't remember which kitchen it was written in. JavaScript functions do — they remember the variables that were in scope where they were defined. That memory is called a closure, and it's going to matter a lot later in this guide when we build <code>debounce</code>.</p>
+</div>
+
+<p>Because a function is a value, everything you can do with a number, you can do with a function:</p>
+
+<div class="snippet">
+<pre><code>const double = (n) => n * 2;
+
+const alias = double;              // put it in another variable
+const operations = [double];       // put it in an array
+const math = { double };           // put it in an object
+console.log(alias(4));             // → 8
+console.log(operations[0](4));     // → 8
+console.log(math.double(4));       // → 8</code></pre>
+</div>
+
+<p>That's the whole trick. There is no special "function type" ceremony. A function is a value that happens to have a "go" button on it.</p>
+
+<div class="callout warn">
+  <span class="tag">A common misconception</span>
+  <p><em>"Passing a function means passing what it returns."</em> It doesn't, and this is the #1 source of confusion when people first meet callbacks. Compare:</p>
+<pre><code>setTimeout(sayHello, 1000);   // ✅ hand over the recipe; JS calls it in 1s
+setTimeout(sayHello(), 1000); // ❌ cook it NOW, hand over the plate</code></pre>
+  <p>The second line runs <code>sayHello</code> immediately and passes its <em>return value</em> (probably <code>undefined</code>) to <code>setTimeout</code>. A second later, <code>setTimeout</code> tries to call <code>undefined</code> and nothing happens. The bug is one pair of parentheses.</p>
+</div>
+
+<h2 id="hof">2. Higher-order functions</h2>
+
+<p>Once functions are values, a question falls out on its own: can a function <em>take a function as an argument</em>? Can it <em>return one</em>?</p>
+
+<p>Yes to both. And a function that does either of those things has a name: a <strong>higher-order function</strong>. That's the whole definition. There's nothing more to it than "a function that takes and/or returns functions."</p>
+
+<h3>Taking a function</h3>
+
+<p>Here's the classic motivation. Suppose we want to greet everyone in a list:</p>
+
+<div class="snippet">
+<pre><code>function greetAll(names) {
+  for (const name of names) {
+    console.log('Hello, ' + name);
+  }
+}</code></pre>
+</div>
+
+<p>Fine. But now we want to <em>uppercase</em> everyone's name instead. And later, to email each of them. We'd end up writing <code>uppercaseAll</code>, <code>emailAll</code>, <code>logAll</code> — three functions whose looping machinery is identical and whose only difference is <em>what happens to each item</em>.</p>
+
+<p>So let's make that part swappable. We'll pass it in:</p>
+
+<div class="snippet">
+<pre><code>function forEachName(names, action) { // 👈 `action` is a function
+  for (const name of names) {
+    action(name);
+  }
+}
+
+forEachName(['Ada', 'Linus'], (name) => console.log('Hello, ' + name));
+forEachName(['Ada', 'Linus'], (name) => sendEmail(name));</code></pre>
+</div>
+
+<p><code>forEachName</code> is a higher-order function. It owns the boring part (walking the list) and delegates the interesting part (what to do with each item) to whoever calls it. The function you pass in is called a <strong>callback</strong> — it's a function you hand to someone else so they can call it back at the right moment.</p>
+
+<h3>Returning a function</h3>
+
+<p>The other half is stranger and much more powerful. A function can build and hand back a brand-new function:</p>
+
+<div class="snippet">
+<pre><code>function makeMultiplier(factor) {
+  return function (n) {   // 👈 a brand-new function, every call
+    return n * factor;    // 👈 it remembers `factor`
+  };
+}
+
+const double = makeMultiplier(2);
+const triple = makeMultiplier(3);
+
+console.log(double(5)); // → 10
+console.log(triple(5)); // → 15</code></pre>
+</div>
+
+<p>Sit with this for a second, because it's genuinely a bit brain-bending the first few times. <code>makeMultiplier(2)</code> has already finished running by the time we call <code>double(5)</code>. Its <code>factor</code> variable should logically be gone — the function it lived in returned ages ago. And yet <code>double</code> still knows that <code>factor</code> is <code>2</code>.</p>
+
+<p>That's the closure I mentioned earlier: the inner function keeps a live reference to the variables it was born surrounded by, and those variables stay alive for exactly as long as that inner function does. <code>double</code> and <code>triple</code> each carry their own private <code>factor</code>; they don't share one.</p>
+
+<div class="callout">
+  <span class="tag">The mental model</span>
+  <p>A function factory is a <strong>label printer</strong>. You configure it once ("print these at 2× scale"), and it hands you back a printer that's pre-set. You can then hand that printer around; nobody who uses it needs to know or care about the scale setting. It's baked in, and it's private — nobody can reach in and change it.</p>
+  <p><em>Where it breaks down:</em> a real printer's setting is fixed. A closure's captured variable can change if something inside still writes to it — which is exactly how <code>debounce</code> will keep track of a timer ID later on.</p>
+</div>
+
+<p>Almost everything else in this guide — currying, debounce, throttle, memoize, pipe — is this one pattern wearing different hats. A function that returns a wrapped-up function with something remembered inside it.</p>
+
+<div class="callout interview">
+  <span class="tag">In an interview</span>
+  <p>If someone asks "what's a higher-order function?", the answer is one sentence, and then you immediately earn your keep by naming <em>why we bother</em>: it lets you factor out the part of an algorithm that varies. <code>Array.prototype.map</code>, <code>addEventListener</code>, <code>setTimeout</code>, and every React hook that takes a callback are all higher-order functions. Reaching for those examples unprompted is what separates "memorised the term" from "uses it daily."</p>
+</div>
+
+<h2 id="map">3. map, filter, and the one everybody fumbles: reduce</h2>
+
+<p>You've almost certainly used the first two. Let's make sure the mental models are exact before we get to <code>reduce</code>, because <code>reduce</code> is best understood as the thing the other two are secretly made of.</p>
+
+<h3>map: same length, transformed items</h3>
+
+<div class="snippet">
+<pre><code>const prices = [10, 20, 30];
+const withTax = prices.map((price) => price * 1.2);
+
+console.log(withTax); // → [12, 24, 36]
+console.log(prices);  // → [10, 20, 30]  👈 untouched</code></pre>
+</div>
+
+<p><code>map</code> makes a <strong>new array of exactly the same length</strong>, where each slot is whatever your callback returned for the corresponding input. Three in, three out. Always. If you find yourself wanting <code>map</code> to sometimes skip an item, you want <code>filter</code>.</p>
+
+<p>The picture in my head: a conveyor belt of boxes going through a machine. Every box goes in, every box comes out, but changed. The count never changes.</p>
+
+<h3>filter: fewer (or equal) items, unchanged</h3>
+
+<div class="snippet">
+<pre><code>const users = [
+  { name: 'Ada', active: true },
+  { name: 'Linus', active: false },
+  { name: 'Grace', active: true },
+];
+
+const activeUsers = users.filter((user) => user.active);
+console.log(activeUsers.length); // → 2</code></pre>
+</div>
+
+<p><code>filter</code> keeps an item when your callback returns something truthy and drops it otherwise. The items themselves are untouched — the same object references come out the other side. So it's the opposite trade of <code>map</code>: length can change, contents can't.</p>
+
+<div class="callout warn">
+  <span class="tag">A common misconception</span>
+  <p><em>"filter's callback should return the item."</em> No — it should return a <strong>boolean-ish</strong> answer to "keep this?" This bites people:</p>
+<pre><code>users.filter((user) => user.name); // → keeps everyone with a non-empty name
+                                   //   (a non-empty string is truthy)</code></pre>
+  <p>That's not "give me the names." That's "keep users that have a name." To get names out, you want <code>map</code>.</p>
+</div>
+
+<h3>reduce: the running total on a piece of paper</h3>
+
+<p>Right. This is the one people freeze on in interviews, and I think it's because it gets taught as a signature (<code>reduce(callback, initialValue)</code>) rather than as a picture. So let's do the picture first.</p>
+
+<div class="callout">
+  <span class="tag">The mental model</span>
+  <p>You're a cashier with a <strong>single scrap of paper</strong>. Before the first customer walks up, you write a starting number on it — say <code>0</code>. That's the <strong>initial value</strong>.</p>
+  <p>Then, for each item that comes down the belt, you look at what's currently on the paper, look at the item, do some arithmetic, <strong>cross out the old number, and write the new one</strong>. That's your callback. Its two important inputs are "what's on the paper right now" (the <strong>accumulator</strong>) and "the item in front of me."</p>
+  <p>When the belt runs out, you read whatever's on the paper. That's what <code>reduce</code> returns.</p>
+  <p><em>Where it breaks down:</em> the scrap of paper doesn't have to hold a number. It can hold an array, an object, a string, a Map — anything. It's one slot that gets overwritten each round, and it can hold any shape of value you like. Hold onto that, it's the key to the interesting uses.</p>
+</div>
+
+<p>Here it is with the simplest possible example:</p>
+
+<div class="snippet">
+<pre><code>const prices = [12, 5, 8];
+
+const total = prices.reduce((runningTotal, price) => {
+  return runningTotal + price;  // 👈 the new value of the paper
+}, 0);                          // 👈 what's written on the paper to start
+
+console.log(total); // → 25</code></pre>
+</div>
+
+<p>Let's trace it, round by round, exactly the way I'd want a candidate to trace it out loud:</p>
+
+<table>
+  <thead>
+    <tr><th>Round</th><th>Paper (accumulator)</th><th>Current item</th><th>Returned → new paper</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>start</td><td>—</td><td>—</td><td><code>0</code> (the initial value)</td></tr>
+    <tr><td>1</td><td><code>0</code></td><td><code>12</code></td><td><code>12</code></td></tr>
+    <tr><td>2</td><td><code>12</code></td><td><code>5</code></td><td><code>17</code></td></tr>
+    <tr><td>3</td><td><code>17</code></td><td><code>8</code></td><td><code>25</code></td></tr>
+    <tr><td>end</td><td colspan="3">nothing left on the belt → return <code>25</code></td></tr>
+  </tbody>
+</table>
+
+<p>The single most common bug in a reducer, by an enormous margin, is <strong>forgetting to return</strong>. If your callback returns <code>undefined</code>, you've just wiped the paper clean. Next round the accumulator is <code>undefined</code>, and everything downstream turns into <code>NaN</code> or a crash.</p>
+
+<div class="snippet">
+<span class="label bad">❌ Buggy</span>
+<pre><code>const total = prices.reduce((runningTotal, price) => {
+  runningTotal + price;   // 👈 no `return` — result is thrown away
+}, 0);
+console.log(total); // → NaN</code></pre>
+</div>
+
+<div class="snippet">
+<span class="label good">✅ Fixed</span>
+<pre><code>const total = prices.reduce((runningTotal, price) => {
+  return runningTotal + price;
+}, 0);
+// or, with an implicit return:
+const total2 = prices.reduce((sum, price) => sum + price, 0);
+console.log(total, total2); // → 25 25</code></pre>
+</div>
+
+<h3>The paper can hold anything</h3>
+
+<p>Summing numbers is the boring case, and honestly if that's all <code>reduce</code> did, it wouldn't be worth its reputation. The real power shows up when the accumulator is an object.</p>
+
+<p>Say we want to group users by role:</p>
+
+<div class="snippet">
+<pre><code>const users = [
+  { name: 'Ada', role: 'admin' },
+  { name: 'Linus', role: 'dev' },
+  { name: 'Grace', role: 'admin' },
+];
+
+const byRole = users.reduce((groups, user) => {
+  const bucket = groups[user.role] ?? [];
+  return { ...groups, [user.role]: [...bucket, user.name] };
+}, {});   // 👈 the paper starts as an empty object
+
+// → { admin: ['Ada', 'Grace'], dev: ['Linus'] }</code></pre>
+</div>
+
+<p>Same mechanic, exactly. Start with <code>{}</code> on the paper. Each round, take what's on the paper, produce a new object that also includes this user, write that back. At the end, read the paper.</p>
+
+<div class="callout hood">
+  <span class="tag">Under the hood</span>
+  <p>That version copies the whole accumulator object every single round (<code>{ ...groups }</code>), which is O(n²) work over the array. For a list of 50 users, who cares. For 500,000, it'll hurt. Since the accumulator here is a brand-new object that nothing outside the reduce can see yet, mutating it is safe and much faster:</p>
+<pre><code>const byRole = users.reduce((groups, user) => {
+  (groups[user.role] ??= []).push(user.name);
+  return groups;   // 👈 still must return it!
+}, {});</code></pre>
+  <p>The rule I use: mutating the accumulator is fine when the accumulator was created <em>by this reduce</em> and never escapes it. Mutating something that came from outside is a side effect and a bug waiting to happen. There's also <code>Object.groupBy(users, u =&gt; u.role)</code> in modern runtimes, which does exactly this and reads better — mention it and you'll sound current.</p>
+</div>
+
+<h3>The initial value is not optional (well — it is, and that's the trap)</h3>
+
+<p>You <em>can</em> leave off the second argument. Then <code>reduce</code> uses the array's first element as the starting value on the paper and begins iterating from the second. That's convenient for summing, and it's a landmine everywhere else:</p>
+
+<div class="snippet">
+<pre><code>[].reduce((a, b) => a + b);
+// → TypeError: Reduce of empty array with no initial value
+
+[].reduce((a, b) => a + b, 0);
+// → 0  ✅</code></pre>
+</div>
+
+<p>An empty array is not an exotic edge case — it's what your API returns on a user's first day. Always pass the initial value unless you have a specific reason not to. It also documents the accumulator's <em>type</em> at a glance, which is the other reason to do it: seeing <code>, {})</code> at the end tells the reader "the paper holds an object" without them having to decode the callback.</p>
+
+<h3>map and filter are just reduce in disguise</h3>
+
+<p>Here's the thing that makes <code>reduce</code> click permanently. Both of the other two can be written with it, and writing them out is the best way I know to prove to yourself that you actually understand the accumulator.</p>
+
+<div class="snippet">
+<span class="label neutral">map, rebuilt</span>
+<pre><code>const map = (array, fn) =>
+  array.reduce((result, item) => {
+    result.push(fn(item));  // 👈 paper holds an array; add the transformed item
+    return result;
+  }, []);
+
+map([1, 2, 3], (n) => n * 2); // → [2, 4, 6]</code></pre>
+</div>
+
+<div class="snippet">
+<span class="label neutral">filter, rebuilt</span>
+<pre><code>const filter = (array, predicate) =>
+  array.reduce((result, item) => {
+    if (predicate(item)) result.push(item);  // 👈 add it only if it passes
+    return result;
+  }, []);
+
+filter([1, 2, 3, 4], (n) => n % 2 === 0); // → [2, 4]</code></pre>
+</div>
+
+<p>Identical machinery. The paper starts as <code>[]</code>. The only difference is whether you push unconditionally (map) or conditionally (filter). So <code>reduce</code> is the general-purpose engine, and <code>map</code>/<code>filter</code> are two pre-configured settings on it.</p>
+
+<h3>So when is reduce the <em>wrong</em> tool?</h3>
+
+<p>Constantly, actually — and knowing this is a stronger signal in an interview than being able to write a clever reducer.</p>
+
+<p>Because <code>reduce</code> can do anything, it tells the reader nothing. When I see <code>.map(</code>, I know before reading the callback: same length, transformed. When I see <code>.reduce(</code>, I know nothing and have to read the whole body. So the practical rule is:</p>
+
+<p><strong>Use the most specific method that fits the job.</strong> <code>find</code> over <code>filter()[0]</code>. <code>some</code> over <code>filter().length &gt; 0</code>. <code>map</code> over a <code>reduce</code> that pushes one item per input. Reach for <code>reduce</code> only when you're genuinely collapsing a list into a differently-shaped single value.</p>
+
+<div class="snippet">
+<span class="label bad">❌ Reduce doing map's job</span>
+<pre><code>const names = users.reduce((acc, user) => {
+  acc.push(user.name);
+  return acc;
+}, []);</code></pre>
+</div>
+
+<div class="snippet">
+<span class="label good">✅ Just say what you mean</span>
+<pre><code>const names = users.map((user) => user.name);</code></pre>
+</div>
+
+<p>And one more: if your reducer body has grown past about ten lines, or it's doing async work, or it needs to <code>break</code> early — stop. A plain <code>for...of</code> loop is not a failure. It's frequently the clearest thing in the file. <code>reduce</code> can't short-circuit; it always visits every element. A loop can <code>break</code>.</p>
+
+<h2 id="family">4. The rest of the family — and forEach vs map</h2>
+
+<p>Quick tour, because these are the ones that make <code>reduce</code> unnecessary most of the time:</p>
+
+<div class="snippet">
+<pre><code>const nums = [3, 8, 12, 5];
+
+nums.find((n) => n > 6);      // → 8      first match, or undefined
+nums.findIndex((n) => n > 6); // → 1      its index, or -1
+nums.some((n) => n > 10);     // → true   "is there at least one?"
+nums.every((n) => n > 1);     // → true   "are they all?"</code></pre>
+</div>
+
+<p><code>find</code>, <code>some</code>, and <code>every</code> all <strong>short-circuit</strong> — they stop the moment they know the answer. <code>some</code> bails on the first <code>true</code>; <code>every</code> bails on the first <code>false</code>. That's a real performance difference on big arrays, and it's a nice detail to mention out loud.</p>
+
+<p><code>flatMap</code> is <code>map</code> followed by one level of flattening, which is the clean way to say "each item produces zero, one, or many results":</p>
+
+<div class="snippet">
+<pre><code>const orders = [
+  { id: 1, items: ['mug', 'pen'] },
+  { id: 2, items: [] },
+  { id: 3, items: ['book'] },
+];
+
+orders.flatMap((order) => order.items);
+// → ['mug', 'pen', 'book']
+
+// Returning [] from flatMap is a neat "drop this one":
+orders.flatMap((order) => (order.items.length ? [order.id] : []));
+// → [1, 3]</code></pre>
+</div>
+
+<h3>forEach vs map — the return value is the whole story</h3>
+
+<p>These look interchangeable. They aren't, and the difference is exactly one thing: <strong><code>map</code> returns a new array; <code>forEach</code> returns <code>undefined</code>.</strong></p>
+
+<div class="snippet">
+<pre><code>const doubled  = [1, 2, 3].map((n) => n * 2);
+const nothing  = [1, 2, 3].forEach((n) => n * 2);
+
+console.log(doubled); // → [2, 4, 6]
+console.log(nothing); // → undefined  👈 forEach always returns undefined</code></pre>
+</div>
+
+<p>Which means <code>forEach</code> can't be chained (there's nothing to chain onto) and is <em>only</em> useful for side effects — logging, pushing into an external array, updating the DOM. That's what it's for and there's nothing wrong with it.</p>
+
+<p>The code-review flag is using <code>map</code> when you're not using the result:</p>
+
+<div class="snippet">
+<span class="label bad">❌ Misleading</span>
+<pre><code>users.map((user) => sendWelcomeEmail(user)); // building an array of nothing</code></pre>
+</div>
+
+<div class="snippet">
+<span class="label good">✅ Honest</span>
+<pre><code>users.forEach((user) => sendWelcomeEmail(user));
+// or: for (const user of users) sendWelcomeEmail(user);</code></pre>
+</div>
+
+<p>Both lines send the emails. The first also builds and throws away an array of return values, and — more importantly — it lies to the next person reading it, who will scan for where the result is used and find nothing.</p>
+
+<div class="callout warn">
+  <span class="tag">Wait, what about async?</span>
+  <p>Neither one waits. <code>await</code> inside a <code>forEach</code> callback does nothing useful — <code>forEach</code> doesn't know what a promise is, so it fires all callbacks and returns immediately. If you need sequential async work, use <code>for...of</code> with <code>await</code>. If you want them in parallel, use <code>await Promise.all(users.map(fn))</code> — note that's <code>map</code>, because you actually want the array of promises.</p>
+</div>
+
+<h2 id="chaining">5. Chaining vs a single pass</h2>
+
+<p>Chaining reads beautifully:</p>
+
+<div class="snippet">
+<pre><code>const total = orders
+  .filter((order) => order.status === 'paid')
+  .map((order) => order.amount)
+  .reduce((sum, amount) => sum + amount, 0);</code></pre>
+</div>
+
+<p>Three lines, each doing one obvious thing. This is good code and you should write it.</p>
+
+<p>But be aware of what it costs: each link is a <strong>separate full walk of the array</strong>, and each of the first two allocates a whole new intermediate array that gets thrown away immediately. Three chained methods on 10 orders is 30 steps and two garbage arrays — completely irrelevant. On 2,000,000 orders, it's 6,000,000 steps and two multi-megabyte arrays that exist only to be discarded, and now you might feel it.</p>
+
+<p>The single-pass version does the same job in one walk with no intermediates:</p>
+
+<div class="snippet">
+<pre><code>let total = 0;
+for (const order of orders) {
+  if (order.status !== 'paid') continue;
+  total += order.amount;
+}</code></pre>
+</div>
+
+<div class="callout interview">
+  <span class="tag">In an interview</span>
+  <p>If someone asks "is chaining bad for performance?", the mediocre answer is "yes, use a loop." The good answer is a trade-off with a threshold: <em>"Each link is another O(n) pass plus an intermediate array. It's the right default because it's far more readable, and for typical UI-sized lists the cost is noise. I'd only collapse it into a single loop or a single reduce if profiling showed it mattered — big arrays, or a hot path like a scroll handler."</em> That answer says you know the cost <em>and</em> that you don't optimise blindly, which is the signal they're actually after.</p>
+</div>
+
+<h2 id="pure">6. Pure functions, side effects, and why React cares</h2>
+
+<p>A function is <strong>pure</strong> when two things hold:</p>
+
+<ol>
+  <li>Given the same inputs, it always returns the same output.</li>
+  <li>It doesn't change anything outside itself while doing so.</li>
+</ol>
+
+<p>That second one — changing things outside itself — is a <strong>side effect</strong>. Writing to a global, mutating an argument, logging to the console, writing to <code>localStorage</code>, making a network request, touching the DOM, reading <code>Date.now()</code> or <code>Math.random()</code>. (The last two break rule 1 too: same input, different output.)</p>
+
+<div class="snippet">
+<span class="label good">✅ Pure</span>
+<pre><code>function applyDiscount(cart, percent) {
+  return { ...cart, total: cart.total * (1 - percent / 100) };
+}</code></pre>
+</div>
+
+<div class="snippet">
+<span class="label bad">❌ Impure — mutates its argument</span>
+<pre><code>function applyDiscount(cart, percent) {
+  cart.total = cart.total * (1 - percent / 100);  // 👈 caller's object changed
+  analytics.track('discount');                    // 👈 and it phones home
+  return cart;
+}</code></pre>
+</div>
+
+<p>The second one works. It'll pass a happy-path test. But it has quietly modified an object that someone else owns, and now any other part of the app holding that same <code>cart</code> reference sees a different total than it did a moment ago, with no idea why.</p>
+
+<div class="callout">
+  <span class="tag">The mental model</span>
+  <p>A pure function is a <strong>vending machine</strong>. Same coins, same button, same snack, every time. It doesn't matter what time it is, who's using it, or what happened yesterday. You can predict its behaviour completely from what you put in.</p>
+  <p>An impure function is a vending machine that sometimes also sends a text to your boss, occasionally restocks itself based on the weather, and once in a while reaches into your bag. It might still give you the snack! But you can no longer reason about it in isolation, which means you can no longer <em>test</em> it in isolation either.</p>
+  <p><em>Where it breaks down:</em> side effects aren't evil — an app that never touches the network or the screen does nothing. The goal isn't purity everywhere; it's <strong>pushing effects to the edges</strong> so the core logic stays predictable.</p>
+</div>
+
+<h3>Why testability follows for free</h3>
+
+<p>Testing the pure version is three lines with no setup: call it, check the return value. Testing the impure one means mocking <code>analytics</code>, and then asserting on the mutation, and then remembering to build a fresh <code>cart</code> for every test because the previous test contaminated it. Purity isn't an aesthetic preference — it's the thing that makes tests cheap.</p>
+
+<h3>Why React specifically cares</h3>
+
+<p>React's whole model is: <em>your component is a function from props and state to a description of the UI, and React may call it whenever it likes.</em> That last part is the load-bearing bit. React reserves the right to render your component:</p>
+
+<ul>
+  <li><strong>Twice in a row</strong> — in Strict Mode during development, React deliberately double-invokes your component body to smoke out impure code. If your component pushes into an array outside itself, you'll see doubled entries. That's the point; it's a purity detector.</li>
+  <li><strong>Speculatively, then throw the result away</strong> — with concurrent rendering, React can start rendering, decide something more urgent came up, abandon that work and redo it later. If rendering had a side effect, that effect happened for a render nobody ever saw.</li>
+  <li><strong>Not at all</strong> — <code>React.memo</code>, <code>useMemo</code> and friends skip work when inputs haven't changed. That's only safe if "same inputs → same output" is true. If your render depends on a hidden mutable variable, memoization will happily serve stale UI.</li>
+</ul>
+
+<p>So the rule "keep your render pure" isn't dogma. It's the contract that lets React do all three of those things safely. Side effects go in <code>useEffect</code>, in event handlers, or in the code you call from them — never in the component body. And the same applies to reducers: a <code>useReducer</code> reducer must be pure, for exactly the same reasons.</p>
+
+<div class="model-answer">
+  <span class="tag">Model answer — "what's a pure function and why does React care?"</span>
+  <p>"A pure function always returns the same output for the same input and doesn't mutate anything outside itself. React cares because it treats your component as a function it can call whenever it wants — it double-invokes components in Strict Mode to catch impurity, it can start a render and abandon it under concurrent rendering, and memoization only works if the same props reliably produce the same output. So the render path stays pure and effects go in <code>useEffect</code> or event handlers."</p>
+  <p class="why">Why it lands: you connected purity to three concrete React behaviours instead of saying "it's cleaner." That's the difference between having read the docs and having debugged a double-render.</p>
+</div>
+
+<h2 id="curry">7. Currying and partial application</h2>
+
+<p>These two get used interchangeably, and interviewers know it — "what's the difference between currying and partial application?" is a favourite Tier-3 follow-up precisely because most candidates use the words as synonyms. Let's make the distinction sharp.</p>
+
+<h3>Partial application: pre-filling some arguments</h3>
+
+<p>Start here, because it's the intuitive one. You've got a function that takes several arguments, and you want to lock in some of them now and supply the rest later.</p>
+
+<div class="snippet">
+<pre><code>function log(level, module, message) {
+  console.log(`[${level}] ${module}: ${message}`);
+}
+
+const logError = log.bind(null, 'ERROR');       // 👈 fix 1 of 3 args
+const logAuthError = logError.bind(null, 'auth'); // 👈 fix another
+
+logAuthError('token expired');
+// → [ERROR] auth: token expired</code></pre>
+</div>
+
+<p>That's partial application: taking an n-argument function and producing a function of fewer arguments by fixing some of them. <code>logError</code> still takes <strong>two</strong> arguments at once. You didn't change the function's shape; you just pre-loaded part of it.</p>
+
+<p>You can do it by hand without <code>bind</code>, which makes what's happening obvious:</p>
+
+<div class="snippet">
+<pre><code>const partial = (fn, ...fixed) => (...rest) => fn(...fixed, ...rest);
+
+const logError = partial(log, 'ERROR');
+logError('auth', 'token expired'); // → [ERROR] auth: token expired</code></pre>
+</div>
+
+<h3>Currying: changing the function's shape</h3>
+
+<p>Currying is a <strong>transformation</strong>. It takes <code>f(a, b, c)</code> and turns it into <code>f(a)(b)(c)</code> — a chain of functions that each take exactly <strong>one</strong> argument and return the next function in the chain, until the last one has everything it needs and finally runs the original.</p>
+
+<div class="snippet">
+<pre><code>// Written by hand, the long way:
+function log(level) {
+  return function (module) {
+    return function (message) {
+      console.log(`[${level}] ${module}: ${message}`);
+    };
+  };
+}
+
+log('ERROR')('auth')('token expired');
+// → [ERROR] auth: token expired</code></pre>
+</div>
+
+<p>Read that middle block slowly. <code>log('ERROR')</code> doesn't log anything — it returns a function that's remembered <code>level</code>. Call <em>that</em> with <code>'auth'</code> and you get a third function that's remembered both. Only the final call has all three pieces and actually does the work. Every step is a closure holding one more piece of the puzzle.</p>
+
+<p>With arrow chaining it collapses to something almost unreadable-in-a-good-way:</p>
+
+<div class="snippet">
+<pre><code>const log = (level) => (module) => (message) =>
+  console.log(`[${level}] ${module}: ${message}`);
+
+const logError = log('ERROR');
+const logAuthError = logError('auth');
+
+logAuthError('token expired'); // → [ERROR] auth: token expired
+logAuthError('bad password');  // → [ERROR] auth: bad password</code></pre>
+</div>
+
+<p>Every arrow after the first is "return a function." That's the trick to reading these: <code>a =&gt; b =&gt; c =&gt; body</code> means "give me <code>a</code>, I'll give you something that wants <code>b</code>."</p>
+
+<h3>So what's the actual difference?</h3>
+
+<table>
+  <thead><tr><th></th><th>Currying</th><th>Partial application</th></tr></thead>
+  <tbody>
+    <tr><td>What it is</td><td>A transformation of a function's <em>shape</em></td><td>An <em>act</em> of pre-filling arguments</td></tr>
+    <tr><td>Args per call</td><td>Exactly one, always</td><td>However many you like</td></tr>
+    <tr><td>Result</td><td>A chain of unary functions</td><td>One function with fewer parameters</td></tr>
+    <tr><td>Example</td><td><code>f(a)(b)(c)</code></td><td><code>f.bind(null, a)</code> → <code>g(b, c)</code></td></tr>
+  </tbody>
+</table>
+
+<p>The one-liner I'd say out loud: <strong>currying is about the function's structure; partial application is about supplying arguments early.</strong> They're related because a curried function makes partial application trivial — calling <code>log('ERROR')</code> <em>is</em> partially applying it — but you can partially apply a function that was never curried, and currying a function you then call as <code>f(a)(b)(c)</code> in one go isn't partial application at all.</p>
+
+<h3>A generic curry helper</h3>
+
+<p>Libraries like Lodash and Ramda ship a <code>curry</code> that's more forgiving: it accepts arguments one at a time <em>or</em> several at a time. Being able to sketch it is a good party trick and a plausible whiteboard question.</p>
+
+<div class="snippet">
+<pre><code>function curry(fn) {
+  return function curried(...args) {
+    if (args.length &gt;= fn.length) {  // 👈 fn.length = declared parameter count
+      return fn.apply(this, args);
+    }
+    return (...rest) => curried.apply(this, [...args, ...rest]);
+  };
+}
+
+const volume = curry((l, w, h) => l * w * h);
+
+volume(2)(3)(4);  // → 24
+volume(2, 3)(4);  // → 24
+volume(2)(3, 4);  // → 24</code></pre>
+</div>
+
+<p>The engine here is <code>fn.length</code>, which is how many parameters the function <em>declares</em>. We keep collecting arguments in a closure until we have at least that many, then fire. (Caveat worth naming out loud: <code>fn.length</code> ignores rest params and parameters with defaults, so <code>curry</code> can't handle variadic functions — which is exactly why Lodash's version lets you specify an arity manually.)</p>
+
+<h3>Why does any of this exist?</h3>
+
+<p>Fair question — the syntax is undeniably weird. Three honest reasons:</p>
+
+<p><strong>1. Configuration once, use many times.</strong> You've got a function whose first argument barely changes:</p>
+
+<div class="snippet">
+<pre><code>const request = (baseUrl) => (path) => fetch(baseUrl + path);
+const api = request('https://api.example.com');
+
+api('/users');
+api('/orders');   // 👈 nobody has to remember the base URL again</code></pre>
+</div>
+
+<p><strong>2. Better callbacks.</strong> Curried functions slot into <code>map</code>/<code>filter</code> without a wrapper arrow:</p>
+
+<div class="snippet">
+<pre><code>const prop = (key) => (obj) => obj[key];
+const names = users.map(prop('name'));   // instead of (u) => u.name</code></pre>
+</div>
+
+<p><strong>3. Generic event handlers.</strong> This one you'll actually use in React:</p>
+
+<div class="snippet">
+<pre><code>const handleChange = (field) => (event) =>
+  setForm((form) => ({ ...form, [field]: event.target.value }));
+
+&lt;input onChange={handleChange('email')} /&gt;
+&lt;input onChange={handleChange('name')} /&gt;</code></pre>
+</div>
+
+<div class="callout warn">
+  <span class="tag">Wait — doesn't that create a new function every render?</span>
+  <p>Yes. <code>handleChange('email')</code> runs on every render and produces a fresh function each time. For a plain DOM <code>&lt;input&gt;</code> that's genuinely fine — React swaps the handler reference cheaply, and you should not contort your code to avoid it. It only matters if that prop is going into a <code>React.memo</code>'d child, where a new function reference defeats the memoization. Knowing <em>when it doesn't matter</em> is as valuable as knowing when it does.</p>
+</div>
+
+<h2 id="pipe">8. Composition and pipe</h2>
+
+<p>If small pure functions are the parts, composition is the bolt that joins them. <code>pipe</code> takes a list of functions and returns one function that runs them <strong>left to right</strong>, feeding each result into the next:</p>
+
+<div class="snippet">
+<pre><code>const pipe = (...fns) => (input) =>
+  fns.reduce((value, fn) => fn(value), input);   // 👈 reduce again!
+
+const trim = (s) => s.trim();
+const lower = (s) => s.toLowerCase();
+const slugify = (s) => s.replace(/\s+/g, '-');
+
+const toSlug = pipe(trim, lower, slugify);
+toSlug('  Hello World  '); // → 'hello-world'</code></pre>
+</div>
+
+<p>Notice the implementation is a <code>reduce</code> where the accumulator is the <em>value flowing through</em>, and the items on the belt are the <em>functions</em>. That's a nice little proof that you've internalised the accumulator model.</p>
+
+<p><code>compose</code> is the same thing right-to-left, matching mathematical notation (<code>f(g(x))</code>):</p>
+
+<div class="snippet">
+<pre><code>const compose = (...fns) => (input) =>
+  fns.reduceRight((value, fn) => fn(value), input);
+
+const toSlug = compose(slugify, lower, trim); // reads bottom-up</code></pre>
+</div>
+
+<p>I reach for <code>pipe</code> basically always, because reading order matching execution order is worth more than matching a maths convention.</p>
+
+<h2 id="debounce">9. Debounce vs throttle</h2>
+
+<p>Here's the problem that motivates both. You've got a search box that hits your API on every keystroke:</p>
+
+<div class="snippet">
+<pre><code>input.addEventListener('input', (event) => {
+  fetch('/api/search?q=' + event.target.value);
+});</code></pre>
+</div>
+
+<p>Someone types "headphones". That's ten keystrokes, so ten network requests, nine of which are for prefixes nobody wants results for. Worse, they can come back <em>out of order</em> — the response for "headphone" might land after the one for "headphones", and now your UI is showing results for a query the user already finished typing.</p>
+
+<p>The events are arriving faster than we want to act on them. We need a way to turn a fast stream of calls into a slower one. There are two fundamentally different ways to do that, and they answer two different questions:</p>
+
+<ul>
+  <li><strong>Debounce</strong> asks: <em>"has it gone quiet yet?"</em> Wait until the events stop for a bit, then act once.</li>
+  <li><strong>Throttle</strong> asks: <em>"has enough time passed?"</em> Act at a steady maximum rate no matter how many events arrive.</li>
+</ul>
+
+<div class="callout">
+  <span class="tag">The analogies</span>
+  <p><strong>Debounce is an elevator door.</strong> The door is set to close 5 seconds after the last person steps in. Someone new walks in? The 5-second timer <em>resets from scratch</em>. If people keep trickling in, the door never closes. It closes exactly once, 5 seconds after the last person. That reset-on-every-event behaviour is the entire essence of debounce.</p>
+  <p><strong>Throttle is a metering light on a motorway on-ramp.</strong> One car every 3 seconds. Doesn't matter if there are two cars queued or two hundred — the light's rhythm is fixed. Cars that show up between greens just don't get through. Steady rate, regardless of demand.</p>
+  <p><em>Where they break down:</em> a real elevator eventually forces the door shut no matter what (that's a <code>maxWait</code> option in Lodash's debounce, which most hand-rolled versions don't have). And a real on-ramp queues the cars — a leading-edge throttle <em>discards</em> the calls it skips, it doesn't queue them.</p>
+</div>
+
+<h3>Seeing it: the same burst, both ways</h3>
+
+<p>Words only get you so far here. This is the diagram I'd draw on a whiteboard if I got this question, and drawing it is often worth more than the code:</p>
+
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-label="Timeline diagram comparing raw events, debounce output, and throttle output for the same burst of events">
+  <defs>
+    <marker id="tick" markerWidth="4" markerHeight="4"></marker>
+  </defs>
+
+  <!-- Row 1: raw events -->
+  <text x="10" y="34" font-size="13" font-weight="700" fill="#22212c">Events fired</text>
+  <text x="10" y="50" font-size="11" fill="#5f5c72">(keystrokes)</text>
+  <line x1="70" y1="60" x2="700" y2="60" stroke="#c9c4bc" stroke-width="2"/>
+  <g fill="#4f46e5">
+    <circle cx="70" cy="60" r="6"/><circle cx="96" cy="60" r="6"/><circle cx="122" cy="60" r="6"/>
+    <circle cx="147" cy="60" r="6"/><circle cx="173" cy="60" r="6"/>
+    <circle cx="380" cy="60" r="6"/><circle cx="406" cy="60" r="6"/>
+    <circle cx="535" cy="60" r="6"/>
+  </g>
+  <text x="70" y="82" font-size="11" fill="#5f5c72">burst of 5</text>
+  <text x="368" y="82" font-size="11" fill="#5f5c72">2 more</text>
+  <text x="524" y="82" font-size="11" fill="#5f5c72">1 more</text>
+
+  <!-- Row 2: debounce -->
+  <text x="10" y="140" font-size="13" font-weight="700" fill="#22212c">Debounce</text>
+  <text x="10" y="156" font-size="11" fill="#5f5c72">150ms, trailing</text>
+  <line x1="70" y1="166" x2="700" y2="166" stroke="#c9c4bc" stroke-width="2"/>
+  <g fill="#0f7b52">
+    <circle cx="251" cy="166" r="7"/><circle cx="483" cy="166" r="7"/><circle cx="613" cy="166" r="7"/>
+  </g>
+  <g stroke="#0f7b52" stroke-width="1.5" stroke-dasharray="4 3">
+    <line x1="173" y1="166" x2="248" y2="166"/>
+    <line x1="406" y1="166" x2="480" y2="166"/>
+    <line x1="535" y1="166" x2="610" y2="166"/>
+  </g>
+  <g stroke="#b8b2a8" stroke-width="1" stroke-dasharray="2 3">
+    <line x1="173" y1="66" x2="173" y2="162"/>
+    <line x1="406" y1="66" x2="406" y2="162"/>
+    <line x1="535" y1="66" x2="535" y2="162"/>
+  </g>
+  <text x="196" y="192" font-size="11" fill="#0f7b52">150ms of quiet → fire</text>
+  <text x="430" y="192" font-size="11" fill="#0f7b52">fire</text>
+  <text x="560" y="192" font-size="11" fill="#0f7b52">fire</text>
+  <text x="70" y="192" font-size="11" fill="#5f5c72">nothing fires during the burst</text>
+
+  <!-- Row 3: throttle -->
+  <text x="10" y="240" font-size="13" font-weight="700" fill="#22212c">Throttle</text>
+  <text x="10" y="256" font-size="11" fill="#5f5c72">150ms, leading</text>
+  <line x1="70" y1="266" x2="700" y2="266" stroke="#c9c4bc" stroke-width="2"/>
+  <g fill="#b4234a">
+    <circle cx="70" cy="266" r="7"/><circle cx="147" cy="266" r="7"/>
+    <circle cx="380" cy="266" r="7"/><circle cx="535" cy="266" r="7"/>
+  </g>
+  <g stroke="#b8b2a8" stroke-width="1" stroke-dasharray="2 3">
+    <line x1="70" y1="66" x2="70" y2="262"/>
+    <line x1="147" y1="66" x2="147" y2="262"/>
+    <line x1="380" y1="66" x2="380" y2="262"/>
+    <line x1="535" y1="66" x2="535" y2="262"/>
+  </g>
+  <text x="60" y="290" font-size="11" fill="#b4234a">fires immediately, then at most once per 150ms</text>
+
+  <text x="655" y="292" font-size="11" fill="#5f5c72">time →</text>
+</svg>
+<figcaption>Eight events. Debounce fires 3 times, always <em>after</em> the quiet. Throttle fires 4 times, the first one <em>immediately</em>.</figcaption>
+</figure>
+
+<p>Three things to take from that picture:</p>
+
+<ol>
+  <li><strong>Debounce fired nothing during the burst.</strong> Five keystrokes in quick succession produced zero calls until the typing stopped. If the user never stops, debounce never fires.</li>
+  <li><strong>Throttle fired immediately</strong> on the very first event, then rationed the rest. It's responsive from the first moment; debounce always has a delay baked in.</li>
+  <li>Both reduced 8 calls to 3–4, but they chose <em>different</em> calls, and that choice is what makes them suited to different jobs.</li>
+</ol>
+
+<h3>Leading edge vs trailing edge</h3>
+
+<p>Both patterns have a knob: do you fire at the <strong>start</strong> of the activity or at the <strong>end</strong>?</p>
+
+<ul>
+  <li><strong>Trailing edge</strong> (the default for debounce): fire after the quiet period. You get the <em>final</em> value, which is what you want for a search box — you want to search for "headphones", not "h".</li>
+  <li><strong>Leading edge</strong> (the default for throttle): fire on the first call, immediately. You get responsiveness. This is what you want for a submit button, where the first click is the real one and the rest are impatience.</li>
+</ul>
+
+<p>You can have both, or either, on either pattern. A leading-edge debounce fires immediately and then ignores everything until things go quiet — which is the classic "prevent double-submit" recipe. Lodash exposes these as <code>{ leading, trailing }</code> options.</p>
+
+<h3>Implementing debounce</h3>
+
+<p>Let's build it. The whole thing is nine lines, and every one of them is doing something you already understand from section 2.</p>
+
+<div class="snippet">
+<pre><code>function debounce(fn, wait) {
+  let timeoutId;                       // 👈 private, remembered between calls
+
+  return function debounced(...args) {
+    clearTimeout(timeoutId);           // 👈 cancel the previously scheduled run
+    timeoutId = setTimeout(() => {
+      fn.apply(this, args);            // 👈 run with the LATEST args
+    }, wait);
+  };
+}
+
+const search = debounce((query) => fetch('/api/search?q=' + query), 300);</code></pre>
+</div>
+
+<p>Walk it through the way you would out loud in an interview:</p>
+
+<ol>
+  <li><code>debounce</code> is a higher-order function: takes a function, returns a function. Nothing runs yet.</li>
+  <li><code>timeoutId</code> lives in the closure. It's created once, when <code>debounce</code> is called, and every subsequent call to <code>debounced</code> sees and updates <em>the same</em> variable. That shared, private variable is the entire mechanism — remember it, because it's exactly what the React bug destroys.</li>
+  <li>Every call cancels the pending timer and schedules a fresh one. That's the elevator door resetting.</li>
+  <li>Only when <code>wait</code> milliseconds pass with no new call does the timer survive to completion and actually run <code>fn</code>.</li>
+  <li><code>fn.apply(this, args)</code> forwards whatever arguments and <code>this</code> the last call had, so the wrapper is a transparent stand-in for the original. (Note the wrapper is a <code>function</code>, not an arrow — an arrow would capture <code>this</code> lexically and break method usage.)</li>
+</ol>
+
+<p>Two small details worth knowing: calling <code>clearTimeout</code> with <code>undefined</code> on the very first invocation is completely safe — it's a no-op, so we don't need a guard. And it's the <em>last</em> call's arguments that win, which is exactly right for a search box.</p>
+
+<h3>Implementing throttle</h3>
+
+<div class="snippet">
+<pre><code>function throttle(fn, interval) {
+  let lastRun = 0;                          // 👈 timestamp of the last real call
+
+  return function throttled(...args) {
+    const now = Date.now();
+    if (now - lastRun &lt; interval) return;   // 👈 too soon — drop this call
+    lastRun = now;
+    fn.apply(this, args);
+  };
+}
+
+window.addEventListener('scroll', throttle(updateHeader, 100));</code></pre>
+</div>
+
+<p>Same skeleton — a closure variable that persists across calls — but the logic inverts. Instead of "reset the timer," it's "look at the clock; if it's too soon, do nothing at all." No <code>setTimeout</code> needed for this version. It's leading-edge: the first call always goes through, since <code>now - 0</code> is enormous.</p>
+
+<p>Its one weakness is visible in the diagram: it <strong>drops the final call</strong>. If the user scrolls and stops 20ms after the last permitted run, that final position never gets handled. For a scroll handler that can leave the UI slightly stale. The fix is a trailing edge — schedule the last dropped call to run when the window opens:</p>
+
+<div class="snippet">
+<pre><code>function throttle(fn, interval) {
+  let lastRun = 0;
+  let timeoutId = null;
+
+  return function throttled(...args) {
+    const remaining = interval - (Date.now() - lastRun);
+
+    if (remaining &lt;= 0) {          // window is open → run now
+      clearTimeout(timeoutId);
+      timeoutId = null;
+      lastRun = Date.now();
+      fn.apply(this, args);
+    } else if (timeoutId === null) { // window closed → book the trailing call
+      timeoutId = setTimeout(() => {
+        lastRun = Date.now();
+        timeoutId = null;
+        fn.apply(this, args);
+      }, remaining);
+    }
+  };
+}</code></pre>
+</div>
+
+<p>You do not need to reproduce that from memory. But knowing <em>why</em> it exists — "the simple version drops the trailing call, which matters for scroll position" — is exactly the kind of depth that turns a passing answer into a strong one.</p>
+
+<h3>cancel and flush</h3>
+
+<p>A debounced function has a pending timer, which means there are two things you might want to do to it before it fires:</p>
+
+<ul>
+  <li><strong><code>cancel()</code></strong> — throw away the pending call. Nothing runs. Essential on unmount: if a component schedules a search and then gets removed from the page, you don't want that fetch firing into a component that no longer exists.</li>
+  <li><strong><code>flush()</code></strong> — run the pending call <em>right now</em> instead of waiting. Useful when a user hits Save while an autosave debounce is still pending: you want the save to happen immediately, not 2 seconds later.</li>
+</ul>
+
+<p>Because a function is an object, we can just hang these on it:</p>
+
+<div class="snippet">
+<pre><code>function debounce(fn, wait) {
+  let timeoutId;
+  let lastArgs;                       // 👈 remember args so flush can use them
+
+  function debounced(...args) {
+    lastArgs = args;
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timeoutId = null;
+      fn.apply(this, lastArgs);
+    }, wait);
+  }
+
+  debounced.cancel = () => {
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  };
+
+  debounced.flush = () => {
+    if (timeoutId === null) return;   // nothing pending
+    clearTimeout(timeoutId);
+    timeoutId = null;
+    fn.apply(this, lastArgs);
+  };
+
+  return debounced;
+}</code></pre>
+</div>
+
+<h3>Which one for which job?</h3>
+
+<table>
+  <thead><tr><th>Situation</th><th>Pick</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Search-as-you-type</td><td>Debounce (trailing, ~300ms)</td><td>You only care about the finished query. Intermediate prefixes are wasted requests and cause out-of-order results.</td></tr>
+    <tr><td>Scroll / resize handler</td><td>Throttle (~100ms)</td><td>You want continuous feedback while scrolling. Debounce would freeze the UI until the user stopped — which is the whole time they're looking at it.</td></tr>
+    <tr><td>Infinite scroll "load more"</td><td>Throttle</td><td>You must check "are we near the bottom?" <em>during</em> the scroll, not after it ends.</td></tr>
+    <tr><td>Form autosave</td><td>Debounce (~1–2s)</td><td>Save when they pause typing. Add <code>flush()</code> on explicit save and on navigate-away.</td></tr>
+    <tr><td>Button double-submit</td><td>Throttle, or leading-edge debounce</td><td>The <em>first</em> click is the real one. Trailing debounce would be wrong — it'd delay the response to a deliberate click.</td></tr>
+    <tr><td>Validating a field on blur</td><td>Neither</td><td>Blur fires once. Don't add machinery you don't need.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="tag">A trap worth avoiding</span>
+  <p>Saying "debounce for the search box" and stopping there is a fine answer, but it's the answer everyone gives. The follow-up that catches people is <em>"why not throttle a search box?"</em> — and the sharp answer is: throttle would fire mid-word. Typing "headphones" at 150ms throttle sends requests for "hea", "headph", "headphones" — you've cut the request count but you're still querying garbage, and you still have the out-of-order-response problem. Debounce is the right shape because the only query that matters is the one they stopped on.</p>
+</div>
+
+<div class="model-answer">
+  <span class="tag">Model answer — "debounce vs throttle?"</span>
+  <p>"Both limit how often a function runs, but they answer different questions. Debounce waits for a pause — every call resets the timer, so it fires once, <em>after</em> the activity stops. Throttle enforces a maximum rate — it fires immediately and then ignores calls until the interval has elapsed. So debounce for a search box, where I only care about the final query, and throttle for scroll or resize, where I need continuous updates but not sixty a second. The implementation difference is that debounce is a <code>setTimeout</code> you keep clearing, and throttle is a timestamp you compare against."</p>
+  <p class="why">Why it lands: you gave the mechanism, not just the vibe, and you tied each to a use case with a reason. The last sentence in particular signals you've written both rather than read about them.</p>
+</div>
+
+<h2 id="react-debounce">10. Why your debounce doesn't work in React</h2>
+
+<p>This is a real bug that a lot of people hit and can't explain, which makes it a great interview question. Here's the code:</p>
+
+<div class="snippet">
+<span class="label bad">❌ Buggy — debounces nothing at all</span>
+<pre><code>function SearchBox() {
+  const [query, setQuery] = useState('');
+
+  // 👇 a NEW debounced function is created on every single render
+  const debouncedSearch = debounce((value) => {
+    fetch('/api/search?q=' + value);
+  }, 300);
+
+  return (
+    &lt;input
+      value={query}
+      onChange={(event) => {
+        setQuery(event.target.value);
+        debouncedSearch(event.target.value);
+      }}
+    /&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Type "headphones" into that and watch the network tab. Ten requests. The debounce did absolutely nothing.</p>
+
+<p><strong>Why?</strong> Think back to what makes debounce work: the <code>timeoutId</code> variable living in the closure, shared across every call to the returned function. <code>clearTimeout(timeoutId)</code> only cancels anything if it's looking at the <em>same</em> <code>timeoutId</code> that the previous call set.</p>
+
+<p>But a React component body re-runs on every render. Typing a character calls <code>setQuery</code>, which triggers a render, which runs the component body again, which calls <code>debounce(...)</code> <em>again</em>, producing a <strong>brand-new function with a brand-new, empty <code>timeoutId</code></strong>. That new function's <code>clearTimeout(undefined)</code> cancels nothing — certainly not the timer belonging to the previous render's function, which it has never heard of. So every keystroke schedules its own independent 300ms timer, and 300ms later they all fire.</p>
+
+<div class="callout">
+  <span class="tag">The picture</span>
+  <p>Each render hires a <strong>brand-new receptionist</strong> who's told "hold this call for 300 seconds." The new receptionist doesn't know about the calls the previous ten receptionists are holding, and can't cancel them. You wanted one receptionist reconsidering; you got ten receptionists each patiently waiting their turn.</p>
+</div>
+
+<h3>The fix, step one: keep the same function across renders</h3>
+
+<p><code>useMemo</code> with an empty dependency array creates the debounced function once and hands back that same reference on subsequent renders:</p>
+
+<div class="snippet">
+<span class="label good">✅ Fixed — one debounced function for the component's lifetime</span>
+<pre><code>function SearchBox() {
+  const [query, setQuery] = useState('');
+
+  const debouncedSearch = useMemo(
+    () => debounce((value) => fetch('/api/search?q=' + value), 300),
+    []                                   // 👈 created once
+  );
+
+  useEffect(() => {
+    return () => debouncedSearch.cancel(); // 👈 don't fire after unmount
+  }, [debouncedSearch]);
+
+  return (
+    &lt;input
+      value={query}
+      onChange={(event) => {
+        setQuery(event.target.value);
+        debouncedSearch(event.target.value);
+      }}
+    /&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Now every keystroke calls the <em>same</em> debounced function, which sees the <em>same</em> <code>timeoutId</code>, and the resetting actually resets. One request.</p>
+
+<p>The <code>useEffect</code> cleanup matters more than it looks. Without it, a user who types and immediately navigates away leaves a timer that fires 300ms later into a dead component. In the best case you waste a request; in the worse case the callback touches state and you get a warning or a leak.</p>
+
+<h3>The fix, step two: the stale closure problem</h3>
+
+<p>There's a second bug lurking, and this is the level that impresses. Suppose the debounced callback needs something from state or props:</p>
+
+<div class="snippet">
+<span class="label bad">❌ Subtly buggy — captures the first render's values</span>
+<pre><code>const debouncedSave = useMemo(
+  () => debounce(() => saveDraft(userId, text), 1000),
+  []   // 👈 created once, so it froze `userId` and `text` from render #1
+);</code></pre>
+</div>
+
+<p>Because the function was created on the first render and never recreated, its closure holds the <em>first render's</em> <code>text</code> — probably an empty string. Every autosave writes the wrong thing, forever. Adding <code>[text]</code> to the deps "fixes" the staleness but recreates the debounced function on every keystroke, putting us straight back into the original bug. It's a genuine tension.</p>
+
+<p>The way out is to separate the two concerns: keep the <strong>debounced wrapper</strong> stable forever, but let it read the <strong>latest callback</strong> out of a ref at fire time.</p>
+
+<div class="snippet">
+<span class="label good">✅ Fixed — stable wrapper, always-fresh callback</span>
+<pre><code>function useDebouncedCallback(callback, wait) {
+  const callbackRef = useRef(callback);
+
+  // Keep the ref pointing at the newest version of the callback
+  useEffect(() => {
+    callbackRef.current = callback;
+  });
+
+  const debounced = useMemo(
+    () => debounce((...args) => callbackRef.current(...args), wait),
+    [wait]                                  // 👈 stable unless the delay changes
+  );
+
+  useEffect(() => debounced.cancel, [debounced]); // cleanup on unmount
+  return debounced;
+}
+
+// Usage:
+const debouncedSave = useDebouncedCallback(() => saveDraft(userId, text), 1000);</code></pre>
+</div>
+
+<p>Read the key line again: <code>debounce((...args) =&gt; callbackRef.current(...args), wait)</code>. The debounced function's closure captures <code>callbackRef</code> — an object that never changes identity — rather than <code>callback</code> itself. When the timer eventually fires, it reads <code>.current</code> <em>at that moment</em>, which is whatever the latest render put there. Stable outside, fresh inside.</p>
+
+<div class="callout hood">
+  <span class="tag">Under the hood — why not just useMemo?</span>
+  <p><code>useMemo</code> is documented as a performance hint, not a semantic guarantee — React reserves the right to throw away a cached value and recompute it (it does this when unmounting offscreen content, for instance). For a memoized <em>calculation</em> that's harmless. For something with identity that matters, like a debounced function holding a live timer, a discarded cache means a new <code>timeoutId</code> and a silently broken debounce.</p>
+  <p>The bulletproof version stores it in a ref, which React genuinely promises to preserve:</p>
+<pre><code>const ref = useRef(null);
+if (ref.current === null) {
+  ref.current = debounce((...args) => callbackRef.current(...args), wait);
+}
+const debounced = ref.current;</code></pre>
+  <p>In practice <code>useMemo</code> works fine for this and is what most codebases (and most library hooks) do. But being able to say "useMemo isn't a guarantee, so strictly a ref is safer" is a genuinely senior-sounding observation.</p>
+</div>
+
+<h2 id="memo">11. Memoization</h2>
+
+<p>Last pattern, and it's the same shape as everything else in this guide: a higher-order function that wraps another function and keeps something private in a closure. This time the private thing is a cache.</p>
+
+<div class="snippet">
+<pre><code>function memoize(fn) {
+  const cache = new Map();               // 👈 private, lives as long as the wrapper
+
+  return function memoized(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      return cache.get(key);             // 👈 skip the work entirely
+    }
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
+const slowFib = (n) => (n &lt; 2 ? n : slowFib(n - 1) + slowFib(n - 2));
+const fib = memoize(slowFib);
+
+fib(35); // slow the first time
+fib(35); // → instant</code></pre>
+</div>
+
+<p>The idea is trivial: remember what you computed, and if you're asked the same question again, recite the answer instead of redoing the work. The interesting parts are all in the failure modes.</p>
+
+<h3>Problem 1: the cache key</h3>
+
+<p><code>JSON.stringify(args)</code> is the quick-and-dirty key, and it is wrong in several ways you should be able to name:</p>
+
+<ul>
+  <li><strong>Key order matters.</strong> <code>{ a: 1, b: 2 }</code> and <code>{ b: 2, a: 1 }</code> stringify differently, so two logically identical calls get two cache entries and the second is a miss.</li>
+  <li><strong>Values get silently mangled.</strong> <code>undefined</code> and functions disappear from objects, so <code>f({ a: undefined })</code> and <code>f({})</code> collide. <code>NaN</code> becomes <code>null</code>. Dates become strings, so a <code>Date</code> and its ISO string collide.</li>
+  <li><strong>Circular references throw.</strong> Pass a DOM node or a React element and <code>JSON.stringify</code> crashes.</li>
+  <li><strong>Stringifying can cost more than the function.</strong> If you memoize a cheap function that takes a big object, you're now serialising a big object on every call to avoid doing almost nothing. That's a net loss.</li>
+</ul>
+
+<p>For the very common single-object-argument case, there's a much better answer: key on the object <em>identity</em> with a <code>WeakMap</code>.</p>
+
+<div class="snippet">
+<pre><code>function memoizeOne(fn) {
+  const cache = new WeakMap();   // 👈 keys must be objects; held weakly
+
+  return function (arg) {
+    if (cache.has(arg)) return cache.get(arg);
+    const result = fn(arg);
+    cache.set(arg, result);
+    return result;
+  };
+}</code></pre>
+</div>
+
+<p>The magic word is <strong>weakly</strong>. A <code>WeakMap</code> doesn't stop its keys from being garbage collected — when the rest of your app drops the last reference to that object, the cache entry vanishes on its own. Which leads directly to the next problem.</p>
+
+<h3>Problem 2: an unbounded cache is a memory leak</h3>
+
+<p>The <code>Map</code>-based <code>memoize</code> above never removes anything. Ever. Memoize a function called with a user ID and run it across a million users, and you've built a structure holding a million entries that nothing will ever clean up, because the cache holds a strong reference to every key and value.</p>
+
+<p>The usual fixes:</p>
+
+<ul>
+  <li><strong>Cap it.</strong> An <strong>LRU</strong> (least-recently-used) cache keeps the N most recent entries and evicts the oldest. Bounded memory, most of the benefit.</li>
+  <li><strong>Cache size 1.</strong> Sounds useless; it's often perfect. If calls repeat consecutively — which is exactly what happens in a React render loop — remembering only the last <code>(args, result)</code> pair captures nearly all the wins for constant memory. This is what the <code>memoize-one</code> library does, and it's the model behind <code>useMemo</code>.</li>
+  <li><strong><code>WeakMap</code> keys</strong>, as above, when the arguments are objects whose lifetime you don't control.</li>
+</ul>
+
+<h3>Problem 3: it only works for pure functions</h3>
+
+<p>Here's where section 6 pays off. Memoization replaces "call the function" with "maybe don't call the function." That substitution is only safe if calling it produces the same result and does nothing else observable.</p>
+
+<p>Memoize something that reads <code>Date.now()</code>, or hits the network, or increments a counter, and you get a function that lies: it returns yesterday's answer, or skips the effect entirely on the second call. <strong>Purity is the precondition for memoization</strong> — and saying that sentence in an interview links two topics together in a way that reads as real understanding.</p>
+
+<h3>When memoization hurts</h3>
+
+<ul>
+  <li><strong>The function is already cheap.</strong> Hashing the arguments and doing a Map lookup isn't free. Memoizing <code>(a, b) =&gt; a + b</code> makes it slower <em>and</em> leaks memory.</li>
+  <li><strong>Arguments rarely repeat.</strong> A cache with a 2% hit rate is pure overhead plus a growing heap.</li>
+  <li><strong>The underlying data changes.</strong> A cache keyed on a user ID goes stale the moment that user is edited. Now you need invalidation, which is a whole problem of its own.</li>
+  <li><strong>Long-lived module-scope caches.</strong> A <code>memoize</code>d function at module scope lives for the entire session. Inside a component instance, at least it dies with the component.</li>
+</ul>
+
+<div class="model-answer">
+  <span class="tag">Model answer — "how would you memoize an expensive function?"</span>
+  <p>"I'd write a higher-order function that closes over a cache — a Map from a key derived from the arguments to the result. On each call, check the cache, return the hit, otherwise compute and store. The two things I'd think hard about are the key and the eviction policy: <code>JSON.stringify</code> is a fine default but breaks on key ordering and circular references, so for a single object argument I'd use a WeakMap keyed on identity. And an unbounded cache is a memory leak, so in production I'd cap it with an LRU — or just cache the last result, which covers most real cases. It also only works if the function is pure."</p>
+  <p class="why">Why it lands: anyone can write the ten-line memoize. Naming the key problem, the eviction problem, and the purity precondition unprompted is what separates a junior answer from a senior one.</p>
+</div>
+
+<h2 id="followups">12. Interview follow-ups, answered</h2>
+
+<p>These are the second questions — the ones that come after you've given the textbook answer and the interviewer wants to know whether you've actually used this stuff. I'd read this section twice.</p>
+
+<details>
+<summary>"Walk me through implementing debounce."</summary>
+<p>Narrate the structure before you write a line: <em>"It's a higher-order function. It takes a function and a wait time and returns a wrapper. The wrapper needs one piece of state that survives between calls — the pending timer ID — and a closure is exactly how you get that."</em> Then: every call clears the pending timer and sets a new one; only a call that isn't followed by another within <code>wait</code> ms survives to fire. Forward <code>...args</code> and use <code>fn.apply(this, args)</code> so the wrapper is a transparent stand-in, and use a <code>function</code> expression rather than an arrow so <code>this</code> isn't captured lexically. Mention that <code>clearTimeout(undefined)</code> is a safe no-op so the first call needs no guard. If you have time, add <code>.cancel()</code> — unprompted, that's a strong signal.</p>
+</details>
+
+<details>
+<summary>"And throttle?"</summary>
+<p>Same skeleton, different bookkeeping. Instead of a timer ID you keep a timestamp of the last real run; on each call compare <code>Date.now() - lastRun</code> against the interval and return early if it's too soon. Then volunteer the weakness before they ask: <em>"This is leading-edge only, so it silently drops the final call. For a scroll handler that can leave the UI one frame stale, so a production version schedules a trailing call with the remaining time."</em> Also worth mentioning: for anything that touches layout or paints, <code>requestAnimationFrame</code> is often a better throttle than a timer, because it syncs with the browser's paint cycle instead of guessing at an interval.</p>
+</details>
+
+<details>
+<summary>"Which would you use for a search box, and why?"</summary>
+<p>Debounce, trailing edge, around 300ms. The reason: the only query worth sending is the one the user stopped on. Throttle would fire mid-word — you'd cut the request count but still be querying prefixes nobody typed on purpose. Then add the bit most people miss: even with debounce you can get out-of-order responses if the user resumes typing, so you want an <code>AbortController</code> to cancel the in-flight request, or a check that the response matches the current query before rendering it. And say what happens on submit: hit <code>flush()</code> or bypass the debounce so pressing Enter doesn't wait 300ms.</p>
+</details>
+
+<details>
+<summary>"Why not just throttle everything? It's simpler."</summary>
+<p>Because throttle guarantees the wrong thing for tail-sensitive work. Throttle promises "at most once per interval" but promises nothing about the <em>last</em> event — with a leading-edge throttle, the final keystroke or the final scroll position can be dropped entirely. When you specifically care about the settled, final state (search query, autosave, resize-then-recalculate), you want debounce. When you care about a steady stream of intermediate updates (scroll position, drag, progress bar), you want throttle. They're not two settings of the same dial; they optimise for opposite ends of the burst.</p>
+</details>
+
+<details>
+<summary>"What's the difference between currying and partial application?"</summary>
+<p>Currying transforms a function's <em>shape</em>: <code>f(a, b, c)</code> becomes <code>f(a)(b)(c)</code>, a chain of one-argument functions each returning the next. Partial application is the <em>act</em> of fixing some arguments now and getting back a function that takes the rest — <code>f.bind(null, a)</code> gives you a function still taking <code>(b, c)</code> together. They're related because calling a curried function with fewer than all its arguments <em>is</em> partial application, but you can partially apply a function that was never curried. One-liner: currying is about structure, partial application is about supplying arguments early.</p>
+</details>
+
+<details>
+<summary>"What's a pure function, and why does React care?"</summary>
+<p>Same input → same output, and no observable side effects. React cares because it treats your component as a function it can call whenever it likes: Strict Mode deliberately double-invokes component bodies in development to surface impurity, concurrent rendering can start a render and throw it away, and <code>memo</code>/<code>useMemo</code> only produce correct results if identical inputs reliably produce identical output. Break purity in the render path and you get doubled effects, stale memoized UI, or bugs that only appear under load. So effects live in <code>useEffect</code> and event handlers, and the same purity rule applies to <code>useReducer</code> reducers.</p>
+</details>
+
+<details>
+<summary>"When is <code>reduce</code> the wrong tool?"</summary>
+<p>Whenever a more specific method says what you mean. If you're producing one output per input, that's <code>map</code>. If you're keeping a subset, that's <code>filter</code>. If you want the first match, <code>find</code>; existence, <code>some</code>; universality, <code>every</code>. <code>reduce</code> is maximally general, which means it communicates the least — the reader has to decode the callback to know what shape comes out. It also can't short-circuit, so a search over a huge array with <code>reduce</code> visits every element where <code>find</code> stops at the first hit. And if the reducer's grown past ten lines, or needs <code>await</code>, or needs to break early, a plain <code>for...of</code> loop is the honest answer. Reserve <code>reduce</code> for genuinely collapsing a list into a differently-shaped value.</p>
+</details>
+
+<details>
+<summary>"<code>map</code> vs <code>forEach</code>?"</summary>
+<p><code>map</code> returns a new array of the same length built from the callback's return values; <code>forEach</code> returns <code>undefined</code> and exists purely for side effects. Practically: if you're using the result, <code>map</code>; if you're not, <code>forEach</code> or a <code>for...of</code>. Using <code>map</code> and discarding the result builds a throwaway array and misleads the reader into hunting for where it's used. Neither awaits promises, so for async work use <code>for...of</code> with <code>await</code> for sequential, or <code>Promise.all(items.map(fn))</code> for parallel — and note that's <code>map</code>, because there you genuinely want the array of promises back.</p>
+</details>
+
+<details>
+<summary>"Why doesn't my debounce work inside a React component?"</summary>
+<p>Because the debounced function is being recreated on every render. Debounce works by keeping a <code>timeoutId</code> in a closure and clearing it on the next call — if each render calls <code>debounce()</code> again, each keystroke gets a fresh function with a fresh, empty <code>timeoutId</code>, so <code>clearTimeout</code> cancels nothing and every call eventually fires. The fix is to create it once, with <code>useMemo(() =&gt; debounce(fn, 300), [])</code> or a ref, plus a <code>useEffect</code> cleanup that calls <code>.cancel()</code> on unmount. Then flag the second-order bug: with empty deps the callback captures the first render's props and state, so the robust version keeps the callback in a ref that each render updates, and the stable debounced wrapper reads <code>ref.current</code> when it fires.</p>
+</details>
+
+<details>
+<summary>"How would you memoize an expensive function?"</summary>
+<p>A higher-order function closing over a <code>Map</code> from an argument-derived key to a result: check, return on hit, compute and store on miss. Then immediately raise the two hard parts — the key (<code>JSON.stringify</code> breaks on object key order, <code>undefined</code>, <code>NaN</code>, Dates and circular refs; a <code>WeakMap</code> keyed on object identity is better for a single object argument) and eviction (unbounded caches are memory leaks; cap with an LRU, or cache just the last result). Close by noting it's only valid for pure functions — memoize something that reads the clock or hits the network and you've built a bug.</p>
+</details>
+
+<details>
+<summary>"Why not just use a library — Lodash has all of this."</summary>
+<p>You should, in production, and saying so is a strength rather than a dodge: Lodash's <code>debounce</code> handles leading/trailing edges, <code>maxWait</code>, cancel and flush, and years of edge cases you won't think of on a whiteboard. The reason to know the implementation is that the bugs are in <em>how you use it</em>, not in the library — recreating it every render in React, forgetting to cancel on unmount, choosing debounce where you needed throttle. Being able to reason about the closure is what lets you debug that.</p>
+</details>
+
+<details>
+<summary>"Are higher-order functions slower than loops?"</summary>
+<p>Marginally, yes — there's a function call per element and, for chained calls, an intermediate array per link. Modern JIT compilers inline a lot of that away, so the gap is usually small and swamped by whatever the callback does. The honest answer names the trade-off and the threshold: it's the right default for readability, and I'd convert a chain to a single loop only for very large arrays or a hot path like a scroll or animation handler, and only after measuring. Volunteering "after measuring" matters — the trap here is sounding like someone who micro-optimises by reflex.</p>
+</details>
+
+<h2 id="cheat">13. Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're fine.</p>
+
+<table class="cheat">
+  <tbody>
+    <tr><td>Higher-order function</td><td>A function that takes a function as an argument, returns one, or both. <code>map</code>, <code>setTimeout</code>, <code>addEventListener</code>.</td></tr>
+    <tr><td>Closure</td><td>A function keeps a live reference to the variables it was defined among, even after the outer function has returned. It's the engine behind debounce, throttle, memoize and currying.</td></tr>
+    <tr><td><code>map</code></td><td>Same length out, each item transformed. New array.</td></tr>
+    <tr><td><code>filter</code></td><td>Same items, possibly fewer. Callback returns keep-or-not, not the item.</td></tr>
+    <tr><td><code>reduce</code></td><td>One scrap of paper carried through the list. Accumulator in, new accumulator out, every round. Always pass an initial value; always <code>return</code>.</td></tr>
+    <tr><td><code>find</code>/<code>some</code>/<code>every</code></td><td>Specific, readable, and they short-circuit. Prefer them over <code>filter</code> gymnastics.</td></tr>
+    <tr><td><code>flatMap</code></td><td><code>map</code> then flatten one level. Return <code>[]</code> to drop an item.</td></tr>
+    <tr><td><code>forEach</code> vs <code>map</code></td><td><code>forEach</code> returns <code>undefined</code> and is for side effects; <code>map</code> returns a new array. Don't <code>map</code> and throw the result away.</td></tr>
+    <tr><td>Chaining cost</td><td>Each link is another full pass plus an intermediate array. Fine by default; collapse to one pass for huge arrays or hot paths.</td></tr>
+    <tr><td>Pure function</td><td>Same input → same output, no side effects. Trivially testable.</td></tr>
+    <tr><td>Why React cares</td><td>Strict Mode double-invokes, concurrent rendering can discard a render, and memoization assumes purity. Effects go in <code>useEffect</code> / handlers.</td></tr>
+    <tr><td>Currying</td><td><code>f(a, b, c)</code> → <code>f(a)(b)(c)</code>. A shape change into one-argument functions.</td></tr>
+    <tr><td>Partial application</td><td>Fix some arguments now, supply the rest later. <code>f.bind(null, a)</code>. About arguments, not shape.</td></tr>
+    <tr><td><code>pipe</code></td><td>Run functions left to right, feeding each result to the next. It's a <code>reduce</code> over functions.</td></tr>
+    <tr><td>Debounce</td><td>"Wait until it goes quiet." Every call resets the timer; fires once after the pause. <code>clearTimeout</code> + <code>setTimeout</code>.</td></tr>
+    <tr><td>Throttle</td><td>"At most once per interval." Fires immediately, then rations. Compare against a stored timestamp.</td></tr>
+    <tr><td>Leading vs trailing</td><td>Leading = fire on the first call (responsive, good for buttons). Trailing = fire after the burst (final value, good for search).</td></tr>
+    <tr><td>Search box</td><td>Debounce, trailing, ~300ms. Plus abort in-flight requests, plus flush on submit.</td></tr>
+    <tr><td>Scroll / resize</td><td>Throttle, ~100ms — or <code>requestAnimationFrame</code> if it touches layout.</td></tr>
+    <tr><td>cancel / flush</td><td><code>cancel</code> drops the pending call (use on unmount); <code>flush</code> runs it now (use on explicit save).</td></tr>
+    <tr><td>React debounce bug</td><td>Recreated every render → new empty <code>timeoutId</code> → nothing ever cancelled. Fix with <code>useMemo</code>/<code>useRef</code>, plus a ref for the latest callback, plus cleanup.</td></tr>
+    <tr><td>Memoize</td><td>Closure over a cache. Hard parts: the key (WeakMap for object identity) and eviction (LRU or cache-size-1). Only valid for pure functions.</td></tr>
+  </tbody>
+</table>
+
+<hr class="soft">
+
+<p>If there's one thread to pull through all of this, it's the one from section 2: <strong>a function that returns a function, with something private remembered in between.</strong> Debounce remembers a timer. Throttle remembers a timestamp. Memoize remembers a cache. A curried function remembers the arguments you've supplied so far. Once you can see that same shape underneath all four, you're not memorising four patterns any more — you're recognising one, four times. 🎯</p>
+
+</div>
+</body>
+</html>

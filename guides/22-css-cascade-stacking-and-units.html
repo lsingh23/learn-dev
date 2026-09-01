@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Cascade, Specificity, z-index &amp; Units</title>
+<style>
+  :root {
+    --ink: #1c2024;
+    --ink-soft: #4a5560;
+    --bg: #fbfaf8;
+    --panel: #ffffff;
+    --line: #e4e0da;
+    --accent: #3a6ea5;
+    --accent-soft: #eaf1f8;
+    --code-bg: #1e2430;
+    --code-ink: #e6e9ef;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 40px 20px 120px;
+  }
+
+  h1 {
+    font-size: 2.15rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    margin: 0 0 32px;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 64px 0 4px;
+    padding-top: 20px;
+    border-top: 3px solid var(--ink);
+  }
+
+  h3 {
+    font-size: 1.22rem;
+    line-height: 1.3;
+    margin: 40px 0 8px;
+  }
+
+  h4 {
+    font-size: 1.02rem;
+    margin: 28px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 0 0 18px; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 18px; padding-left: 24px; }
+  li { margin-bottom: 8px; }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: "SF Mono", SFMono-Regular, ui-monospace, "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+    background: #eeece7;
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0 0 20px;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.86rem;
+    color: inherit;
+  }
+
+  .cmt { color: #8ea0b8; }
+  .kw  { color: #ff9d7a; }
+  .str { color: #a5e0a5; }
+  .sel { color: #ffd479; }
+
+  /* code block labels */
+  .label {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+  }
+  .label + pre { border-top-left-radius: 0; margin-top: 0; }
+  .label-bad  { background: #f8dcd8; color: #8a2b1c; }
+  .label-good { background: #d9eddb; color: #1f5c2b; }
+  .label-neutral { background: #e2e7ee; color: #33415a; }
+
+  /* callouts */
+  .box {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 0 0 24px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .box > :last-child { margin-bottom: 0; }
+  .box .box-title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .box-wait { background: #eef4fb; border-color: #c6d9ee; }
+  .box-wait .box-title { color: #2c5f92; }
+
+  .box-mis { background: #fdf0ec; border-color: #f0cdc3; }
+  .box-mis .box-title { color: #9d3a22; }
+
+  .box-hood { background: #f4f0fa; border-color: #ddd2ee; }
+  .box-hood .box-title { color: #5c3d92; }
+
+  .box-iv { background: #eef7ef; border-color: #c6e2ca; }
+  .box-iv .box-title { color: #26663a; }
+
+  .answer {
+    background: #fff;
+    border-left: 4px solid #3f8f57;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+    font-style: italic;
+  }
+  .answer > :last-child { margin-bottom: 0; }
+  .answer-tag {
+    display: block;
+    font-style: normal;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #3f8f57;
+    margin-bottom: 4px;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin-bottom: 0; padding-left: 20px; }
+  .toc li { margin-bottom: 4px; }
+
+  /* tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 22px;
+    font-size: 0.94rem;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 11px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f1efeb; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* demo shell */
+  .demo {
+    border: 2px dashed #c9c3b8;
+    border-radius: 12px;
+    padding: 18px;
+    margin: 0 0 24px;
+    background: #fffdf9;
+  }
+  .demo-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a7f6d;
+    margin: 0 0 12px;
+  }
+  .demo p { font-size: 0.95rem; }
+  .demo > :last-child { margin-bottom: 0; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toggle-btn {
+    display: inline-block;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-check { position: absolute; opacity: 0; pointer-events: none; }
+  .toggle-check:focus-visible + .toggle-btn { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .spec-tuple {
+    display: inline-block;
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    background: #21262f;
+    color: #ffd479;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+  }
+
+  hr { border: none; border-top: 1px solid var(--line); margin: 48px 0; }
+
+  .cheat td:first-child { white-space: nowrap; font-weight: 600; }
+
+  /* ===================================================================
+     DEMO STYLES — every selector below is prefixed so it cannot leak
+     into the guide's own layout.
+     =================================================================== */
+
+  /* --- stacking context demo (stk-) --- */
+  .stk-scene {
+    position: relative;
+    height: 200px;
+    background: #f2f0ec;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .stk-a, .stk-b, .stk-child {
+    position: absolute;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #fff;
+    line-height: 1.35;
+  }
+  .stk-a {
+    left: 16px; top: 20px; width: 190px; height: 140px;
+    background: #4a7fb5;
+    z-index: 1;
+  }
+  .stk-b {
+    left: 150px; top: 55px; width: 190px; height: 120px;
+    background: #b5564a;
+    z-index: 2;
+  }
+  .stk-child {
+    left: 40px; top: 60px; width: 200px; height: 66px;
+    background: #2f9e6b;
+    z-index: 999999;
+  }
+  .stk-check:checked ~ .stk-scene .stk-a { z-index: auto; }
+  .stk-check:checked ~ .stk-caption .stk-when-off { display: none; }
+  .stk-when-on { display: none; }
+  .stk-check:checked ~ .stk-caption .stk-when-on { display: block; }
+  .stk-caption { margin-top: 12px; font-size: 0.93rem; }
+
+  /* --- opacity stacking demo (opd-) --- */
+  .opd-scene {
+    position: relative;
+    height: 150px;
+    background: #f2f0ec;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .opd-parent {
+    position: absolute;
+    left: 16px; top: 18px; width: 200px; height: 110px;
+    background: #6b5bb5;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 10px;
+  }
+  .opd-check:checked ~ .opd-scene .opd-parent { opacity: 0.99; }
+  .opd-child {
+    position: absolute;
+    left: 60px; top: 46px; width: 210px; height: 60px;
+    background: #2f9e6b;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 10px;
+    z-index: 5;
+  }
+  .opd-sibling {
+    position: absolute;
+    left: 170px; top: 30px; width: 170px; height: 100px;
+    background: #b5564a;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 10px;
+    z-index: 2;
+  }
+
+  /* --- em compounding demo (emd-) --- */
+  .emd-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .emd-col { flex: 1 1 260px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .emd-root { font-size: 16px; }
+  .emd-em .emd-lvl { font-size: 1.25em; }
+  .emd-rem .emd-lvl { font-size: 1.25rem; }
+  .emd-lvl { padding-left: 12px; border-left: 2px solid #ddd8d0; margin-top: 6px; }
+  .emd-tag { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72em; color: #8a7f6d; }
+
+  /* --- percentage padding demo (pcd-) --- */
+  .pcd-outer { background: #f2f0ec; border-radius: 8px; padding: 10px; }
+  .pcd-box { background: #4a7fb5; color: #fff; border-radius: 6px; padding: 10% ; font-size: 0.85rem; font-weight: 600; }
+  .pcd-narrow { width: 45%; }
+
+  /* --- custom property demo (vard-) --- */
+  .vard-scene {
+    --vard-brand: #3a6ea5;
+    --vard-radius: 10px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .vard-check:checked ~ .vard-scene { --vard-brand: #a33a7a; --vard-radius: 2px; }
+  .vard-card {
+    flex: 1 1 150px;
+    background: #fff;
+    border: 2px solid var(--vard-brand);
+    border-radius: var(--vard-radius);
+    padding: 12px 14px;
+    font-size: 0.88rem;
+  }
+  .vard-card b { color: var(--vard-brand); }
+  .vard-btn {
+    background: var(--vard-brand);
+    color: #fff;
+    border-radius: var(--vard-radius);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    display: inline-block;
+    font-weight: 600;
+  }
+
+  /* --- clamp demo (cld-) --- */
+  .cld-box { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .cld-title { font-size: clamp(1.05rem, 4vw + 0.3rem, 2.2rem); line-height: 1.2; margin: 0; font-weight: 700; }
+
+  /* --- painting order diagram (paint-) --- */
+  .paint-stack { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; }
+  .paint-row { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; display: flex; gap: 10px; align-items: baseline; }
+  .paint-num { font-weight: 700; color: var(--accent); font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The Cascade, Specificity, z-index &amp; Units</h1>
+<p class="subtitle">Everything that makes CSS feel like it's fighting you — the cascade, stacking contexts, the unit zoo, custom properties, and why <code>transform</code> is faster than <code>left</code>. With live demos you can poke at.</p>
+
+<div class="toc">
+  <h4>What's in here</h4>
+  <ol>
+    <li><a href="#cascade">Why isn't my CSS applying?</a></li>
+    <li><a href="#origin">Step 1: origin and importance</a></li>
+    <li><a href="#specificity">Step 2: specificity (the tuple, not the number)</a></li>
+    <li><a href="#order">Step 3: source order</a></li>
+    <li><a href="#pseudo">:not(), :is(), and the magic of :where()</a></li>
+    <li><a href="#inheritance">Inheritance is not the cascade</a></li>
+    <li><a href="#important">!important and the escape ladder</a></li>
+    <li><a href="#layers">@layer: the modern answer</a></li>
+    <li><a href="#scale">Why Tailwind and CSS-in-JS exist</a></li>
+    <li><a href="#stacking">Stacking contexts and z-index</a></li>
+    <li><a href="#units">Units: px, em, rem, %, vh, ch, clamp()</a></li>
+    <li><a href="#customprops">CSS custom properties</a></li>
+    <li><a href="#responsive">Responsive design and container queries</a></li>
+    <li><a href="#methodologies">BEM, CSS Modules, CSS-in-JS, utility-first</a></li>
+    <li><a href="#animation">Animation performance and the pixel pipeline</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</div>
+
+<h2 id="cascade">Why isn't my CSS applying?</h2>
+
+<p>You wrote a rule. It's right there in the stylesheet. You open DevTools and there it is in the Styles panel — with a line through it. Struck out. Ignored.</p>
+
+<p>Everybody who writes CSS has had this moment, usually followed by adding <code>!important</code>, seeing it work, and feeling a small pang of shame. I want to replace that pang with actual understanding, because once you can predict which rule wins, CSS stops feeling arbitrary.</p>
+
+<p>Here's the thing that trips people up: almost everyone thinks the answer is "specificity." And specificity <em>is</em> part of it — but it's the <strong>third</strong> tiebreaker, not the first. If you start reasoning at step three you'll get the wrong answer whenever steps one or two were the real decider.</p>
+
+<p>So let's build the whole ladder, in order.</p>
+
+<p>The browser's job is to answer one question, over and over, millions of times: <strong>for this element, for this specific property (say <code>color</code>), which of the declarations that mention it wins?</strong> Notice how narrow that question is. It's per-element <em>and</em> per-property. An element can take its <code>color</code> from one rule and its <code>background</code> from a completely different rule. There's no "winning rule" — there are only winning declarations.</p>
+
+<div class="box box-mis">
+  <p class="box-title">A common misconception</p>
+  <p>"The more specific rule replaces the less specific rule." No — nothing gets replaced. Every matching declaration is collected into a big pile, and then <em>each property is resolved independently</em>. If a low-specificity rule sets <code>padding</code> and a high-specificity rule only sets <code>color</code>, that padding still applies. The high-specificity rule didn't beat it; they weren't even competing.</p>
+</div>
+
+<p>The pile-sorting happens in this order. The browser walks down the list and stops the moment it finds a difference:</p>
+
+<div class="paint-stack" style="margin-bottom:24px">
+  <div class="paint-row"><span class="paint-num">1</span><span><strong>Origin &amp; importance</strong> — who wrote this declaration (browser, user, you), and did they mark it <code>!important</code>?</span></div>
+  <div class="paint-row"><span class="paint-num">2</span><span><strong>Cascade layers</strong> — <code>@layer</code>, if you're using it (we'll get there).</span></div>
+  <div class="paint-row"><span class="paint-num">3</span><span><strong>Specificity</strong> — how precisely does the selector describe the element?</span></div>
+  <div class="paint-row"><span class="paint-num">4</span><span><strong>Source order</strong> — last one written wins.</span></div>
+</div>
+
+<p>Let's take these one at a time, and I promise not to move on until each is genuinely clear.</p>
+
+<h2 id="origin">Step 1: origin and importance</h2>
+
+<p>Before your CSS ever runs, the browser already has opinions. <code>&lt;h1&gt;</code> is big and bold. Links are blue and underlined. Lists have bullets and indentation. Nobody wrote that in your project — it comes from the <strong>user-agent stylesheet</strong>, a stylesheet baked into the browser itself.</p>
+
+<p>There are three <em>origins</em> a declaration can come from:</p>
+
+<ul>
+  <li><strong>User agent</strong> — the browser's built-in defaults.</li>
+  <li><strong>User</strong> — styles the human viewing the page has set for themselves. Rare on desktop these days, but real: browser extensions, OS-level accessibility settings, custom stylesheets. This is the person who has, say, forced a minimum font size because they can't read 12px text.</li>
+  <li><strong>Author</strong> — you. Your stylesheets, your <code>&lt;style&gt;</code> tags, your inline styles.</li>
+</ul>
+
+<p>Normally the order of power is exactly what you'd guess:</p>
+
+<p style="text-align:center"><span class="spec-tuple">author &gt; user &gt; user-agent</span></p>
+
+<p>Which is why setting <code>h1 { font-size: 1rem }</code> works — you beat the browser's default. Good. Sensible.</p>
+
+<p>Now here's the bit that's genuinely surprising, and it's a great interview detail because most candidates don't know it. <strong><code>!important</code> doesn't just make a declaration stronger. It flips the origin order upside down.</strong></p>
+
+<p>The full order, weakest to strongest:</p>
+
+<table>
+  <tr><th>Rank</th><th>Origin</th><th>Importance</th></tr>
+  <tr><td>1 (weakest)</td><td>User agent</td><td>normal</td></tr>
+  <tr><td>2</td><td>User</td><td>normal</td></tr>
+  <tr><td>3</td><td>Author</td><td>normal</td></tr>
+  <tr><td>4</td><td><strong>Author</strong></td><td><strong>!important</strong></td></tr>
+  <tr><td>5</td><td><strong>User</strong></td><td><strong>!important</strong></td></tr>
+  <tr><td>6 (strongest)</td><td><strong>User agent</strong></td><td><strong>!important</strong></td></tr>
+</table>
+
+<p>Look at what happened. In the normal half, the author is on top. In the important half, the author is on the <em>bottom</em> — a user's <code>!important</code> beats an author's <code>!important</code>.</p>
+
+<p>Why on earth would the spec do that? Because it's an accessibility guarantee. If a user with low vision writes <code>* { font-size: 20px !important }</code> in their personal stylesheet, no website should be able to override it. <code>!important</code> in the user origin means "I really mean it, and I outrank the site." The whole inversion exists to protect the person actually looking at the page. Once you see that, it stops being a weird spec quirk and becomes obviously correct.</p>
+
+<div class="box box-hood">
+  <p class="box-title">Under the hood</p>
+  <p>There are a couple more origins in the real spec — <em>transitions</em> sit above everything (so a mid-transition value wins while it's animating), and <em>animations</em> sit between author-normal and author-important. That's why a running <code>@keyframes</code> animation can beat a normal rule but a well-placed <code>!important</code> can beat the animation. You almost never need this, but it explains the occasional "why won't my animation take effect" mystery.</p>
+</div>
+
+<h3>Where inline styles fit</h3>
+
+<p>An inline <code>style="..."</code> attribute is still the author origin — it's just extremely specific, which we'll get to in a second. It is not a separate origin, and it loses to <code>!important</code> in a stylesheet. That surprises people:</p>
+
+<pre><code><span class="cmt">&lt;!-- the paragraph is red, not blue --&gt;</span>
+&lt;p <span class="sel">style</span>=<span class="str">"color: blue"</span>&gt;Hello&lt;/p&gt;
+
+<span class="sel">p</span> { <span class="kw">color</span>: red <span class="kw">!important</span>; } <span class="cmt">/* 👈 this wins */</span></code></pre>
+
+<h2 id="specificity">Step 2: specificity (the tuple, not the number)</h2>
+
+<p>OK. Two declarations, same origin, both normal, both fighting over <code>color</code>. Now — and only now — we compare selectors.</p>
+
+<p>Specificity is the browser asking: <em>how precisely does this selector describe the element?</em> A selector that could match half the page should lose to one that could only ever match one element. That's the intuition, and the scoring system is just a formalisation of it.</p>
+
+<p>Every selector gets scored into <strong>three buckets</strong>. I'll write them as a tuple, <span class="spec-tuple">(A, B, C)</span>:</p>
+
+<table>
+  <tr><th>Bucket</th><th>Counts</th><th>Examples</th></tr>
+  <tr><td><strong>A</strong> — IDs</td><td>ID selectors</td><td><code>#checkout</code></td></tr>
+  <tr><td><strong>B</strong> — classes</td><td>classes, attribute selectors, pseudo-classes</td><td><code>.btn</code>, <code>[disabled]</code>, <code>:hover</code>, <code>:nth-child(2)</code></td></tr>
+  <tr><td><strong>C</strong> — elements</td><td>type selectors, pseudo-elements</td><td><code>div</code>, <code>a</code>, <code>::before</code></td></tr>
+</table>
+
+<p>Some people write it as four buckets, <span class="spec-tuple">(inline, A, B, C)</span>, with inline styles occupying a bucket of their own to the left of IDs. Both framings are fine — the spec technically calls inline styles a separate step, but "inline styles beat everything selector-based" is the practical takeaway either way. I'll stick with three buckets and treat inline as "off the top of the scale."</p>
+
+<p>Let's score some real selectors:</p>
+
+<pre><code><span class="sel">p</span>                          <span class="cmt">→ (0, 0, 1)</span>
+<span class="sel">.card</span>                      <span class="cmt">→ (0, 1, 0)</span>
+<span class="sel">.card p</span>                    <span class="cmt">→ (0, 1, 1)</span>
+<span class="sel">nav ul li a:hover</span>          <span class="cmt">→ (0, 1, 4)   4 elements + :hover</span>
+<span class="sel">#sidebar .card p</span>           <span class="cmt">→ (1, 1, 1)</span>
+<span class="sel">a[href^="https"]</span>           <span class="cmt">→ (0, 1, 1)   attribute counts as a class</span>
+<span class="sel">*</span>                          <span class="cmt">→ (0, 0, 0)   👈 the universal selector is free</span>
+<span class="sel">.card &gt; p + p</span>               <span class="cmt">→ (0, 1, 2)   combinators are free too</span></code></pre>
+
+<p>Two things worth pausing on. <code>*</code> scores <strong>zero</strong> — it adds nothing at all. And combinators (<code>&gt;</code>, <code>+</code>, <code>~</code>, and the space for descendant) also score zero. They change <em>what</em> the selector matches, but not how strongly. So <code>.card p</code> and <code>.card &gt; p</code> have identical specificity, even though the second is "pickier" in an everyday sense. If both match, source order decides.</p>
+
+<h3>The comparison is left-to-right, and this is the whole point</h3>
+
+<p>Here's the question interviewers love: <strong>do eleven classes beat one ID?</strong></p>
+
+<pre><code><span class="cmt">/* Selector 1 */</span>
+<span class="sel">.a.b.c.d.e.f.g.h.i.j.k</span>  { <span class="kw">color</span>: red; }    <span class="cmt">→ (0, 11, 0)</span>
+
+<span class="cmt">/* Selector 2 */</span>
+<span class="sel">#title</span>                    { <span class="kw">color</span>: blue; }   <span class="cmt">→ (1,  0, 0)</span></code></pre>
+
+<p>Take a guess before you read on. If you're thinking in base 10 — "IDs are worth 100, classes are worth 10, so 11 classes = 110 &gt; 100" — you'd say red.</p>
+
+<p>It's <strong>blue</strong>. The ID wins. It would still win against a thousand classes.</p>
+
+<p>The reason is that specificity is <strong>not a number</strong>. It's a tuple compared left-to-right, like version numbers or like sorting words alphabetically. You compare bucket A first. If there's a difference, you're done — buckets B and C are never even consulted. Only if A ties do you look at B; only if B ties do you look at C.</p>
+
+<p>Think of it like comparing <code>v2.0.0</code> against <code>v1.99.99</code>. Nobody argues that 99 minor versions add up to a major version. Same idea. Or, if you prefer something physical: it's a set of nested categories, like ranking army officers. A general outranks any number of sergeants. You don't get promoted to general by collecting sergeants.</p>
+
+<div class="box box-mis">
+  <p class="box-title">A common misconception</p>
+  <p>You'll still see people teach specificity as "IDs = 100, classes = 10, elements = 1, add them up." That model gives the right answer <em>most</em> of the time, which is exactly what makes it dangerous — it fails silently at the boundary. Old CSS documentation really did describe it this way, and some very old browsers even implemented it that way. Modern browsers do not. If you say "add up the points" in an interview, a sharp interviewer will immediately ask the 11-classes question to see if you actually understand it. Say "tuple, compared left to right" and you've signalled you know the real model.</p>
+</div>
+
+<h3>Pushing on the edges</h3>
+
+<p>Let's do a harder one. Which colour is the link?</p>
+
+<pre><code>&lt;div <span class="sel">id</span>=<span class="str">"page"</span>&gt;
+  &lt;nav <span class="sel">class</span>=<span class="str">"main-nav"</span>&gt;
+    &lt;a <span class="sel">class</span>=<span class="str">"link active"</span> <span class="sel">href</span>=<span class="str">"/"</span>&gt;Home&lt;/a&gt;
+  &lt;/nav&gt;
+&lt;/div&gt;
+
+<span class="sel">#page a</span>                   { <span class="kw">color</span>: red; }     <span class="cmt">→ (1, 0, 1)</span>
+<span class="sel">.main-nav .link.active</span>    { <span class="kw">color</span>: green; }   <span class="cmt">→ (0, 3, 0)</span>
+<span class="sel">nav a:hover</span>               { <span class="kw">color</span>: blue; }    <span class="cmt">→ (0, 1, 2)</span></code></pre>
+
+<p>Red, even while hovering. <code>#page a</code> has a 1 in the first bucket and the others have 0, so it wins before we look any further. This is the practical reason people say "avoid IDs in CSS": not because IDs are evil, but because a single ID selector creates a wall that no amount of sensible class-based CSS can climb, and the only ways over it are another ID or <code>!important</code>. You've painted yourself into a corner in exchange for basically nothing.</p>
+
+<h2 id="order">Step 3: source order</h2>
+
+<p>If two declarations have the same origin, the same importance, and the same specificity — <strong>the one that appears later in the source wins</strong>. That's it. That's the whole rule.</p>
+
+<pre><code><span class="sel">.btn</span> { <span class="kw">background</span>: blue; }
+<span class="sel">.btn</span> { <span class="kw">background</span>: green; }   <span class="cmt">/* 👈 green — it's later */</span></code></pre>
+
+<p>"Later" means later in the final concatenated order the browser sees: stylesheets are ordered by their <code>&lt;link&gt;</code> position in the HTML, and rules within a stylesheet by their position in the file. This is why "just move your override below the thing you're overriding" is often the correct, non-hacky fix — and why the order of your imports in a bundler can silently change your page's appearance.</p>
+
+<p>It's also the reason for a classic bug. In CSS, <code>:hover</code> and <code>:focus</code> and <code>:visited</code> on a link all have the same specificity, so if you write <code>a:hover</code> before <code>a:visited</code>, visited links won't show a hover colour. Hence the old mnemonic <strong>LoVe HAte</strong>: <code>:link</code>, <code>:visited</code>, <code>:hover</code>, <code>:active</code>, in that order.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — what about media queries?</p>
+  <p>A <code>@media</code> block adds <em>no specificity</em>. None. A rule inside a media query is exactly as specific as the same rule outside one. It wins purely by being later in the file. That's why your responsive override stops working the moment someone adds a more specific rule below it — and why putting all your media queries at the bottom of the file (or right after the rule they modify, if you're using a preprocessor) matters.</p>
+</div>
+
+<h2 id="pseudo">:not(), :is(), and the magic of :where()</h2>
+
+<p>These three functional pseudo-classes have specificity rules that seem fussy until you see the design intent behind them.</p>
+
+<p><strong><code>:is()</code></strong> takes a list of selectors and matches if any of them match. It's a shorthand: <code>:is(h1, h2, h3) &gt; p</code> instead of writing three rules. Its specificity is <em>the specificity of its most specific argument</em>.</p>
+
+<pre><code><span class="sel">:is(#header, .nav) a</span>     <span class="cmt">→ (1, 0, 1)  the #header dominates, even</span>
+                          <span class="cmt">   when it actually matched via .nav</span></code></pre>
+
+<p>That last part is the gotcha: the score is computed from the selector list, not from which branch actually matched. So one ID inside an <code>:is()</code> poisons the whole thing.</p>
+
+<p><strong><code>:not()</code></strong> works the same way — it takes the specificity of its most specific argument. And crucially, <code>:not()</code> itself contributes nothing; only its contents do.</p>
+
+<pre><code><span class="sel">.btn:not(.disabled)</span>       <span class="cmt">→ (0, 2, 0)  .btn + .disabled</span>
+<span class="sel">p:not(#intro)</span>             <span class="cmt">→ (1, 0, 1)  ouch</span></code></pre>
+
+<p>And then there's <strong><code>:where()</code></strong>, which is identical to <code>:is()</code> in what it matches, with one difference that changes everything: <strong><code>:where()</code> always has zero specificity.</strong> Whatever you put inside it contributes nothing at all.</p>
+
+<pre><code><span class="sel">:where(#header, .nav) a</span>   <span class="cmt">→ (0, 0, 1)  only the `a` counts</span></code></pre>
+
+<p>Why is that so useful? Imagine you're writing a component library, or the base styles for a design system. You want to say "links inside my card component are unstyled" — but you absolutely do not want your defaults to be hard for consumers to override. If you write:</p>
+
+<div class="label label-bad">❌ Hard to override</div>
+<pre><code><span class="sel">.card .content a</span> { <span class="kw">color</span>: inherit; }   <span class="cmt">→ (0, 2, 1)</span></code></pre>
+
+<p>…then a consumer who writes <code>.my-link { color: red }</code> — a perfectly reasonable, single-class selector — gets nothing. They have to escalate. They'll write <code>.card .content .my-link</code>, or give up and use <code>!important</code>, and now your library has made their codebase worse.</p>
+
+<div class="label label-good">✅ Trivially overridable</div>
+<pre><code><span class="sel">:where(.card .content) a</span> { <span class="kw">color</span>: inherit; }   <span class="cmt">→ (0, 0, 1)</span></code></pre>
+
+<p>Now your default is as weak as a bare element selector. Any single class the consumer writes beats it. You've expressed "this is a default, not a decision" in the language of the cascade itself. That's the whole point of <code>:where()</code>, and it's a genuinely great thing to bring up in an interview because it shows you think about CSS as an API other people consume.</p>
+
+<div class="box box-hood">
+  <p class="box-title">Under the hood</p>
+  <p>A neat trick that falls out of this: <code>:where()</code> is a clean way to lower the specificity of any selector you're stuck with. Need <code>#legacy-widget</code> in a selector but don't want the ID weight? <code>:where(#legacy-widget) .thing</code> gives you the match without the (1,0,0).</p>
+</div>
+
+<h2 id="inheritance">Inheritance is not the cascade</h2>
+
+<p>These two get conflated constantly, and keeping them separate will save you real debugging time.</p>
+
+<p><strong>The cascade</strong> answers: <em>this element has several declarations competing for one property — which wins?</em></p>
+
+<p><strong>Inheritance</strong> answers: <em>this element has</em> no <em>declaration for a property at all — now what?</em></p>
+
+<p>Only when nothing in the cascade produced a value does inheritance kick in. And it only applies to <em>inherited properties</em> — a fixed list that's roughly "things about text": <code>color</code>, <code>font-family</code>, <code>font-size</code>, <code>line-height</code>, <code>letter-spacing</code>, <code>text-align</code>, <code>visibility</code>, <code>cursor</code>, <code>list-style</code>. Box-ish properties (<code>border</code>, <code>padding</code>, <code>background</code>, <code>width</code>, <code>display</code>) do <strong>not</strong> inherit, because inheriting them would be chaos — imagine every descendant of a bordered box getting its own border.</p>
+
+<p>Here's the failure this distinction explains:</p>
+
+<pre><code>&lt;div <span class="sel">class</span>=<span class="str">"sidebar"</span>&gt;
+  &lt;p&gt;Some text&lt;/p&gt;
+&lt;/div&gt;
+
+<span class="sel">#page .sidebar</span> { <span class="kw">color</span>: red; }    <span class="cmt">/* (1,1,0) — super specific! */</span>
+<span class="sel">p</span>             { <span class="kw">color</span>: blue; }   <span class="cmt">/* (0,0,1) — barely anything */</span></code></pre>
+
+<p>The paragraph is <strong>blue</strong>. Not red. Take a moment with that, because it feels wrong.</p>
+
+<p>The reason: those two rules were never competing. <code>#page .sidebar</code> targets the <em>div</em>, not the paragraph. For the paragraph, the cascade found exactly one declaration — <code>p { color: blue }</code> — and it won by default. Inheritance never even ran, because inheritance is the fallback for when the cascade comes up empty, and it didn't.</p>
+
+<p>The rule to carry around: <strong>a directly-targeted declaration always beats an inherited value, no matter how weak the direct selector or how specific the ancestor's.</strong> Inherited values are the weakest thing in CSS. They lose to everything, including the user-agent stylesheet.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — so why don't links inherit my body colour?</p>
+  <p>Exactly this. You set <code>body { color: #333 }</code> and every paragraph obeys, but links stay blue. That's because the user-agent stylesheet has a real declaration, <code>a:-webkit-any-link { color: -webkit-link }</code>, directly targeting the anchor. A direct declaration — even one from the weakest origin there is — beats an inherited value. To fix it you need to target the link yourself: <code>a { color: inherit }</code>, which explicitly asks for the inherited value.</p>
+</div>
+
+<p>Which brings up the four global keywords, all of which work on <em>any</em> property:</p>
+
+<ul>
+  <li><code>inherit</code> — take the parent's computed value, even for a non-inherited property.</li>
+  <li><code>initial</code> — reset to the property's spec default (note: <code>display: initial</code> is <code>inline</code>, not "whatever it was" — this catches people).</li>
+  <li><code>unset</code> — behave like <code>inherit</code> if the property inherits, <code>initial</code> if it doesn't.</li>
+  <li><code>revert</code> — roll back to what the previous origin said, i.e. the user-agent style. This is the one you usually actually want when "un-styling" something.</li>
+</ul>
+
+<h2 id="important">!important and the escape ladder</h2>
+
+<p>So why is <code>!important</code> treated as a code smell rather than just another tool?</p>
+
+<p>Because it's not a level — it's a <em>second, parallel cascade</em>. Once you have two <code>!important</code> declarations, all the normal rules resume inside the important tier: specificity, then source order. So the person who needs to override your <code>!important</code> has exactly one move available, which is another <code>!important</code> with higher specificity. And then the next person needs one with higher specificity than <em>that</em>. It's an escalation ladder with no top rung, and every step makes the stylesheet harder to reason about for everyone who comes after.</p>
+
+<p>The deeper problem: <code>!important</code> usually isn't fixing a cascade problem, it's <em>hiding</em> one. The real issue is normally "our selectors are too specific" or "these two stylesheets load in an order nobody controls."</p>
+
+<h3>The escape ladder — try these in order</h3>
+
+<p>When a style isn't applying and you're tempted to reach for <code>!important</code>, walk down this list. Stop at the first one that works.</p>
+
+<ol>
+  <li><strong>Actually read DevTools.</strong> Is the rule struck out (lost the cascade), or not listed at all (selector doesn't match / syntax error / the file didn't load)? These are completely different bugs and people misdiagnose them constantly. A typo'd property name silently kills only that line; a typo'd selector kills the whole block.</li>
+  <li><strong>Move the rule later.</strong> If specificity is tied, source order settles it. Free fix.</li>
+  <li><strong>Match the specificity, don't exceed it.</strong> If the winning rule is <code>.card .title</code>, write a selector that's also (0,2,0) and put it after. Now you're a peer, not an escalation.</li>
+  <li><strong>Lower the <em>other</em> rule instead.</strong> Often the honest fix. Wrap the over-specific ancestor part in <code>:where()</code> and the whole fight evaporates.</li>
+  <li><strong>Use <code>@layer</code></strong> to declare, once and explicitly, which bucket of CSS outranks which. More on this next.</li>
+  <li><strong>Now consider <code>!important</code></strong> — and if you do, leave a comment saying why.</li>
+</ol>
+
+<h3>When !important is actually the right call</h3>
+
+<p>There are legitimate uses, and knowing them is a good interview signal because it shows judgement rather than dogma:</p>
+
+<ul>
+  <li><strong>Overriding third-party CSS you don't control</strong> — a widget, a payment iframe wrapper, an old plugin that ships <code>!important</code> itself. You're not in a cascade you can restructure.</li>
+  <li><strong>Utility classes with one job.</strong> <code>.sr-only</code> (visually hidden for screen readers) or <code>.hidden { display: none !important }</code> — the entire point of the class is "this wins, always, regardless of context." Tailwind ships an <code>!important</code> mode for exactly this reason.</li>
+  <li><strong>User stylesheets and accessibility overrides</strong> — the case the spec was literally designed for.</li>
+  <li><strong>A firebreak in a crisis</strong>, with a ticket filed. Sometimes prod is broken at 4pm and honesty beats purity. Just write the comment.</li>
+</ul>
+
+<h2 id="layers">@layer: the modern answer to specificity wars</h2>
+
+<p>Here's the structural problem <code>@layer</code> solves. You have reset styles, then a design system, then component styles, then page-specific overrides. You want them to win in that order, always. But the cascade doesn't know about your architecture — it only sees selectors. So a reset written as <code>ul li</code> can beat a component written as <code>.menu-item</code>, purely by accident, and you spend your afternoon on it.</p>
+
+<p><strong>Cascade layers let you declare that ordering explicitly</strong>, and layer order is checked <em>before</em> specificity. That's the key sentence.</p>
+
+<pre><code><span class="cmt">/* declare the order once, up top — this line alone sets priority */</span>
+<span class="kw">@layer</span> reset, base, components, utilities;
+
+<span class="kw">@layer</span> reset {
+  <span class="sel">#main ul li</span> { <span class="kw">margin</span>: 0; }      <span class="cmt">/* (1,0,3) — enormous */</span>
+}
+
+<span class="kw">@layer</span> components {
+  <span class="sel">.menu-item</span> { <span class="kw">margin</span>: 8px; }      <span class="cmt">/* (0,1,0) — tiny, and it WINS */</span>
+}</code></pre>
+
+<p>The tiny class beats the ID selector, because <code>components</code> is a later layer than <code>reset</code> and layer order is consulted first. Specificity only breaks ties <em>within</em> a layer.</p>
+
+<p>Two more things worth knowing. Unlayered CSS is <strong>stronger</strong> than any layer — it sits at the top, above all of them. That's deliberate: you can drop a third-party stylesheet into a low-priority layer with <code>@import url(vendor.css) layer(vendor)</code>, and all your own ordinary CSS automatically outranks it without a single <code>!important</code>. That one trick alone justifies the feature.</p>
+
+<p>And the inversion again: <strong>inside the <code>!important</code> tier, layer order reverses.</strong> An <code>!important</code> in an <em>earlier</em> layer beats an <code>!important</code> in a later one. It's the same protective logic as the user/author flip — the low-priority layer gets to say "no, I really mean this one."</p>
+
+<h2 id="scale">Why Tailwind and CSS-in-JS exist</h2>
+
+<p>Before we leave the cascade, one thought that reframes a lot of tooling arguments — and it's a great thing to have ready, because it makes you sound like you've reasoned about the tools rather than picked a side.</p>
+
+<p>The cascade is a brilliant design for <em>documents</em>: a few stylesheets, a few authors, global inheritance as a feature. It gets hard when hundreds of components by dozens of people share one global namespace and one flat ordering. Three pains show up: <strong>everything is global</strong> (name a class <code>.card</code> and you may have restyled another team's feature); <strong>specificity is a ratchet</strong> (the only reliable override is to be more specific, so it only ever climbs); and <strong>nothing can safely be deleted</strong>, because nobody can prove <code>.legacy-promo-banner</code> is unused.</p>
+
+<p>Every modern styling approach is an answer to those three. Tailwind flattens the cascade — one declaration per class, all the same specificity, so it never has to arbitrate. CSS Modules and CSS-in-JS generate the names at build time, so collisions become impossible by construction. Same underlying question: <em>how do we get module boundaries into a language that doesn't have them?</em></p>
+
+<p>We compare them properly, tradeoffs and all, near the end of the guide.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "Walk me through how the browser decides which CSS rule applies." · "What's specificity?" · "Does an ID beat ten classes?" · "When would you use <code>!important</code>?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"The browser resolves each property independently, and it goes through a few steps in order. First origin and importance — browser defaults, then user styles, then author styles, with <code>!important</code> flipping that order so a user's important beats an author's. Then cascade layers if you're using <code>@layer</code>. Then specificity, which is a tuple of IDs, classes, and elements compared left to right — so one ID beats any number of classes, because it's not a base-10 sum. And if all of that ties, the last declaration in source order wins. I try to keep specificity flat and reach for <code>:where()</code> or <code>@layer</code> instead of <code>!important</code>."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you named the order <em>and</em> you knew specificity isn't step one. Most candidates start and end at specificity. Mentioning the <code>!important</code> origin inversion and <code>@layer</code> signals you've read the actual model rather than absorbed folklore.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"So does one ID beat ten classes?"</strong> Yes, always. Specificity is compared bucket by bucket from the left; the ID bucket differs, so the comparison stops there and the class bucket is never read. It's like version numbers — 2.0.0 beats 1.99.99.</p>
+  <p><strong>"Why not just use <code>!important</code> when you're in a hurry?"</strong> Because it isn't a level, it's a parallel cascade. The only way anyone can override it later is another <code>!important</code>, so you've handed the next person a worse problem than the one you had. I'd try source order, matching specificity, or wrapping the offending selector in <code>:where()</code> first. I <em>would</em> use it for a genuine always-wins utility like <code>.sr-only</code> or to beat third-party CSS I don't control.</p>
+  <p><strong>"My rule has higher specificity than the parent's but the child still isn't red — why?"</strong> Probably because they were never competing. Specificity only compares declarations targeting the same element. An inherited value loses to <em>any</em> direct declaration on the child, however weak — even the browser's own default. That's the cascade-versus-inheritance distinction.</p>
+  <p><strong>"Does a media query add specificity?"</strong> No. Zero. It wins only by being later in the source, which is why a stray rule added below your breakpoint block can silently break responsive styles.</p>
+  <p><strong>"What's <code>:where()</code> for?"</strong> Zero specificity. It's how you ship defaults in a library that consumers can override with a single plain class, instead of forcing them into an escalation war.</p>
+  <p><strong>Trap:</strong> saying "IDs are 100 points, classes are 10." It's the folklore version, it's wrong at the boundary, and it's the exact thing the ten-classes question is designed to catch.</p>
+</div>
+
+<h2 id="stacking">Stacking contexts and z-index</h2>
+
+<p>Time for the single most infuriating bug in frontend, the one I guarantee you will hit in real work: <strong>the modal that renders behind the header.</strong></p>
+
+<p>You've built a nice modal. It's <code>position: fixed</code>, it covers the screen, and you gave it <code>z-index: 9999</code> because obviously that's higher than anything else on the page. And it renders <em>behind</em> the site header, which has <code>z-index: 10</code>.</p>
+
+<p>You bump it to <code>z-index: 999999</code>. Still behind. You add more nines. Nothing changes. At this point the natural conclusion is "z-index is broken," and honestly, that's a reasonable thing to think — until you learn the one concept that explains it.</p>
+
+<h3>First: z-index doesn't work on everything</h3>
+
+<p>Before the big idea, clear a smaller misconception out of the way. <code>z-index</code> is <strong>ignored entirely on statically positioned elements</strong>. If an element has <code>position: static</code> (the default — i.e. you never set <code>position</code>), then <code>z-index: 500</code> does literally nothing. The browser doesn't warn you. It just quietly discards it.</p>
+
+<div class="label label-bad">❌ z-index silently ignored</div>
+<pre><code><span class="sel">.tooltip</span> { <span class="kw">z-index</span>: 100; }   <span class="cmt">/* no position → no effect */</span></code></pre>
+
+<div class="label label-good">✅ z-index applies</div>
+<pre><code><span class="sel">.tooltip</span> { <span class="kw">position</span>: relative; <span class="kw">z-index</span>: 100; }</code></pre>
+
+<p>The one exception worth memorising: <strong>flex and grid children can use <code>z-index</code> without being positioned.</strong> A direct child of a <code>display: flex</code> or <code>display: grid</code> container honours <code>z-index</code> even when it's <code>position: static</code>. That's a genuinely useful little fact and a nice thing to know in an interview.</p>
+
+<h3>Now the big idea: a stacking context is a sealed box</h3>
+
+<p>Here's the mental model that makes all of this click.</p>
+
+<p>Certain CSS properties cause an element to create a <strong>stacking context</strong>. Think of it as putting that element and everything inside it into a <strong>sealed, opaque box</strong>. Once something is in that box:</p>
+
+<ul>
+  <li>Its children can be layered <em>relative to each other</em>, freely, with any <code>z-index</code> values you like.</li>
+  <li>But the entire box is placed into <em>its</em> parent's layering as a <strong>single unit</strong>, at the box's own z-index.</li>
+  <li><strong>Nothing inside the box can ever escape it.</strong> Not with <code>z-index: 999999</code>. Not with anything.</li>
+</ul>
+
+<p>The analogy I like: it's a <strong>stack of numbered envelopes</strong>. Inside envelope #1 you can arrange a hundred sheets of paper in any order you want — page 999 on top of page 1, sure. But envelope #1 sits underneath envelope #2 in the pile, and no sheet of paper inside envelope #1 can rise above envelope #2, because it's <em>inside an envelope</em>. Its ordering only ever applies to its siblings in the same envelope.</p>
+
+<p>(Where the analogy breaks down: envelopes are opaque, and stacking contexts are usually visually transparent — you can see through them fine. It's only the <em>ordering</em> that's sealed, not the pixels.)</p>
+
+<p>Let's see it happen.</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — the sealed box</p>
+  <p>Blue has <code>z-index: 1</code>. Red has <code>z-index: 2</code>. Green lives <em>inside</em> blue and has <code>z-index: 999999</code>. Watch where green ends up.</p>
+  <input type="checkbox" id="stk-toggle" class="toggle-check stk-check">
+  <div class="stk-scene">
+    <div class="stk-a">Blue parent<br>z-index: 1
+      <div class="stk-child">Green child &mdash; z-index: 999999</div>
+    </div>
+    <div class="stk-b">Red sibling<br>z-index: 2</div>
+  </div>
+  <div class="stk-caption">
+    <p class="stk-when-off">Green is stuck under red, despite its absurd z-index. Blue created a stacking context (it's positioned <em>and</em> has a z-index), sealing green inside it. The whole blue box sits at layer 1, and red's layer 2 covers it.</p>
+    <p class="stk-when-on">Now blue has <code>z-index: auto</code>, so it no longer creates a stacking context. Green is promoted into the <em>page's</em> stacking context, where it competes directly with red &mdash; and 999999 beats 2. Nothing about green changed. We only changed its parent.</p>
+  </div>
+  <div class="toggle-row" style="margin-top:14px; margin-bottom:0">
+    <label for="stk-toggle" class="toggle-btn">Toggle: remove z-index from blue parent</label>
+  </div>
+</div>
+
+<p>Read that last sentence again, because it's the whole lesson: <strong>we fixed the child's layering by changing the parent.</strong> Nothing about the green element was wrong. The problem was never where you were looking.</p>
+
+<p>This is exactly the modal bug. Your modal has <code>z-index: 9999</code>, but it's rendered inside some component — a card, a sidebar, a <code>.page-content</code> wrapper — that itself creates a stacking context with a low z-index. The modal is sealed inside that envelope. The header sits in a higher envelope. Adding nines is like writing a bigger number on a sheet of paper inside a sealed envelope and hoping the mail sorter notices.</p>
+
+<h3>What creates a stacking context?</h3>
+
+<p>This is the list that turns "z-index is haunted" into "oh, it's that <code>transform</code> on line 40." Some of these are notorious for catching people out.</p>
+
+<ul>
+  <li><strong>The root element</strong> (<code>&lt;html&gt;</code>). Always. Everything lives in this one.</li>
+  <li><strong><code>position: relative | absolute</code> with a <code>z-index</code> other than <code>auto</code></strong>. The classic. Note both halves are required — positioned with <code>z-index: auto</code> does <em>not</em> create one.</li>
+  <li><strong><code>position: fixed</code> or <code>position: sticky</code></strong> — these create one <em>always</em>, z-index or not.</li>
+  <li><strong><code>opacity</code> less than 1</strong>. Yes, <code>opacity: 0.99</code> counts. This one has ruined many afternoons.</li>
+  <li><strong>Any <code>transform</code></strong> other than <code>none</code> — including <code>transform: translateZ(0)</code>, the old "GPU hack."</li>
+  <li><strong><code>filter</code>, <code>backdrop-filter</code></strong> other than <code>none</code>.</li>
+  <li><strong><code>will-change</code></strong> naming any property that would itself create one (e.g. <code>will-change: opacity</code> or <code>transform</code>).</li>
+  <li><strong><code>isolation: isolate</code></strong> — creates one and does nothing else. That's its entire job.</li>
+  <li><strong><code>mix-blend-mode</code></strong> other than <code>normal</code>.</li>
+  <li><strong>Flex/grid children with a <code>z-index</code></strong> other than <code>auto</code>.</li>
+  <li><strong><code>contain: paint | layout | strict | content</code></strong>, and <code>content-visibility</code>.</li>
+  <li>Plus a few rarer ones: <code>perspective</code>, <code>clip-path</code>, <code>mask</code>, <code>view-transition-name</code>.</li>
+</ul>
+
+<p>Notice the pattern that ties most of these together. <code>opacity</code>, <code>transform</code>, <code>filter</code>, <code>mix-blend-mode</code> — every one of them is an effect the browser must apply to <em>the element and all its descendants as a single composited image</em>. To fade a card to 50%, the browser has to render the entire card-plus-contents into one buffer and then fade that buffer. It cannot do that if some descendant is allowed to jump out and paint on top of an unrelated element elsewhere on the page. Creating a stacking context isn't a quirk — it's the necessary consequence of "this subtree is rendered as one image."</p>
+
+<p>Here's the <code>opacity: 0.99</code> version, since it's the most confusing member of the family:</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — opacity: 0.99 breaks layering</p>
+  <p>Purple is positioned but has <em>no</em> z-index. Green is its child (z-index: 5). Red is an unrelated sibling (z-index: 2).</p>
+  <input type="checkbox" id="opd-toggle" class="toggle-check opd-check">
+  <div class="opd-scene">
+    <div class="opd-parent">Purple parent<br>no z-index
+      <div class="opd-child">Green child (z-index: 5)</div>
+    </div>
+    <div class="opd-sibling">Red sibling (z-index: 2)</div>
+  </div>
+  <div class="toggle-row" style="margin-top:14px; margin-bottom:0">
+    <label for="opd-toggle" class="toggle-btn">Toggle: add opacity: 0.99 to purple</label>
+  </div>
+  <p style="margin-top:12px; font-size:0.93rem">With opacity on, purple becomes a stacking context. Green gets sealed inside it, and since purple has no z-index of its own it sits at layer 0 — below red's layer 2. The green box drops behind red, and the page looks <em>identical</em> otherwise, because 99% opacity is visually indistinguishable from 100%. That's what makes this bug so nasty: the property that broke your layering is invisible.</p>
+</div>
+
+<div class="box box-mis">
+  <p class="box-title">A common misconception</p>
+  <p>"z-index: 9999 always puts something on top." It puts something on top <em>of its siblings within its own stacking context</em> — and that's all it has ever meant. The number is meaningless outside that box. Two elements' z-indexes are only ever comparable if they live in the same stacking context. Comparing a z-index of 9999 in one context to 2 in another is like comparing a page number in one book to a page number in a different book.</p>
+</div>
+
+<h3>Painting order within a context</h3>
+
+<p>Within a single stacking context, the browser paints back-to-front in a defined order. You don't need to recite all seven layers, but knowing the shape of it explains several everyday behaviours:</p>
+
+<div class="paint-stack" style="margin-bottom:22px">
+  <div class="paint-row"><span class="paint-num">1</span><span>The context root's background and borders</span></div>
+  <div class="paint-row"><span class="paint-num">2</span><span>Child stacking contexts with <strong>negative</strong> z-index</span></div>
+  <div class="paint-row"><span class="paint-num">3</span><span>Non-positioned <strong>block</strong> descendants (backgrounds, borders)</span></div>
+  <div class="paint-row"><span class="paint-num">4</span><span>Non-positioned <strong>floats</strong></span></div>
+  <div class="paint-row"><span class="paint-num">5</span><span>Inline content &mdash; <strong>text</strong>, images in text flow</span></div>
+  <div class="paint-row"><span class="paint-num">6</span><span>Positioned elements with <code>z-index: auto</code> or <code>0</code></span></div>
+  <div class="paint-row"><span class="paint-num">7</span><span>Child stacking contexts with <strong>positive</strong> z-index (ascending)</span></div>
+</div>
+
+<p>Two useful consequences fall out of this list.</p>
+
+<p><strong>Text paints above block backgrounds by default.</strong> That's why <code>z-index: -1</code> on a decorative pseudo-element usually works nicely: layer 2 sits above the context root's own background (layer 1) but below the text (layer 5). Your decoration slides in behind the words without hiding the parent's background.</p>
+
+<p><strong>…unless the parent creates a stacking context.</strong> If the parent has, say, a <code>transform</code>, then the parent <em>is</em> the context root — its background is layer 1, and your <code>z-index: -1</code> child at layer 2 now sits above it. The decoration that was invisible behind the card suddenly covers it. Same code, different parent.</p>
+
+<p><strong>And equal z-index ties break by DOM order</strong> — later elements paint on top. So two elements with <code>z-index: 1</code> layer by whichever comes last in the HTML. If you've ever "fixed" an overlap by moving a div lower in the markup, this is why.</p>
+
+<h3>isolation: isolate — the deliberate tool</h3>
+
+<p>Since all the usual stacking-context triggers are side effects of something else, we needed a way to create one <em>on purpose</em>. That's <code>isolation: isolate</code>. It creates a stacking context and changes nothing else — no visual effect, no layout effect, no performance cost worth mentioning.</p>
+
+<p>Why would you want more sealed boxes when they're the source of all this pain? Because containment cuts both ways. When you're shipping a component, sealing it means its internal z-indexes are <em>guaranteed</em> not to leak out and fight with the rest of the page:</p>
+
+<pre><code><span class="sel">.comment-card</span> {
+  <span class="kw">isolation</span>: isolate;   <span class="cmt">/* 👈 internal z-indexes stay internal */</span>
+}
+<span class="sel">.comment-card__badge</span> { <span class="kw">position</span>: absolute; <span class="kw">z-index</span>: 10; }</code></pre>
+
+<p>Now that <code>z-index: 10</code> means "on top of things inside this card," full stop. It can't accidentally cover the site nav. You've made the component's layering a private implementation detail — the same instinct that makes you scope class names.</p>
+
+<p>The older trick for this was <code>transform: translateZ(0)</code> or <code>opacity: 0.999</code>, which worked by accident and confused everyone reading the code. <code>isolation: isolate</code> says what it means.</p>
+
+<h3>So how do we actually fix the modal?</h3>
+
+<p>Three approaches, in increasing order of how much I like them.</p>
+
+<p><strong>1. Find and remove the trapping context.</strong> Open DevTools, walk up the DOM from your modal, and look at each ancestor for anything on the list above — a stray <code>transform</code>, an <code>opacity</code>, a <code>filter</code>, a <code>position: relative; z-index: 1</code>. Chrome's Layers panel and the "computed" tab help. Sometimes the fix is simply deleting a z-index that was never needed. This works, but it's fragile: the next person to add a hover animation with a <code>transform</code> to that wrapper re-breaks it, and they'll have no idea why.</p>
+
+<p><strong>2. Render the modal in a portal.</strong> This is the real fix, and it's why React has <code>createPortal</code> and Vue has <code>&lt;Teleport&gt;</code>. Keep the modal component where it belongs logically in your component tree — state, props, event handlers all unchanged — but render its DOM node as a direct child of <code>&lt;body&gt;</code>.</p>
+
+<pre><code><span class="kw">import</span> { createPortal } <span class="kw">from</span> <span class="str">'react-dom'</span>;
+
+<span class="kw">function</span> Modal({ children }) {
+  <span class="kw">return</span> createPortal(
+    &lt;div className=<span class="str">"modal-overlay"</span>&gt;{children}&lt;/div&gt;,
+    document.body            <span class="cmt">// 👈 escapes every ancestor context</span>
+  );
+}</code></pre>
+
+<p>Because the node is now a child of <code>&lt;body&gt;</code>, there are no trapping ancestors left. Its z-index is compared against the header's in the root stacking context, where the comparison actually means something. This also fixes the sibling problem of <code>overflow: hidden</code> on an ancestor clipping your modal.</p>
+
+<p>The native version of this idea is the <code>&lt;dialog&gt;</code> element opened with <code>showModal()</code>. It renders in the browser's <strong>top layer</strong>, which sits above the entire page regardless of stacking contexts or z-index — plus you get focus trapping, Escape-to-close, and inert background content for free. If you're building a modal today and don't need to support ancient browsers, start there.</p>
+
+<p><strong>3. Stop inventing z-index numbers.</strong> Whatever else you do, don't let <code>9999</code>, <code>10000</code>, and <code>99999999</code> accumulate in a codebase. Define the layers once and use names:</p>
+
+<pre><code><span class="sel">:root</span> {
+  <span class="kw">--z-dropdown</span>: 100;
+  <span class="kw">--z-sticky-header</span>: 200;
+  <span class="kw">--z-modal-backdrop</span>: 300;
+  <span class="kw">--z-modal</span>: 310;
+  <span class="kw">--z-toast</span>: 400;
+}
+<span class="sel">.modal</span> { <span class="kw">z-index</span>: <span class="kw">var</span>(--z-modal); }</code></pre>
+
+<p>Now "should this be above the header?" is a question with a documented answer instead of a game of numeric chicken.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "Why isn't my z-index working?" · "A modal is appearing behind the header — how do you debug it?" · "What creates a stacking context?" · "Why would <code>opacity: 0.99</code> change my layering?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"Usually one of two things. Either the element isn't positioned — z-index is ignored on <code>position: static</code>, apart from flex and grid children — or, more often, it's trapped in a stacking context. A stacking context is a sealed box: children can layer freely inside it, but the whole box is placed in its parent as one unit, so a child with z-index 999999 can never rise above a sibling of the box itself. I'd walk up the DOM in DevTools looking for what created it — a transform, an opacity below 1, a filter, a fixed or sticky position, will-change. For a modal specifically the right fix is a portal to <code>document.body</code>, or the native <code>&lt;dialog&gt;</code> element, so there are no trapping ancestors at all."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you diagnosed rather than guessed, you named the sealed-box model, and you gave a structural fix instead of "raise the number." The portal answer especially signals you've shipped this in a real app.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"Why does <code>opacity: 0.99</code> break my layering when 1 doesn't?"</strong> Because any opacity below 1 forces the browser to render that element and its whole subtree into a single buffer before fading it — which means it must create a stacking context, or a descendant could paint outside the group being faded. Visually 0.99 and 1 are identical, so the cause is invisible; that's what makes it such a mean bug.</p>
+  <p><strong>"Can't you just use <code>z-index: 2147483647</code>?"</strong> That's the 32-bit signed integer max, and no — if the element is inside a stacking context the number is irrelevant, since it's only ever compared against siblings in that same context. And if it <em>does</em> work, you've just guaranteed the next person has nowhere to go.</p>
+  <p><strong>"Does <code>position: fixed</code> always create a stacking context?"</strong> Yes, fixed and sticky both do, regardless of z-index. Fixed also has a related trap: an ancestor with a <code>transform</code>, <code>filter</code>, or <code>perspective</code> becomes the containing block for fixed positioning, so your "fixed to the viewport" element ends up fixed to that ancestor instead.</p>
+  <p><strong>"How do two elements with the same z-index order?"</strong> By DOM order — later paints on top. And an unpositioned block's background paints below inline text in the same context, which is why <code>z-index: -1</code> pseudo-element decorations usually tuck behind text but above the parent background.</p>
+  <p><strong>"What's <code>isolation: isolate</code> for?"</strong> Creating a stacking context deliberately with no other side effect. I use it on components so their internal z-indexes can't leak out and fight with the page — layering as an implementation detail.</p>
+  <p><strong>Trap:</strong> answering only "z-index needs position." True, but it's the shallow half. The interviewer is almost always probing for whether you know about stacking contexts.</p>
+</div>
+
+<h2 id="units">Units: px, em, rem, %, vh, ch, clamp()</h2>
+
+<p>CSS has an intimidating number of length units, and the usual advice ("use rem!") is right but unmotivated. Let's build up the reasons, because the differences genuinely matter — one of these choices affects whether your site is usable by someone with poor eyesight.</p>
+
+<h3>px — and the surprise that it isn't a pixel</h3>
+
+<p><code>px</code> feels like the simple one. It's a pixel. Sixteen pixels is sixteen pixels.</p>
+
+<p>Except a CSS pixel has not corresponded to a physical device pixel for well over a decade. On a modern phone, one CSS pixel might be three device pixels wide. That's the <strong>device pixel ratio</strong> — <code>window.devicePixelRatio</code> tells you what it is on the current screen. And when you pinch-zoom, one CSS pixel becomes even more device pixels.</p>
+
+<p>So what <em>is</em> a CSS pixel? It's an <strong>angular unit</strong> — roughly, the size that subtends a consistent visual angle at a typical viewing distance for that kind of device. The spec anchors it to 1/96th of an inch at arm's length. That's why 16px text looks about the same physical size on your laptop and on a phone held closer to your face, even though the phone has vastly more device pixels per inch. If it were a real device pixel, phone text would be microscopic.</p>
+
+<p>The practical upshot: <code>px</code> is an <em>absolute-within-CSS</em> unit. Fixed, predictable, unaffected by font sizes. Which is great for some things and a genuine accessibility problem for others — coming up.</p>
+
+<h3>em — relative to the element's own font-size</h3>
+
+<p><code>1em</code> equals the computed <code>font-size</code> of the element the property is on. If the element's font-size is 20px, then <code>padding: 1em</code> is 20px.</p>
+
+<p>There's a wrinkle that catches everyone exactly once: when you use <code>em</code> <em>in the <code>font-size</code> property itself</em>, there's no font-size on this element yet to reference — so it resolves against the <strong>parent's</strong> font-size. For every other property, <code>em</code> uses the element's own.</p>
+
+<pre><code><span class="sel">.card</span>       { <span class="kw">font-size</span>: 20px; }
+<span class="sel">.card .title</span> {
+  <span class="kw">font-size</span>: 1.5em;   <span class="cmt">/* 1.5 × 20px (parent)  = 30px */</span>
+  <span class="kw">padding</span>: 0.5em;     <span class="cmt">/* 0.5 × 30px (its own) = 15px */</span>
+}</code></pre>
+
+<p>That self-referential quality is <code>em</code>'s superpower <em>and</em> its trap. Superpower first: a button whose padding, border-radius, and gap are all in <code>em</code> scales as one coherent unit when you change only its font-size. One property, whole component resizes proportionally. That's lovely, and it's the right tool for it.</p>
+
+<p>The trap is <strong>compounding</strong>. Because <code>em</code> in <code>font-size</code> multiplies against the parent, nesting multiplies repeatedly:</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — em compounds, rem doesn't</p>
+  <p>Both columns apply the exact same rule to each nested level. On the left it's <code>font-size: 1.25em</code>; on the right, <code>font-size: 1.25rem</code>. Root font-size is 16px.</p>
+  <div class="emd-grid">
+    <div class="emd-col emd-root emd-em">
+      <div><strong>em</strong> <span class="emd-tag">1.25em each level</span></div>
+      <div class="emd-lvl">Level 1 <span class="emd-tag">= 20px</span>
+        <div class="emd-lvl">Level 2 <span class="emd-tag">= 25px</span>
+          <div class="emd-lvl">Level 3 <span class="emd-tag">= 31.25px</span>
+            <div class="emd-lvl">Level 4 <span class="emd-tag">= 39px</span>
+              <div class="emd-lvl">Level 5 <span class="emd-tag">= 48.8px 😅</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="emd-col emd-root emd-rem">
+      <div><strong>rem</strong> <span class="emd-tag">1.25rem each level</span></div>
+      <div class="emd-lvl">Level 1 <span class="emd-tag">= 20px</span>
+        <div class="emd-lvl">Level 2 <span class="emd-tag">= 20px</span>
+          <div class="emd-lvl">Level 3 <span class="emd-tag">= 20px</span>
+            <div class="emd-lvl">Level 4 <span class="emd-tag">= 20px</span>
+              <div class="emd-lvl">Level 5 <span class="emd-tag">= 20px</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p>Five levels deep and the <code>em</code> text is three times its intended size. And here's the thing that makes this a real production bug rather than a curiosity: <strong>you often can't see the nesting depth from the CSS.</strong> A rule like <code>li { font-size: 0.9em }</code> looks completely harmless until someone builds a three-level nested menu. Then the deepest items are at 73% and nobody knows why.</p>
+
+<h3>rem — relative to the root, and why it's the accessible default</h3>
+
+<p><code>rem</code> means "root em." <code>1rem</code> is always the computed font-size of the <code>&lt;html&gt;</code> element, no matter how deeply nested you are. No compounding, ever. One reference point for the whole document.</p>
+
+<p>By default the root font-size is 16px in every major browser, so <code>1rem = 16px</code>, <code>1.5rem = 24px</code>, <code>0.875rem = 14px</code>.</p>
+
+<p>Now the important part — <strong>why <code>rem</code> is the accessibility-friendly choice</strong>, because this is the bit interviewers care about.</p>
+
+<p>In every browser's settings there's a default font size. Users change it. People with low vision set it to 20px or 24px; it's one of the most-used accessibility features on the web, far more common than screen readers. That setting <strong>is</strong> the root font-size.</p>
+
+<p>So: if you size your text in <code>rem</code>, a user who sets their browser to 24px gets your whole type scale multiplied by 1.5. Everything grows, proportionally, exactly as they asked. If you size your text in <code>px</code>, their setting does <em>nothing</em>. Your 14px caption stays 14px, unreadable, and their only remaining option is page zoom — which scales layout too and often produces horizontal scrolling on a design that wasn't tested that way.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — doesn't browser <em>zoom</em> scale px anyway?</p>
+  <p>It does, and that's why this gets muddled. Zoom scales everything including px. But zoom and the font-size preference are two different controls. Zoom magnifies the whole page (including your carefully-tuned layout); the font-size setting adjusts <em>text</em> and leaves layout proportions alone. Many users prefer the latter, and a fair number don't know zoom exists but did find the "make text bigger" setting. Using <code>rem</code> means you respect both. Using <code>px</code> means you only respect one.</p>
+</div>
+
+<div class="box box-mis">
+  <p class="box-title">A common misconception</p>
+  <p>"Set <code>html { font-size: 62.5% }</code> so 1rem = 10px and the maths is easier." This was popular for years and it's a bad idea: it hard-codes an assumption that the user's base is 16px, and it scales down anyone who deliberately raised theirs. It doesn't <em>fully</em> break accessibility — everything still scales proportionally from their base — but it shrinks your whole design by 37.5% relative to the size the user asked for, which is precisely the opposite of what they wanted. If the arithmetic bothers you, let a preprocessor or a custom property do the conversion.</p>
+</div>
+
+<h3>% — the shape-shifter</h3>
+
+<p>Percentages are the least consistent unit in CSS, because <strong>a percentage means a different thing for every property.</strong> It's not one unit; it's a family of units that share a symbol.</p>
+
+<table>
+  <tr><th>Property</th><th>% is relative to…</th></tr>
+  <tr><td><code>width</code>, <code>max-width</code>, <code>left</code>, <code>right</code></td><td>the containing block's <strong>width</strong></td></tr>
+  <tr><td><code>height</code>, <code>top</code>, <code>bottom</code></td><td>the containing block's <strong>height</strong> (and if that height is <code>auto</code>, a percentage height is generally ignored)</td></tr>
+  <tr><td><code>padding</code> and <code>margin</code> — <em>all four sides</em></td><td>the containing block's <strong>width</strong>. Yes, including <code>padding-top</code>.</td></tr>
+  <tr><td><code>font-size</code></td><td>the <strong>parent's font-size</strong> (so <code>150%</code> ≡ <code>1.5em</code>)</td></tr>
+  <tr><td><code>line-height</code></td><td>the <strong>element's own font-size</strong></td></tr>
+  <tr><td><code>transform: translate()</code></td><td>the <strong>element's own</strong> size</td></tr>
+</table>
+
+<p>That third row is the one that surprises people every time: <strong>vertical padding and margin percentages resolve against <em>width</em>, not height.</strong> <code>padding-top: 50%</code> gives you padding equal to half the container's width.</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — padding: 10% on two different widths</p>
+  <div class="pcd-outer">
+    <div class="pcd-box">Full width. My padding is 10% of the container width — and it's the same on all four sides, including top and bottom.</div>
+    <div style="height:10px"></div>
+    <div class="pcd-box pcd-narrow">Half width, same rule. Notice the vertical padding shrank too, because it tracks width.</div>
+  </div>
+</div>
+
+<p>Weird? Absolutely. But it's the mechanism behind the classic aspect-ratio trick — <code>padding-top: 56.25%</code> makes a box that's always 16:9 regardless of width, which is how we did responsive video embeds for a decade. (These days just write <code>aspect-ratio: 16 / 9</code>. But the old trick explains the rule.)</p>
+
+<p>The reason for the rule, incidentally, is circularity avoidance: a block's height usually depends on its contents, so if vertical padding depended on height, and height depended on contents plus padding, you'd have an equation that eats itself. Width is determined before content is laid out, so it's a safe reference.</p>
+
+<p>And <code>line-height</code> has its own famous footgun. <code>line-height: 150%</code> and <code>line-height: 1.5</code> look equivalent, and they're not:</p>
+
+<pre><code><span class="sel">.parent</span> { <span class="kw">font-size</span>: 20px; <span class="kw">line-height</span>: 150%; }  <span class="cmt">/* computes to 30px NOW, */</span>
+<span class="sel">.parent .small</span> { <span class="kw">font-size</span>: 10px; }               <span class="cmt">/* child inherits 30px 😬 */</span>
+
+<span class="sel">.parent</span> { <span class="kw">font-size</span>: 20px; <span class="kw">line-height</span>: 1.5; }   <span class="cmt">/* the RATIO inherits, */</span>
+<span class="sel">.parent .small</span> { <span class="kw">font-size</span>: 10px; }               <span class="cmt">/* child computes 15px ✅ */</span></code></pre>
+
+<p>A percentage <code>line-height</code> is computed on the parent and the <em>result</em> inherits. A unitless one inherits as a multiplier and is recomputed per element. Always use unitless line-height.</p>
+
+<h3>vw, vh, and the mobile address bar</h3>
+
+<p><code>1vw</code> is 1% of the viewport width; <code>1vh</code> is 1% of the viewport height. <code>vmin</code> and <code>vmax</code> take the smaller and larger of the two, which is handy for things that should behave sensibly in both orientations.</p>
+
+<p>Two catches with <code>vw</code> worth knowing. First, on desktop <code>100vw</code> includes the classic scrollbar's width, so <code>width: 100vw</code> on a page that scrolls vertically causes a horizontal scrollbar. Second — the big one — <code>vh</code> on mobile has been a mess for years.</p>
+
+<p>Here's the problem. On a phone, the browser's address bar hides when you scroll down and reappears when you scroll up. So the visible viewport height <em>changes as you scroll</em>. What should <code>100vh</code> be?</p>
+
+<p>If it tracked the real height, every scroll would resize <code>100vh</code> elements, reflowing and juddering the entire page continuously. Unacceptable. So browsers made <code>100vh</code> equal the <strong>largest</strong> possible viewport — the height with the address bar hidden — and kept it stable. Which means when the bar <em>is</em> showing, your "full height" hero is taller than the screen and its bottom edge, along with your call-to-action button, is cut off. Every developer has hit this and hacked around it with JavaScript setting a <code>--vh</code> custom property on resize.</p>
+
+<p>The modern fix is a set of viewport units that name what they mean:</p>
+
+<ul>
+  <li><strong><code>svh</code></strong> — <em>small</em> viewport height: as if the address bar is showing. The smallest it gets. Stable.</li>
+  <li><strong><code>lvh</code></strong> — <em>large</em> viewport height: as if the bar is hidden. Same as the old <code>vh</code>. Stable.</li>
+  <li><strong><code>dvh</code></strong> — <em>dynamic</em>: tracks the actual current height, live. Never clipped, but it <em>can</em> cause reflow as you scroll.</li>
+</ul>
+
+<pre><code><span class="sel">.hero</span> {
+  <span class="kw">min-height</span>: 100vh;    <span class="cmt">/* fallback for old browsers */</span>
+  <span class="kw">min-height</span>: 100dvh;   <span class="cmt">/* 👈 later, so it wins where supported */</span>
+}</code></pre>
+
+<p>That two-line pattern is worth remembering: a browser that doesn't understand <code>dvh</code> throws the second declaration away as invalid and keeps the first. Progressive enhancement, using nothing but the cascade's source-order rule. (There are <code>svw</code>/<code>lvw</code>/<code>dvw</code> too, but width rarely changes like this.)</p>
+
+<p>My default: <code>dvh</code> for full-screen heroes and mobile app shells where clipping the bottom would hide something important; <code>svh</code> when I need absolute stability and can live with a bit of extra space when the bar hides.</p>
+
+<h3>ch and ex — units made of type</h3>
+
+<p><code>1ch</code> is the width of the <code>0</code> character in the current font. <code>1ex</code> is the height of a lowercase <code>x</code>. They sound obscure but <code>ch</code> has one genuinely great use:</p>
+
+<pre><code><span class="sel">.article</span> { <span class="kw">max-width</span>: 65ch; }   <span class="cmt">/* ≈ 65 characters per line */</span></code></pre>
+
+<p>Typographers put the ideal line length at roughly 45–75 characters — long enough to read in rhythm, short enough that your eye finds the next line. <code>ch</code> lets you express that directly instead of guessing a pixel width and re-guessing it every time the font changes. It's approximate (proportional fonts have varying widths, and "0" is usually a bit wider than average, so you'll fit slightly more characters than the number suggests) — but it's approximate in the right units.</p>
+
+<h3>clamp(), min(), max() — fluid without breakpoints</h3>
+
+<p>These three take the maths CSS could always <em>almost</em> do and finish the job.</p>
+
+<p><code>min(a, b)</code> resolves to whichever is smaller <em>at that moment</em>; <code>max(a, b)</code> the larger. This lets you mix unit types in a way nothing else can:</p>
+
+<pre><code><span class="sel">.container</span> { <span class="kw">width</span>: <span class="kw">min</span>(90%, 1100px); }
+<span class="cmt">/* 90% on small screens, capped at 1100px on large ones —
+   one declaration instead of a width plus a max-width */</span></code></pre>
+
+<p>A useful mental flip: <code>min()</code> sets a <em>maximum</em> (nothing can exceed the smallest option) and <code>max()</code> sets a <em>minimum</em>. Reading them the intuitive way gets it backwards, and everyone gets it backwards at first.</p>
+
+<p>Then <code>clamp(minimum, preferred, maximum)</code>, which is the star. It's exactly <code>max(minimum, min(preferred, maximum))</code>, but readable.</p>
+
+<pre><code><span class="sel">h1</span> { <span class="kw">font-size</span>: <span class="kw">clamp</span>(1.75rem, 5vw + 1rem, 4rem); }</code></pre>
+
+<p>Read it as: never smaller than 1.75rem, never bigger than 4rem, and in between scale smoothly with the viewport. One line replaces a font-size plus three media queries, and the result is continuous rather than jumping at breakpoints.</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — clamp() type</p>
+  <div class="cld-box">
+    <p class="cld-title">Resize the window and watch me</p>
+    <p style="margin:8px 0 0; font-size:0.85rem; color:#8a7f6d"><code>font-size: clamp(1.05rem, 4vw + 0.3rem, 2.2rem)</code></p>
+  </div>
+</div>
+
+<p>One accessibility detail that separates people who've read about this from people who've shipped it: <strong>always include a <code>rem</code> term in the middle expression</strong>, as in <code>5vw + 1rem</code>. If the preferred value is pure <code>vw</code>, the text ignores the user's font-size setting entirely — viewport width doesn't care what they set — and in some browsers that also breaks zoom. Adding a rem component keeps a piece of the size tied to the user's preference. It's a one-token change that makes the difference between fluid type that's accessible and fluid type that isn't.</p>
+
+<h3>A practical unit policy</h3>
+
+<p>Here's what I'd actually reach for, and — more useful in an interview — <em>why</em>:</p>
+
+<table>
+  <tr><th>Use</th><th>Unit</th><th>Why</th></tr>
+  <tr><td>Font sizes</td><td><code>rem</code></td><td>Respects the user's browser font-size setting. Non-negotiable.</td></tr>
+  <tr><td>Spacing: margin, padding, gap</td><td><code>rem</code></td><td>Spacing scales with type, so bigger text doesn't get cramped.</td></tr>
+  <tr><td>Component-internal padding on a button/badge</td><td><code>em</code></td><td>Scales with that component's own font-size — resize by changing one property.</td></tr>
+  <tr><td>Borders, hairlines, outlines, small radii</td><td><code>px</code></td><td>A 1px border should stay 1px. In rem it becomes 1.5px at larger settings and renders blurry.</td></tr>
+  <tr><td>Media query breakpoints</td><td><code>em</code> (or rem)</td><td>Layout then adapts when the user enlarges text, not just when the window narrows. Note: in media queries <code>em</code> is always relative to the browser default, never your root size.</td></tr>
+  <tr><td>Line length</td><td><code>ch</code></td><td>Says "65 characters," which is the thing you actually mean.</td></tr>
+  <tr><td>Line height</td><td><em>unitless</em></td><td>Inherits as a ratio, so nested elements recompute correctly.</td></tr>
+  <tr><td>Fluid type and containers</td><td><code>clamp()</code>, <code>min()</code></td><td>Continuous scaling with hard floors and ceilings.</td></tr>
+  <tr><td>Full-screen sections</td><td><code>dvh</code> / <code>svh</code></td><td>Survives the mobile address bar.</td></tr>
+  <tr><td>Fluid widths within a parent</td><td><code>%</code></td><td>Relative to the container, not the viewport.</td></tr>
+</table>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "em vs rem — which do you use?" · "Why not just use px everywhere?" · "What does <code>padding: 10%</code> resolve against?" · "How do you do fluid typography?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"<code>em</code> is relative to the element's own font-size — the parent's, when you use it <em>in</em> font-size — so it compounds when you nest, and five levels of <code>1.25em</code> gets you triple-size text. <code>rem</code> is always relative to the root, so there's no compounding. I default to <code>rem</code> for type and spacing because the root font-size <em>is</em> the user's browser font-size preference, so rem-based text respects it and px-based text just ignores it. I still use <code>em</code> deliberately inside a component when I want its padding to scale with its own font-size, and <code>px</code> for things that should never scale, like 1px borders."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you gave the mechanism, the failure mode, <em>and</em> the accessibility reason — which is the real answer, and the one most candidates miss. Naming a case where <code>em</code> is correct shows judgement rather than cargo-culting "always rem."</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"Is a CSS pixel a device pixel?"</strong> No. It's an angular unit anchored to about 1/96in at a typical viewing distance; on a high-DPI phone one CSS px can be 3+ device pixels. That's what <code>devicePixelRatio</code> reports, and why 16px text looks similar across devices.</p>
+  <p><strong>"Why does <code>padding-top: 50%</code> depend on width?"</strong> All percentage padding and margin — all four sides — resolve against the containing block's <em>width</em>. If vertical padding used height, and height depended on content plus padding, you'd have a circular dependency. It's also the basis of the old aspect-ratio hack; today I'd use <code>aspect-ratio</code>.</p>
+  <p><strong>"Why not <code>font-size: 4vw</code> for fluid type?"</strong> It never stops scaling, so it's tiny on phones and enormous on a 4K monitor, and it ignores the user's font preference entirely because viewport width has nothing to do with it. <code>clamp(1.75rem, 5vw + 1rem, 4rem)</code> bounds it at both ends and keeps a rem component so the user's setting still matters.</p>
+  <p><strong>"What's wrong with <code>100vh</code> on mobile?"</strong> It's defined as the viewport with the address bar hidden, and kept stable so scrolling doesn't reflow the page — so while the bar is visible your full-height section overflows and its bottom is cut off. <code>dvh</code> tracks the live height, <code>svh</code> assumes the bar is showing, <code>lvh</code> matches the old behaviour.</p>
+  <p><strong>"Why unitless <code>line-height</code>?"</strong> A percentage or length computes once and the computed value inherits, so a small child inherits a huge line-height. Unitless inherits the ratio and recomputes per element.</p>
+  <p><strong>Trap:</strong> "rem is better because it's easier to calculate." That's not the reason and it invites a follow-up you'll then miss. The reason is user font-size preferences.</p>
+</div>
+
+<h2 id="customprops">CSS custom properties</h2>
+
+<p>If you've used Sass, you already have variables. So why did CSS add its own, years later, with clunkier syntax? Surely <code>$brand</code> beats <code>var(--brand)</code>?</p>
+
+<p>They're not the same feature. They're not even really the same <em>kind</em> of thing, and the difference is the single most important thing to understand here.</p>
+
+<h3>The one difference that matters: Sass variables are gone by the time the page loads</h3>
+
+<p>A Sass variable is a <strong>compile-time find-and-replace</strong>. You write <code>$brand: #3a6ea5</code>, and the compiler substitutes that value everywhere <code>$brand</code> appears, then throws the variable away. The CSS file the browser downloads has no idea a variable ever existed — it's just hex codes. The browser cannot change it, JavaScript cannot read it, and a media query cannot alter it, because <em>there is nothing there to alter</em>.</p>
+
+<p>A CSS custom property is a <strong>real property with a real value that lives in the browser at runtime</strong>. It participates in the cascade. It inherits. It can be recomputed, overridden, and read.</p>
+
+<p>The analogy: a Sass variable is like using find-and-replace in a Word document before you print it. A custom property is like a live spreadsheet cell — change the cell, and every formula referencing it updates immediately.</p>
+
+<p>Three concrete superpowers come from being alive at runtime.</p>
+
+<p><strong>1. They inherit through the cascade.</strong> A custom property set on an element is visible to all of its descendants — and can be overridden partway down the tree, for that subtree only.</p>
+
+<p><strong>2. They can be changed by a media query or a class</strong>, which means one declaration can restyle a whole page.</p>
+
+<p><strong>3. JavaScript can read and write them</strong>, giving you a supported bridge between JS state and CSS rendering:</p>
+
+<pre><code>card.style.setProperty(<span class="str">'--tilt'</span>, <span class="str">`</span>${angle}<span class="str">deg`</span>);
+getComputedStyle(card).getPropertyValue(<span class="str">'--brand'</span>);</code></pre>
+
+<p>Here's number one and two in action. The toggle below changes <strong>two custom properties on one container element</strong> — nothing else. Watch how many things move:</p>
+
+<div class="demo">
+  <p class="demo-title">Live demo — one override, many changes</p>
+  <input type="checkbox" id="vard-toggle" class="toggle-check vard-check">
+  <div class="vard-scene">
+    <div class="vard-card">Card one. My border and my <b>bold text</b> both read <code>var(--vard-brand)</code>.</div>
+    <div class="vard-card">Card two, same deal. <span class="vard-btn">A button</span></div>
+  </div>
+  <div class="toggle-row" style="margin-top:14px; margin-bottom:0">
+    <label for="vard-toggle" class="toggle-btn">Toggle theme override</label>
+  </div>
+  <p style="margin-top:12px; font-size:0.93rem">The rule doing the work is just <code>.vard-scene { --vard-brand: #a33a7a; --vard-radius: 2px }</code>. Every border, every bit of coloured text, every radius updates — because those elements <em>reference</em> the property rather than holding a copy of its value. This is impossible with Sass: by the time the browser sees the CSS, the Sass value has already been baked into each rule.</p>
+</div>
+
+<h3>Theming, properly</h3>
+
+<p>That demo is the entire mechanism behind modern theming. Define your tokens once at the root, then override the tokens — not the components — in a variant:</p>
+
+<pre><code><span class="sel">:root</span> {
+  <span class="kw">--surface</span>: #ffffff;
+  <span class="kw">--text</span>: #1c2024;
+  <span class="kw">--border</span>: #e4e0da;
+}
+
+<span class="sel">[data-theme="dark"]</span> {
+  <span class="kw">--surface</span>: #16181d;      <span class="cmt">/* 👈 three lines re-theme the app */</span>
+  <span class="kw">--text</span>: #e8eaee;
+  <span class="kw">--border</span>: #2c3038;
+}
+
+<span class="sel">.card</span> {
+  <span class="kw">background</span>: <span class="kw">var</span>(--surface);
+  <span class="kw">color</span>: <span class="kw">var</span>(--text);
+  <span class="kw">border</span>: 1px solid <span class="kw">var</span>(--border);
+}</code></pre>
+
+<p>Now <code>document.documentElement.dataset.theme = 'dark'</code> re-themes everything, instantly, with no re-render and no second stylesheet. Because custom properties inherit, that one attribute on <code>&lt;html&gt;</code> reaches every component in the tree.</p>
+
+<p>And it composes with media queries, which Sass could never do:</p>
+
+<pre><code><span class="kw">@media</span> (prefers-color-scheme: dark) {
+  <span class="sel">:root</span> { <span class="kw">--surface</span>: #16181d; <span class="kw">--text</span>: #e8eaee; }
+}
+<span class="kw">@media</span> (min-width: 60em) {
+  <span class="sel">:root</span> { <span class="kw">--gutter</span>: 2rem; }   <span class="cmt">/* one knob, whole layout responds */</span>
+}</code></pre>
+
+<h3>Fallbacks and scoping</h3>
+
+<p><code>var()</code> takes a second argument used when the property isn't defined:</p>
+
+<pre><code><span class="sel">.button</span> { <span class="kw">background</span>: <span class="kw">var</span>(--btn-bg, #3a6ea5); }         <span class="cmt">/* simple fallback */</span>
+<span class="sel">.button</span> { <span class="kw">background</span>: <span class="kw">var</span>(--btn-bg, <span class="kw">var</span>(--brand, #3a6ea5)); } <span class="cmt">/* chained */</span></code></pre>
+
+<p>This turns a component into a small API. You publish which custom properties you read, and consumers style you by setting them — no selector gymnastics, no specificity fight, no <code>!important</code>:</p>
+
+<pre><code><span class="cmt">/* the component defines its knobs, scoped to itself */</span>
+<span class="sel">.avatar</span> {
+  <span class="kw">--avatar-size</span>: 48px;
+  <span class="kw">width</span>: <span class="kw">var</span>(--avatar-size);
+  <span class="kw">height</span>: <span class="kw">var</span>(--avatar-size);
+}
+
+<span class="cmt">/* a consumer turns the knob — no override war */</span>
+<span class="sel">.comment-thread .avatar</span> { <span class="kw">--avatar-size</span>: 32px; }</code></pre>
+
+<p>Note that scoping matters for hygiene: <code>--avatar-size</code> defined on <code>.avatar</code> is invisible to the rest of the page, whereas everything on <code>:root</code> is global. Put genuine design tokens at the root; keep component knobs on the component.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — what happens if a var() is invalid?</p>
+  <p>Something unusual, and worth knowing because it produces confusing bugs. Normally an invalid declaration is discarded and the previous value stands. But a declaration containing a <code>var()</code> can't be validated until the variable is substituted, which happens later — so if the result is nonsense, the browser applies <strong>"invalid at computed-value time."</strong> The property is set to its inherited value (if it inherits) or its initial value. So a broken <code>color: var(--oops)</code> doesn't fall back to your earlier <code>color</code> rule — it can end up inheriting from the parent, or resetting to black. Fallbacks in <code>var()</code> are your defence.</p>
+</div>
+
+<h3>The gotcha: they're just strings</h3>
+
+<p>By default, a custom property is an untyped token stream. The browser doesn't know <code>--brand: #3a6ea5</code> is a colour; it's a bag of characters, substituted verbatim, and only checked for validity where it gets used.</p>
+
+<p>The visible consequence is that <strong>you cannot transition or animate a plain custom property</strong>. There's no "halfway between" two strings:</p>
+
+<pre><code><span class="sel">.card</span> {
+  <span class="kw">--glow</span>: #3a6ea5;
+  <span class="kw">box-shadow</span>: 0 0 20px <span class="kw">var</span>(--glow);
+  <span class="kw">transition</span>: --glow 300ms;   <span class="cmt">/* 👈 does nothing by default */</span>
+}</code></pre>
+
+<p>The fix is <code>@property</code>, which lets you give a custom property an actual type, an initial value, and inheritance behaviour:</p>
+
+<pre><code><span class="kw">@property</span> --glow {
+  syntax: <span class="str">'&lt;color&gt;'</span>;      <span class="cmt">/* 👈 now the browser knows it's a colour */</span>
+  inherits: <span class="kw">false</span>;
+  initial-value: #3a6ea5;
+}</code></pre>
+
+<p>With that registration, <code>--glow</code> animates smoothly, invalid values are rejected instead of poisoning the computed value, and you get a guaranteed initial value. It's also what makes previously-impossible things like animated gradient angles work.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "What's the difference between CSS variables and Sass variables?" · "How would you implement dark mode?" · "Can you animate a CSS variable?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"Sass variables are compile-time — they're substituted and then they're gone, so the browser never sees them. CSS custom properties are real properties that exist at runtime: they cascade, they inherit, and they can be changed by a media query, by adding a class, or from JavaScript. That's what makes runtime theming possible — I define colour tokens on <code>:root</code>, override them under a <code>[data-theme=dark]</code> selector, and every component that reads them updates instantly with no re-render. Sass variables are still fine for build-time constants like a breakpoint list you feed into a mixin."</p>
+  </div>
+  <p><strong>Why it lands:</strong> "compile-time versus runtime" is the crisp one-sentence version, and then you immediately showed what that buys you. Acknowledging Sass still has a place stops it sounding like you're reciting a trend.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"Why can't you use a custom property in a media query condition?"</strong> Because media queries are evaluated before the cascade produces computed values, and a custom property's value depends on the element it's on — but a media query isn't attached to any element. <code>@media (min-width: var(--bp))</code> doesn't work. That's a genuine case for a Sass variable, or newer <code>@custom-media</code>-style tooling.</p>
+  <p><strong>"Can you animate them?"</strong> Not plain ones — they're untyped token streams, so there's no interpolation between two strings. Register the property with <code>@property</code>, giving it <code>syntax: '&lt;color&gt;'</code> or <code>'&lt;length&gt;'</code>, and it becomes animatable.</p>
+  <p><strong>"What if a var() is undefined?"</strong> Use the second argument: <code>var(--x, fallback)</code>. Without one you hit "invalid at computed-value time" — the property falls back to inherited or initial, <em>not</em> to your previous declaration, which is a surprisingly common source of mystery black text.</p>
+  <p><strong>"Any downside?"</strong> They're dynamic, so the browser can't fold them away at build time, and a token changed high in the tree invalidates style for everything below it. It's rarely a real problem, but changing a root-level property inside a scroll handler on a huge page is a thing you can measure.</p>
+</div>
+
+<h2 id="responsive">Responsive design and container queries</h2>
+
+<h3>Start with the viewport meta tag, because nothing works without it</h3>
+
+<p>When phones first got real browsers, almost every site was a fixed 980px desktop layout. Showing that on a 320px screen would have meant a column of text one word wide. So mobile browsers cheated: they pretend to be about 980px wide, render the desktop layout, then zoom the whole thing out to fit. Site looks like a tiny postcard, but at least it's the right shape.</p>
+
+<p>That fallback is still on by default. Which means <strong>if you omit the viewport meta tag, your media queries never fire</strong> — the browser reports itself as 980px wide, your <code>min-width: 768px</code> rule matches, and your responsive design is shown, shrunk to unreadability.</p>
+
+<pre><code>&lt;meta <span class="sel">name</span>=<span class="str">"viewport"</span> <span class="sel">content</span>=<span class="str">"width=device-width, initial-scale=1"</span>&gt;</code></pre>
+
+<p>That says: use the device's real width, and start at 100% zoom. One line, and it's a prerequisite for everything below.</p>
+
+<p>One thing not to add: <code>user-scalable=no</code> or <code>maximum-scale=1</code>. It blocks pinch-zoom, which is an accessibility failure — plenty of people zoom into small text or a low-contrast label — and it's a WCAG violation. Modern iOS ignores it anyway.</p>
+
+<h3>Mobile-first: why min-width composes and max-width doesn't</h3>
+
+<p>Both of these produce the same result at both sizes:</p>
+
+<div class="label label-neutral">Desktop-first (max-width)</div>
+<pre><code><span class="sel">.sidebar</span> { <span class="kw">float</span>: left; <span class="kw">width</span>: 300px; <span class="kw">padding</span>: 2rem; }
+
+<span class="kw">@media</span> (max-width: 47.99em) {
+  <span class="sel">.sidebar</span> { <span class="kw">float</span>: none; <span class="kw">width</span>: auto; <span class="kw">padding</span>: 1rem; }
+}</code></pre>
+
+<div class="label label-good">Mobile-first (min-width)</div>
+<pre><code><span class="sel">.sidebar</span> { <span class="kw">padding</span>: 1rem; }
+
+<span class="kw">@media</span> (min-width: 48em) {
+  <span class="sel">.sidebar</span> { <span class="kw">float</span>: left; <span class="kw">width</span>: 300px; <span class="kw">padding</span>: 2rem; }
+}</code></pre>
+
+<p>Look at what the desktop-first version has to do: it sets three properties, then <em>undoes all three</em>. <code>float: none</code>, <code>width: auto</code> — those declarations exist purely to cancel earlier ones. The mobile-first version never undoes anything; it only ever adds.</p>
+
+<p>That's what "composes better" means, and it compounds badly. With three breakpoints, desktop-first means every property you set at the top must be considered and possibly reset at each of the three. Mobile-first means each breakpoint layers new declarations on top, and the browser's normal source-order rule does the rest. Less code, and — more importantly — no "which reset am I missing?" archaeology when something looks wrong at 900px.</p>
+
+<p>There's also a nasty detail unique to <code>max-width</code>: what value do you use? If your other query is <code>min-width: 768px</code>, the max must be <code>767px</code> — or <code>767.98px</code>, because browser zoom and high-DPI screens produce fractional widths and a device at exactly 767.5px would match neither query, leaving an unstyled dead zone one pixel wide that someone will eventually screenshot for you. Min-width queries have no gaps by construction.</p>
+
+<p>And two practical arguments beyond code tidiness. Mobile is where the constrained device usually is — a mobile-first stylesheet means a phone only parses and applies the rules it needs, rather than parsing a full desktop layout and then overriding it. And designing mobile-first forces you to decide what's genuinely essential before you have room for everything, which tends to produce a better desktop layout too.</p>
+
+<h3>Breakpoints should come from your content, not from devices</h3>
+
+<p>You'll see breakpoint lists labelled "iPhone," "iPad," "desktop." Resist that. Device sizes are a moving target — there are foldables, split-screen tablets, 4K monitors, browser windows dragged to a third of a screen. Chasing them is a treadmill.</p>
+
+<p>The better method: start at the narrowest width and slowly widen the browser. <strong>The moment the layout looks bad, that's a breakpoint.</strong> The line length got too long. The nav items started wrapping awkwardly. There's clearly room for a second column now. Put the breakpoint there, at whatever odd number it happens to be.</p>
+
+<p>This is why breakpoint values in well-built sites look arbitrary — <code>38em</code>, <code>52em</code>, <code>71em</code>. They're not arbitrary; they're where <em>that design</em> stops working. Using <code>em</code> for them is a nice touch, because then the layout also adapts for a user who's enlarged their text — their effective viewport in ems is narrower, so they get the roomier mobile layout, which is usually exactly right.</p>
+
+<h3>Container queries: the genuinely better model</h3>
+
+<p>Here's the flaw at the heart of media queries, and once you see it you can't unsee it.</p>
+
+<p>A media query asks about <strong>the viewport</strong>. But a component doesn't care about the viewport — it cares about <strong>how much room it has been given</strong>. A product card in a full-width hero and the same card in a narrow sidebar should look different, and the viewport is identical in both cases. Media queries simply can't express that.</p>
+
+<p>So for years we faked it, with modifier classes:</p>
+
+<div class="label label-bad">❌ The component's parent must know its layout</div>
+<pre><code><span class="sel">.card--compact</span> { ... }
+<span class="sel">.card--full</span> { ... }
+<span class="cmt">/* every consumer must pick correctly, at every breakpoint,
+   forever — and the card can't be dropped anywhere new safely */</span></code></pre>
+
+<p>The card isn't really reusable. It's reusable <em>if you also know where you're putting it</em>, which is a much weaker promise.</p>
+
+<p><strong>Container queries fix this by letting an element ask about its own container's size instead of the viewport's.</strong> Two steps: mark an element as a container, then query it.</p>
+
+<div class="label label-good">✅ The component decides for itself</div>
+<pre><code><span class="sel">.card-wrapper</span> {
+  <span class="kw">container-type</span>: inline-size;   <span class="cmt">/* 👈 "measure my width" */</span>
+  <span class="kw">container-name</span>: card;
+}
+
+<span class="sel">.card</span> { <span class="kw">display</span>: block; }
+
+<span class="kw">@container</span> card (min-width: 30rem) {
+  <span class="sel">.card</span> { <span class="kw">display</span>: grid; <span class="kw">grid-template-columns</span>: 140px 1fr; }
+}</code></pre>
+
+<p>Now the card lays itself out based on the space it actually got. Drop it in the sidebar: stacked. Drop it in the hero: side by side. Drop it in a layout that didn't exist when the card was written: still correct. Nobody has to remember to pass the right modifier.</p>
+
+<p>That's a real architectural shift. Media queries make responsiveness a property of the <em>page</em>; container queries make it a property of the <em>component</em> — which is how we've written everything else in frontend for a decade.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — why <code>inline-size</code> and not just <code>size</code>?</p>
+  <p>Because querying height would be circular. If the container's height depends on its children's layout, and the children's layout depends on the container's height, there's no answer. <code>container-type: inline-size</code> queries width only, which is safe because width is resolved before content is laid out. (Same reasoning as percentage padding resolving against width — the browser is consistently avoiding circular dependencies.) There <em>is</em> a <code>container-type: size</code>, but it requires you to fix the height explicitly, so it's rare.</p>
+  <p>One cost: <code>container-type</code> applies size containment, so the container no longer sizes itself from its children in that axis. Usually you put it on a wrapper rather than the component itself, exactly as above.</p>
+</div>
+
+<p>Media queries still have their jobs — page-level layout, print styles, and the whole family of preference queries that have nothing to do with size:</p>
+
+<pre><code><span class="kw">@media</span> (prefers-reduced-motion: reduce) { <span class="cmt">/* respect vestibular disorders */</span> }
+<span class="kw">@media</span> (prefers-color-scheme: dark)     { <span class="cmt">/* OS-level dark mode      */</span> }
+<span class="kw">@media</span> (prefers-contrast: more)         { <span class="cmt">/* stronger borders        */</span> }
+<span class="kw">@media</span> (pointer: coarse)                { <span class="cmt">/* bigger touch targets    */</span> }</code></pre>
+
+<p>That first one is worth taking seriously: for some people, large animations cause genuine nausea and dizziness. Wrapping non-essential motion in <code>prefers-reduced-motion</code> is a small amount of work and it's the kind of detail that reads very well in an interview.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "Mobile-first or desktop-first?" · "How do you choose breakpoints?" · "What are container queries and why do they matter?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"Mobile-first, using <code>min-width</code> queries. The base styles are the simplest layout, and each breakpoint only ever <em>adds</em> — with <code>max-width</code> you end up writing declarations whose only job is to undo earlier ones, and that gets unmanageable past two breakpoints. It also avoids the off-by-one fractional-pixel gaps you get between a max and a min query. I pick breakpoints by widening the browser until the design breaks rather than targeting device sizes, and I use <code>em</code> so the layout also adapts when someone enlarges their text. Where I can, I reach for container queries instead, because a component should respond to the space it's given, not to the viewport."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you gave the mechanical reason (adding versus undoing) rather than just stating a preference, and container queries show you're current.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"Why not just use max-width everywhere if it's what you're used to?"</strong> It works, it's just more code and more coupling — each new breakpoint means auditing every property set above it for whether it needs resetting. And you have to pick 767.98px-style values to avoid dead zones at fractional widths.</p>
+  <p><strong>"What breaks if you forget the viewport meta tag?"</strong> The mobile browser falls back to pretending it's ~980px wide and scales the page down, so your media queries match the desktop branch and the whole site renders tiny. It's the classic "my responsive site isn't responsive on my phone" bug.</p>
+  <p><strong>"When is a container query better than a media query?"</strong> Whenever the thing that should change is a component's internal layout. A card in a sidebar and the same card in a hero need different layouts at the identical viewport width — only a container query can express that. Media queries stay right for page-level structure and for preference queries like reduced motion or colour scheme.</p>
+</div>
+
+<h2 id="methodologies">BEM, CSS Modules, CSS-in-JS, utility-first</h2>
+
+<p>Earlier we named the three structural problems CSS has at scale: everything is global, specificity only ratchets upward, and you can never safely delete anything. Every methodology below is an attempt on those three. Let's be honest about what each one actually buys and costs, because "which do you prefer and why" is a very common interview question and the wrong answer is dogma in either direction.</p>
+
+<h3>BEM — solving it with discipline</h3>
+
+<p>BEM (Block, Element, Modifier) is a naming convention, nothing more. No tooling, no build step.</p>
+
+<pre><code><span class="sel">.card</span> { }                 <span class="cmt">/* Block: standalone component  */</span>
+<span class="sel">.card__title</span> { }          <span class="cmt">/* Element: part of that block  */</span>
+<span class="sel">.card--featured</span> { }       <span class="cmt">/* Modifier: a variant          */</span>
+<span class="sel">.card__title--large</span> { }   <span class="cmt">/* element + modifier           */</span></code></pre>
+
+<p>The clever part isn't the naming — it's that BEM makes your CSS <strong>flat</strong>. Instead of <code>.card .content h2</code> (0,2,1) you write <code>.card__title</code> (0,1,0). Every selector is one class. Every rule has identical specificity. Which means the cascade almost never has to arbitrate, and when you need to override something you just write a rule later in the file. The specificity ratchet is disarmed.</p>
+
+<p>The cost is that it's <strong>convention, not enforcement</strong>. Nothing stops a new team member writing <code>.card .title</code>. The names get long. And it does nothing about dead code — <code>.card__legacy-badge</code> sits there forever.</p>
+
+<h3>CSS Modules — solving it with a build step</h3>
+
+<p>Write plain CSS in a <code>.module.css</code> file; the bundler rewrites every class name to something globally unique and hands you a mapping.</p>
+
+<pre><code><span class="cmt">/* Card.module.css */</span>
+<span class="sel">.card</span> { <span class="kw">padding</span>: 1rem; }
+<span class="sel">.title</span> { <span class="kw">font-size</span>: 1.25rem; }</code></pre>
+
+<pre><code><span class="kw">import</span> styles <span class="kw">from</span> <span class="str">'./Card.module.css'</span>;
+
+&lt;div className={styles.card}&gt;
+  &lt;h2 className={styles.title}&gt;Hello&lt;/h2&gt;   <span class="cmt">// → "Card_title__x7f2q"</span>
+&lt;/div&gt;</code></pre>
+
+<p>Now collisions are <em>impossible</em>, not merely unlikely — the compiler guarantees it, so you can use short obvious names like <code>.title</code> without a second thought. It's still just CSS, so it's zero-runtime, works with any tooling, and any CSS feature you like is available. And because the mapping is explicit, tools can flag classes nothing references.</p>
+
+<p>The cost is small: a build step, slightly awkward composition of multiple classes, and dynamic values still need inline styles or custom properties.</p>
+
+<p>Honestly, for a lot of teams this is the sweet spot, and it's underrated relative to how much airtime the other two get.</p>
+
+<h3>CSS-in-JS — solving it with colocation</h3>
+
+<p>Styled-components, Emotion, and friends let you write styles in JavaScript, next to the component:</p>
+
+<pre><code><span class="kw">const</span> Button = styled.button<span class="str">`</span>
+<span class="str">  padding: 0.5rem 1rem;</span>
+<span class="str">  background: </span>${p =&gt; p.$variant === <span class="str">'danger'</span> ? <span class="str">'#c0392b'</span> : <span class="str">'#3a6ea5'</span>}<span class="str">;</span>
+<span class="str">`</span>;</code></pre>
+
+<p>What you get: scoping by construction, plus <strong>real dynamic styling</strong> — styles that are a function of props and state, which is genuinely awkward in any other approach. And colocation: the styles live and die with the component, so deleting the file deletes the CSS. Dead code becomes structurally impossible.</p>
+
+<p>The criticisms are real and you should know them, because "what are the downsides of CSS-in-JS?" is a favourite follow-up:</p>
+
+<ul>
+  <li><strong>Runtime cost.</strong> Runtime libraries serialise template literals, hash them, generate a class, and inject a rule into the stylesheet — <em>during render</em>. On a page with thousands of styled elements that's measurable, and it's work the browser wouldn't otherwise do at all.</li>
+  <li><strong>Bundle size.</strong> You're shipping a styling engine to every user.</li>
+  <li><strong>SSR complexity.</strong> Styles have to be collected during server render and inlined into the HTML, or the page flashes unstyled. That machinery is fiddly and it collides badly with React Server Components, which don't run the client-side context these libraries depend on. That collision is a big part of why the ecosystem moved.</li>
+  <li><strong>It inserts itself into the render path</strong>, so a styling change can trigger a re-render, and the browser can't just parse a static stylesheet in parallel.</li>
+</ul>
+
+<p>Which brings us to <strong>zero-runtime CSS-in-JS</strong> — Linaria, vanilla-extract, Panda CSS, and StyleX. You write styles in TypeScript, with types and colocation, and the build step <strong>extracts them to a real static <code>.css</code> file</strong>. Nothing ships to the browser but CSS. You keep the authoring experience and drop the runtime.</p>
+
+<p>The tradeoff: since extraction happens at build time, you can't compute arbitrary styles from runtime values. The standard answer is custom properties — the class is static, and the dynamic bit rides in a variable:</p>
+
+<pre><code>&lt;div className={card} style={{ <span class="str">'--accent'</span>: user.color }}&gt;</code></pre>
+
+<p>Which is a nice illustration that custom properties are the runtime escape hatch for build-time systems.</p>
+
+<h3>Utility-first — solving it by not naming things</h3>
+
+<p>Tailwind's bet is that most of the difficulty comes from the abstraction layer itself. Naming things is hard, deciding whether a style belongs to <code>.card</code> or <code>.card__body</code> is hard, and keeping a class name in sync with markup you edit six months later is hard. So: skip it.</p>
+
+<pre><code>&lt;div <span class="sel">class</span>=<span class="str">"flex gap-4 rounded-lg bg-white p-4 shadow-sm"</span>&gt;</code></pre>
+
+<p>Every class is a single declaration, all at the same specificity, so the cascade essentially never arbitrates. Deleting the element deletes its styles, so dead CSS is impossible. A build step scans your templates and emits only the utilities you used, so the stylesheet is small and stops growing after a while — it converges, because there are only so many spacing values. And because the utilities come from a config, you get design-token constraints for free: <code>p-4</code>, not "someone typed 15px."</p>
+
+<p>The honest costs: markup is noisy, and there's real cognitive load in learning the vocabulary. Repetition is handled by extracting a <em>component</em>, not a class, which is fine in React and awkward in a templating language with no component model. And the design-system constraint is a strength right up until you need a value that isn't in the scale.</p>
+
+<h3>An honest comparison</h3>
+
+<table>
+  <tr><th></th><th>Collisions</th><th>Dead code</th><th>Dynamic styles</th><th>Runtime cost</th><th>Learning curve</th></tr>
+  <tr><td><strong>BEM</strong></td><td>Convention only</td><td>Manual</td><td>Toggle classes</td><td>None</td><td>Low</td></tr>
+  <tr><td><strong>CSS Modules</strong></td><td>Impossible</td><td>Detectable</td><td>Custom props / inline</td><td>None</td><td>Low</td></tr>
+  <tr><td><strong>Runtime CSS-in-JS</strong></td><td>Impossible</td><td>Impossible</td><td>Excellent</td><td>Real</td><td>Medium</td></tr>
+  <tr><td><strong>Zero-runtime CSS-in-JS</strong></td><td>Impossible</td><td>Impossible</td><td>Via custom props</td><td>None</td><td>Medium</td></tr>
+  <tr><td><strong>Utility-first</strong></td><td>N/A</td><td>Impossible</td><td>Conditional classes</td><td>None</td><td>Medium</td></tr>
+</table>
+
+<p>There's no winner. If I had to give defaults: CSS Modules or utility-first for a new app, zero-runtime CSS-in-JS if the team wants types and colocation, BEM if there's no build step to speak of, and runtime CSS-in-JS mainly when heavily prop-driven dynamic styling is the core need and you've accepted the cost.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "How do you organise CSS in a large app?" · "Tailwind or CSS-in-JS?" · "What's wrong with styled-components?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"They're all answers to the same three problems: CSS is globally scoped, specificity only escalates, and you can't tell what's safe to delete. BEM solves it with a flat naming convention but relies on discipline. CSS Modules solves scoping properly at build time with no runtime cost. Runtime CSS-in-JS adds great dynamic styling and colocation but you pay for it — style serialisation during render, a bigger bundle, and real SSR friction, which is why the ecosystem is moving to zero-runtime tools like vanilla-extract and Panda that extract to static CSS. Tailwind sidesteps naming entirely and makes dead code impossible, at the cost of noisy markup. I'd pick based on the team and the framework rather than on principle."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you framed everything against the same problem set rather than listing tools, and you named the runtime/SSR criticism without being tribal about it. That's a senior-sounding answer.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"Isn't Tailwind just inline styles with extra steps?"</strong> No, and this is the interesting bit: inline styles can't do media queries, pseudo-classes, or pseudo-elements, they carry maximum specificity, and they don't dedupe. Utilities are real classes, so <code>hover:</code> and <code>md:</code> variants work, and the same class is reused across the whole app instead of duplicating a declaration into every element. Plus the values come from a constrained token scale.</p>
+  <p><strong>"What specifically is the runtime cost of styled-components?"</strong> On each render it interpolates the template literal, hashes the result, and injects a rule into a stylesheet — during the render pass, on the main thread. Plus the library in your bundle, plus SSR style collection. On small apps it's invisible; on large lists it shows up in profiles.</p>
+  <p><strong>"How do you handle dynamic values without a runtime?"</strong> Custom properties. Keep the class static and put the changing value in an inline <code>style</code> as a variable the class reads. It's the standard pattern in vanilla-extract and Panda, and it works with plain CSS Modules too.</p>
+</div>
+
+<h2 id="animation">Animation performance and the pixel pipeline</h2>
+
+<p>Last topic, and it's the one where a small piece of knowledge produces the biggest visible difference.</p>
+
+<p>You've got a sidebar that slides in. Version one animates <code>left</code>. Version two animates <code>transform: translateX()</code>. They look identical in a screenshot. On a mid-range Android phone, one is silky and the other stutters.</p>
+
+<p>To understand why, we need to know what the browser does to put pixels on screen.</p>
+
+<h3>The pixel pipeline</h3>
+
+<p>Every frame, the browser runs some or all of these steps:</p>
+
+<div class="paint-stack" style="margin-bottom:22px">
+  <div class="paint-row"><span class="paint-num">1</span><span><strong>Style</strong> &mdash; work out which CSS rules apply to which elements and compute final values. (That's the cascade, from the start of this guide.)</span></div>
+  <div class="paint-row"><span class="paint-num">2</span><span><strong>Layout</strong> (a.k.a. reflow) &mdash; calculate <em>geometry</em>: how big is everything, where does it sit. Expensive, and often affects many elements at once.</span></div>
+  <div class="paint-row"><span class="paint-num">3</span><span><strong>Paint</strong> &mdash; fill in pixels: text, colours, shadows, borders. Done onto one or more layers.</span></div>
+  <div class="paint-row"><span class="paint-num">4</span><span><strong>Composite</strong> &mdash; assemble the layers in the right order, with the right transforms and opacity, into the final image.</span></div>
+</div>
+
+<p>The critical fact: <strong>the pipeline is a cascade of consequences. Trigger an early step and every later step must run too.</strong> Change geometry and you must re-layout, then re-paint, then re-composite. But change something that only affects compositing, and steps 1–3 can be skipped entirely.</p>
+
+<p>My analogy is a print shop. <em>Layout</em> is deciding where every element goes on the page — that's typesetting, and moving one paragraph can push everything after it. <em>Paint</em> is inking the plates. <em>Composite</em> is sliding already-printed transparent sheets over each other on a lightbox. If all you need is to move a sheet two inches to the left, you'd be mad to re-typeset and reprint the whole document.</p>
+
+<h3>Why transform and opacity are cheap</h3>
+
+<p>Now the payoff. <code>transform</code> and <code>opacity</code> are special: they are the two properties that can be handled <strong>entirely at the composite step</strong>.</p>
+
+<p>Why those two specifically? Because neither changes the element's geometry <em>as far as other elements are concerned</em>. A transformed element still occupies its original box in layout; nothing else moves in response. A faded element still occupies its box too. So the browser can promote that element to its own <strong>compositor layer</strong> — a pre-painted bitmap — and then, for each frame, just tell the GPU "draw this existing bitmap 40 pixels further left" or "draw it at 60% alpha." No layout. No repaint. Just a matrix multiply and a blend, which is exactly what GPUs are built for.</p>
+
+<p>And here's the part that really matters on a busy page: this work can happen on the <strong>compositor thread</strong>, separate from the main thread. So even if your JavaScript is blocking the main thread with an expensive render, a composited animation keeps running at 60fps. Animate <code>left</code> instead, and every frame needs layout — which is main-thread work — so your animation stutters exactly when the page is busiest, which is exactly when the user notices.</p>
+
+<table>
+  <tr><th>Animating…</th><th>Triggers</th><th>Cost</th></tr>
+  <tr><td><code>width</code>, <code>height</code>, <code>top</code>, <code>left</code>, <code>margin</code>, <code>padding</code>, <code>font-size</code></td><td>Layout → Paint → Composite</td><td>Worst</td></tr>
+  <tr><td><code>color</code>, <code>background-color</code>, <code>box-shadow</code>, <code>border-radius</code>, <code>visibility</code></td><td>Paint → Composite</td><td>Middling</td></tr>
+  <tr><td><code>transform</code>, <code>opacity</code>, <code>filter</code></td><td>Composite only</td><td>Cheapest</td></tr>
+</table>
+
+<div class="label label-bad">❌ Layout every frame</div>
+<pre><code><span class="sel">.drawer</span> { <span class="kw">left</span>: -300px; <span class="kw">transition</span>: left 300ms; }
+<span class="sel">.drawer.is-open</span> { <span class="kw">left</span>: 0; }</code></pre>
+
+<div class="label label-good">✅ Composite only</div>
+<pre><code><span class="sel">.drawer</span> { <span class="kw">transform</span>: <span class="kw">translateX</span>(-300px); <span class="kw">transition</span>: transform 300ms; }
+<span class="sel">.drawer.is-open</span> { <span class="kw">transform</span>: <span class="kw">translateX</span>(0); }</code></pre>
+
+<p>Same visual result. Completely different cost profile.</p>
+
+<div class="box box-wait">
+  <p class="box-title">Wait — what if I really need to animate size?</p>
+  <p>Use <code>transform: scale()</code> instead of animating width and height, and accept that it scales the contents too (text gets blurry mid-animation, borders thicken). For expanding panels, the FLIP technique below handles it properly. And for the specific case of "animate to <code>height: auto</code>," which was impossible for years: modern CSS has <code>interpolate-size: allow-keywords</code> and <code>calc-size()</code> — still a layout-triggering animation, but at least an expressible one.</p>
+</div>
+
+<h3>Layout thrashing</h3>
+
+<p>Now the JavaScript-side version of the same problem, and it's a favourite interview question because it separates people who've profiled a real page from people who haven't.</p>
+
+<p>Browsers are lazy about layout on purpose. When you change a style from JavaScript, the browser doesn't recalculate immediately — it queues the change and batches everything up until it has to produce a frame. Very efficient.</p>
+
+<p>Until you ask it a question it can't answer from the queue:</p>
+
+<pre><code><span class="cmt">// ❌ Layout thrashing — read, write, read, write…</span>
+boxes.forEach(box =&gt; {
+  <span class="kw">const</span> width = box.offsetWidth;        <span class="cmt">// READ  → forces layout NOW</span>
+  box.style.width = width / 2 + <span class="str">'px'</span>;   <span class="cmt">// WRITE → invalidates layout</span>
+});</code></pre>
+
+<p>Reading <code>offsetWidth</code> means "give me the current geometry." The browser can't answer that with pending changes sitting in a queue — the answer might be wrong. So it must flush the queue and run layout <em>synchronously, right now</em>. That's a <strong>forced synchronous layout</strong>.</p>
+
+<p>One of those is fine. The problem is the loop. Each write dirties the layout again, so the next read forces <em>another</em> full layout. With 100 boxes you've run 100 full layout passes in a single frame instead of one. That's layout thrashing, and it's usually the reason a scroll handler drops to 12fps.</p>
+
+<p>The analogy: it's like calling the warehouse to check stock after every single item you add to an order, instead of writing the whole order down and calling once at the end. The phone call is expensive; the batching is the whole point.</p>
+
+<p>The fix is simply to <strong>separate all reads from all writes</strong>:</p>
+
+<pre><code><span class="cmt">// ✅ Read everything first, then write everything</span>
+<span class="kw">const</span> widths = boxes.map(box =&gt; box.offsetWidth);   <span class="cmt">// one layout</span>
+boxes.forEach((box, i) =&gt; {
+  box.style.width = widths[i] / 2 + <span class="str">'px'</span>;          <span class="cmt">// no reads → no flushes</span>
+});</code></pre>
+
+<p>One forced layout instead of a hundred. Same output.</p>
+
+<p>The properties that force layout when read are the geometry ones: <code>offsetTop/Left/Width/Height</code>, <code>clientTop/Left/Width/Height</code>, <code>scrollTop/Left/Width/Height</code>, <code>getBoundingClientRect()</code>, <code>getComputedStyle()</code> in many cases, and <code>window.getComputedStyle</code>, plus <code>scrollIntoView()</code> and <code>focus()</code>. You don't need to memorise the list; you need the pattern — <strong>batch your reads, then batch your writes</strong>. In Chrome DevTools these show up in the Performance panel as purple "Layout" bars with a little red triangle warning about forced reflow.</p>
+
+<h3>will-change, and why more isn't better</h3>
+
+<p>Promoting an element to its own compositor layer isn't free — it takes GPU memory and setup. So browsers only do it when they think it's worth it, and they sometimes decide <em>after</em> your animation has started, causing a visible hitch on the first frame.</p>
+
+<p><code>will-change</code> lets you warn them in advance:</p>
+
+<pre><code><span class="sel">.card</span> { <span class="kw">will-change</span>: transform; }</code></pre>
+
+<p>Sounds like free performance. It isn't, and overusing it actively backfires:</p>
+
+<ul>
+  <li><strong>Every layer costs memory.</strong> A full-screen layer on a 3x-DPI phone is many megabytes. Do it to fifty elements and you can exhaust GPU memory, at which point the browser falls back to slower paths — or the tab crashes. You've made things worse in exchange for a smoother first frame you didn't need.</li>
+  <li><strong>It creates a stacking context</strong> (remember that list?), so a stray <code>will-change</code> can silently break your z-index layering, in a way that's genuinely hard to trace back.</li>
+  <li><strong>Leaving it on permanently defeats the point.</strong> It's a hint that something is <em>about to</em> change. If it's always on, the browser is permanently holding an optimisation for an event that may never come.</li>
+</ul>
+
+<p>The right usage is narrow and temporary — turn it on just before, remove it after:</p>
+
+<pre><code><span class="sel">.card:hover</span> { <span class="kw">will-change</span>: transform; }   <span class="cmt">/* hover = "probably about to animate" */</span></code></pre>
+
+<p>Honestly: don't reach for it until you've measured a problem. Animating <code>transform</code> and <code>opacity</code> already gets you most of the way, and browsers are good at this now.</p>
+
+<h3>FLIP, briefly</h3>
+
+<p>So how do you animate something that genuinely <em>is</em> a layout change — a card moving to a new grid position, a list reordering — while still only animating <code>transform</code>?</p>
+
+<p>FLIP is the trick, and it's beautiful. Four steps:</p>
+
+<ul>
+  <li><strong>F</strong>irst — measure the element's position before the change (<code>getBoundingClientRect()</code>).</li>
+  <li><strong>L</strong>ast — apply the change (add the class, reorder the DOM) and measure the new position.</li>
+  <li><strong>I</strong>nvert — compute the delta and apply a <code>transform</code> that moves it <em>back</em> to where it was. To the user, nothing has moved yet — but the element is now genuinely in its final layout position, just visually displaced.</li>
+  <li><strong>P</strong>lay — transition that transform to zero. It glides to its real position.</li>
+</ul>
+
+<p>The insight is that we've converted a layout animation into a transform animation. The expensive layout happens exactly once, at the moment of the swap, and every frame after that is pure compositing. This is what libraries like Framer Motion's layout animations and the View Transitions API do under the hood — and in fact <code>view-transition</code> now gives you much of this declaratively.</p>
+
+<div class="box box-iv">
+  <p class="box-title">In an interview</p>
+  <p><strong>How this gets asked:</strong> "Why animate <code>transform</code> instead of <code>left</code>?" · "What's layout thrashing?" · "What does <code>will-change</code> do?" · "How would you debug a janky animation?"</p>
+  <div class="answer">
+    <span class="answer-tag">Model answer — say this out loud</span>
+    <p>"The browser renders in stages — style, layout, paint, composite — and triggering an early stage forces all the later ones. Animating <code>left</code> changes geometry, so every frame runs layout and paint on the main thread. <code>transform</code> and <code>opacity</code> don't affect anyone else's geometry, so the browser can promote the element to its own layer and handle the animation entirely at composite time, on the compositor thread — which means it stays smooth even when the main thread is busy. So I animate transform and opacity by default, and if I need a layout-changing animation I use FLIP to turn it back into a transform."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you named the pipeline and explained <em>why</em> those two properties are special rather than just listing them. The off-main-thread point is the detail that shows real understanding.</p>
+
+  <p><strong>Follow-ups:</strong></p>
+  <p><strong>"What's layout thrashing?"</strong> Reading a layout property like <code>offsetHeight</code> right after writing a style. The browser batches style changes, but a geometry read can't be answered from the queue, so it flushes and runs layout synchronously. In a loop that's one full layout per iteration. Fix: batch all reads first, then all writes.</p>
+  <p><strong>"Why not put <code>will-change: transform</code> on everything?"</strong> Each promoted layer costs GPU memory — on a high-DPI phone that adds up fast, and once you exhaust it performance gets worse than doing nothing. It also creates a stacking context, so it can silently break z-index layering. It's a temporary hint, not a setting.</p>
+  <p><strong>"Is <code>transform</code> literally free then?"</strong> No — layer creation costs memory, and the initial paint of that layer still happens. It's just that the per-frame cost drops to a GPU matrix multiply. And it's only composited when the browser actually promotes it; a transform in a context that forces re-rasterisation each frame won't get the benefit.</p>
+  <p><strong>"How do you actually find the problem?"</strong> Chrome DevTools Performance panel: record the interaction, look for long frames, and check whether they're dominated by purple Layout or green Paint. Forced reflows are flagged explicitly. The Rendering panel's paint-flashing overlay shows what's repainting, which is often surprising.</p>
+</div>
+
+<h2 id="cheatsheet">Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're in good shape.</p>
+
+<table class="cheat">
+  <tr><th>Concept</th><th>The one-line answer</th></tr>
+  <tr><td>Cascade order</td><td>Origin &amp; importance → cascade layers → specificity → source order. Resolved per property, per element.</td></tr>
+  <tr><td><code>!important</code> inversion</td><td>In the important tier the origin order flips: user's <code>!important</code> beats author's, to protect accessibility overrides.</td></tr>
+  <tr><td>Specificity</td><td>A tuple (IDs, classes/attrs/pseudo-classes, elements/pseudo-elements) compared left to right — not a base-10 sum.</td></tr>
+  <tr><td>ID vs 10 classes</td><td>The ID wins, always. The class bucket is never even read once the ID bucket differs.</td></tr>
+  <tr><td><code>*</code> and combinators</td><td>Score zero. They change what matches, not how strongly.</td></tr>
+  <tr><td><code>:is()</code> / <code>:not()</code></td><td>Take the specificity of their most specific argument.</td></tr>
+  <tr><td><code>:where()</code></td><td>Always zero specificity. Perfect for library defaults consumers can override with one class.</td></tr>
+  <tr><td>Inheritance vs cascade</td><td>Cascade picks between competing declarations; inheritance only applies when there are none. Any direct declaration beats an inherited value.</td></tr>
+  <tr><td>Media query specificity</td><td>Zero. It wins only by source order.</td></tr>
+  <tr><td><code>@layer</code></td><td>Explicit priority buckets, checked before specificity. Unlayered CSS beats all layers; the order reverses in the important tier.</td></tr>
+  <tr><td>z-index prerequisite</td><td>Only applies to positioned elements — plus flex/grid children.</td></tr>
+  <tr><td>Stacking context</td><td>A sealed box. Children layer among themselves; the box enters its parent's order as one unit. Nothing escapes.</td></tr>
+  <tr><td>What creates one</td><td>Positioned + z-index, fixed/sticky, <code>opacity &lt; 1</code>, <code>transform</code>, <code>filter</code>, <code>will-change</code>, <code>isolation: isolate</code>, <code>mix-blend-mode</code>, <code>contain</code>.</td></tr>
+  <tr><td>Modal behind header</td><td>A trapping ancestor context. Fix with a portal to <code>&lt;body&gt;</code> or native <code>&lt;dialog&gt;</code> + <code>showModal()</code>, not bigger numbers.</td></tr>
+  <tr><td><code>isolation: isolate</code></td><td>Creates a stacking context deliberately, with no other effect. Keeps a component's layering private.</td></tr>
+  <tr><td>CSS px</td><td>An angular unit (~1/96in at typical viewing distance), not a device pixel — see <code>devicePixelRatio</code>.</td></tr>
+  <tr><td><code>em</code></td><td>Relative to the element's own font-size (the parent's, inside <code>font-size</code>). Compounds when nested.</td></tr>
+  <tr><td><code>rem</code></td><td>Relative to the root font-size, which <em>is</em> the user's browser font preference. Default for type and spacing.</td></tr>
+  <tr><td>Percentage padding</td><td>All four sides resolve against the containing block's <strong>width</strong>. Avoids circular dependency with content-driven height.</td></tr>
+  <tr><td><code>line-height</code></td><td>Use unitless — the ratio inherits and recomputes. A percentage computes once and the result inherits.</td></tr>
+  <tr><td><code>dvh</code> / <code>svh</code> / <code>lvh</code></td><td>Dynamic / small / large viewport height. Fixes <code>100vh</code> being cut off by the mobile address bar.</td></tr>
+  <tr><td><code>clamp()</code></td><td><code>clamp(min, preferred, max)</code>. Keep a <code>rem</code> term in the middle so it respects font-size preferences.</td></tr>
+  <tr><td><code>min()</code> / <code>max()</code></td><td><code>min()</code> imposes a ceiling, <code>max()</code> imposes a floor. Yes, that reads backwards.</td></tr>
+  <tr><td>CSS vars vs Sass vars</td><td>Runtime vs compile-time. CSS ones cascade, inherit, and can change via media query, class, or JS.</td></tr>
+  <tr><td><code>@property</code></td><td>Gives a custom property a type and initial value, which makes it animatable.</td></tr>
+  <tr><td>Viewport meta</td><td>Without it, mobile pretends to be ~980px and scales down — your media queries match the wrong branch.</td></tr>
+  <tr><td>Mobile-first</td><td><code>min-width</code> queries only add; <code>max-width</code> forces you to undo. No fractional-pixel gaps either.</td></tr>
+  <tr><td>Container queries</td><td>A component responds to the space it's given, not the viewport. <code>container-type: inline-size</code> + <code>@container</code>.</td></tr>
+  <tr><td>Methodologies</td><td>All target three things: global scope, specificity escalation, and undeletable dead code.</td></tr>
+  <tr><td>CSS-in-JS criticism</td><td>Render-time style serialisation, bundle size, SSR/RSC friction — hence the move to zero-runtime extraction.</td></tr>
+  <tr><td>Pixel pipeline</td><td>Style → Layout → Paint → Composite. Triggering an early stage forces all later ones.</td></tr>
+  <tr><td>Cheap animations</td><td><code>transform</code> and <code>opacity</code> — composite-only, and can run off the main thread.</td></tr>
+  <tr><td>Layout thrashing</td><td>Read-after-write in a loop forces synchronous layout each iteration. Batch reads, then writes.</td></tr>
+  <tr><td><code>will-change</code></td><td>A temporary hint. Costs GPU memory and creates a stacking context. Don't leave it on.</td></tr>
+  <tr><td>FLIP</td><td>First, Last, Invert, Play — turns a layout animation into a transform animation.</td></tr>
+</table>
+
+<hr>
+
+<p>If there's one idea to carry out of all this, it's that most CSS confusion comes from an invisible <em>context</em> you weren't accounting for. A rule loses because of an origin you forgot. A z-index does nothing because an ancestor sealed it in. An <code>em</code> is the wrong size because of where it's nested. A percentage means something different than you assumed because of which property it's on.</p>
+
+<p>CSS isn't arbitrary — it's contextual. Once you know which context you're in, it's remarkably predictable. And "let me check what context this is in" is a genuinely great thing to say out loud in an interview, because it's exactly how someone who has debugged this stuff for real actually thinks. 🎨</p>
+
+
+
+</div>
+</body>
+</html>

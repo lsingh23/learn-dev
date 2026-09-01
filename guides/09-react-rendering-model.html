@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How React Actually Renders: Virtual DOM, Reconciliation, Keys &amp; Fiber</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --ink: #22201d;
+    --ink-soft: #55504a;
+    --rule: #e3ded4;
+    --accent: #1f6f8b;
+    --accent-soft: #e8f2f5;
+    --good: #1d7a4c;
+    --good-soft: #e6f4ec;
+    --bad: #b3261e;
+    --bad-soft: #fbe9e8;
+    --warn: #8a5a00;
+    --warn-soft: #fdf2dd;
+    --purple: #6b4ba1;
+    --purple-soft: #f0eafa;
+    --code-bg: #26232c;
+    --code-ink: #eae6f0;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  header.hero {
+    padding: 72px 0 34px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 38px;
+  }
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.4rem;
+    line-height: 1.15;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.2em 0 0.6em;
+    padding-top: 0.4em;
+    border-top: 3px solid var(--ink);
+  }
+  h2:first-of-type { margin-top: 1.6em; }
+  h3 {
+    font-size: 1.24rem;
+    margin: 2.2em 0 0.5em;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.8em 0 0.4em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-size: 0.82rem;
+  }
+
+  p { margin: 0 0 1.15em; }
+
+  a { color: var(--accent); }
+
+  strong { font-weight: 700; }
+
+  ul, ol { margin: 0 0 1.15em; padding-left: 1.35em; }
+  li { margin-bottom: 0.45em; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: #efece4;
+    border: 1px solid #e0dbd0;
+    border-radius: 4px;
+    padding: 0.08em 0.34em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 9px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0 0 1.3em;
+    font-size: 0.92rem;
+    line-height: 1.62;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.95em;
+    color: inherit;
+  }
+  pre .c { color: #9c93ab; font-style: italic; }
+  pre .k { color: #ff9ec7; }
+  pre .s { color: #a5e2a5; }
+  pre .t { color: #8fd3ff; }
+  pre .n { color: #ffcf8f; }
+  pre .p { color: #c8c2d4; }
+  pre .hl { background: rgba(255,255,255,0.09); display: inline-block; width: 100%; }
+
+  .codeblock { margin-bottom: 1.4em; }
+  .codeblock pre { margin-bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .cb-label {
+    font-family: var(--mono);
+    font-size: 0.79rem;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 9px 9px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .cb-bad { background: #6b1d18; color: #ffd9d6; }
+  .cb-good { background: #14512f; color: #ccf0dc; }
+  .cb-plain { background: #3a3542; color: #cfc8d8; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 18px 20px 2px;
+    margin: 1.7em 0;
+    border-left: 5px solid var(--accent);
+    background: var(--accent-soft);
+    font-size: 0.98rem;
+  }
+  .callout .ct {
+    font-weight: 800;
+    font-size: 0.79rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .callout.misconception { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.misconception .ct { color: var(--bad); }
+  .callout.hood { border-color: var(--purple); background: var(--purple-soft); }
+  .callout.hood .ct { color: var(--purple); }
+  .callout.interview { border-color: var(--good); background: var(--good-soft); }
+  .callout.interview .ct { color: var(--good); }
+  .callout.trap { border-color: var(--warn); background: var(--warn-soft); }
+  .callout.trap .ct { color: var(--warn); }
+  .callout pre { font-size: 0.86rem; }
+
+  .say {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 5px solid var(--good);
+    border-radius: 10px;
+    padding: 18px 20px 4px;
+    margin: 1.4em 0;
+    font-size: 1.02rem;
+  }
+  .say .ct {
+    font-weight: 800;
+    font-size: 0.76rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--good);
+    margin-bottom: 10px;
+  }
+  .say p { font-style: italic; }
+  .say .why {
+    font-style: normal;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--rule);
+    padding-top: 10px;
+  }
+
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 2.4em;
+  }
+  nav.toc .ct {
+    font-weight: 800;
+    font-size: 0.76rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  nav.toc ol { margin: 0; padding-left: 1.3em; font-size: 0.96rem; }
+  nav.toc li { margin-bottom: 0.25em; }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 12px 16px;
+    margin: 1.1em 0;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 10px; }
+  details > *:last-child { margin-bottom: 0.4em; }
+
+  figure { margin: 1.9em 0; text-align: center; }
+  figure svg { max-width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.94rem;
+    margin: 0 0 1.4em;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f2efe8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .cheat td:first-child { font-weight: 650; width: 38%; }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 2.6em 0; }
+
+  .lede { font-size: 1.08rem; color: var(--ink-soft); }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    header.hero h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.45rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview guide · 09</p>
+  <h1>How React Actually Renders</h1>
+  <p>Virtual DOM, reconciliation, keys, and Fiber — the machinery under the JSX you've been writing.</p>
+</header>
+
+<p class="lede">Here's a small React component. I want you to predict what it does.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Guess first 🤔</div>
+<pre><code><span class="k">function</span> <span class="t">LoginForm</span>() {
+  <span class="k">const</span> [isSignUp, setIsSignUp] = <span class="t">useState</span>(<span class="k">false</span>);
+
+  <span class="k">return</span> (
+    &lt;<span class="t">form</span>&gt;
+      {isSignUp
+        ? &lt;<span class="t">input</span> placeholder=<span class="s">"Choose a username"</span> /&gt;
+        : &lt;<span class="t">input</span> placeholder=<span class="s">"Email address"</span> /&gt;}
+      &lt;<span class="t">button</span> onClick={() =&gt; <span class="t">setIsSignUp</span>(!isSignUp)}&gt;switch&lt;/<span class="t">button</span>&gt;
+    &lt;/<span class="t">form</span>&gt;
+  );
+}</code></pre>
+</div>
+
+<p>You type <code>hello@example.com</code> into the box. Then you click "switch". The placeholder changes to "Choose a username"… and your text is <em>still there</em>. You're now looking at a username field containing an email address.</p>
+
+<p>Most people expect the old input to be destroyed and a brand new, empty one to appear. It isn't. React quietly reused the exact same <code>&lt;input&gt;</code> DOM node and just swapped one attribute.</p>
+
+<p>That's not a bug, and it's not arbitrary. It falls directly out of how React decides what to touch in the DOM. By the end of this guide you'll be able to look at that snippet and say "yeah, obviously" — and you'll be able to explain <em>why</em> to an interviewer without hand-waving.</p>
+
+<p>We're going to build this up from the very bottom: what the DOM is, why writing to it directly is painful, what a React element actually <em>is</em> (spoiler: a plain object), the two phases of a render, the diffing rules, keys, and finally Fiber. No forward references. If I use a word, I've taught it.</p>
+
+<nav class="toc">
+  <div class="ct">On this page</div>
+  <ol>
+    <li><a href="#problem">The problem: talking to the DOM by hand</a></li>
+    <li><a href="#element">What a React element actually is</a></li>
+    <li><a href="#vdom">So what <em>is</em> the virtual DOM? (and is it faster?)</a></li>
+    <li><a href="#phases">Render vs commit — the most important distinction</a></li>
+    <li><a href="#reconciliation">Reconciliation: the diffing algorithm</a></li>
+    <li><a href="#position">"Same position in the tree" (and the login-form surprise)</a></li>
+    <li><a href="#keys">Keys: identity for lists</a></li>
+    <li><a href="#rerender">What actually causes a re-render</a></li>
+    <li><a href="#fiber">Fiber: why React rewrote its reconciler</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">1. The problem: talking to the DOM by hand</h2>
+
+<p>Before React, before frameworks, there was just the DOM. Let's make sure that word is solid, because everything else stacks on top of it.</p>
+
+<p>When the browser loads your HTML, it doesn't keep the HTML text around. It parses it into a tree of <strong>objects</strong> in memory — one object per tag, nested the way your tags were nested. That tree is the <strong>DOM</strong> (Document Object Model). Each object has properties (<code>textContent</code>, <code>className</code>, <code>value</code>) and methods (<code>appendChild</code>, <code>remove</code>). JavaScript can reach into that tree and change it, and the browser re-paints the screen to match.</p>
+
+<p>So the DOM is the browser's live, mutable model of the page. It's the only thing that actually puts pixels on screen. React, Vue, Svelte, jQuery — all of them ultimately end up calling the same handful of DOM methods. There's no secret back door.</p>
+
+<h3>What hand-writing DOM code looks like</h3>
+
+<p>Say we want a cart button in the header that shows the item count.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Imperative — you give step-by-step instructions</div>
+<pre><code><span class="k">const</span> button = document.<span class="t">createElement</span>(<span class="s">'button'</span>);
+button.className = <span class="s">'cart-btn'</span>;
+button.textContent = <span class="s">`Cart (</span>${cartCount}<span class="s">)`</span>;
+button.<span class="t">addEventListener</span>(<span class="s">'click'</span>, openCart);
+document.<span class="t">querySelector</span>(<span class="s">'#header'</span>).<span class="t">appendChild</span>(button);
+
+<span class="c">// ...somewhere else, much later, when the cart changes:</span>
+<span class="hl">button.textContent = <span class="s">`Cart (</span>${cartCount}<span class="s">)`</span>; <span class="c">// 👈 don't forget this line</span></span>
+<span class="c">// and if the cart is empty we also want to hide it, so:</span>
+button.style.display = cartCount === <span class="n">0</span> ? <span class="s">'none'</span> : <span class="s">'block'</span>;</code></pre>
+</div>
+
+<p>This is <strong>imperative</strong> code: a list of commands describing <em>how</em> to change the page, step by step. And notice the shape of the bug that's waiting for you. The description of what the button should look like is now written twice — once when creating it, once when updating it. Every time you add a new piece of state that affects this button, you have to remember to add a matching line in the update path. Miss one, and your UI is showing a stale number. This is where "the badge says 3 but the cart has 4 things in it" bugs come from, and in a real app there are hundreds of these little sync points.</p>
+
+<p>Now the React version:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Declarative — you describe the result</div>
+<pre><code>{cartCount &gt; <span class="n">0</span> &amp;&amp; (
+  &lt;<span class="t">button</span> className=<span class="s">"cart-btn"</span> onClick={openCart}&gt;
+    Cart ({cartCount})
+  &lt;/<span class="t">button</span>&gt;
+)}</code></pre>
+</div>
+
+<p>There's exactly one description of the button, and it's written in terms of the data. There's no "update path" to forget, because there is no update path — you just describe what the UI is for the current values, every time. That's <strong>declarative</strong>: you state <em>what</em> you want, and something else figures out <em>how</em> to get there.</p>
+
+<h3>"Fine, so just rebuild everything on every change"</h3>
+
+<p>Here's the tempting shortcut. If describing the whole UI from scratch is so pleasant, why not do exactly that — regenerate the entire HTML string and slam it into the page?</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-bad">❌ The naive way to get declarative UI</div>
+<pre><code><span class="k">function</span> <span class="t">render</span>() {
+  app.innerHTML = <span class="s">`
+    &lt;h1&gt;</span>${title}<span class="s">&lt;/h1&gt;
+    &lt;input value="</span>${draft}<span class="s">" /&gt;
+    &lt;ul&gt;</span>${items.<span class="t">map</span>(i =&gt; <span class="s">`&lt;li&gt;</span>${i}<span class="s">&lt;/li&gt;`</span>).<span class="t">join</span>(<span class="s">''</span>)}<span class="s">&lt;/ul&gt;
+  `</span>;
+}</code></pre>
+</div>
+
+<p>This works! For about ten seconds. Then you notice:</p>
+
+<ul>
+  <li>The user was <strong>typing in that input</strong>. Blowing away <code>innerHTML</code> destroys the real input node and builds a new one, so focus is lost and the cursor jumps. Try typing in a field that gets rebuilt on every keystroke — it's unusable.</li>
+  <li>Scroll position resets. Text selection vanishes. CSS transitions restart. A playing <code>&lt;video&gt;</code> stops dead.</li>
+  <li>Every event listener you attached is gone with the nodes it was attached to.</li>
+  <li>And it's genuinely slow, because of the next bit.</li>
+</ul>
+
+<h3>Why DOM writes are expensive</h3>
+
+<p>Reading a property off a DOM node is cheap. Writing one can be very expensive — not because the write itself is slow, but because of what it <em>triggers</em>.</p>
+
+<p>When you change something that affects geometry — text content, width, padding, adding a node — the browser has to recompute where everything on the page goes. That's <strong>layout</strong> (also called <strong>reflow</strong>): "given these boxes and these styles, what are the exact x/y/width/height of every element?" Then it has to <strong>paint</strong> those boxes into pixels, and <strong>composite</strong> the layers together.</p>
+
+<p>Layout is the pricey one, because changing one element's size can push its siblings around, which can resize its parent, which can push <em>that</em> element's siblings around. One innocent write can force the browser to re-measure a large chunk of the page.</p>
+
+<figure>
+<svg viewBox="0 0 700 120" role="img" aria-label="Pipeline: JavaScript, Style, Layout, Paint, Composite">
+  <g font-family="system-ui, sans-serif" font-size="13">
+    <rect x="6" y="34" width="118" height="44" rx="7" fill="#e8f2f5" stroke="#1f6f8b"/>
+    <text x="65" y="61" text-anchor="middle" fill="#22201d">JavaScript</text>
+    <rect x="144" y="34" width="118" height="44" rx="7" fill="#e8f2f5" stroke="#1f6f8b"/>
+    <text x="203" y="61" text-anchor="middle" fill="#22201d">Style</text>
+    <rect x="282" y="34" width="118" height="44" rx="7" fill="#fdf2dd" stroke="#8a5a00" stroke-width="2"/>
+    <text x="341" y="56" text-anchor="middle" fill="#22201d" font-weight="700">Layout</text>
+    <text x="341" y="71" text-anchor="middle" fill="#8a5a00" font-size="11">(reflow) 💸</text>
+    <rect x="420" y="34" width="118" height="44" rx="7" fill="#fdf2dd" stroke="#8a5a00"/>
+    <text x="479" y="61" text-anchor="middle" fill="#22201d">Paint</text>
+    <rect x="558" y="34" width="130" height="44" rx="7" fill="#e8f2f5" stroke="#1f6f8b"/>
+    <text x="623" y="61" text-anchor="middle" fill="#22201d">Composite</text>
+    <g stroke="#55504a" stroke-width="1.5" fill="none">
+      <path d="M126 56 L142 56"/><path d="M264 56 L280 56"/>
+      <path d="M402 56 L418 56"/><path d="M540 56 L556 56"/>
+    </g>
+    <path d="M136 52 l8 4 -8 4z" fill="#55504a"/>
+    <path d="M274 52 l8 4 -8 4z" fill="#55504a"/>
+    <path d="M412 52 l8 4 -8 4z" fill="#55504a"/>
+    <path d="M550 52 l8 4 -8 4z" fill="#55504a"/>
+    <text x="347" y="105" text-anchor="middle" fill="#55504a" font-size="12">Every DOM write can push you back through this whole pipeline.</text>
+  </g>
+</svg>
+<figcaption>The browser's rendering pipeline. Fewer, more targeted DOM writes = less of this.</figcaption>
+</figure>
+
+<p>So we're stuck between two bad options. Hand-written imperative updates are minimal but miserable to maintain. Regenerating everything is lovely to write but destroys the page and thrashes layout.</p>
+
+<p><strong>What we want is to write the second one and get the performance and node-preservation of the first.</strong> That is the entire reason the virtual DOM exists. Hold onto that sentence — it's the answer to half the interview questions in this guide.</p>
+
+<h2 id="element">2. What a React element actually is</h2>
+
+<p>Time to demystify JSX, because people carry a lot of superstition about it.</p>
+
+<p>JSX is not part of JavaScript. Browsers have no idea what <code>&lt;button className="x"&gt;</code> means in a <code>.js</code> file. A build tool (Babel, or the compiler inside Vite/Next) transforms it before it ever reaches the browser. And the transform is boring — it's a plain function call.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">What you write</div>
+<pre><code>&lt;<span class="t">button</span> className=<span class="s">"cart-btn"</span> onClick={openCart}&gt;
+  Cart
+&lt;/<span class="t">button</span>&gt;</code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">What the compiler produces (classic transform)</div>
+<pre><code>React.<span class="t">createElement</span>(
+  <span class="s">'button'</span>,
+  { className: <span class="s">'cart-btn'</span>, onClick: openCart },
+  <span class="s">'Cart'</span>
+);</code></pre>
+</div>
+
+<p>Modern setups use the "automatic runtime" and emit <code>jsx('button', {...})</code> imported from <code>react/jsx-runtime</code> instead, so you don't need <code>import React</code> at the top of every file. Same idea, slightly different plumbing.</p>
+
+<p>Now the important part. <strong>What does <code>createElement</code> return?</strong> Not a DOM node. Not a class instance. Not anything magical. It returns a plain JavaScript object, roughly this:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">A React element, logged</div>
+<pre><code>{
+  $$typeof: Symbol(react.element),   <span class="c">// security marker, ignore it</span>
+  type: <span class="s">'button'</span>,                   <span class="c">// 👈 a string = host element</span>
+  key: <span class="k">null</span>,
+  ref: <span class="k">null</span>,
+  props: {
+    className: <span class="s">'cart-btn'</span>,
+    onClick: openCart,
+    children: <span class="s">'Cart'</span>
+  }
+}</code></pre>
+</div>
+
+<p>That's it. That's a React element. It is a <strong>description of what you want on screen</strong>, frozen into an object. It has no methods that draw anything. Creating one costs about as much as creating any small object — which is why React is happy to create thousands of them per second.</p>
+
+<p>For your own components, <code>type</code> holds the function itself:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">&lt;CartButton count={3} /&gt;</div>
+<pre><code>{
+  type: CartButton,   <span class="c">// 👈 the actual function reference, not a string</span>
+  key: <span class="k">null</span>,
+  props: { count: <span class="n">3</span> }
+}</code></pre>
+</div>
+
+<p>And because <code>children</code> is just another prop, nesting produces nested objects. A whole screen's worth of JSX becomes one big tree of these little objects.</p>
+
+<div class="callout">
+  <div class="ct">The mental model</div>
+  <p>A React element is a <strong>blueprint</strong>, not a building. It's the architect's drawing that says "a 2-metre door here, painted blue". You can print a thousand copies of a drawing cheaply. Actually knocking a wall down and hanging a door is the expensive part — that's the DOM.</p>
+  <p>Where the analogy breaks: a blueprint is drawn once and built once. React re-draws the entire blueprint on every render and hands it to a builder who compares it against what's already standing.</p>
+</div>
+
+<h2 id="vdom">3. So what <em>is</em> the virtual DOM? (and is it faster?)</h2>
+
+<p>The virtual DOM is that tree of plain element objects. That's the whole thing. It's a lightweight, in-memory, JavaScript-object description of what the UI should look like right now.</p>
+
+<p>And here is the loop:</p>
+
+<ol>
+  <li>Something changes (state updates).</li>
+  <li>React calls your components again, producing a <strong>new</strong> tree of element objects.</li>
+  <li>React compares that new tree to the previous one it kept around.</li>
+  <li>It works out the minimum set of real DOM operations that would turn the old UI into the new one.</li>
+  <li>It performs <em>only those</em> operations.</li>
+</ol>
+
+<p>You get to write "here is the entire UI for this data" — the pleasant declarative style — and React converts that into targeted surgery on the real DOM, which is what the hand-written imperative version was doing all along.</p>
+
+<div class="callout misconception">
+  <div class="ct">A common misconception</div>
+  <p><strong>"The virtual DOM is faster than the real DOM."</strong></p>
+  <p>This is the single most-parroted line in frontend interviews, and it doesn't survive one follow-up question. The virtual DOM <em>is</em> extra work — you're building a tree of objects and running a diff that hand-written code wouldn't need at all. A tuned vanilla-JS update will beat React every single time, because it skips all of that.</p>
+  <p>The comparison that actually makes sense is: <strong>virtual DOM vs. the naive declarative alternative</strong> (throw away the DOM and rebuild it from scratch). Against <em>that</em>, yes, hugely faster. Against a careful human doing surgical <code>textContent</code> updates? No.</p>
+  <p>The honest framing: the virtual DOM is <strong>a tool for making declarative UI practical while keeping DOM writes minimal.</strong> It buys maintainability at a small, predictable CPU cost, and it's <em>fast enough</em>. Say that in an interview and you'll stand out immediately.</p>
+</div>
+
+<div class="callout hood">
+  <div class="ct">Under the hood — optional</div>
+  <p>Some frameworks skip the virtual DOM entirely. Svelte compiles your template into imperative DOM instructions at build time; Solid uses fine-grained reactivity so a change to one signal updates exactly one text node with no diffing at all. They're proof that the virtual DOM isn't the only way to get declarative UI — it's <em>one</em> trade-off, chosen for flexibility (it works with plain JS control flow, arbitrary functions, and multiple renderers like React Native) rather than for raw speed.</p>
+</div>
+
+<h2 id="phases">4. Render vs commit — the most important distinction</h2>
+
+<p>If you take one thing from this guide, take this: <strong>"rendering" does not mean "touching the DOM."</strong></p>
+
+<p>The word is horribly overloaded. In everyday English, "rendering" means drawing something on a screen. In React, it means something much narrower and much less scary:</p>
+
+<p><strong>Render = React calls your component function and collects the element objects it returns.</strong></p>
+
+<p>That's it. Calling a function. Building objects. Zero pixels move. Nothing in the DOM changes. If your component re-renders 60 times and the output is identical every time, the browser does nothing at all — no layout, no paint.</p>
+
+<p>Then, separately:</p>
+
+<p><strong>Commit = React applies the differences it found to the real DOM.</strong></p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Diagram of the render and commit phases">
+  <g font-family="system-ui, sans-serif" font-size="13" fill="#22201d">
+    <rect x="8" y="14" width="330" height="272" rx="12" fill="#f0eafa" stroke="#6b4ba1" stroke-dasharray="5 4"/>
+    <text x="173" y="40" text-anchor="middle" font-weight="700" fill="#6b4ba1" font-size="14">RENDER PHASE</text>
+    <text x="173" y="58" text-anchor="middle" font-size="11" fill="#6b4ba1">pure · interruptible · no DOM</text>
+
+    <rect x="34" y="74" width="278" height="38" rx="7" fill="#fff" stroke="#6b4ba1"/>
+    <text x="173" y="98" text-anchor="middle">1. state changes → schedule work</text>
+
+    <rect x="34" y="124" width="278" height="38" rx="7" fill="#fff" stroke="#6b4ba1"/>
+    <text x="173" y="148" text-anchor="middle">2. call component functions</text>
+
+    <rect x="34" y="174" width="278" height="38" rx="7" fill="#fff" stroke="#6b4ba1"/>
+    <text x="173" y="198" text-anchor="middle">3. build new element tree</text>
+
+    <rect x="34" y="224" width="278" height="42" rx="7" fill="#fff" stroke="#6b4ba1"/>
+    <text x="173" y="243" text-anchor="middle">4. diff against previous tree</text>
+    <text x="173" y="259" text-anchor="middle" font-size="11" fill="#55504a">→ a list of changes to make</text>
+
+    <rect x="362" y="14" width="330" height="272" rx="12" fill="#e6f4ec" stroke="#1d7a4c" stroke-dasharray="5 4"/>
+    <text x="527" y="40" text-anchor="middle" font-weight="700" fill="#1d7a4c" font-size="14">COMMIT PHASE</text>
+    <text x="527" y="58" text-anchor="middle" font-size="11" fill="#1d7a4c">synchronous · uninterruptible</text>
+
+    <rect x="388" y="74" width="278" height="38" rx="7" fill="#fff" stroke="#1d7a4c"/>
+    <text x="527" y="98" text-anchor="middle">5. apply changes to real DOM</text>
+
+    <rect x="388" y="124" width="278" height="38" rx="7" fill="#fff" stroke="#1d7a4c"/>
+    <text x="527" y="148" text-anchor="middle">6. run layout effects, refs</text>
+
+    <rect x="388" y="174" width="278" height="38" rx="7" fill="#fff" stroke="#1d7a4c"/>
+    <text x="527" y="198" text-anchor="middle">7. browser paints 🎨</text>
+
+    <rect x="388" y="224" width="278" height="42" rx="7" fill="#fff" stroke="#1d7a4c"/>
+    <text x="527" y="243" text-anchor="middle">8. run useEffect callbacks</text>
+    <text x="527" y="259" text-anchor="middle" font-size="11" fill="#55504a">(after paint)</text>
+
+    <path d="M338 150 L360 150" stroke="#55504a" stroke-width="2"/>
+    <path d="M354 145 l10 5 -10 5z" fill="#55504a"/>
+  </g>
+</svg>
+<figcaption>Render builds a plan. Commit executes it. Only the green half touches the page.</figcaption>
+</figure>
+
+<p>Why does splitting these matter so much? Two reasons, and both come up in interviews.</p>
+
+<p><strong>First, it defuses the panic about re-renders.</strong> "My component re-rendered!" is not automatically a problem. If the output is the same, the commit phase has nothing to do. A re-render that produces an identical tree costs you one function call and a shallow comparison — measured in microseconds. Reaching for <code>React.memo</code> everywhere to prevent re-renders is usually solving a problem you don't have, and the memo comparison itself isn't free.</p>
+
+<p><strong>Second, it's why the render phase must be pure.</strong> React reserves the right to call your component, throw the result away, and call it again. Or start rendering, get interrupted by something more urgent, and restart from scratch. If your component body mutates a variable outside itself, or writes to <code>localStorage</code>, or fires off a fetch, those side effects happen an unpredictable number of times. That's exactly why side effects belong in <code>useEffect</code> — effects run in or after the <em>commit</em> phase, which happens exactly once per committed update. It's also why StrictMode double-invokes your components in development: it's smoking out impure render logic on purpose.</p>
+
+<div class="callout">
+  <div class="ct">Wait, what about…</div>
+  <p><strong>"So does a re-render always update the DOM?"</strong> No — and this is a great interview answer because it proves you understand the two phases. A re-render always means "React called my component again." It only means "the DOM changed" if the new element tree differs from the old one in a way that requires a DOM operation. Re-render 100 times with identical output and React performs zero DOM writes.</p>
+</div>
+
+<h2 id="reconciliation">5. Reconciliation: the diffing algorithm</h2>
+
+<p><strong>Reconciliation</strong> is React's name for step 4 above — figuring out what changed between the old tree and the new one. Let's understand why it needs a trick.</p>
+
+<h3>Why a "proper" tree diff is impossible</h3>
+
+<p>The general computer-science problem here is: given two trees, find the minimum sequence of operations that transforms one into the other. The best known algorithms for that run in <strong>O(n³)</strong> — where <code>n</code> is the number of nodes.</p>
+
+<p>Let's feel that number. A modest page has 1,000 DOM nodes. 1,000³ is <strong>one billion</strong> operations. To update a page. Once. At that cost you'd be lucky to get one frame per second. Completely unusable.</p>
+
+<p>So React cheats. It gives up on finding the <em>minimum</em> set of changes and instead uses two assumptions that are almost always true about real UIs. Those assumptions collapse the problem to <strong>O(n)</strong> — a single pass over the tree. The trade is: React will occasionally do more DOM work than strictly necessary, in exchange for being fast enough to run on every keystroke.</p>
+
+<div class="callout hood">
+  <div class="ct">Under the hood — where the O(n) comes from</div>
+  <p>The general algorithm is expensive because it considers moving any node to any other position anywhere in the tree. React's heuristics forbid that entirely: it only ever compares nodes at the <em>same position</em> in the tree, and within a list it only compares siblings to each other. That means each node is visited a constant number of times, so total work is proportional to the number of nodes. That's the whole trick.</p>
+</div>
+
+<h3>Heuristic 1: different type → tear it all down</h3>
+
+<p>If an element at a given position changed <code>type</code> — <code>&lt;div&gt;</code> became <code>&lt;span&gt;</code>, or <code>&lt;ProfileCard&gt;</code> became <code>&lt;LoadingSkeleton&gt;</code> — React does not try to salvage anything. It unmounts the old node <em>and its entire subtree</em>, destroys all their state, and builds the new subtree from scratch.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Before → after</div>
+<pre><code><span class="c">// old</span>
+&lt;<span class="t">div</span>&gt;&lt;<span class="t">Counter</span> /&gt;&lt;/<span class="t">div</span>&gt;
+
+<span class="c">// new</span>
+&lt;<span class="t">span</span>&gt;&lt;<span class="t">Counter</span> /&gt;&lt;/<span class="t">span</span>&gt;
+
+<span class="c">// → the div is removed, Counter unmounts (state lost!),</span>
+<span class="c">//   a fresh span + fresh Counter are created.</span></code></pre>
+</div>
+
+<p>Harsh? A bit. But the reasoning is solid: if the tag changed, the developer almost certainly meant "this is a different thing now", and any attempt at clever partial reuse would cost more than it saves.</p>
+
+<h3>Heuristic 2: same type → update in place and recurse</h3>
+
+<p>If the type matches, React keeps the existing DOM node. It compares the old props to the new props and applies only the ones that differ, then walks down into the children and does the same thing again.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Before → after</div>
+<pre><code><span class="c">// old</span>
+&lt;<span class="t">div</span> className=<span class="s">"card"</span> title=<span class="s">"Cart"</span>&gt;...&lt;/<span class="t">div</span>&gt;
+
+<span class="c">// new</span>
+&lt;<span class="t">div</span> className=<span class="s">"card featured"</span> title=<span class="s">"Cart"</span>&gt;...&lt;/<span class="t">div</span>&gt;
+
+<span class="c">// → same &lt;div&gt; node kept. React runs exactly one operation:</span>
+<span class="c">//   node.className = 'card featured'</span>
+<span class="c">//   title is untouched. Children are then diffed the same way.</span></code></pre>
+</div>
+
+<p>For a component type, "update in place" means: keep the component's <strong>state and hooks</strong>, hand it the new props, call the function again, and diff whatever it returns.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Two diffing outcomes: same type updates in place, different type tears down the subtree">
+  <g font-family="system-ui, sans-serif" font-size="12.5" fill="#22201d">
+    <text x="8" y="18" font-weight="700" fill="#1d7a4c">Same type → reuse node, keep state</text>
+    <rect x="14" y="30" width="90" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="59" y="50" text-anchor="middle">&lt;ul&gt;</text>
+    <rect x="14" y="72" width="90" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="59" y="92" text-anchor="middle">&lt;Row/&gt;</text>
+    <path d="M59 60 L59 72" stroke="#1d7a4c"/>
+    <text x="120" y="50">→</text>
+    <rect x="145" y="30" width="90" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="190" y="50" text-anchor="middle">&lt;ul&gt;</text>
+    <rect x="145" y="72" width="90" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="190" y="92" text-anchor="middle">&lt;Row/&gt;</text>
+    <path d="M190 60 L190 72" stroke="#1d7a4c"/>
+    <text x="255" y="52" fill="#1d7a4c" font-size="11.5">same DOM nodes,</text>
+    <text x="255" y="68" fill="#1d7a4c" font-size="11.5">props patched, state survives ✅</text>
+
+    <line x1="8" y1="122" x2="692" y2="122" stroke="#e3ded4"/>
+
+    <text x="8" y="150" font-weight="700" fill="#b3261e">Different type → destroy whole subtree</text>
+    <rect x="14" y="162" width="90" height="30" rx="6" fill="#fbe9e8" stroke="#b3261e"/>
+    <text x="59" y="182" text-anchor="middle">&lt;ul&gt;</text>
+    <rect x="14" y="204" width="90" height="30" rx="6" fill="#fbe9e8" stroke="#b3261e"/>
+    <text x="59" y="224" text-anchor="middle">&lt;Row/&gt;</text>
+    <path d="M59 192 L59 204" stroke="#b3261e"/>
+    <text x="120" y="182">→</text>
+    <rect x="145" y="162" width="90" height="30" rx="6" fill="#fbe9e8" stroke="#b3261e" stroke-width="2"/>
+    <text x="190" y="182" text-anchor="middle" font-weight="700">&lt;ol&gt;</text>
+    <rect x="145" y="204" width="90" height="30" rx="6" fill="#fbe9e8" stroke="#b3261e"/>
+    <text x="190" y="224" text-anchor="middle">&lt;Row/&gt;</text>
+    <path d="M190 192 L190 204" stroke="#b3261e"/>
+    <text x="255" y="184" fill="#b3261e" font-size="11.5">everything below is unmounted</text>
+    <text x="255" y="200" fill="#b3261e" font-size="11.5">and rebuilt — Row's state is gone 💥</text>
+  </g>
+</svg>
+<figcaption>React never asks "could this &lt;ul&gt; become that &lt;ol&gt;?" A type change is a hard reset.</figcaption>
+</figure>
+
+<h2 id="position">6. "Same position in the tree" — and the login-form surprise</h2>
+
+<p>Both heuristics hinge on the phrase <em>"at the same position"</em>, so let's pin it down precisely, because this is where people's mental models quietly break.</p>
+
+<p>React identifies a component by <strong>where it sits in the rendered tree</strong> — its path from the root: "first child of the root's second child", and so on. Not by what it's called in your source code. Not by which line of JSX produced it. Not by its props.</p>
+
+<p>So: if the same component type shows up at the same slot in the tree on two consecutive renders, React considers it <em>the same component instance</em> and preserves its state — even if that JSX came from a completely different branch of a ternary.</p>
+
+<p>Which brings us back to the snippet from the top of this guide.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">The surprise, revisited</div>
+<pre><code>{isSignUp
+  ? &lt;<span class="t">input</span> placeholder=<span class="s">"Choose a username"</span> /&gt;
+  : &lt;<span class="t">input</span> placeholder=<span class="s">"Email address"</span> /&gt;}</code></pre>
+</div>
+
+<p>Two different lines of source. Two different-looking bits of JSX. But look at what actually reaches the reconciler. Before the toggle, the first child of <code>&lt;form&gt;</code> is an element with <code>type: 'input'</code>. After the toggle, the first child of <code>&lt;form&gt;</code> is… an element with <code>type: 'input'</code>.</p>
+
+<p>Same position. Same type. Heuristic 2 fires: <strong>reuse the node, patch the props that differ.</strong> React sets <code>placeholder</code> and moves on. The DOM node was never replaced, so the text you typed — which lives on the real DOM node — is still sitting there.</p>
+
+<p>React can't see your ternary. By the time reconciliation runs, the ternary has already been evaluated; all that's left is a tree of objects. The source code that produced them is invisible.</p>
+
+<p>Once you see it that way, the behaviour goes from "weird React quirk" to "well, obviously." That's the click.</p>
+
+<h3>Pushing on the edge: the same thing, but worse</h3>
+
+<p>Here's the version that trips up people who think they've got it:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">What happens to the count when you toggle?</div>
+<pre><code>{isFancy
+  ? &lt;<span class="t">div</span> className=<span class="s">"fancy"</span>&gt;&lt;<span class="t">Counter</span> /&gt;&lt;/<span class="t">div</span>&gt;
+  : &lt;<span class="t">section</span>&gt;&lt;<span class="t">Counter</span> /&gt;&lt;/<span class="t">section</span>&gt;}</code></pre>
+</div>
+
+<details>
+  <summary>Take a guess, then open this</summary>
+  <p>The count <strong>resets to zero</strong>. The wrapper at that position changed from <code>div</code> to <code>section</code> — different type — so heuristic 1 fires and the <em>entire subtree</em> is destroyed, <code>Counter</code> included. Its state goes with it.</p>
+  <p>Change the second branch to a <code>&lt;div&gt;</code> with different styling instead of a <code>&lt;section&gt;</code>, and the count survives. Same visual intent, totally different state behaviour, and the only difference is one tag name. This is exactly why understanding the reconciler beats memorising rules.</p>
+</details>
+
+<h3>The conditional-rendering state loss</h3>
+
+<p>The flip side bites just as often:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Where did my form data go?</div>
+<pre><code>{showAdvanced &amp;&amp; &lt;<span class="t">AdvancedSettings</span> /&gt;}</code></pre>
+</div>
+
+<p>User expands the panel, half-fills the form, collapses it to check something, expands it again — everything's blank and they're annoyed.</p>
+
+<p>Why: when <code>showAdvanced</code> is <code>false</code>, that expression evaluates to <code>false</code>, which React renders as nothing. The position is empty. <code>AdvancedSettings</code> is <strong>unmounted</strong> — its state is deleted, its effects are cleaned up. Toggling back mounts a brand new instance with fresh <code>useState</code> initial values.</p>
+
+<p>This is React working correctly. If you want the state to survive, you have two options: keep the component mounted and hide it with CSS, or lift the state up to a parent that stays mounted.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-good">✅ Keep it mounted, hide it visually</div>
+<pre><code>&lt;<span class="t">div</span> hidden={!showAdvanced}&gt;
+  &lt;<span class="t">AdvancedSettings</span> /&gt;   <span class="c">// 👈 never unmounts, keeps its state</span>
+&lt;/<span class="t">div</span>&gt;</code></pre>
+</div>
+
+<p>The trade-off is real: hidden-but-mounted components still render, still run effects, still hold memory. For a heavy component you may prefer unmounting and lifting the important state up. There's no free lunch — just a choice you now understand well enough to make deliberately.</p>
+
+<div class="callout trap">
+  <div class="ct">Trap: defining a component inside another component</div>
+  <p>This one looks harmless and causes a truly baffling bug — an input that loses focus after every single keystroke.</p>
+<pre><code><span class="k">function</span> <span class="t">Page</span>() {
+  <span class="k">function</span> <span class="t">Field</span>() { <span class="k">return</span> &lt;<span class="t">input</span> /&gt;; }  <span class="c">// 👈 the bug</span>
+  <span class="k">return</span> &lt;<span class="t">Field</span> /&gt;;
+}</code></pre>
+  <p>Every time <code>Page</code> renders, <code>Field</code> is a <strong>brand new function object</strong>. React compares element types with <code>===</code>, so old <code>Field</code> !== new <code>Field</code> — different type, heuristic 1, whole subtree destroyed and rebuilt. The input node is replaced on every render, so focus and cursor position are lost. Always define components at module top level.</p>
+</div>
+
+<h2 id="keys">7. Keys: identity for lists</h2>
+
+<p>Everything so far compared nodes <strong>by position</strong>. That works beautifully for fixed structure — your header is always the first child, your footer is always the last. But lists break the assumption completely, because in a list, position is exactly the thing that changes.</p>
+
+<h3>The problem, concretely</h3>
+
+<p>Say we render three todos:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Old tree → new tree</div>
+<pre><code><span class="c">// old</span>              <span class="c">// new (we prepended "Call mum")</span>
+&lt;li&gt;Buy milk&lt;/li&gt;    &lt;li&gt;Call mum&lt;/li&gt;
+&lt;li&gt;Walk dog&lt;/li&gt;    &lt;li&gt;Buy milk&lt;/li&gt;
+                     &lt;li&gt;Walk dog&lt;/li&gt;</code></pre>
+</div>
+
+<p>A human sees "one item was inserted at the top." React, comparing purely by position, sees something else entirely: child 0's text changed from "Buy milk" to "Call mum", child 1's text changed from "Walk dog" to "Buy milk", and a new child 2 appeared. Three DOM operations instead of one — and, far worse, any state living inside those rows has now shifted up by one.</p>
+
+<p>React needs a way to know that the "Buy milk" row in the new tree is <em>the same row</em> as the "Buy milk" row in the old tree, even though it moved. It can't figure that out on its own; text content is a terrible identifier, and comparing everything to everything is the O(n³) problem we already rejected.</p>
+
+<p>So React asks you. That's what <code>key</code> is.</p>
+
+<div class="callout">
+  <div class="ct">The mental model</div>
+  <p>A key is a <strong>luggage tag</strong>. Bags on a carousel are constantly reordered, and nobody identifies their suitcase by "third one round the bend" — they read the tag. React does the same: within one list of siblings, it matches old children to new children by key, not by position. Then it knows the "Buy milk" row simply <em>moved</em>, so it can move that DOM node instead of rewriting it.</p>
+  <p>Where the analogy breaks: luggage tags are globally unique; React keys only need to be unique <strong>among siblings</strong>. Two different lists can both use key <code>"1"</code> with no problem at all.</p>
+</div>
+
+<h3>What actually goes wrong with index keys</h3>
+
+<p>The lazy fix everyone reaches for first:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-bad">❌ Buggy</div>
+<pre><code>{todos.<span class="t">map</span>((todo, index) =&gt; (
+  &lt;<span class="t">TodoRow</span> key={index} todo={todo} /&gt;   <span class="c">// 👈 the warning goes away…</span>
+))}</code></pre>
+</div>
+
+<p>The console warning disappears, so it feels solved. It isn't. <code>key={index}</code> is <em>literally the position</em>, so you've handed React the exact information it already had. You've told it "identify each row by where it sits", which is the thing that breaks.</p>
+
+<p>Let's watch it fail. Each row has a note field the user can type into:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">The setup</div>
+<pre><code><span class="k">function</span> <span class="t">TodoRow</span>({ todo, onDelete }) {
+  <span class="k">const</span> [note, setNote] = <span class="t">useState</span>(<span class="s">''</span>);   <span class="c">// 👈 state lives per row</span>
+  <span class="k">return</span> (
+    &lt;<span class="t">li</span>&gt;
+      {todo.title}
+      &lt;<span class="t">input</span> value={note} onChange={e =&gt; <span class="t">setNote</span>(e.target.value)} /&gt;
+      &lt;<span class="t">button</span> onClick={() =&gt; <span class="t">onDelete</span>(todo.id)}&gt;delete&lt;/<span class="t">button</span>&gt;
+    &lt;/<span class="t">li</span>&gt;
+  );
+}</code></pre>
+</div>
+
+<p>The user types a note next to "Buy milk", then deletes "Buy milk". Here's the frame-by-frame with <code>key={index}</code>:</p>
+
+<figure>
+<svg viewBox="0 0 700 260" role="img" aria-label="Index keys cause state to land on the wrong row after deleting the first item">
+  <g font-family="system-ui, sans-serif" font-size="12.5" fill="#22201d">
+    <text x="10" y="20" font-weight="700">BEFORE (user typed a note on row 0)</text>
+    <rect x="10" y="30" width="300" height="30" rx="6" fill="#fff" stroke="#55504a"/>
+    <text x="20" y="50">key=0 · Buy milk</text>
+    <rect x="180" y="36" width="122" height="18" rx="4" fill="#fdf2dd" stroke="#8a5a00"/>
+    <text x="188" y="49" font-size="11" fill="#8a5a00">"semi-skimmed"</text>
+    <rect x="10" y="66" width="300" height="30" rx="6" fill="#fff" stroke="#55504a"/>
+    <text x="20" y="86">key=1 · Walk dog</text>
+    <rect x="180" y="72" width="122" height="18" rx="4" fill="#f4f2ee" stroke="#c9c3b8"/>
+    <rect x="10" y="102" width="300" height="30" rx="6" fill="#fff" stroke="#55504a"/>
+    <text x="20" y="122">key=2 · Pay rent</text>
+    <rect x="180" y="108" width="122" height="18" rx="4" fill="#f4f2ee" stroke="#c9c3b8"/>
+
+    <text x="330" y="82" font-size="20">→</text>
+    <text x="322" y="105" font-size="11" fill="#b3261e">delete "Buy milk"</text>
+
+    <text x="380" y="20" font-weight="700" fill="#b3261e">AFTER — with key={index} 💥</text>
+    <rect x="380" y="30" width="308" height="30" rx="6" fill="#fbe9e8" stroke="#b3261e" stroke-width="2"/>
+    <text x="390" y="50">key=0 · Walk dog</text>
+    <rect x="556" y="36" width="124" height="18" rx="4" fill="#fdf2dd" stroke="#8a5a00"/>
+    <text x="564" y="49" font-size="11" fill="#8a5a00">"semi-skimmed"</text>
+    <rect x="380" y="66" width="308" height="30" rx="6" fill="#fff" stroke="#55504a"/>
+    <text x="390" y="86">key=1 · Pay rent</text>
+    <rect x="556" y="72" width="124" height="18" rx="4" fill="#f4f2ee" stroke="#c9c3b8"/>
+    <text x="380" y="118" font-size="11.5" fill="#b3261e">The note stayed on key 0. But key 0 is a</text>
+    <text x="380" y="134" font-size="11.5" fill="#b3261e">different todo now. Wrong row. 😱</text>
+
+    <line x1="10" y1="158" x2="690" y2="158" stroke="#e3ded4"/>
+
+    <text x="380" y="182" font-weight="700" fill="#1d7a4c">AFTER — with key={todo.id} ✅</text>
+    <rect x="380" y="192" width="308" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="390" y="212">key="t2" · Walk dog</text>
+    <rect x="556" y="198" width="124" height="18" rx="4" fill="#f4f2ee" stroke="#c9c3b8"/>
+    <rect x="380" y="228" width="308" height="30" rx="6" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="390" y="248">key="t3" · Pay rent</text>
+    <rect x="556" y="234" width="124" height="18" rx="4" fill="#f4f2ee" stroke="#c9c3b8"/>
+    <text x="10" y="212" font-size="11.5" fill="#1d7a4c">Key "t1" is gone from the new list, so React</text>
+    <text x="10" y="228" font-size="11.5" fill="#1d7a4c">unmounts exactly that row — note and all.</text>
+    <text x="10" y="244" font-size="11.5" fill="#1d7a4c">The other two keep their own state.</text>
+  </g>
+</svg>
+<figcaption>Delete the first item. With index keys, the typed note is left behind on whatever moves into slot 0.</figcaption>
+</figure>
+
+<p>Walk through React's reasoning, because it's completely logical once you see it. New list has keys <code>0</code> and <code>1</code>. Old list had <code>0</code>, <code>1</code>, <code>2</code>. So React concludes: key <code>0</code> still exists → keep that component instance (including its <code>note</code> state), just pass the new <code>todo</code> prop, which now says "Walk dog". Key <code>1</code> still exists → same deal. Key <code>2</code> is gone → unmount the last row.</p>
+
+<p>React did exactly what you told it. You told it the identity of a row is its position. The user's note was attached to "position 0", not to "Buy milk". So the note stayed at position 0 while a different todo moved in underneath it.</p>
+
+<p>And notice the second cost: React re-rendered <em>both</em> remaining rows with new props and updated their text nodes, when the correct answer was "remove one node, touch nothing else."</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-good">✅ Fixed</div>
+<pre><code>{todos.<span class="t">map</span>(todo =&gt; (
+  &lt;<span class="t">TodoRow</span> key={todo.id} todo={todo} /&gt;   <span class="c">// 👈 tied to the data, not the slot</span>
+))}</code></pre>
+</div>
+
+<p>Now the key travels with the todo. Delete "Buy milk" and key <code>"t1"</code> vanishes from the list, so React unmounts precisely that row and leaves the other two — and their state, and their DOM nodes — completely untouched.</p>
+
+<h3>When is index as a key actually fine?</h3>
+
+<p>It's not forbidden. It's fine when the index genuinely <em>is</em> a stable identity, which requires all three of these:</p>
+
+<ul>
+  <li>The list never reorders, and items are never inserted or removed anywhere except the end.</li>
+  <li>The list isn't filtered or sorted (filtering re-indexes everything).</li>
+  <li>The items have no state, no uncontrolled inputs, and no refs you care about.</li>
+</ul>
+
+<p>A static list of nav links from a hard-coded array? Index is fine. Rendering skeleton placeholders while data loads? Index is fine. Anything user-editable, sortable, filterable, drag-and-droppable, or paginated? Use a real ID.</p>
+
+<p>The pragmatic rule: <strong>if the data has an ID, use it.</strong> If it genuinely doesn't and the list is dynamic, generate a stable ID once when you create the item (<code>crypto.randomUUID()</code> at creation time) and store it alongside the data — <em>not</em> during render.</p>
+
+<div class="callout misconception">
+  <div class="ct">Why <code>key={Math.random()}</code> is a disaster</div>
+  <p>It silences the warning and it is the worst possible thing you can do. Keys are generated <em>during render</em>, so every render produces a completely new set of keys. React matches old keys to new keys, finds zero matches, and concludes that <strong>every single item was deleted and a completely different set of items was created.</strong></p>
+  <p>Consequences: the entire list is destroyed and rebuilt from scratch on every render — maximum DOM work, the exact opposite of what keys are for. All component state in the list is wiped every render. Focus is lost, so a user typing in a list input can't type. Scroll position jumps. Every effect in every row unmounts and re-runs, so you may fire a network request per row per render.</p>
+  <p>Same applies to <code>key={uuid()}</code> or <code>key={Date.now()}</code> inline. A key must be <strong>stable across renders</strong> — that's the entire job description.</p>
+</div>
+
+<div class="callout">
+  <div class="ct">Wait, what about… duplicate keys?</div>
+  <p><strong>"What happens if two siblings have the same key?"</strong> React logs a warning ("Encountered two children with the same key") and the behaviour becomes unreliable. When matching old children to new, React builds a map from key → child, so a duplicate key overwrites the earlier entry. In practice you get items being dropped, state and DOM nodes attaching to the wrong item, and updates that silently don't apply.</p>
+  <p>The classic real-world cause is using a non-unique field as a key — <code>key={user.firstName}</code> works right up until you have two people called Sam. Keys only need to be unique <em>among siblings</em>, but within that scope they must be genuinely unique.</p>
+</div>
+
+<h3>Keys as a deliberate remount tool</h3>
+
+<p>Here's the flip: everything above describes keys <em>preserving</em> identity. You can also use them to deliberately <em>destroy</em> it.</p>
+
+<p>Common problem — a profile editor where switching users leaves the previous user's draft in the form:</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-bad">❌ Buggy: stale state when userId changes</div>
+<pre><code>&lt;<span class="t">ProfileEditor</span> userId={selectedUserId} /&gt;
+<span class="c">// same type, same position → React reuses the instance,</span>
+<span class="c">// so the internal draft state from the previous user survives</span></code></pre>
+</div>
+
+<div class="codeblock">
+  <div class="cb-label cb-good">✅ Fixed: a new key means a new component</div>
+<pre><code>&lt;<span class="t">ProfileEditor</span> key={selectedUserId} userId={selectedUserId} /&gt;
+<span class="c">// key changed → React unmounts the old instance entirely</span>
+<span class="c">// and mounts a fresh one: state reset, effects re-run</span></code></pre>
+</div>
+
+<p>Keys work on a single element, not just lists. Changing the key tells React "this is a different thing now," and it unmounts and remounts. This is the officially recommended way to reset a component's state when a prop changes — much cleaner than a <code>useEffect</code> that watches <code>userId</code> and manually resets five pieces of state.</p>
+
+<p>And it directly answers a favourite interview question: <strong>"How do you force a component to reset its state?"</strong> Change its <code>key</code>. That's the answer. (The follow-up "why does that work?" is the one that separates people — because a changed key means React can't match it to the old instance, so it treats it as a brand new element at that position and mounts fresh.)</p>
+
+<h2 id="rerender">8. What actually causes a re-render</h2>
+
+<p>Quick check: which of these makes a component re-render?</p>
+
+<ol>
+  <li>Its own state changed.</li>
+  <li>Its parent re-rendered.</li>
+  <li>A context it consumes changed value.</li>
+  <li>Its props changed.</li>
+</ol>
+
+<details>
+  <summary>The answer is not what most people say</summary>
+  <p>1, 2, and 3 cause re-renders. <strong>4 does not.</strong> Props changing is not a trigger at all.</p>
+</details>
+
+<div class="callout misconception">
+  <div class="ct">A common misconception</div>
+  <p><strong>"A component re-renders when its props change."</strong></p>
+  <p>Backwards. Think about the mechanics: how would new props even <em>arrive</em>? Props are the argument object passed in by the parent when it builds the element. For a child to receive new props, the parent must have re-rendered to create that element. So the parent re-rendering is the cause; the new props are a <em>consequence</em>.</p>
+  <p>And the giveaway that it's not about props: when a parent re-renders, React re-renders <strong>all</strong> its children — including ones whose props are byte-for-byte identical. React doesn't compare props by default. It just walks down the tree.</p>
+  <p>The correct sentence: <em>"A component re-renders when its own state changes, when its parent re-renders, or when a context it subscribes to changes."</em></p>
+</div>
+
+<p>This is exactly what <code>React.memo</code> changes: it wraps a component so React does a shallow prop comparison first and skips the re-render if nothing changed. Note that this makes "props changed" a trigger only <em>because you explicitly opted in</em> — it's not the default.</p>
+
+<p>And remember phase one of this guide: re-rendering all the children is usually cheap, because most of those renders produce identical trees and commit nothing. Don't wrap everything in <code>memo</code> reflexively.</p>
+
+<h3>Does changing state always cause a re-render?</h3>
+
+<p>No — and this is a lovely follow-up to be ready for.</p>
+
+<p>When you call a setter, React compares the new value to the current one using <code>Object.is</code> (basically <code>===</code>, with saner handling of <code>NaN</code> and <code>-0</code>). If they're the same, React can <strong>bail out</strong> and skip re-rendering that subtree.</p>
+
+<div class="codeblock">
+  <div class="cb-label cb-plain">Bailouts in action</div>
+<pre><code><span class="k">const</span> [count, setCount] = <span class="t">useState</span>(<span class="n">0</span>);
+<span class="t">setCount</span>(<span class="n">0</span>);          <span class="c">// → same value, bails out. No re-render.</span>
+
+<span class="k">const</span> [user, setUser] = <span class="t">useState</span>({ name: <span class="s">'Sam'</span> });
+<span class="t">setUser</span>(user);         <span class="c">// → same reference, bails out.</span>
+<span class="hl"><span class="t">setUser</span>({ name: <span class="s">'Sam'</span> }); <span class="c">// 👈 NEW object → different reference → RE-RENDERS,</span></span>
+                       <span class="c">//   even though the contents are identical.</span></code></pre>
+</div>
+
+<p>That last line is the one that catches people. <code>Object.is</code> compares object <em>references</em>, not contents. Two objects with identical fields are two different objects. This is the root cause of an enormous number of "why is this re-rendering forever?" bugs — usually a <code>useEffect</code> that sets state derived from an object that gets rebuilt on every render.</p>
+
+<p>Two caveats worth knowing, because a sharp interviewer might probe them:</p>
+
+<ul>
+  <li>React may still render the component <strong>once</strong> before bailing out, since it sometimes needs to render to be sure nothing else changed. It just won't go deeper or commit anything. So a bailout is "no DOM work and no children re-rendered", not always literally "zero function calls".</li>
+  <li>Bailouts compare against the <em>current</em> state at the time the update is processed, so in a batch of updates the comparison happens per-update, not against the value you saw when you called the setter.</li>
+</ul>
+
+<h2 id="fiber">9. Fiber: why React rewrote its reconciler</h2>
+
+<p>Everything so far describes <em>what</em> React computes. Fiber is about <em>how</em> and <em>when</em> it computes it. It shipped in React 16 and it's the foundation everything modern sits on.</p>
+
+<h3>The problem with the old reconciler</h3>
+
+<p>Pre-16, reconciliation was a plain recursive function. Render the root, which calls render on its children, which calls render on their children, all the way down — one deep recursive descent using the JavaScript call stack. Hence the name: the <strong>stack reconciler</strong>.</p>
+
+<p>Recursion is a lovely fit for trees, but it has one property that turned out to be fatal here: <strong>you cannot pause it.</strong> Once you're twelve frames deep in a recursive call, there's no way to say "hold this thought, I'll come back in a moment." The call stack is the browser's, not yours. The only way out is to finish.</p>
+
+<p>Combine that with the fact that JavaScript runs on a single thread — the same thread that handles clicks, keystrokes, scrolling, and painting. If reconciling a big tree takes 300ms, then for 300ms the browser cannot paint a frame, cannot process a keypress, cannot respond to anything. The page is frozen.</p>
+
+<p>The classic demo: a search box filtering a list of thousands of items. You type, and each keystroke triggers a render that takes longer than the gap between keystrokes. Characters appear late, in bursts. It feels broken — because the work is uninterruptible, so even though the user has clearly moved on and typed three more letters, React has to finish rendering the results for the stale query first.</p>
+
+<div class="callout">
+  <div class="ct">The mental model</div>
+  <p>The stack reconciler is <strong>reading a book by putting your finger between pages as you follow footnotes</strong>. You go deeper and deeper, and you cannot put the book down — your fingers <em>are</em> the bookmark. If someone knocks at the door, they wait until you're done.</p>
+  <p>Fiber replaces that with a <strong>to-do list on paper, with a bookmark clipped to the current item</strong>. Each item says what to do and what to do next. You can stop after any item, deal with the door, and pick up exactly where you left off — or throw the list away and start a new one, if what's at the door matters more.</p>
+  <p>Where it breaks down: a real to-do list is linear, whereas fibers still describe a tree — the "what's next" pointer just encodes the tree walk explicitly instead of relying on the call stack.</p>
+</div>
+
+<h3>What a fiber is</h3>
+
+<p>A <strong>fiber</strong> is a plain JavaScript object representing one unit of work — roughly one component instance. It holds the component's type, its props, its state and hooks, a pointer to the real DOM node it's associated with, and — crucially — pointers to its neighbours:</p>
+
+<ul>
+  <li><code>child</code> — first child</li>
+  <li><code>sibling</code> — next sibling</li>
+  <li><code>return</code> — parent (where to go back to when this subtree is done)</li>
+</ul>
+
+<p>Those three pointers turn the tree into a <strong>linked list you can walk manually</strong>. React holds one variable pointing at the next fiber to process, does a chunk of work, then checks the clock. Still have time in this frame? Process the next fiber. Out of time? Store the pointer, yield to the browser so it can paint and handle input, and continue on the next tick.</p>
+
+<figure>
+<svg viewBox="0 0 700 200" role="img" aria-label="Fiber nodes linked by child, sibling and return pointers">
+  <g font-family="system-ui, sans-serif" font-size="12" fill="#22201d">
+    <rect x="290" y="16" width="110" height="36" rx="7" fill="#f0eafa" stroke="#6b4ba1"/>
+    <text x="345" y="39" text-anchor="middle" font-weight="650">App</text>
+
+    <rect x="130" y="86" width="110" height="36" rx="7" fill="#f0eafa" stroke="#6b4ba1"/>
+    <text x="185" y="109" text-anchor="middle">Header</text>
+    <rect x="290" y="86" width="110" height="36" rx="7" fill="#f0eafa" stroke="#6b4ba1"/>
+    <text x="345" y="109" text-anchor="middle">TodoList</text>
+    <rect x="450" y="86" width="110" height="36" rx="7" fill="#f0eafa" stroke="#6b4ba1"/>
+    <text x="505" y="109" text-anchor="middle">Footer</text>
+
+    <rect x="290" y="152" width="110" height="36" rx="7" fill="#f0eafa" stroke="#6b4ba1"/>
+    <text x="345" y="175" text-anchor="middle">TodoRow</text>
+
+    <path d="M320 52 Q250 60 190 84" stroke="#1d7a4c" stroke-width="1.6" fill="none"/>
+    <text x="232" y="66" fill="#1d7a4c" font-size="10.5">child</text>
+    <path d="M240 104 L286 104" stroke="#1f6f8b" stroke-width="1.6"/>
+    <text x="246" y="98" fill="#1f6f8b" font-size="10.5">sibling</text>
+    <path d="M400 104 L446 104" stroke="#1f6f8b" stroke-width="1.6"/>
+    <text x="406" y="98" fill="#1f6f8b" font-size="10.5">sibling</text>
+    <path d="M338 122 L338 150" stroke="#1d7a4c" stroke-width="1.6"/>
+    <text x="296" y="140" fill="#1d7a4c" font-size="10.5">child</text>
+    <path d="M356 150 L356 124" stroke="#b3261e" stroke-width="1.6" stroke-dasharray="3 3"/>
+    <text x="362" y="140" fill="#b3261e" font-size="10.5">return</text>
+
+    <text x="586" y="40" font-size="11" fill="#55504a">React keeps one</text>
+    <text x="586" y="55" font-size="11" fill="#55504a">pointer: "next</text>
+    <text x="586" y="70" font-size="11" fill="#55504a">fiber to work on"</text>
+    <text x="586" y="90" font-size="11" fill="#55504a">— so it can stop</text>
+    <text x="586" y="105" font-size="11" fill="#55504a">anywhere. ⏸</text>
+  </g>
+</svg>
+<figcaption>Three pointers replace the call stack. The traversal becomes data React controls, not a stack the browser controls.</figcaption>
+</figure>
+
+<p>That single change — from "recursion on the call stack" to "a linked structure React walks itself" — is what unlocks everything else, because now the render phase can be:</p>
+
+<ul>
+  <li><strong>Paused</strong> mid-tree and resumed later, so the browser gets to paint and stay responsive.</li>
+  <li><strong>Prioritised</strong> — an update from a keystroke is urgent; re-rendering a big filtered list can wait. React can work on the urgent one first.</li>
+  <li><strong>Abandoned</strong> — if a more important update arrives, React can throw away the half-finished work and start over. This is safe precisely <em>because</em> the render phase is pure and hasn't touched the DOM yet.</li>
+  <li><strong>Reused</strong> — a subtree whose props and state didn't change can be cloned rather than re-rendered.</li>
+</ul>
+
+<h3>Two trees: current vs. work-in-progress</h3>
+
+<p>There's a related idea that makes "abandon the work" possible: React keeps <strong>two</strong> fiber trees.</p>
+
+<p>The <strong>current</strong> tree describes what is on screen right now. When an update comes in, React builds a <strong>work-in-progress</strong> tree — reusing and cloning fibers from the current tree as it goes. Each fiber holds an <code>alternate</code> pointer to its counterpart in the other tree, so React can hop between them cheaply instead of allocating a fresh tree every time.</p>
+
+<p>All the render-phase work happens on the work-in-progress tree. The current tree — the one matching the DOM — is never mutated during render. Then, at commit time, React applies the changes to the DOM and <strong>swaps the pointer</strong>: work-in-progress becomes current, in one atomic step.</p>
+
+<figure>
+<svg viewBox="0 0 700 170" role="img" aria-label="Current tree and work-in-progress tree swapping at commit">
+  <g font-family="system-ui, sans-serif" font-size="12.5" fill="#22201d">
+    <rect x="24" y="26" width="230" height="110" rx="10" fill="#e6f4ec" stroke="#1d7a4c"/>
+    <text x="139" y="52" text-anchor="middle" font-weight="700" fill="#1d7a4c">current</text>
+    <text x="139" y="74" text-anchor="middle" font-size="11.5">matches what's on screen</text>
+    <text x="139" y="94" text-anchor="middle" font-size="11.5">never mutated during render</text>
+    <text x="139" y="118" text-anchor="middle" font-size="22">🖥️</text>
+
+    <rect x="446" y="26" width="230" height="110" rx="10" fill="#f0eafa" stroke="#6b4ba1" stroke-dasharray="5 4"/>
+    <text x="561" y="52" text-anchor="middle" font-weight="700" fill="#6b4ba1">work-in-progress</text>
+    <text x="561" y="74" text-anchor="middle" font-size="11.5">built in memory, off-screen</text>
+    <text x="561" y="94" text-anchor="middle" font-size="11.5">safe to pause or throw away</text>
+    <text x="561" y="118" text-anchor="middle" font-size="22">🚧</text>
+
+    <path d="M258 66 L442 66" stroke="#55504a" stroke-width="1.6" fill="none"/>
+    <path d="M436 61 l10 5 -10 5z" fill="#55504a"/>
+    <text x="350" y="58" text-anchor="middle" font-size="11" fill="#55504a">clone &amp; render</text>
+
+    <path d="M442 106 L258 106" stroke="#1d7a4c" stroke-width="2.4" fill="none"/>
+    <path d="M264 101 l-10 5 10 5z" fill="#1d7a4c"/>
+    <text x="350" y="98" text-anchor="middle" font-size="11" fill="#1d7a4c" font-weight="650">commit: swap 🔁</text>
+  </g>
+</svg>
+<figcaption>Double buffering. Build the new set behind the curtain; raise it in one move.</figcaption>
+</figure>
+
+<div class="callout">
+  <div class="ct">The mental model</div>
+  <p>It's a <strong>theatre with two stages on a turntable</strong>. The audience watches one set while crew build the next one out of sight. When it's ready, the turntable spins — one clean transition, no half-built furniture visible. And if the director changes their mind halfway through building, they just clear the back stage; the audience never knew.</p>
+  <p>This is the same trick as double buffering in graphics: never let anyone see a partially-drawn frame.</p>
+</div>
+
+<h3>What Fiber unlocked</h3>
+
+<p>Fiber by itself didn't make anything visibly different in React 16 — it was infrastructure. The payoff came later:</p>
+
+<ul>
+  <li><strong>Concurrent rendering.</strong> React can prepare multiple versions of the UI at once and work on the highest-priority one, without blocking the browser.</li>
+  <li><strong>Transitions</strong> (<code>useTransition</code>, <code>startTransition</code>). You mark an update as non-urgent — "re-filter this huge list" — and React keeps the input responsive, interrupting the slow work whenever a keystroke arrives. That's the search-box problem from earlier, fixed.</li>
+  <li><strong><code>useDeferredValue</code>.</strong> Show stale content while the expensive new content renders in the background.</li>
+  <li><strong>Suspense.</strong> A component can say "I'm not ready" mid-render, and React can pause that subtree, show a fallback, and resume when data arrives — only possible if a render can be suspended and picked back up.</li>
+  <li><strong>Automatic batching</strong> everywhere, and priority lanes so a click beats a background data refresh.</li>
+</ul>
+
+<div class="callout trap">
+  <div class="ct">Trap: over-claiming about Fiber</div>
+  <p>Don't say "Fiber makes React asynchronous" or "Fiber renders on a separate thread." Neither is true. JavaScript is still single-threaded and the commit phase is still fully synchronous and uninterruptible — you never see a half-updated DOM. Fiber makes the <em>render phase</em> interruptible by breaking it into units and yielding between them. Say it that way and you sound like you've actually thought about it.</p>
+</div>
+
+<h2 id="interview">10. The interview layer</h2>
+
+<h3>How this gets asked</h3>
+
+<p>Rendering is one of the most reliably-asked React topics, because it separates people who've used React from people who understand it. The phrasings you'll hear:</p>
+
+<ul>
+  <li>"What is the virtual DOM, and why does React use it?"</li>
+  <li>"Walk me through what happens when I call <code>setState</code>."</li>
+  <li>"Why do we need keys in lists? What happens if I leave them out?"</li>
+  <li>"I see <code>key={index}</code> in this PR. Any concerns?"</li>
+  <li>"What's reconciliation?"</li>
+  <li>"What's Fiber and why was it introduced?"</li>
+  <li>"How would you reset a component's state when a prop changes?"</li>
+</ul>
+
+<p>The first three are <strong>recall</strong> questions with a depth trap hidden in the follow-up. The rest are <strong>depth</strong> questions from the start.</p>
+
+<h3>Model answer: "What is the virtual DOM?"</h3>
+
+<div class="say">
+  <div class="ct">Say this out loud</div>
+  <p>"The virtual DOM is a tree of plain JavaScript objects describing what the UI should look like. JSX compiles to <code>createElement</code> calls that produce those objects — they're just descriptions, they don't touch the DOM at all. When state changes, React builds a fresh tree, diffs it against the previous one, and applies only the actual differences to the real DOM. The point isn't that it's faster than the DOM — it can't be, it's strictly extra work on top. The point is it lets me write declarative code, where I describe the UI for the current state, without paying the cost of tearing down and rebuilding the real DOM every time. It's fast <em>enough</em>, and it's much harder to write a stale-UI bug."</p>
+  <div class="why"><strong>Why this lands:</strong> you name the mechanism, you actively correct the "faster than the DOM" myth before they can test you on it, and you frame it as a trade-off. That reads as someone who's reasoned about it rather than memorised a blog post.</div>
+</div>
+
+<h3>Model answer: "Why do we need keys?"</h3>
+
+<div class="say">
+  <div class="ct">Say this out loud</div>
+  <p>"React normally matches old and new elements by their position in the tree, which works fine for fixed layout but breaks for lists, because position is exactly what changes when you insert, remove, or reorder. A key gives each item a stable identity, so React can tell that an item <em>moved</em> rather than that its contents changed. Without keys — or with index keys — deleting the first item makes React think every subsequent item's content changed, so component state and DOM nodes end up attached to the wrong rows. Focus in an input, a half-typed value, a checked checkbox: all land on the wrong item. Using the item's ID fixes it because the key travels with the data instead of the slot."</p>
+  <div class="why"><strong>Why this lands:</strong> you explain the <em>mechanism</em> (position-based matching) rather than reciting "keys help React identify items", and you name a concrete user-visible symptom. Symptoms prove you've actually hit the bug.</div>
+</div>
+
+<h3>Follow-up questions, with answers</h3>
+
+<details>
+  <summary><strong>"Is the virtual DOM faster than the real DOM?"</strong></summary>
+  <p>No — that comparison doesn't really make sense. The virtual DOM is <em>built on top of</em> the real DOM; every update still ends in real DOM calls, plus the extra cost of building and diffing the object tree. Hand-tuned imperative DOM code will always beat it. What the virtual DOM beats is the naive way of getting declarative UI — regenerating the entire DOM on every change. It's a mechanism for making declarative code practical while keeping DOM writes minimal.</p>
+</details>
+
+<details>
+  <summary><strong>"Why is diffing O(n) and not O(n³)?"</strong></summary>
+  <p>The general minimum-edit tree diff is O(n³), which would be a billion operations for a 1,000-node page. React makes two assumptions to avoid it. One: elements of different types produce different trees, so if the type changed it destroys the whole subtree instead of trying to match anything inside. Two: within a list of siblings, keys tell it which items are the same across renders, so it doesn't have to compare every child to every other child. Both of those mean each node is visited a constant number of times, so it's a single linear pass. The cost is that React sometimes does more DOM work than the theoretical minimum — a fair trade for something that runs on every keystroke.</p>
+</details>
+
+<details>
+  <summary><strong>"Why not use the array index as a key?"</strong></summary>
+  <p>Because the index <em>is</em> the position, so you've given React back the information it already had. If anything is inserted, removed from the middle, sorted, or filtered, the indices shift: the item that was index 1 is now index 0. React matches by key, sees key 0 in both trees, and keeps that component instance while handing it a different item's data. So state, focus, and uncontrolled input values stay behind on the slot while different data moves in underneath. You also lose the performance benefit — React rewrites every row after the change point instead of moving one node.</p>
+</details>
+
+<details>
+  <summary><strong>"OK, when is index as a key actually fine?"</strong></summary>
+  <p>When the index really is a stable identity: the list never reorders, items are only ever appended at the end, it's never sorted or filtered, and the items hold no state, refs, or uncontrolled inputs. Static nav links, or loading skeletons, are fine. My default is still to use a real ID if the data has one — and if it doesn't and the list is dynamic, I generate an ID once when the item is created and store it with the data, rather than during render.</p>
+</details>
+
+<details>
+  <summary><strong>"What happens if two siblings have the same key?"</strong></summary>
+  <p>React warns in the console and behaviour becomes undefined in practice. It builds a key-to-child map when matching, so the duplicate overwrites the earlier entry — you get items disappearing, state attaching to the wrong item, and updates that silently don't apply. Keys only need to be unique among siblings, not globally, but within that list they must be genuinely unique. The usual cause is keying on a non-unique field, like a name.</p>
+</details>
+
+<details>
+  <summary><strong>"Does a re-render always update the DOM?"</strong></summary>
+  <p>No. A render and a commit are two separate phases. Rendering just means React called my component function and collected the elements it returned — no DOM involvement at all. Only if the new tree differs from the old does the commit phase touch the DOM. A component can re-render many times and produce zero DOM operations. That's why "it re-rendered" isn't automatically a performance problem, and why I don't reach for <code>memo</code> until I've measured something.</p>
+</details>
+
+<details>
+  <summary><strong>"Does changing state always cause a re-render?"</strong></summary>
+  <p>No. React compares the new state to the current value with <code>Object.is</code> and can bail out if they're the same. The catch is that <code>Object.is</code> compares references for objects and arrays, so setting a brand new object with identical contents <em>does</em> re-render. That's behind a lot of accidental infinite loops — an effect that sets state from an object rebuilt every render. Worth noting React may still render the component once before bailing out; what it skips is committing and re-rendering the children.</p>
+</details>
+
+<details>
+  <summary><strong>"Why did React build Fiber?"</strong></summary>
+  <p>The old stack reconciler was a recursive function, so once a render started it ran to completion — you can't pause the JavaScript call stack. On a single thread, that means a big render blocks clicks, keystrokes, and painting for as long as it takes. Fiber restructures the tree into linked-list nodes with child/sibling/parent pointers, so React walks the tree itself instead of relying on the call stack. Now it can do a bit of work, check whether it's out of time, yield to the browser, and resume from a stored pointer — or prioritise a more urgent update, or throw the half-finished work away entirely. That's safe because the render phase is pure and hasn't touched the DOM. It's what made concurrent rendering, transitions, and Suspense possible. To be clear though: it doesn't make React multi-threaded, and the commit phase is still synchronous and uninterruptible.</p>
+</details>
+
+<details>
+  <summary><strong>"How do you force a component to reset its state?"</strong></summary>
+  <p>Give it a <code>key</code> that changes — usually the ID of whatever it's showing, like <code>&lt;ProfileEditor key={userId} /&gt;</code>. React matches elements by position and key, so a new key means it can't match the old instance: it unmounts the old one and mounts a fresh one, resetting all state and re-running effects. It's much cleaner than a <code>useEffect</code> that watches a prop and manually resets several pieces of state, and it's the approach the React docs recommend.</p>
+</details>
+
+<details>
+  <summary><strong>"Why can't React just compare props to decide what to re-render?"</strong></summary>
+  <p>It could, and that's what <code>memo</code> does — but doing it by default would often be slower. A shallow prop comparison isn't free, and most components take props like inline objects, arrays, and arrow functions that are freshly created on every parent render, so the comparison would fail anyway and you'd pay for it with nothing to show. React's default is "just re-render, it's cheap", and it lets you opt into memoization at the specific places where rendering is genuinely expensive.</p>
+</details>
+
+<details>
+  <summary><strong>"Why must the render phase be pure?"</strong></summary>
+  <p>Because React reserves the right to call a component more than once, or to render it and then throw the result away — that's exactly what interruptible rendering means. If my component body mutates something outside itself or fires a request, that happens an unpredictable number of times. Side effects belong in <code>useEffect</code> or event handlers, which run in or after the commit phase, exactly once per committed update. StrictMode double-invoking components in development is deliberately surfacing impure render logic.</p>
+</details>
+
+<h3>Traps to avoid</h3>
+
+<table>
+  <thead><tr><th>Don't say</th><th>Say instead</th></tr></thead>
+  <tbody>
+    <tr><td>"The virtual DOM is faster than the real DOM."</td><td>"It makes declarative UI practical while keeping real DOM writes minimal."</td></tr>
+    <tr><td>"React only re-renders what changed."</td><td>"React re-renders the whole subtree, then commits only the differences to the DOM."</td></tr>
+    <tr><td>"Keys help React identify elements." (and stop)</td><td>Explain <em>why</em>: React matches by position by default, and position is what changes in a list.</td></tr>
+    <tr><td>"A component re-renders when its props change."</td><td>"When its own state changes, its parent re-renders, or a context it uses changes."</td></tr>
+    <tr><td>"Fiber makes React asynchronous / multi-threaded."</td><td>"Fiber makes the render phase interruptible; commit is still synchronous."</td></tr>
+    <tr><td>"Just wrap it in <code>memo</code>."</td><td>"I'd profile first — most re-renders commit nothing, and the comparison isn't free."</td></tr>
+    <tr><td>Reciting "reconciliation is the diffing algorithm."</td><td>Name the two heuristics and why they buy O(n).</td></tr>
+  </tbody>
+</table>
+
+<h2 id="cheat">11. Interview cheat sheet</h2>
+
+<p>The morning-of version. Every line here has a full explanation somewhere above — if one doesn't click, go back and read that section rather than memorising the line.</p>
+
+<table class="cheat">
+  <tbody>
+    <tr><td>React element</td><td>A plain object: <code>{ type, key, props }</code>. A description, not a DOM node. JSX compiles to <code>createElement</code>/<code>jsx()</code> calls that return these.</td></tr>
+    <tr><td>Virtual DOM</td><td>The tree of those objects. Diffed against the previous tree to compute minimal real-DOM changes.</td></tr>
+    <tr><td>Is it faster than the DOM?</td><td>No — it's extra work on top. It's faster than the naive declarative alternative (rebuild everything), and it makes declarative code practical.</td></tr>
+    <tr><td>Render phase</td><td>Call components, build the new tree, diff. Pure, interruptible, <strong>no DOM touched</strong>.</td></tr>
+    <tr><td>Commit phase</td><td>Apply changes to the DOM, run refs and layout effects. Synchronous, uninterruptible.</td></tr>
+    <tr><td>Reconciliation</td><td>The old-tree/new-tree comparison. Two heuristics → O(n) instead of O(n³).</td></tr>
+    <tr><td>Heuristic 1</td><td>Different <code>type</code> at the same position → unmount the whole subtree, rebuild from scratch. State lost.</td></tr>
+    <tr><td>Heuristic 2</td><td>Same <code>type</code> → keep the DOM node and the component state, patch the changed props, recurse into children.</td></tr>
+    <tr><td>"Same position"</td><td>Same slot in the rendered tree — not the same line of source. Both branches of a ternary render to the same position.</td></tr>
+    <tr><td>Why keys</td><td>Position-based matching breaks in lists, because position is what changes. A key is a stable identity that travels with the data.</td></tr>
+    <tr><td>Why not index</td><td>The index <em>is</em> the position. Insert/remove/sort/filter shifts it, so state and DOM nodes stay on the slot while different data moves in.</td></tr>
+    <tr><td>When index is OK</td><td>Never reordered, only appended, never filtered/sorted, no state or uncontrolled inputs in the rows.</td></tr>
+    <tr><td><code>key={Math.random()}</code></td><td>New keys every render → React unmounts and rebuilds the entire list every time. State wiped, focus lost, effects re-run. Never do it.</td></tr>
+    <tr><td>Duplicate keys</td><td>Warning + undefined behaviour: dropped items, state on the wrong item. Unique among siblings only, but genuinely unique there.</td></tr>
+    <tr><td>Reset state</td><td>Change the <code>key</code>. A new key can't match the old instance, so React unmounts and mounts fresh.</td></tr>
+    <tr><td>Re-render triggers</td><td>Own state changed · parent re-rendered · consumed context changed. <strong>Not</strong> "props changed" — that's a consequence, not a cause.</td></tr>
+    <tr><td>Bailouts</td><td><code>Object.is</code> comparison. Same value → skip. But a new object with identical contents is a different reference → re-render.</td></tr>
+    <tr><td>Why Fiber</td><td>The stack reconciler recursed on the call stack, so a render couldn't be paused and blocked the main thread to completion.</td></tr>
+    <tr><td>What a fiber is</td><td>An object per unit of work with <code>child</code>/<code>sibling</code>/<code>return</code> pointers — a linked structure React walks itself, so it can stop and resume anywhere.</td></tr>
+    <tr><td>Double buffering</td><td><code>current</code> tree = what's on screen; work-in-progress tree = built in memory. Commit swaps the pointer atomically.</td></tr>
+    <tr><td>Fiber unlocks</td><td>Concurrent rendering, transitions, <code>useDeferredValue</code>, Suspense, priority lanes. Not multi-threading; commit is still sync.</td></tr>
+  </tbody>
+</table>
+
+<hr class="soft">
+
+<p>One last thing. Almost every confusing React behaviour you'll hit — surprise state loss, surprise state <em>retention</em>, an input that won't hold focus, a list that forgets what you typed — comes back to a single question: <strong>does React think this is the same component instance as last time, or a different one?</strong></p>
+
+<p>It answers that with position and type, and with keys inside lists. That's it. That's the whole model. Once you're asking that question instead of guessing, React stops being magic and becomes something you can reason about — which, conveniently, is exactly what the interviewer is checking for. 🎯</p>
+
+</div>
+</body>
+</html>

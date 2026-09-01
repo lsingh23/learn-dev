@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSR, SSR, SSG &amp; React Server Components</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --text: #23212b;
+    --muted: #625d70;
+    --border: #e5e1da;
+    --accent: #6b3fd4;
+    --accent-soft: #f1ecfd;
+    --green: #1f7a4d;
+    --green-soft: #e8f6ee;
+    --red: #b3261e;
+    --red-soft: #fdeceb;
+    --amber: #8a5a00;
+    --amber-soft: #fdf3e0;
+    --blue: #1c5fa8;
+    --blue-soft: #e9f1fb;
+    --code-bg: #2b2735;
+    --code-text: #f2efe9;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16141b;
+      --surface: #1e1b25;
+      --text: #eae7f0;
+      --muted: #a49db4;
+      --border: #322d3d;
+      --accent: #b79dff;
+      --accent-soft: #2a2138;
+      --green: #6ddba0;
+      --green-soft: #17301f;
+      --red: #ff9d95;
+      --red-soft: #331b1a;
+      --amber: #e8bd6a;
+      --amber-soft: #322612;
+      --blue: #8fc0f5;
+      --blue-soft: #16263a;
+      --code-bg: #12101a;
+      --code-text: #eae7f0;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17.5px;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 6rem;
+  }
+
+  header.hero {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  header.hero .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 0.75rem;
+  }
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.75rem;
+  }
+  header.hero .sub {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.5rem 0 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 1.2rem;
+    margin: 2.25rem 0 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.75rem 0 0.4rem;
+  }
+
+  p { margin: 0 0 1.15rem; }
+  ul, ol { margin: 0 0 1.15rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.5rem; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--accent-soft);
+    color: inherit;
+    padding: 0.12em 0.36em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0 0 1.35rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .codeblock { margin: 0 0 1.35rem; }
+  .codeblock pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .codeblock .label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 1.1rem;
+    border-radius: 10px 10px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .codeblock.bad .label { background: var(--red-soft); color: var(--red); }
+  .codeblock.good .label { background: var(--green-soft); color: var(--green); }
+  .codeblock.neutral .label { background: var(--border); color: var(--muted); }
+
+  .side-by-side {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  @media (min-width: 760px) {
+    .side-by-side { grid-template-columns: 1fr 1fr; }
+    .side-by-side pre { font-size: 0.78rem; }
+  }
+
+  .callout {
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+    padding: 1.1rem 1.25rem 0.4rem;
+    margin: 1.75rem 0;
+    background: var(--surface);
+    font-size: 0.97rem;
+  }
+  .callout .ctitle {
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+  }
+  .callout.wait { border-left-color: var(--blue); background: var(--blue-soft); }
+  .callout.wait .ctitle { color: var(--blue); }
+  .callout.myth { border-left-color: var(--red); background: var(--red-soft); }
+  .callout.myth .ctitle { color: var(--red); }
+  .callout.hood { border-left-color: var(--muted); }
+  .callout.hood .ctitle { color: var(--muted); }
+  .callout.interview { border-left-color: var(--accent); background: var(--accent-soft); }
+  .callout.interview .ctitle { color: var(--accent); }
+  .callout.trap { border-left-color: var(--amber); background: var(--amber-soft); }
+  .callout.trap .ctitle { color: var(--amber); }
+
+  .say {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 1rem 1.2rem;
+    margin: 1.25rem 0;
+    font-size: 1.02rem;
+  }
+  .say .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--green);
+    background: var(--green-soft);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 0.6rem;
+  }
+  .say p:last-child { margin-bottom: 0; }
+  .say .quote { font-style: italic; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin: 0 0 1.5rem;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-soft); font-size: 0.82rem; letter-spacing: 0.03em; }
+
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.4rem;
+    font-size: 0.93rem;
+    margin-bottom: 2.5rem;
+  }
+  nav.toc p { font-weight: 700; margin: 0 0 0.5rem; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  nav.toc ol { margin: 0; padding-left: 1.25rem; }
+  nav.toc li { margin-bottom: 0.25rem; }
+
+  figure { margin: 1.75rem 0 2rem; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    text-align: center;
+  }
+
+  .svg-label { font: 600 11px var(--sans); fill: var(--text); }
+  .svg-small { font: 500 10px var(--sans); fill: var(--muted); }
+  .svg-mark { font: 700 10px var(--sans); }
+  .svg-axis { stroke: var(--border); stroke-width: 1; }
+  .bar-net { fill: #7aa7e0; }
+  .bar-cpu { fill: #d9a441; }
+  .bar-idle { fill: var(--border); }
+  .bar-server { fill: #9b7ce0; }
+  .bar-paint { fill: #4fae7e; }
+  .mark-line { stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .mark-line-good { stroke: var(--green); stroke-width: 1.5; stroke-dasharray: 3 3; }
+
+  details {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    margin: 1rem 0 1.5rem;
+    background: var(--surface);
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  details[open] summary { margin-bottom: 0.75rem; }
+  details p:last-child { margin-bottom: 0.3rem; }
+
+  .qa { margin: 2rem 0; }
+  .qa h4 {
+    font-size: 1.05rem;
+    margin: 1.9rem 0 0.4rem;
+    color: var(--accent);
+  }
+
+  hr.soft { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .cheat td:first-child { font-weight: 600; white-space: nowrap; }
+
+  .footnote { font-size: 0.9rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Guide · 14</p>
+  <h1>CSR, SSR, SSG &amp; React Server Components</h1>
+  <p class="sub">Where your React code runs, when it runs, and why the industry spent a decade arguing about it. Built from zero — if you've never heard the phrase "server-side rendering," start right here.</p>
+</header>
+
+<nav class="toc">
+  <p>On this page</p>
+  <ol>
+    <li><a href="#empty-div">The empty <code>&lt;div&gt;</code></a></li>
+    <li><a href="#browser">What a browser actually does (the foundation)</a></li>
+    <li><a href="#csr">Client-Side Rendering, and its waterfall</a></li>
+    <li><a href="#ssr">Server-Side Rendering &amp; hydration</a></li>
+    <li><a href="#ssr-limits">What SSR does <em>not</em> fix</a></li>
+    <li><a href="#mismatch">Hydration mismatches</a></li>
+    <li><a href="#umbrella">"SSR" is an umbrella term: SSG, ISR, per-request</a></li>
+    <li><a href="#rsc">React Server Components</a></li>
+    <li><a href="#boundary">The server / client boundary</a></li>
+    <li><a href="#payload">The RSC Payload</a></li>
+    <li><a href="#names">Terminology cleanup</a></li>
+    <li><a href="#actions">Server Actions &amp; the ecosystem</a></li>
+    <li><a href="#tradeoffs">The honest tradeoffs</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="empty-div">The empty <code>&lt;div&gt;</code></h2>
+
+<p>Here's something you've maybe done without thinking much about it. You build a React app, deploy it, load it in the browser, and it works great. Then, out of curiosity, you right-click and hit <strong>View Page Source</strong>.</p>
+
+<p>And this is the entire page:</p>
+
+<div class="codeblock neutral">
+  <div class="label">index.html — the whole thing</div>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;&lt;title&gt;My Store&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="root"&gt;&lt;/div&gt;   &lt;!-- 👈 that's it. that's your app. --&gt;
+    &lt;script src="/bundle.js"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+
+<p>Wait, what? Where's the product list? Where's the nav bar, the heading, the price, the "Add to cart" button? You <em>can see them on the screen.</em> But the document the server actually sent contains none of them.</p>
+
+<p>That single observation — the gap between <em>what the server sent</em> and <em>what you see</em> — is the seed of this entire topic. Every rendering strategy in React is a different answer to one question: <strong>who fills in that div, and when?</strong></p>
+
+<p>We're going to build up from absolute basics. I'll assume you know what HTML, JavaScript and React components are, and nothing else. By the end you'll understand CSR, SSR, SSG, ISR, hydration, and React Server Components well enough to argue about them at a whiteboard.</p>
+
+<p>Fair warning up front: this is genuinely confusing material. Not "you're not smart enough" confusing — "the industry gave four different things overlapping names" confusing. I've been writing React for years and I still occasionally have to stop and think about which piece runs where. If you feel lost at some point, that's the material, not you. Keep going.</p>
+
+<h2 id="browser">What a browser actually does (the foundation)</h2>
+
+<p>Before we can talk about rendering strategies, we need to be crystal clear on the boring mechanics. Skipping this is why most people find SSR confusing.</p>
+
+<p>When you type <code>mystore.com</code> and press Enter, roughly this happens:</p>
+
+<ol>
+  <li>Your browser sends an HTTP request to a <strong>server</strong> — a computer somewhere else that's listening for requests.</li>
+  <li>The server sends back a response. For a page load, that response body is a <strong>string of HTML text</strong>. Literally just characters.</li>
+  <li>The browser reads that text and builds the <strong>DOM</strong> — an in-memory tree of objects representing the elements. <code>&lt;h1&gt;Hello&lt;/h1&gt;</code> becomes an object with a tag name, attributes, and text.</li>
+  <li>The browser <strong>paints</strong> that tree to the screen. Now the user sees pixels.</li>
+  <li>If the HTML references CSS or JavaScript files, the browser fetches those too. When a <code>&lt;script&gt;</code> arrives, the browser runs it, and that script can change the DOM.</li>
+</ol>
+
+<p>Two things to lock in, because everything else depends on them:</p>
+
+<p><strong>First: the browser can only paint what's in the DOM.</strong> If the HTML the server sent is an empty div, the first paint is a blank white screen. There's nothing else to draw. The browser is not being lazy; there is genuinely nothing there.</p>
+
+<p><strong>Second: "the server" is just a computer running a program.</strong> It doesn't have to send a file from disk. It can run code and <em>build</em> the HTML string on the fly. This is not a new idea — PHP and Rails did it for twenty years. It's going to become important in about five minutes.</p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — what does "render" even mean here?</p>
+  <p>This word is doing double duty and it trips everyone up. When a browser person says "render," they mean <em>paint pixels on screen</em>. When a React person says "render," they mean <em>call your component functions to produce a description of the UI</em>. React's render doesn't touch the screen at all — it produces a JavaScript object tree, and then something else turns that into DOM.</p>
+  <p>Throughout this guide, "render" means the React sense: <em>run the components</em>. I'll say "paint" when I mean pixels.</p>
+</div>
+
+<h3>What React actually produces</h3>
+
+<p>One more foundation piece. When React "renders" your component, what comes out?</p>
+
+<div class="codeblock neutral">
+  <div class="label">What JSX compiles to</div>
+<pre><code>// You write:
+function Greeting() {
+  return &lt;h1 className="title"&gt;Hello&lt;/h1&gt;;
+}
+
+// The build tool turns that into roughly:
+function Greeting() {
+  return { type: 'h1', props: { className: 'title', children: 'Hello' } };
+}
+// → a plain JavaScript object. Not HTML. Not DOM. Just an object.</code></pre>
+</div>
+
+<p>React components return <strong>plain JavaScript objects</strong> describing what the UI should look like. That object tree is the famous "virtual DOM." Something downstream then takes those objects and does something real with them.</p>
+
+<p>And here's the key insight that unlocks server rendering: <strong>there is more than one thing you can do with that object tree.</strong></p>
+
+<ul>
+  <li>In the browser, <code>react-dom</code> turns it into real DOM nodes and puts them on the page.</li>
+  <li>On a server, <code>react-dom/server</code> turns it into an <strong>HTML string</strong> — no DOM required, no browser required.</li>
+</ul>
+
+<p>That second bullet is the entire basis of SSR. Same components, same render, different output format. Hold onto that.</p>
+
+<h2 id="csr">Client-Side Rendering, and its waterfall</h2>
+
+<p><strong>Client-Side Rendering (CSR)</strong> is the empty-div approach from the top of the page. The server sends a nearly-empty HTML shell plus a script tag. Everything you see is built by JavaScript in the browser, after the fact. "Client" here just means the user's browser — the thing on the other end of the connection from the server.</p>
+
+<p>This is what you get from Create React App, or a default Vite React app. It's also what people mean by "SPA" (Single-Page Application).</p>
+
+<p>Let's follow a real page — a product detail page — through a CSR load, second by second. Say the user is on a mid-range phone on a decent-but-not-amazing connection.</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Timeline of a client-side rendered page load. Blank screen until 1.9 seconds, content until 2.6 seconds.">
+  <!-- axis -->
+  <line x1="110" y1="240" x2="670" y2="240" class="svg-axis"/>
+  <g class="svg-small">
+    <text x="110" y="258" text-anchor="middle">0s</text>
+    <text x="222" y="258" text-anchor="middle">0.5s</text>
+    <text x="334" y="258" text-anchor="middle">1.0s</text>
+    <text x="446" y="258" text-anchor="middle">1.5s</text>
+    <text x="558" y="258" text-anchor="middle">2.0s</text>
+    <text x="670" y="258" text-anchor="middle">2.5s</text>
+  </g>
+
+  <!-- row 1: request html -->
+  <text x="104" y="38" text-anchor="end" class="svg-label">Network</text>
+  <rect x="110" y="24" width="67" height="20" rx="3" class="bar-net"/>
+  <text x="182" y="38" class="svg-small">HTML shell (empty div) — 0.3s</text>
+
+  <!-- row 2: js bundle -->
+  <text x="104" y="70" text-anchor="end" class="svg-label">Network</text>
+  <rect x="177" y="56" width="269" height="20" rx="3" class="bar-net"/>
+  <text x="451" y="70" class="svg-small">download + parse JS bundle — 1.2s</text>
+
+  <!-- row 3: react boots -->
+  <text x="104" y="102" text-anchor="end" class="svg-label">CPU</text>
+  <rect x="446" y="88" width="67" height="20" rx="3" class="bar-cpu"/>
+  <text x="518" y="102" class="svg-small">React boots &amp; renders</text>
+
+  <!-- row 4: fetch data -->
+  <text x="104" y="134" text-anchor="end" class="svg-label">Network</text>
+  <rect x="513" y="120" width="157" height="20" rx="3" class="bar-net"/>
+  <text x="513" y="114" class="svg-small">fetch('/api/product/42') — only starts NOW</text>
+
+  <!-- what user sees -->
+  <text x="104" y="180" text-anchor="end" class="svg-label">User sees</text>
+  <rect x="110" y="166" width="403" height="24" rx="3" class="bar-idle"/>
+  <text x="240" y="182" class="svg-small">blank white screen</text>
+  <rect x="513" y="166" width="157" height="24" rx="3" class="bar-cpu" opacity="0.5"/>
+  <text x="524" y="182" class="svg-small">spinner</text>
+
+  <!-- markers -->
+  <line x1="513" y1="16" x2="513" y2="240" class="mark-line"/>
+  <text x="516" y="212" class="svg-mark" fill="#b3261e">First Paint + Interactive · 1.8s</text>
+  <line x1="670" y1="16" x2="670" y2="240" class="mark-line"/>
+  <text x="667" y="228" text-anchor="end" class="svg-mark" fill="#b3261e">Content Painted · 2.5s</text>
+</svg>
+<figcaption>A client-rendered page load. Note the shape: each bar can only start when the one above it finished.</figcaption>
+</figure>
+
+<p>Look at that diagram and let it sink in for a second. <strong>For the first 1.8 seconds, the user is staring at a blank white rectangle.</strong> Not a slow page — an empty one. Then they get a spinner. Then, finally, at 2.5 seconds, they see a product.</p>
+
+<p>Now here's the part that really matters, and it's the thing interviewers are probing when they ask about CSR. Look at <em>why</em> it took that long. Each step could not begin until the previous one finished:</p>
+
+<figure>
+<svg viewBox="0 0 700 210" role="img" aria-label="Diagram of a request waterfall: HTML, then JS, then React boot, then data fetch.">
+  <g class="svg-label">
+    <rect x="10" y="20" width="150" height="42" rx="6" fill="none" stroke="#7aa7e0" stroke-width="2"/>
+    <text x="85" y="38" text-anchor="middle">1. Get HTML</text>
+    <text x="85" y="53" text-anchor="middle" class="svg-small">…to discover the script tag</text>
+
+    <rect x="10" y="80" width="150" height="42" rx="6" fill="none" stroke="#7aa7e0" stroke-width="2" transform="translate(160,0)"/>
+    <text x="245" y="98" text-anchor="middle">2. Get JS</text>
+    <text x="245" y="113" text-anchor="middle" class="svg-small">…to know there's a component</text>
+
+    <rect x="330" y="140" width="150" height="42" rx="6" fill="none" stroke="#d9a441" stroke-width="2"/>
+    <text x="405" y="158" text-anchor="middle">3. Run React</text>
+    <text x="405" y="173" text-anchor="middle" class="svg-small">…to reach the useEffect</text>
+
+    <rect x="500" y="80" width="180" height="42" rx="6" fill="none" stroke="#b3261e" stroke-width="2"/>
+    <text x="590" y="98" text-anchor="middle">4. Get the data</text>
+    <text x="590" y="113" text-anchor="middle" class="svg-small">…which is the actual point</text>
+  </g>
+  <path d="M85 62 L85 101 L157 101" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw)"/>
+  <path d="M245 122 L245 161 L327 161" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw)"/>
+  <path d="M480 161 L590 161 L590 125" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw)"/>
+  <defs>
+    <marker id="arw" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>The request waterfall. Four sequential round trips before the user learns the price of a product.</figcaption>
+</figure>
+
+<p>This is called a <strong>network waterfall</strong>: a chain of requests where each one can only start after the previous one comes back. The browser can't fetch the product data early, because it doesn't <em>know</em> it needs product data until it has downloaded and executed your JavaScript and gotten as far as the <code>useEffect</code>.</p>
+
+<p>Here's the component that causes it:</p>
+
+<div class="codeblock bad">
+  <div class="label">❌ The classic CSR data-fetching pattern</div>
+<pre><code>function ProductPage({ id }) {
+  const [product, setProduct] = useState(null);
+
+  useEffect(() =&gt; {
+    fetch(`/api/products/${id}`)   // 👈 can't run until React is booted
+      .then(res =&gt; res.json())
+      .then(setProduct);
+  }, [id]);
+
+  if (!product) return &lt;Spinner /&gt;;   // 👈 the user lives here for a while
+  return &lt;h1&gt;{product.name} — ${product.price}&lt;/h1&gt;;
+}</code></pre>
+</div>
+
+<p>Three separate costs are stacked in that diagram, and it's worth naming them separately because different solutions attack different ones:</p>
+
+<ol>
+  <li><strong>Blank screen cost.</strong> Nothing is visible until JS runs. Bad for perceived speed, bad for users on slow devices, and <em>bad for search engines and link previews</em> that may not run your JavaScript at all.</li>
+  <li><strong>Bundle cost.</strong> You shipped React itself, your router, your date library, your component code — all before anything appeared.</li>
+  <li><strong>Waterfall cost.</strong> The data request starts dead last, when it's arguably the most important thing on the page.</li>
+</ol>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood: why is CSR so popular then?</p>
+  <p>Because it's <em>operationally</em> lovely. The output is a folder of static files. You can drop it on any CDN for pennies, there's no server process to keep alive, no server to crash at 3am, and local development is one command. For an internal dashboard behind a login — where SEO is irrelevant and the user is on a laptop on office wifi — CSR is often exactly the right call. Don't let anyone tell you SPAs are obsolete.</p>
+</div>
+
+<h2 id="ssr">Server-Side Rendering &amp; hydration</h2>
+
+<p>So how do we solve this? Let's go back to that foundational fact I asked you to hold onto: <em>the server is just a computer running a program, and React can render to an HTML string instead of to DOM.</em></p>
+
+<p>Put those together, and you get <strong>Server-Side Rendering (SSR)</strong>. When a request comes in, the server runs your React components right there, produces a complete HTML string with real content in it, and sends <em>that</em> as the response.</p>
+
+<div class="codeblock neutral">
+  <div class="label">Roughly what an SSR server does per request</div>
+<pre><code>app.get('/products/:id', async (req, res) =&gt; {
+  const product = await db.products.find(req.params.id);  // fast: same datacenter
+
+  const html = renderToString(&lt;ProductPage product={product} /&gt;);
+  //     👆 a real string: "&lt;h1&gt;Wool Socks — $12&lt;/h1&gt;"
+
+  res.send(`&lt;div id="root"&gt;${html}&lt;/div&gt;&lt;script src="/bundle.js"&gt;&lt;/script&gt;`);
+});</code></pre>
+</div>
+
+<p>Now view-source shows the actual product. The browser receives HTML with content in it, builds the DOM, and paints something meaningful almost immediately. No blank screen. No waiting for JavaScript. Google's crawler sees your text. Slack's link preview works.</p>
+
+<p>But hm — hold on. If the HTML is just a static string, how does the "Add to cart" button work? Strings don't have <code>onClick</code> handlers. The server produced <em>markup</em>, and markup is inert.</p>
+
+<h3>Hydration</h3>
+
+<p>This is where the single most important word in this guide shows up.</p>
+
+<p>The JavaScript bundle still gets downloaded, and React still boots up in the browser. But instead of building the DOM from scratch, React does something different: it renders your components in memory, walks the HTML that's <em>already on the page</em>, and — assuming they match — adopts those existing DOM nodes as its own, attaching event listeners and wiring up state as it goes.</p>
+
+<p>This process is called <strong>hydration</strong>.</p>
+
+<div class="callout wait">
+  <p class="ctitle">The analogy</p>
+  <p>Dan Abramov (a longtime member of the React team) gave the metaphor the name comes from: the server-rendered HTML is <strong>dry</strong> — it has shape but no life. Hydration is <strong>watering the dry HTML with the water of interactivity</strong>. The markup was already there, in the right shape; what React adds is the ability to respond.</p>
+  <p>I find instant noodles the most useful version of this. The server ships you a brick of dried noodles: it already looks like noodles, it's already noodle-shaped, you can hold it. But you can't eat it. Pouring hot water over it doesn't change its shape — it makes it <em>work</em>.</p>
+  <p><strong>Where the analogy breaks:</strong> real hydration isn't gentle. React genuinely re-renders your whole component tree in memory to figure out what handlers go where. It's a full render pass, just one that reuses the DOM nodes at the end instead of creating them. So it's less "sprinkle water on it" and more "rebuild the whole thing in your head, then confirm it matches the thing on the counter." Keep that in mind — it explains why hydration is expensive.</p>
+</div>
+
+<p>Here's the new timeline. Same app, same network, but server-rendered:</p>
+
+<figure>
+<svg viewBox="0 0 700 300" role="img" aria-label="Timeline of a server-rendered page load. Content painted at 0.8 seconds, interactive at 2.3 seconds.">
+  <line x1="110" y1="240" x2="670" y2="240" class="svg-axis"/>
+  <g class="svg-small">
+    <text x="110" y="258" text-anchor="middle">0s</text>
+    <text x="222" y="258" text-anchor="middle">0.5s</text>
+    <text x="334" y="258" text-anchor="middle">1.0s</text>
+    <text x="446" y="258" text-anchor="middle">1.5s</text>
+    <text x="558" y="258" text-anchor="middle">2.0s</text>
+    <text x="670" y="258" text-anchor="middle">2.5s</text>
+  </g>
+
+  <text x="104" y="38" text-anchor="end" class="svg-label">Server</text>
+  <rect x="110" y="24" width="79" height="20" rx="3" class="bar-server"/>
+  <text x="194" y="38" class="svg-small">fetch data + renderToString — 0.35s</text>
+
+  <text x="104" y="70" text-anchor="end" class="svg-label">Network</text>
+  <rect x="189" y="56" width="45" height="20" rx="3" class="bar-net"/>
+  <text x="239" y="70" class="svg-small">full HTML arrives</text>
+
+  <text x="104" y="102" text-anchor="end" class="svg-label">Network</text>
+  <rect x="234" y="88" width="269" height="20" rx="3" class="bar-net"/>
+  <text x="508" y="102" class="svg-small">download JS bundle</text>
+
+  <text x="104" y="134" text-anchor="end" class="svg-label">CPU</text>
+  <rect x="503" y="120" width="90" height="20" rx="3" class="bar-cpu"/>
+  <text x="598" y="134" class="svg-small">hydration</text>
+
+  <text x="104" y="180" text-anchor="end" class="svg-label">User sees</text>
+  <rect x="110" y="166" width="124" height="24" rx="3" class="bar-idle"/>
+  <rect x="234" y="166" width="436" height="24" rx="3" class="bar-paint" opacity="0.55"/>
+  <text x="250" y="182" class="svg-small">real content — readable, scrollable, but not yet clickable</text>
+
+  <line x1="234" y1="16" x2="234" y2="240" class="mark-line-good"/>
+  <text x="240" y="212" class="svg-mark" fill="#1f7a4d">First Paint = Content Painted · 0.7s</text>
+  <line x1="593" y1="16" x2="593" y2="240" class="mark-line"/>
+  <text x="588" y="228" text-anchor="end" class="svg-mark" fill="#b3261e">Interactive · 2.2s</text>
+</svg>
+<figcaption>SSR. Content arrives 1.8 seconds earlier. Interactivity arrives slightly <em>later</em> than CSR — and that's not a typo.</figcaption>
+</figure>
+
+<p>Compare the two diagrams side by side in your head. The win is enormous and it's specifically about <em>content</em>: 2.5s → 0.7s. The user is reading the product description while the JavaScript is still downloading.</p>
+
+<p>But notice something honest in that second diagram: <strong>interactivity got slightly worse</strong>, 1.8s → 2.2s. We added hydration work that CSR didn't have to do. In exchange, we removed the blank screen and the data waterfall. For almost every public-facing site that's a fantastic trade — but it <em>is</em> a trade, and saying so out loud in an interview is a strong signal.</p>
+
+<div class="callout trap">
+  <p class="ctitle">The uncanny valley</p>
+  <p>Between 0.7s and 2.2s, the page <em>looks</em> completely finished but isn't. If the user taps a button in that window, nothing happens. This is the classic SSR complaint — it can feel <em>worse</em> than a spinner, because a spinner at least tells the truth. Modern React softens this with streaming and selective hydration (hydrate the part the user clicked first), but the fundamental gap is real.</p>
+</div>
+
+<h2 id="ssr-limits">What SSR does <em>not</em> fix</h2>
+
+<p>SSR gets talked about like a performance cheat code, and it isn't. Let's be precise about what it leaves on the table, because this is exactly where good interview conversations go.</p>
+
+<h3>1. You still ship the same JavaScript</h3>
+
+<p>This is the big one. SSR renders your components on the server <em>and</em> sends every one of those components to the browser so they can be hydrated. Your bundle is not one byte smaller. If you imported a 60KB markdown parser to render a product description, that parser runs on the server <em>and</em> gets downloaded by every visitor — even though, after the initial render, it does nothing at all.</p>
+
+<p>Think about it: React needs the component code in the browser to hydrate, and it needs it whether or not the component will ever re-render. That feels wasteful, and it is. File that away — it's the exact hole React Server Components were built to fill.</p>
+
+<h3>2. Hydration is a real cost</h3>
+
+<p>Hydration means running your entire component tree, on the user's device, on top of work the server already did. On a fast laptop it's a blink. On a three-year-old Android phone, hydrating a complex page can block the main thread for hundreds of milliseconds — during which taps, scroll and typing are all frozen.</p>
+
+<p>There's a slightly uncomfortable framing worth internalising: <strong>with SSR you render everything twice.</strong> Once on the server to make HTML, once in the browser to make it interactive.</p>
+
+<h3>3. If you fetch on the client, the waterfall is back</h3>
+
+<p>SSR only removes the waterfall for data the <em>server</em> fetched during that render. Bolt SSR onto a codebase where components fetch in <code>useEffect</code>, and you get this:</p>
+
+<div class="codeblock bad">
+  <div class="label">❌ SSR that gains almost nothing</div>
+<pre><code>function Reviews({ productId }) {
+  const [reviews, setReviews] = useState(null);
+
+  useEffect(() =&gt; {
+    fetch(`/api/reviews/${productId}`).then(r =&gt; r.json()).then(setReviews);
+  }, [productId]);
+  // 👆 useEffect NEVER runs on the server. So the server renders...
+
+  if (!reviews) return &lt;Spinner /&gt;;   // 👈 ...this. A spinner. In your HTML.
+  return &lt;ReviewList items={reviews} /&gt;;
+}</code></pre>
+</div>
+
+<p>The server dutifully renders a spinner into the HTML. The browser paints a spinner fast, hydrates, <em>then</em> starts the fetch. You've paid for a server and gained a faster spinner. This is such a common outcome that it's worth stating as a rule: <strong>SSR is only as good as the data you fetch during the server render.</strong></p>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood: why <code>useEffect</code> doesn't run on the server</p>
+  <p><code>useEffect</code> is defined to run <em>after the browser has painted</em>. On the server there's no browser, no paint, no time passing — <code>renderToString</code> is a single synchronous pass that produces a string and stops. So effects are simply skipped. The same goes for <code>useLayoutEffect</code> (React will actually warn you about it). What <em>does</em> run on the server: the component function body itself, and <code>useState</code>'s initial value.</p>
+</div>
+
+<h2 id="mismatch">Hydration mismatches</h2>
+
+<p>Hydration has a precondition that's easy to state and easy to violate: <strong>the HTML React produces in the browser must match the HTML the server sent.</strong> React isn't rebuilding the page, it's adopting it — and adoption only works if the thing it expected is the thing that's there.</p>
+
+<p>When they differ, you get the dreaded <em>"Hydration failed because the server rendered HTML didn't match the client"</em> error. Here's the classic offender:</p>
+
+<div class="codeblock bad">
+  <div class="label">❌ Guaranteed mismatch</div>
+<pre><code>function Timestamp() {
+  return &lt;p&gt;Rendered at {new Date().toLocaleTimeString()}&lt;/p&gt;;
+}
+// Server (12:04:31) → "&lt;p&gt;Rendered at 12:04:31&lt;/p&gt;"
+// Client (12:04:33) → "&lt;p&gt;Rendered at 12:04:33&lt;/p&gt;"
+// 💥 React: these are not the same tree.</code></pre>
+</div>
+
+<p>The three families of cause, and they're all the same idea — <em>the server and the browser are different environments</em>:</p>
+
+<ul>
+  <li><strong>Time.</strong> <code>Date.now()</code>, <code>new Date()</code>, relative timestamps like "3 seconds ago." The server rendered at one moment, the browser hydrates at another. Also: server and user are usually in different <em>time zones</em>, so even formatting a fixed date can differ.</li>
+  <li><strong>Randomness.</strong> <code>Math.random()</code>, shuffled lists, randomly-generated IDs. Two runs, two answers.</li>
+  <li><strong>Browser-only state.</strong> Anything read from <code>window</code>, <code>localStorage</code>, <code>navigator</code>, cookies-via-document, or media queries. The server has no window, so you branch — and the two branches render differently. This is why "the theme flickers to light mode on reload" is such a common SSR bug.</li>
+</ul>
+
+<p>The general fix is the same shape every time: <strong>render the server-safe version first, then update after hydration.</strong> An effect runs only in the browser, and only after hydration is done, so it's the safe place to introduce browser-only truth.</p>
+
+<div class="codeblock good">
+  <div class="label">✅ Server and client agree on the first render</div>
+<pre><code>function Timestamp({ isoDate }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() =&gt; setMounted(true), []);   // 👈 browser-only, post-hydration
+
+  // Both server and first client render produce the exact same output:
+  if (!mounted) return &lt;p&gt;Rendered at &lt;time dateTime={isoDate} /&gt;&lt;/p&gt;;
+
+  return &lt;p&gt;Rendered at {new Date(isoDate).toLocaleTimeString()}&lt;/p&gt;;
+}</code></pre>
+</div>
+
+<p>Yes, this causes a second render and a small visual shift. That's the actual cost of the fact that your app now runs in two places. There's no way to wish it away — you can only choose where to absorb it.</p>
+
+<div class="callout trap">
+  <p class="ctitle">Trap: "just suppress the warning"</p>
+  <p>React offers <code>suppressHydrationWarning</code> on an element. It's a real, legitimate escape hatch for genuinely unavoidable cases (a timestamp element, mostly). But it silences the <em>message</em>, not the mismatch — React may still throw away the server HTML for that subtree and re-render it. Reaching for it reflexively is a red flag in an interview. Reaching for it deliberately, and being able to say why, is a green one.</p>
+</div>
+
+<h2 id="umbrella">"SSR" is an umbrella term: SSG, ISR, per-request</h2>
+
+<p>Here's a thing that quietly confuses a lot of people, including people who use these tools every day. When someone says "we use SSR," they might mean any of several different strategies. The precise distinction is simply: <strong>when does the HTML get generated?</strong></p>
+
+<p>There are three useful answers.</p>
+
+<h3>Static Site Generation (SSG) — at build time</h3>
+
+<p>You run your components <em>once, on your machine or in CI</em>, before anyone visits. The output is a folder of finished <code>.html</code> files. Deploy them to a CDN. Every visitor gets the same file, served from an edge server near them, in milliseconds.</p>
+
+<p>The analogy I like: SSG is a <strong>printed newspaper</strong>. It was typeset once at 4am, and 200,000 identical copies went out on trucks. Handing someone a copy is nearly free. The catch is equally obvious — if news breaks at noon, every copy is stale until tomorrow's print run.</p>
+
+<p>Fastest possible option, cheapest possible option. Only works when the content is the same for everybody and doesn't change often. Blog posts, docs, marketing pages, changelogs.</p>
+
+<h3>Incremental Static Regeneration (ISR) — at build time, then refreshed</h3>
+
+<p>ISR is SSG with an expiry date. You serve the pre-built page instantly, but you tell the framework "consider this stale after 60 seconds." The next visitor after that window still gets the cached page immediately (so nobody waits), and in the background the server re-renders the page and swaps in the fresh copy for everyone after.</p>
+
+<p>Newspaper analogy again: it's a paper with <strong>hourly editions</strong>. You still grab a pre-printed copy off the stack — instant — but the stack gets replaced regularly without stopping the presses for a full re-run.</p>
+
+<p><strong>Where it breaks down:</strong> real ISR is per-page and cache-key-aware, not a global schedule, and different hosts implement it differently. But "static, with a refresh interval" is the right mental model.</p>
+
+<p>This is the sweet spot for content that's shared across users but does change: an e-commerce category listing, a pricing page, a leaderboard.</p>
+
+<h3>Per-request SSR — at request time</h3>
+
+<p>The thing we described earlier: a server runs your components fresh for <em>this</em> request, for <em>this</em> user. Slower than serving a file (you're paying for the render plus your database calls on every hit) and you need a running server — but it's the only option when the page genuinely differs per user or must be up-to-the-second.</p>
+
+<p>Logged-in dashboards, "recommended for you," anything reading cookies or auth headers, live inventory counts.</p>
+
+<h3>Choosing</h3>
+
+<table>
+  <thead>
+    <tr><th>Page</th><th>Same for everyone?</th><th>How fresh?</th><th>Pick</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Blog post / docs page</td><td>Yes</td><td>Changes when you edit it</td><td><strong>SSG</strong> — rebuild on publish</td></tr>
+    <tr><td>Marketing homepage</td><td>Yes</td><td>Weekly at most</td><td><strong>SSG</strong></td></tr>
+    <tr><td>E-commerce category listing</td><td>Yes</td><td>Prices/stock shift hourly</td><td><strong>ISR</strong> — static speed, bounded staleness</td></tr>
+    <tr><td>Product detail page (large catalogue)</td><td>Yes</td><td>Fairly fresh</td><td><strong>ISR</strong>, generated on first request — 500k pages is too many to pre-build</td></tr>
+    <tr><td>User dashboard / account</td><td>No — per user</td><td>Live</td><td><strong>Per-request SSR</strong></td></tr>
+    <tr><td>Checkout / cart</td><td>No</td><td>Live, must be correct</td><td><strong>Per-request SSR</strong></td></tr>
+    <tr><td>Internal admin tool behind login</td><td>No</td><td>Live</td><td><strong>CSR is fine</strong> — no SEO, controlled devices</td></tr>
+    <tr><td>Highly interactive editor (Figma-like)</td><td>No</td><td>N/A</td><td><strong>CSR</strong> — there's no meaningful HTML to pre-render</td></tr>
+  </tbody>
+</table>
+
+<p>And the useful realisation: these aren't app-wide decisions any more. Modern frameworks let you choose <em>per route</em>. A single site can have a statically generated marketing page, an ISR product listing, and a per-request dashboard.</p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — is SSG just... a static site? Like in 1998?</p>
+  <p>Yes! Genuinely. The output is HTML files on a disk. The difference is only in <em>authoring</em>: you write components and data-fetching in React and a build step produces the files, instead of hand-writing them. And unlike 1998, the page then hydrates and becomes a full React app for subsequent navigation. Sometimes the old idea was right and we just needed better tooling around it.</p>
+</div>
+
+<h2 id="rsc">React Server Components</h2>
+
+<p>Alright. Deep breath. This is the part everybody finds hardest, so let's start by clearing the biggest misconception out of the way, because if you carry it in you will not be able to understand anything that follows.</p>
+
+<div class="callout myth">
+  <p class="ctitle">A common misconception</p>
+  <p><strong>"React Server Components are the new SSR."</strong> / <strong>"RSC replaces SSR."</strong></p>
+  <p>No. RSC is not a faster SSR, not SSR 2.0, not a competitor to SSR. <strong>They're complementary, and in practice you use both at once.</strong> A typical Next.js App Router page uses Server Components <em>and</em> server-side rendering together on the same request. Turning on RSC does not turn off SSR.</p>
+  <p>They solve different problems entirely:</p>
+  <ul>
+    <li><strong>SSR</strong> answers: <em>"how do I get meaningful HTML to the browser fast?"</em> It's about the <strong>first paint</strong>.</li>
+    <li><strong>RSC</strong> answers: <em>"how do I stop shipping component code and data-fetching logic to the browser at all?"</em> It's about the <strong>bundle</strong> and <strong>where the code lives</strong>.</li>
+  </ul>
+</div>
+
+<p>If you only remember one sentence from this section, make it: <em>SSR is about rendering components in two places; RSC is about some components only existing in one.</em></p>
+
+<h3>The actual new idea</h3>
+
+<p>Remember the SSR complaint from earlier — <em>you still ship the same JavaScript</em>? Server Components attack exactly that.</p>
+
+<p>A <strong>Server Component</strong> is a component that runs <strong>only</strong> on the server, and whose code is <strong>never sent to the browser</strong>. It renders once, on the server, produces a description of UI, and its source code stays home. The browser receives the <em>output</em> — never the component.</p>
+
+<p>Two consequences fall straight out of that, and they're both big.</p>
+
+<p><strong>Consequence one: those components cost zero bytes.</strong> Import a 200KB markdown-to-HTML library inside a Server Component and use it to render a blog post? The library runs on the server. The browser gets the finished HTML. Your bundle doesn't grow at all. This is the part that makes people sit up.</p>
+
+<p><strong>Consequence two: they can be <code>async</code>.</strong> This is the one that changes how code <em>looks</em>. Since the component only ever runs on the server, and the server can wait, React lets a Server Component be an async function that you <code>await</code> inside. You can talk to your database, read a file, call an internal service — directly, in the component body.</p>
+
+<p>Here's the whole pitch in one image. Same feature, both ways:</p>
+
+<div class="side-by-side">
+  <div class="codeblock bad">
+    <div class="label">❌ Client component + useEffect</div>
+<pre><code>'use client';
+import { useState, useEffect } from 'react';
+
+function Reviews({ productId }) {
+  const [reviews, setReviews] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() =&gt; {
+    let cancelled = false;
+    fetch(`/api/reviews/${productId}`)
+      .then(r =&gt; r.json())
+      .then(d =&gt; { if (!cancelled) setReviews(d); })
+      .catch(e =&gt; { if (!cancelled) setError(e); });
+    return () =&gt; { cancelled = true; };
+  }, [productId]);
+
+  if (error) return &lt;p&gt;Something broke.&lt;/p&gt;;
+  if (!reviews) return &lt;Spinner /&gt;;
+
+  return &lt;ReviewList items={reviews} /&gt;;
+}
+// + you had to build /api/reviews
+// + all of this ships to the browser</code></pre>
+  </div>
+  <div class="codeblock good">
+    <div class="label">✅ Async Server Component</div>
+<pre><code>import { db } from '@/lib/db';
+
+async function Reviews({ productId }) {
+  const reviews = await db.reviews.findMany({
+    where: { productId },
+  });                        // 👈 straight to the DB
+
+  return &lt;ReviewList items={reviews} /&gt;;
+}
+// no API route needed
+// no loading state
+// no useEffect, no cleanup flag
+// 0 bytes shipped to the browser</code></pre>
+  </div>
+</div>
+
+<p>Sit with that for a second, because the reduction <em>is</em> the pitch. The left column has a race-condition guard, two pieces of state, an error path, a loading path, and a whole HTTP endpoint you had to write and deploy. The right column is a function that gets data and returns markup.</p>
+
+<p>The API route disappeared because it existed <em>only</em> to move data across the client/server gap. When the component is already on the server, there's no gap to cross.</p>
+
+<div class="callout wait">
+  <p class="ctitle">Wait — where did the loading state go?</p>
+  <p>Good catch, that's the right question. Fetching still takes time; someone still has to wait. The difference is <em>who orchestrates it</em>. You wrap the Server Component in React's <code>&lt;Suspense&gt;</code> and give it a fallback:</p>
+<pre><code>&lt;Suspense fallback={&lt;ReviewsSkeleton /&gt;}&gt;
+  &lt;Reviews productId={id} /&gt;
+&lt;/Suspense&gt;</code></pre>
+  <p>Now the rest of the page streams to the browser immediately, and the reviews section streams in when the query resolves. The loading state moved from <em>inside</em> the component (as state you manage) to <em>outside</em> it (as a boundary you declare). Same user experience, far less bookkeeping.</p>
+</div>
+
+<h3>But we lost something, and it matters</h3>
+
+<p>Look again at that Server Component. It runs once, on the server, and then it's over. Its code isn't in the browser. So ask yourself:</p>
+
+<p>What would <code>useState</code> even <em>mean</em> in there?</p>
+
+<p>State is a value that changes over time and causes a re-render. But this component <em>cannot</em> re-render — it doesn't exist in the browser, there's no copy of it there to run again. Same for <code>onClick</code>: the browser would need the handler function, and functions can't be serialized into HTML. Same for <code>useEffect</code>: effects run after paint, and this component is long gone by paint time.</p>
+
+<p>So Server Components have hard limits, and they are all the same limit wearing different hats:</p>
+
+<table>
+  <thead><tr><th>Can't use</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td><code>useState</code>, <code>useReducer</code></td><td>There's nothing on the client to re-render when it changes.</td></tr>
+    <tr><td><code>useEffect</code>, <code>useLayoutEffect</code></td><td>Effects run after browser paint. There's no browser.</td></tr>
+    <tr><td><code>onClick</code>, <code>onChange</code>, any handler</td><td>Handlers are functions; functions can't cross to the browser as data.</td></tr>
+    <tr><td><code>window</code>, <code>localStorage</code></td><td>Doesn't exist on a server.</td></tr>
+    <tr><td>Custom hooks that use any of the above</td><td>Same reasons, one level up.</td></tr>
+  </tbody>
+</table>
+
+<p>And symmetrically, Server Components can do things client code never could: read environment secrets, query a database directly, read the filesystem, call an internal service that isn't exposed to the internet. Your API key can sit in a Server Component and never leave the building.</p>
+
+<p>So we need both kinds of component in one app. Which brings us to the hard part.</p>
+
+<h2 id="boundary">The server / client boundary</h2>
+
+<p>If some components run only on the server and others need to run in the browser, React needs to know which is which. The marker is a string at the very top of a file:</p>
+
+<div class="codeblock neutral">
+  <div class="label">LikeButton.jsx</div>
+<pre><code>'use client';   // 👈 must be the first line in the file
+
+import { useState } from 'react';
+
+export function LikeButton({ initialCount }) {
+  const [count, setCount] = useState(initialCount);
+  return &lt;button onClick={() =&gt; setCount(count + 1)}&gt;❤️ {count}&lt;/button&gt;;
+}</code></pre>
+</div>
+
+<p>In a framework with RSC enabled, <strong>every component is a Server Component by default.</strong> That's a real inversion — the thing you've done your whole React career is now the opt-in. <code>'use client'</code> is how you opt back in.</p>
+
+<h3>It's a boundary, not a label</h3>
+
+<p>Here is the single most misunderstood thing about <code>'use client'</code>, and getting it right will separate you from most candidates.</p>
+
+<p><code>'use client'</code> does not mean "this one file is a client component." It marks a <strong>doorway</strong> into the client bundle. Everything you import from below that doorway — the whole subtree of imports — becomes client code too, whether or not those files have the directive themselves.</p>
+
+<figure>
+<svg viewBox="0 0 700 320" role="img" aria-label="A component tree showing the client boundary: everything below a use client file becomes client code.">
+  <defs>
+    <marker id="arw2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+
+  <!-- shaded client region -->
+  <rect x="330" y="118" width="345" height="180" rx="12" fill="#d9a441" opacity="0.12"/>
+  <text x="663" y="140" text-anchor="end" class="svg-label" fill="#8a5a00">↓ everything in here ships to the browser</text>
+
+  <!-- nodes -->
+  <g class="svg-label">
+    <rect x="255" y="20" width="170" height="34" rx="6" fill="none" stroke="#9b7ce0" stroke-width="2"/>
+    <text x="340" y="41" text-anchor="middle">page.jsx (server)</text>
+
+    <rect x="70" y="90" width="180" height="34" rx="6" fill="none" stroke="#9b7ce0" stroke-width="2"/>
+    <text x="160" y="111" text-anchor="middle">ProductInfo (server)</text>
+
+    <rect x="360" y="150" width="180" height="34" rx="6" fill="none" stroke="#d9a441" stroke-width="2.5"/>
+    <text x="450" y="171" text-anchor="middle">Tabs.jsx 'use client'</text>
+
+    <rect x="70" y="160" width="180" height="34" rx="6" fill="none" stroke="#9b7ce0" stroke-width="2"/>
+    <text x="160" y="181" text-anchor="middle">markdown lib (server)</text>
+    <text x="160" y="204" text-anchor="middle" class="svg-small" fill="#1f7a4d">200KB · never downloaded</text>
+
+    <rect x="345" y="228" width="150" height="34" rx="6" fill="none" stroke="#d9a441" stroke-width="2"/>
+    <text x="420" y="249" text-anchor="middle">TabButton.jsx</text>
+    <text x="420" y="272" text-anchor="middle" class="svg-small" fill="#8a5a00">no directive — still client</text>
+
+    <rect x="520" y="228" width="140" height="34" rx="6" fill="none" stroke="#d9a441" stroke-width="2"/>
+    <text x="590" y="249" text-anchor="middle">date-fns</text>
+    <text x="590" y="272" text-anchor="middle" class="svg-small" fill="#8a5a00">downloaded 📦</text>
+  </g>
+
+  <path d="M300 54 L300 74 L160 74 L160 87" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw2)"/>
+  <path d="M380 54 L380 74 L450 74 L450 147" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw2)"/>
+  <path d="M160 124 L160 157" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw2)"/>
+  <path d="M430 184 L430 205 L420 205 L420 225" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw2)"/>
+  <path d="M480 184 L480 205 L590 205 L590 225" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arw2)"/>
+</svg>
+<figcaption><code>Tabs.jsx</code> opens the door. <code>TabButton</code> has no directive, but it's imported from a client file — so it's client code. The markdown library, sitting on the server branch, is never downloaded.</figcaption>
+</figure>
+
+<p>This is why a single carelessly-placed <code>'use client'</code> near the root of your app can quietly drag your entire component tree into the browser bundle, undoing the whole benefit. The practical advice: <strong>push <code>'use client'</code> as far down the tree as you can.</strong> Make the interactive leaf a client component, not its container.</p>
+
+<h3>The composition rules</h3>
+
+<p>Two rules, and the second one has an escape hatch that surprises everyone.</p>
+
+<p><strong>Rule 1: a Server Component can import and render a Client Component.</strong> Totally normal. The server renders the Client Component's <em>initial</em> output into the HTML, and includes a note in the payload saying "this bit needs to be hydrated by <code>Tabs.jsx</code>."</p>
+
+<p><strong>Rule 2: a Client Component cannot <em>import</em> a Server Component.</strong> Once you're inside client code, everything you import comes with you into the browser bundle — and a Server Component can't run there. It might query a database. That code cannot go to a browser. So the bundler refuses.</p>
+
+<h3>The escape hatch: pass it as children</h3>
+
+<p>But hold on — that sounds crippling. Does it mean once I have a client-side layout component, nothing inside it can ever be a Server Component again?</p>
+
+<p>No, and the reason is subtle and lovely. <strong>Rule 2 forbids <em>importing</em>, not <em>rendering</em>.</strong> If a Server Component higher up renders the Server Component and hands the <em>result</em> to a Client Component as a prop, everything works:</p>
+
+<div class="side-by-side">
+  <div class="codeblock bad">
+    <div class="label">❌ Client imports server</div>
+<pre><code>'use client';
+import { useState } from 'react';
+import { UserStats } from './UserStats';
+//     👆 a Server Component. Bundler error.
+
+export function Sidebar() {
+  const [open, setOpen] = useState(true);
+  return (
+    &lt;aside&gt;
+      &lt;button onClick={() =&gt; setOpen(!open)}&gt;Toggle&lt;/button&gt;
+      {open &amp;&amp; &lt;UserStats /&gt;}
+    &lt;/aside&gt;
+  );
+}</code></pre>
+  </div>
+  <div class="codeblock good">
+    <div class="label">✅ Server passes it through as children</div>
+<pre><code>// Sidebar.jsx
+'use client';
+import { useState } from 'react';
+
+export function Sidebar({ children }) {
+  const [open, setOpen] = useState(true);
+  return (
+    &lt;aside&gt;
+      &lt;button onClick={() =&gt; setOpen(!open)}&gt;Toggle&lt;/button&gt;
+      {open &amp;&amp; children}   {/* 👈 just a hole */}
+    &lt;/aside&gt;
+  );
+}
+
+// page.jsx  — a Server Component
+&lt;Sidebar&gt;
+  &lt;UserStats /&gt;   {/* rendered on the server, slotted in */}
+&lt;/Sidebar&gt;</code></pre>
+  </div>
+</div>
+
+<p>Why does this work? Because <code>Sidebar</code> never sees <code>UserStats</code>. It receives an already-rendered chunk of UI and drops it into a hole. It doesn't know or care where that chunk came from. It never imports it, so <code>UserStats</code>'s code never enters the client bundle.</p>
+
+<p>The analogy: think of the Client Component as a <strong>picture frame</strong>, and the Server Component's output as a <strong>photograph</strong>. The frame doesn't need a darkroom. It doesn't need to know how the photo was developed. It just needs something rectangular to hold. As long as you hand it a finished print, it does its job.</p>
+
+<p><em>Where it breaks down:</em> the frame can't <em>change</em> the photo. If the interactive component needs to alter what's inside based on state — re-fetch it, filter it — the picture-frame trick isn't enough, and you'll need to either lift the interactivity higher or make that part client-rendered.</p>
+
+<h3>Why props crossing the boundary must be serializable</h3>
+
+<p>When a Server Component renders a Client Component and passes props, those props have to physically travel from the server to the browser — as text, over the network. Anything that can't be written down as text can't make the trip.</p>
+
+<p>That rules out:</p>
+
+<ul>
+  <li><strong>Functions.</strong> A function is compiled code plus a closure over live variables. You can't write that down and rebuild it elsewhere. <em>This is exactly why you can't pass <code>onClick</code> down from a Server Component</em> — the handler must be defined in client code.</li>
+  <li><strong>Class instances.</strong> Serializing a class instance gives you its fields, not its methods or its prototype chain. It arrives as a plain object with the behaviour stripped off, which is worse than an error.</li>
+  <li><strong>Symbols, Dates-as-you-might-expect, and other exotica.</strong> React's serializer is more capable than <code>JSON.stringify</code> — it does handle <code>Date</code>, <code>Map</code>, <code>Set</code>, <code>BigInt</code> and Promises — but the safe habit is to send plain data (strings, numbers, booleans, null, arrays, plain objects) and construct the rich thing on the client. Assume less than the serializer supports and you'll never be surprised.</li>
+</ul>
+
+<div class="codeblock bad">
+  <div class="label">❌ Can't cross the boundary</div>
+<pre><code>// page.jsx — Server Component
+export default function Page() {
+  return &lt;LikeButton onLike={() =&gt; console.log('liked')} /&gt;;
+  //                 👆 Error: functions cannot be passed to client components
+}</code></pre>
+</div>
+
+<div class="codeblock good">
+  <div class="label">✅ Data crosses; behaviour stays put</div>
+<pre><code>// page.jsx — Server Component
+export default function Page() {
+  return &lt;LikeButton postId={42} initialCount={17} /&gt;;
+  //                 👆 plain numbers. easy to write down.
+}
+// LikeButton.jsx is 'use client' and defines its own onClick.</code></pre>
+</div>
+
+<p>A good rule of thumb: <strong>data flows down across the boundary; behaviour stays on the side it belongs to.</strong> (One exception coming up shortly — Server Actions bend this, deliberately and carefully.)</p>
+
+<h2 id="payload">The RSC Payload</h2>
+
+<p>So the server rendered some Server Components and marked some spots as "hydrate this with <code>LikeButton</code>." How does that information reach the browser?</p>
+
+<p>Not as HTML. HTML can express <em>"this is a button labelled ❤️ 17"</em>, but it can't express <em>"and by the way, this button should be controlled by the module at chunk-abc123.js with these props."</em> So React invented a second format.</p>
+
+<p>The <strong>RSC Payload</strong> is a compact, streamable description of the rendered tree containing three kinds of thing:</p>
+
+<ol>
+  <li>The rendered output of Server Components — plain elements, text, attributes.</li>
+  <li><strong>Placeholders</strong> where Client Components go, each pointing at the JS module that implements it.</li>
+  <li>The serialized props being handed to each of those Client Components.</li>
+</ol>
+
+<p>Conceptually, something in the spirit of:</p>
+
+<div class="codeblock neutral">
+  <div class="label">RSC Payload (heavily simplified — the real format is terser)</div>
+<pre><code>["$", "article", null, { children: [
+  ["$", "h1", null, { children: "Wool Socks" }],
+  ["$", "p",  null, { children: "Warm. Very warm." }],
+  ["$", "$L7", null, { postId: 42, initialCount: 17 }]
+       // 👆 "render client module #7 here, with these props"
+]}]</code></pre>
+</div>
+
+<p>The analogy: the payload is a <strong>flat-pack furniture box</strong>. Most of it is finished parts you just place — that's the Server Component output. But a few spots have a slip of paper reading <em>"insert hinge #7 here"</em>, and hinge #7 comes in a separate bag — that's the client JS chunk. The instructions say exactly which hinge and exactly where.</p>
+
+<p><em>Where it breaks down:</em> unlike flat-pack, you're not assembling from nothing. On a first page load React <em>also</em> sends real HTML (that's SSR doing its job) so the page paints before any of this is processed. The payload's job is to tell React how to hydrate that HTML and how to update it later.</p>
+
+<p>And that "later" is the second reason the payload exists. When you navigate to a new page in an RSC app, the browser doesn't request a fresh HTML document — it requests the <strong>payload</strong> for the new route. React merges it into the existing tree. This is why client state (scroll position, an open modal, a video that's playing) can survive a navigation, while the new page's server work still happens on the server.</p>
+
+<div class="callout hood">
+  <p class="ctitle">Under the hood: the full first-request pipeline</p>
+  <p>On an initial page load in a Next.js App Router app, all of this happens in one request:</p>
+  <ol>
+    <li>Server Components render on the server → produces the <strong>RSC Payload</strong>.</li>
+    <li>React + the framework turn that payload (with Client Components rendered to their initial output) into an <strong>HTML string</strong> — this step is SSR, and it's why "Client Components run on the server too" is true.</li>
+    <li>The HTML streams to the browser. The user sees content. 🎉</li>
+    <li>The payload is streamed alongside it, embedded in the document.</li>
+    <li>The client JS bundle — containing <em>only</em> Client Components — downloads and <strong>hydrates</strong> the interactive parts.</li>
+  </ol>
+  <p>Notice that RSC and SSR both appear, at different steps, doing different jobs. That's the complementarity, made concrete.</p>
+</div>
+
+<h2 id="names">Terminology cleanup</h2>
+
+<p>Let me say the quiet part loudly: <strong>the naming here is genuinely bad</strong>, and a lot of the confusion people feel is not conceptual confusion, it's vocabulary collision. Let's untangle it once, carefully.</p>
+
+<table>
+  <thead><tr><th>Term</th><th>What it actually means</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Server-Side Rendering (SSR)</strong></td>
+      <td>A <em>technique</em>: run components on the server to produce an HTML string, so the browser paints content before JS loads. Predates RSC by years. Applies to Client Components too.</td>
+    </tr>
+    <tr>
+      <td><strong>React Server Components (RSC)</strong></td>
+      <td>The overall <em>paradigm / architecture</em>: an app made of both server-only and client components, with a boundary and a payload format between them.</td>
+    </tr>
+    <tr>
+      <td><strong>Server Component</strong></td>
+      <td>An individual component that runs <em>only</em> on the server. Its code is never sent to the browser. Can be async. No state, no effects, no handlers.</td>
+    </tr>
+    <tr>
+      <td><strong>Client Component</strong></td>
+      <td>A component marked <code>'use client'</code> (or imported by one). Its code <em>is</em> sent to the browser so it can be interactive. <strong>It still renders on the server during SSR</strong> — see below.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Now the two traps.</p>
+
+<div class="callout myth">
+  <p class="ctitle">A common misconception</p>
+  <p><strong>"'use client' means the component only runs on the client."</strong></p>
+  <p>It does not. A Client Component runs in <em>both</em> places: once on the server during SSR to generate the initial HTML, and again in the browser during hydration and on every subsequent state change. The name describes <em>where its code is allowed to live</em> (it must be available on the client), not <em>where it executes</em>.</p>
+  <p>This has a very practical consequence people hit on day one: put <code>window.localStorage.getItem('theme')</code> in the body of a Client Component and it will crash with <code>window is not defined</code> — <em>during the server render</em>. The directive did not save you. That code still has to go in an effect.</p>
+  <p>A better mental name would have been <code>'use interactive'</code> or <code>'needs hydration'</code>. Too late now.</p>
+</div>
+
+<p>The second trap is the word "server" doing two jobs. A Server Component runs on the server. A Client Component <em>also</em> runs on the server (during SSR). So "does it run on the server?" is a useless question. The useful questions are:</p>
+
+<ul>
+  <li><strong>Does its code get downloaded by the browser?</strong> Server Component: no. Client Component: yes.</li>
+  <li><strong>Can it re-run after the page loads?</strong> Server Component: no. Client Component: yes, that's the whole point.</li>
+</ul>
+
+<p>If you can hold those two questions in your head, the whole taxonomy collapses into something manageable.</p>
+
+<h2 id="actions">Server Actions &amp; where the ecosystem sits</h2>
+
+<p>One last piece, briefly, because it completes the picture. We covered reading data on the server. What about <em>writing</em> it?</p>
+
+<p><strong>Server Actions</strong> are functions marked <code>'use server'</code> that live on the server but can be called from client code. React and the bundler conspire: the client gets a stub, and calling it fires an RPC to the real function on the server.</p>
+
+<div class="codeblock neutral">
+  <div class="label">A Server Action</div>
+<pre><code>// actions.js
+'use server';
+
+export async function addToCart(formData) {
+  const productId = formData.get('productId');
+  await db.cart.add({ userId: await currentUser(), productId });
+  revalidatePath('/cart');   // tell the framework this cached page is stale
+}
+
+// page.jsx — a Server Component, no 'use client' anywhere
+&lt;form action={addToCart}&gt;
+  &lt;input type="hidden" name="productId" value={42} /&gt;
+  &lt;button&gt;Add to cart&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+</div>
+
+<p>This is the deliberate exception to "functions can't cross the boundary." A Server Action <em>can</em> be passed to a Client Component — but what crosses is not the function body, it's <strong>a reference to an endpoint the framework generated for you</strong>. The code stays on the server; only an ID travels.</p>
+
+<p>The honest caveat: that's also a security surface. Every Server Action is a public HTTP endpoint, whether or not the UI that calls it is visible. <strong>Authorization must be checked inside the action itself</strong> — never assume "well, only admins can see the button."</p>
+
+<p>Note the <code>'use server'</code> / <code>'use client'</code> naming is another sharp edge: <code>'use server'</code> does <em>not</em> mark a Server Component (those are the default and need no directive). It marks a Server <em>Action</em>. Different thing entirely.</p>
+
+<h3>Where things actually stand</h3>
+
+<p>Be accurate about this in interviews — it's a maturity signal:</p>
+
+<ul>
+  <li>RSC is a <strong>React feature</strong>, but it needs deep bundler and router integration, so you don't use it directly — you use it through a framework.</li>
+  <li><strong>Next.js App Router</strong> is the main production implementation and where the overwhelming majority of real RSC code lives today.</li>
+  <li>Other implementations exist and are maturing (React Router / Remix, Waku, Parcel's RSC support, RedwoodSDK), but Next is the default answer.</li>
+  <li>The Next.js <strong>Pages Router</strong> is the older, non-RSC model: <code>getServerSideProps</code> / <code>getStaticProps</code> and classic SSR/SSG. It's still widely deployed and still fine. Knowing both, and why the App Router changed things, is a good look.</li>
+</ul>
+
+<h2 id="tradeoffs">The honest tradeoffs</h2>
+
+<p>I've spent a lot of words on the upside. A candidate who can only sell RSC sounds like a marketing page. Here's the other column.</p>
+
+<p><strong>Real complexity, not accidental complexity.</strong> There's now a boundary running through your app, and you have to hold it in your head at all times. "Can I use a hook here?" was never a question before; now it is. New engineers hit the boundary within their first hour and it's genuinely disorienting.</p>
+
+<p><strong>Framework coupling.</strong> An RSC app is a Next.js app (or equivalent) in a way that a CRA app never was. Ejecting is hard. You're taking a bet on a framework's roadmap, its hosting story, and its release cadence.</p>
+
+<p><strong>Debugging spans two runtimes.</strong> A <code>console.log</code> in a Server Component appears in your <em>terminal</em>, not the browser console — which trips up literally everyone at first. Stack traces cross the boundary. React DevTools understands the client tree well and the server tree less well.</p>
+
+<p><strong>The ecosystem is still catching up.</strong> A huge number of npm packages assume they run in a browser. Component libraries that use context or hooks internally need <code>'use client'</code>, and older versions don't have it — so you end up writing thin wrapper files just to add the directive. This is improving fast, but it's real friction today.</p>
+
+<p><strong>You need a server.</strong> An RSC app can't be a folder of static files on a CDN. That's cost, ops, and a cold-start story you didn't have before. (Some routes can still be statically generated — but the architecture assumes a server exists.)</p>
+
+<p><strong>And it isn't always worth it.</strong> For a heavily interactive app where nearly every component needs state anyway — a design tool, a spreadsheet, a game — most of your tree is going to be <code>'use client'</code> regardless. The bundle savings evaporate and you've bought complexity for very little. Being able to say "we didn't adopt RSC because our app is 90% interactive canvas" is a stronger answer than reciting benefits.</p>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How this gets asked</h3>
+
+<p>The literal phrasings you'll hear:</p>
+
+<ul>
+  <li>"Walk me through what happens when a user loads a React app."</li>
+  <li>"What's the difference between client-side and server-side rendering?"</li>
+  <li>"What is hydration?"</li>
+  <li>"When would you use static generation instead of SSR?"</li>
+  <li>"Have you used the Next.js App Router? What are Server Components?"</li>
+  <li>"What's the difference between SSR and React Server Components?" — the big one.</li>
+  <li>"You've got a page that's slow to load. How would you diagnose and fix it?" — the open-ended version, and the one where this knowledge really pays.</li>
+</ul>
+
+<p>Notice which of these test <em>recall</em> ("what is hydration") and which test <em>depth</em> ("why is it expensive," "when would you not use RSC"). The recall questions are the setup. The depth questions are the actual interview, and they're almost always follow-ups.</p>
+
+<h3>Model answers</h3>
+
+<div class="say">
+  <span class="tag">Say this — "CSR vs SSR"</span>
+  <p class="quote">"With client-side rendering, the server sends an almost-empty HTML file plus a JS bundle. The user stares at a blank screen until the bundle downloads and React boots — and only <em>then</em> does the data fetch even start, so you get a waterfall. With server-side rendering, the server runs the React components and sends back real HTML, so the browser can paint meaningful content almost immediately. The JS still downloads afterwards and hydrates that markup to make it interactive. So SSR mainly buys you a much faster first contentful paint and working SEO; it costs you a server, and time-to-interactive is actually slightly worse because hydration is extra work."</p>
+</div>
+
+<p class="footnote"><strong>Why it lands:</strong> it's a narrative, not a definition, and it names a cost. Anyone can say "SSR is faster." Saying "faster to <em>content</em>, slightly slower to <em>interactive</em>, and here's why" tells the interviewer you've actually looked at a performance panel.</p>
+
+<div class="say">
+  <span class="tag">Say this — "What are Server Components?"</span>
+  <p class="quote">"Server Components run only on the server, and their code is never sent to the browser at all. Because they only run there, they can be async — you can await a database query directly inside the component instead of building an API route and fetching from a useEffect. The tradeoff is they can't have state, effects, or event handlers, since none of that means anything without a copy running in the browser. So you mark the genuinely interactive leaves with <code>'use client'</code> and leave everything else on the server. The two big wins are less JavaScript shipped and no client-server data waterfall."</p>
+</div>
+
+<p class="footnote"><strong>Why it lands:</strong> it leads with the mechanism ("code is never sent"), derives the constraints instead of memorising them, and ends with the two benefits. It's also short enough to say out loud without losing the room.</p>
+
+<h3 style="margin-top:2.5rem">Follow-up questions</h3>
+
+<div class="qa">
+
+<h4>"So what's the difference between SSR and RSC?"</h4>
+<p><strong>The one-liner:</strong> SSR is about <em>when the HTML is produced</em>; RSC is about <em>which components exist in the browser at all</em>.</p>
+<p>SSR takes your components — all of them — runs them on the server to make an HTML string, then ships every one of those components to the browser so they can be hydrated. Bundle size unchanged. RSC changes what's in that bundle: Server Components render on the server and their code never travels, so they contribute zero bytes and can't be hydrated (there's nothing to hydrate them with).</p>
+<p>The critical add-on, and the thing that separates a good answer from a great one: <strong>they aren't alternatives.</strong> A Next.js App Router request uses both — RSC decides which components run where and produces the payload, then SSR turns that into the HTML that paints first. If you say "we replaced SSR with RSC," you've said something false.</p>
+
+<h4>"What is hydration, and why is it expensive?"</h4>
+<p>Hydration is React booting up in the browser on top of server-rendered HTML: instead of creating DOM nodes, it renders your tree in memory, matches it against the existing markup, and attaches event listeners and state to those nodes. Dan Abramov's framing is watering dry HTML with the water of interactivity.</p>
+<p>It's expensive for three compounding reasons. <strong>One:</strong> it's a full render pass — every component in the tree runs, on the user's device, mostly to recompute something the server already computed. <strong>Two:</strong> it's largely synchronous and blocks the main thread, so during hydration the page can't respond to taps or scroll — and it's happening exactly when the user is most likely to try. <strong>Three:</strong> it requires the whole JS bundle first, so it's gated behind your biggest download.</p>
+<p>The practical consequence is the uncanny valley: the page looks ready but isn't. Mitigations: ship less JS (which is exactly RSC's pitch), stream with Suspense so hydration can be broken into chunks, and lean on selective hydration so React prioritises the part the user just interacted with.</p>
+
+<h4>"When would you choose SSG over SSR?"</h4>
+<p>When the page is <strong>the same for every visitor</strong> and doesn't need to be second-fresh. Then rendering it once at build time and serving a file from a CDN is strictly better: faster (no server work per request, edge-cached), cheaper, and it can't fall over under load because there's nothing to fall over.</p>
+<p>You need per-request SSR the moment the output depends on <em>who is asking</em> — auth state, personalisation, cookies, a cart — or has to be genuinely live, like inventory at checkout.</p>
+<p>And the answer that shows real experience: it's rarely all-or-nothing. You pick per route, and for the big middle ground — shared content that changes on a timescale of minutes — you use <strong>ISR</strong>: serve the static page instantly, revalidate in the background. Also worth naming the SSG failure mode: build time scales with page count, so a 500,000-SKU catalogue can't be fully pre-built, and you fall back to generating on first request and caching.</p>
+
+<h4>"Why can't I use <code>useState</code> in a Server Component?"</h4>
+<p>Because state is only meaningful if something can re-render when it changes — and a Server Component <em>cannot</em> re-render. It runs once on the server, produces output, and is finished. Its code was never sent to the browser, so there is literally no copy of that function available to run again. Calling <code>setState</code> would have nothing to call.</p>
+<p>Same logic covers the whole family: <code>useEffect</code> runs after browser paint and there's no browser; <code>onClick</code> needs a live function in the browser and functions can't be serialized; <code>window</code> doesn't exist server-side. It's one restriction, not five.</p>
+<p>Deriving it like this is much stronger than listing it. The interviewer is checking whether you memorised a table or understood a model.</p>
+
+<h4>"Why can't I pass a function as a prop across the boundary?"</h4>
+<p>Because props that cross from server to client have to be <em>serialized</em> — written down as text and sent over the network. A function isn't data; it's compiled code plus a closure over live variables in the server's memory. There's no honest way to write that down and reconstitute it in a different process on a different machine.</p>
+<p>So event handlers have to be <em>defined</em> in client code. The pattern is: pass the data down (<code>postId</code>, <code>initialCount</code>), and let the Client Component own the behaviour.</p>
+<p>The nuance worth adding: <strong>Server Actions are the deliberate exception.</strong> A <code>'use server'</code> function <em>can</em> be passed to a Client Component — but what actually crosses is a reference to a framework-generated endpoint, not the function body. The code never leaves the server; calling it is an RPC.</p>
+
+<h4>"Does <code>'use client'</code> mean the component only runs on the client?"</h4>
+<p>No — and this is the most common misunderstanding in the whole area. A Client Component still renders <em>on the server</em> during SSR to produce the initial HTML, then runs again in the browser to hydrate, then on every state change after that. The directive marks where the client bundle <em>begins</em> — it means "this code must be available in the browser," not "this code only executes in the browser."</p>
+<p>Concrete proof: put <code>window.matchMedia(...)</code> in the body of a <code>'use client'</code> component and it crashes with <code>window is not defined</code> during the server render. Browser-only code still belongs in an effect.</p>
+<p>The other half of the answer is the boundary point: <code>'use client'</code> isn't a per-file label. Everything imported below it joins the client bundle too, even files without the directive — which is why you push the directive as far down the tree as possible.</p>
+
+<h4>"What's the benefit if the user still downloads React anyway?"</h4>
+<p>Sharp question, and it deserves a precise answer rather than a defensive one. Yes — if any part of the page is interactive, the browser downloads the React runtime plus every Client Component. RSC doesn't get you to zero JS.</p>
+<p>What it removes is <strong>your application code and its dependencies</strong> on the server side of the boundary. The React runtime is a fixed cost that doesn't grow with your app; a markdown parser, a syntax highlighter, a date library, an i18n bundle, your ORM types and data-fetching code — those grow with your app, and those are what vanish. In a content-heavy app that's often the majority of the bundle.</p>
+<p>And bundle size isn't even the only win. You also delete the API layer that existed purely to move data across the network, you remove the client-side data waterfall, and you keep secrets and heavy queries on the server. Then the honest close: <strong>for a highly interactive app where most components need state anyway, the savings are small and the complexity might not pay for itself.</strong> That last sentence is what makes the answer credible.</p>
+
+<h4>"What causes a hydration mismatch?"</h4>
+<p>Anything that makes the browser's first render produce different markup from what the server sent — because hydration <em>adopts</em> existing DOM rather than rebuilding it, so it needs the shapes to match.</p>
+<p>The three usual causes: <strong>time</strong> (<code>Date.now()</code>, "3 minutes ago", timezone differences between server and user), <strong>randomness</strong> (<code>Math.random()</code>, shuffled arrays, random IDs), and <strong>browser-only state</strong> (<code>window</code>, <code>localStorage</code>, media queries, <code>document.cookie</code>) where the server takes a different branch than the client. There's also plain invalid HTML nesting — a <code>&lt;div&gt;</code> inside a <code>&lt;p&gt;</code> gets silently restructured by the browser's parser, so the DOM no longer matches what React emitted. That one's sneaky.</p>
+<p>The fix is always the same shape: render something server-safe first, then correct it in an effect after hydration. And name the cost honestly — that means a second render and possibly a flash. <code>suppressHydrationWarning</code> exists but it hides the symptom, not the mismatch.</p>
+
+<h4>"How does RSC affect bundle size?"</h4>
+<p>Server Components contribute <strong>zero bytes</strong> to the client bundle — neither the component nor anything it imports on the server side of the boundary. So a heavy dependency used only in a Server Component becomes effectively free to the user.</p>
+<p>But the mechanism is import-graph-based, not per-file, and that's the part people get wrong. Everything reachable from a <code>'use client'</code> file is in the bundle. Put <code>'use client'</code> at the top of your root layout and you've shipped your whole app to the browser while thinking you're using RSC. So the discipline is: keep the directive on the interactive leaves, and use the children/props pattern to keep server-rendered content inside client containers.</p>
+<p>Worth adding: it's not purely a win. The RSC Payload is extra bytes over the wire on top of the HTML, and it's re-fetched on navigation. You're trading a large one-time JS download for smaller repeated payload downloads. Usually a good trade; not a free one.</p>
+
+</div>
+
+<h3>Traps</h3>
+
+<div class="callout trap">
+  <p class="ctitle">Trap 1 — "RSC replaced SSR"</p>
+  <p>This is the single most common wrong answer, and it reads as "I skimmed a blog post." They are complementary and used together. If you catch yourself about to say "instead of SSR," say "on top of SSR."</p>
+</div>
+
+<div class="callout trap">
+  <p class="ctitle">Trap 2 — "SSR makes your site faster"</p>
+  <p>Too vague, and half wrong. <em>Faster to first contentful paint. Not faster to interactive.</em> Always split the metric. If you say "faster" without qualification, expect "faster at what?" and you'll be on the back foot.</p>
+</div>
+
+<div class="callout trap">
+  <p class="ctitle">Trap 3 — "Server Components are faster than Client Components"</p>
+  <p>Category error. Speed isn't the axis — <em>capability and location</em> are. A Server Component avoids shipping code and can fetch data close to the database. A Client Component can respond to a click. Comparing them on speed suggests you don't have the model.</p>
+</div>
+
+<div class="callout trap">
+  <p class="ctitle">Trap 4 — "Hydration is just React attaching event listeners"</p>
+  <p>Half true, and the missing half is the expensive half. It's a <em>full render pass</em> of your whole tree on the user's device, which is why it blocks the main thread. If your answer implies it's a cheap decoration step, you can't then explain why anyone cares about it.</p>
+</div>
+
+<div class="callout trap">
+  <p class="ctitle">Trap 5 — Recommending SSR for everything</p>
+  <p>An internal dashboard behind a login gets no SEO benefit and its users are on decent hardware. A canvas-based editor has no meaningful HTML to pre-render. Saying "it depends on whether the page needs SEO, how shared the content is, and how interactive it is" is a much better answer than picking a favourite architecture.</p>
+</div>
+
+<details>
+  <summary>Self-check: can you answer these without scrolling up?</summary>
+  <p>1. Why does the data fetch start <em>last</em> in a CSR app?<br>
+  2. What exactly does React do during hydration that makes it costly?<br>
+  3. Name the three causes of hydration mismatches.<br>
+  4. Why can't a Client Component <em>import</em> a Server Component — and what's the workaround?<br>
+  5. Where does a <code>console.log</code> inside a Server Component appear?<br>
+  6. What are the two questions that reliably tell Server and Client Components apart?</p>
+  <p class="footnote">(Answers, compressed: 1 — the browser doesn't know it needs data until it's downloaded and executed the JS and reached the effect. 2 — a full in-memory render of the whole tree, synchronously, on the user's device. 3 — time, randomness, browser-only state, plus invalid HTML nesting as a bonus. 4 — importing pulls it into the client bundle where it can't run; pass it as <code>children</code> instead. 5 — your terminal. 6 — "does its code get downloaded?" and "can it re-run after load?")</p>
+</details>
+
+<h2 id="cheat">Interview cheat sheet</h2>
+
+<p>The morning-of version. One crisp line each.</p>
+
+<table class="cheat">
+  <tbody>
+    <tr><td>CSR</td><td>Empty HTML + JS bundle. Browser builds everything. Blank screen first, and the data fetch starts dead last.</td></tr>
+    <tr><td>Waterfall</td><td>HTML → JS → React boots → <em>then</em> fetch. Four sequential round trips before content.</td></tr>
+    <tr><td>SSR</td><td>Server runs components → HTML string → browser paints content immediately. JS follows and hydrates.</td></tr>
+    <tr><td>Hydration</td><td>React re-renders the tree in the browser and adopts the existing DOM, attaching handlers and state. "Watering dry HTML with the water of interactivity" (Dan Abramov).</td></tr>
+    <tr><td>Why hydration costs</td><td>Full render pass, on the user's device, synchronous, gated behind the whole bundle.</td></tr>
+    <tr><td>Uncanny valley</td><td>Between paint and hydration the page looks ready but ignores clicks.</td></tr>
+    <tr><td>Hydration mismatch</td><td>Server HTML ≠ first client render. Causes: time, randomness, <code>window</code>/<code>localStorage</code>, invalid HTML nesting.</td></tr>
+    <tr><td>SSG</td><td>Rendered at <strong>build time</strong>. Static files on a CDN. Same for everyone, rarely changes.</td></tr>
+    <tr><td>ISR</td><td>SSG + a revalidation window. Serve stale instantly, regenerate in the background.</td></tr>
+    <tr><td>Per-request SSR</td><td>Rendered <strong>per request</strong>. Needed for per-user or live data.</td></tr>
+    <tr><td>Choosing</td><td>Same for everyone + rarely changes → SSG. Same but changes → ISR. Per-user or live → SSR. No SEO + very interactive → CSR is fine.</td></tr>
+    <tr><td>RSC ≠ SSR</td><td>Complementary, used together. SSR = <em>when HTML is made</em>. RSC = <em>which components reach the browser</em>.</td></tr>
+    <tr><td>Server Component</td><td>Runs only on the server. Code never shipped. Can be <code>async</code> and await a DB. No state, effects, or handlers.</td></tr>
+    <tr><td>Client Component</td><td><code>'use client'</code>. Code ships to the browser so it can be interactive — <em>and it still renders on the server during SSR</em>.</td></tr>
+    <tr><td>Why no <code>useState</code> on the server</td><td>Nothing in the browser can re-render — the component's code isn't there.</td></tr>
+    <tr><td><code>'use client'</code></td><td>A boundary, not a label. Everything imported below it joins the client bundle. Push it down the tree.</td></tr>
+    <tr><td>Composition rules</td><td>Server can render Client. Client cannot <em>import</em> Server — but can receive it as <code>children</code>.</td></tr>
+    <tr><td>Serializable props</td><td>Data crosses the boundary; behaviour doesn't. No functions, no class instances. Hence no <code>onClick</code> from a Server Component.</td></tr>
+    <tr><td>RSC Payload</td><td>Streamed description of the rendered tree: server output + placeholders naming client modules + their serialized props.</td></tr>
+    <tr><td>Server Actions</td><td><code>'use server'</code> functions callable from the client. Only a reference crosses; it's an RPC. Every one is a public endpoint — authorize inside it.</td></tr>
+    <tr><td>Bundle impact</td><td>Server Components = 0 bytes. React runtime + Client Components still ship. Big win for content-heavy apps, small for highly interactive ones.</td></tr>
+    <tr><td>Ecosystem</td><td>Next.js App Router is the main implementation. Pages Router is the older SSR/SSG model. RSC needs a framework.</td></tr>
+    <tr><td>Tradeoffs</td><td>Boundary complexity, framework coupling, two-runtime debugging (<code>console.log</code> lands in your terminal), libraries still catching up, you need a server.</td></tr>
+  </tbody>
+</table>
+
+<hr class="soft">
+
+<p>One closing thought. If this felt like a lot, that's because it is — you just absorbed about a decade of architectural argument in one sitting. But notice that almost everything here falls out of a single question you can always re-derive from scratch:</p>
+
+<p style="font-size:1.15rem; font-weight:600; text-align:center; margin:2rem 0; color:var(--accent);">Where does this code run, and what has to travel over the network?</p>
+
+<p>Blank screen? Nothing meaningful travelled. Hydration cost? Code travelled and had to run again. Server Component? The code didn't travel. Can't pass a function? Functions can't travel. Hydration mismatch? Two runs of the same code, two different environments, two different answers.</p>
+
+<p>Every rule in this guide is a consequence of that one question. If you can hold onto it, you can rebuild the rest at the whiteboard. Good luck. 🚀</p>
+
+</div>
+</body>
+</html>

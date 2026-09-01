@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>this, Binding &amp; the Prototype Chain</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --text: #24222a;
+    --muted: #61606b;
+    --rule: #e6e2dc;
+    --accent: #6b4de6;
+    --accent-soft: #f1edfe;
+    --green: #1f7a52;
+    --green-soft: #e9f7f0;
+    --red: #b0293c;
+    --red-soft: #fdeced;
+    --amber: #8a5a08;
+    --amber-soft: #fdf3e0;
+    --blue: #1f5f9e;
+    --blue-soft: #eaf2fb;
+    --code-bg: #23212b;
+    --code-text: #efeaf7;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 56px 22px 120px;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 12px;
+  }
+  h1 code { font-size: 0.9em; }
+
+  .deck {
+    font-size: 1.12rem;
+    color: var(--muted);
+    margin: 0 0 40px;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 64px 0 6px;
+    padding-top: 26px;
+    border-top: 1px solid var(--rule);
+  }
+  h3 {
+    font-size: 1.18rem;
+    margin: 40px 0 4px;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1rem;
+    margin: 28px 0 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  p { margin: 16px 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: #efece6;
+    padding: 0.12em 0.34em;
+    border-radius: 4px;
+    word-break: break-word;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 14.5px;
+    line-height: 1.62;
+    margin: 18px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    word-break: normal;
+  }
+
+  .cb { margin: 22px 0; }
+  .cb pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .cb-label {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+  }
+  .cb.bad .cb-label { background: var(--red-soft); color: var(--red); }
+  .cb.good .cb-label { background: var(--green-soft); color: var(--green); }
+  .cb.neutral .cb-label { background: #ece8e2; color: var(--muted); }
+
+  .note {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 26px 0;
+    font-size: 0.97rem;
+  }
+  .note > :first-child { margin-top: 0; }
+  .note > :last-child { margin-bottom: 0; }
+  .note .tag {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .note.wait { background: var(--blue-soft); }
+  .note.wait .tag { color: var(--blue); }
+  .note.misconception { background: var(--red-soft); }
+  .note.misconception .tag { color: var(--red); }
+  .note.hood { background: #f0eeea; }
+  .note.hood .tag { color: var(--muted); }
+  .note.interview { background: var(--accent-soft); border-left: 4px solid var(--accent); }
+  .note.interview .tag { color: var(--accent); }
+  .note.trap { background: var(--amber-soft); }
+  .note.trap .tag { color: var(--amber); }
+
+  .say {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-style: italic;
+  }
+  .say strong { font-style: normal; }
+
+  details {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 18px 0;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  details[open] summary { margin-bottom: 8px; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 0 0 44px;
+    font-size: 0.95rem;
+  }
+  .toc h4 { margin-top: 0; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 5px 0; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  figure { margin: 30px 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .svg-box { fill: #fff; stroke: #cfc9c1; stroke-width: 1.5; }
+  .svg-box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .svg-box-green { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.5; }
+  .svg-box-blue { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.5; }
+  .svg-t { font-family: var(--mono); font-size: 13px; fill: #24222a; }
+  .svg-t-sm { font-family: var(--mono); font-size: 11.5px; fill: #61606b; }
+  .svg-t-lbl { font-family: -apple-system, "Segoe UI", sans-serif; font-size: 12px; fill: #61606b; font-style: italic; }
+  .svg-line { stroke: #7d7a86; stroke-width: 1.6; fill: none; }
+  .svg-line-red { stroke: var(--red); stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 0.93rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { font-size: 0.83rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+  .cheat li { margin: 12px 0; }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: 48px 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16.5px; }
+    .wrap { padding: 36px 16px 90px; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1><code>this</code>, Binding &amp; the Prototype Chain</h1>
+<p class="deck">The two JavaScript topics that show up in nearly every frontend interview — and the two that almost everybody half-understands. Let's fix that properly.</p>
+
+<nav class="toc">
+  <h4>What's in here</h4>
+  <ol>
+    <li><a href="#callsite">The thing nobody tells you about <code>this</code></a></li>
+    <li><a href="#rules">The four binding rules, as a decision procedure</a></li>
+    <li><a href="#arrows">Arrow functions: the fifth non-rule</a></li>
+    <li><a href="#lost">The "lost <code>this</code>" problem, and three fixes</a></li>
+    <li><a href="#cab"><code>call</code> vs <code>apply</code> vs <code>bind</code></a></li>
+    <li><a href="#objects">Before prototypes: what an object really is</a></li>
+    <li><a href="#link">The hidden link, and how lookup walks it</a></li>
+    <li><a href="#vs"><code>prototype</code> vs <code>__proto__</code> (the big one)</a></li>
+    <li><a href="#create"><code>Object.create</code> and pure delegation</a></li>
+    <li><a href="#new">What <code>new</code> actually does</a></li>
+    <li><a href="#shadow">Method shadowing</a></li>
+    <li><a href="#instanceof">How <code>instanceof</code> works</a></li>
+    <li><a href="#class">Is <code>class</code> "real" inheritance?</a></li>
+    <li><a href="#delegation">Delegation vs. copying</a></li>
+    <li><a href="#monkey">Monkey-patching <code>Array.prototype</code></a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<p>I want to start with a piece of code that has confused literally every JavaScript developer at some point. Read it, and take an actual guess at what it logs. Don't skip ahead — the guessing is the part that makes this stick.</p>
+
+<div class="cb neutral">
+<div class="cb-label">What does this log?</div>
+<pre><code>const user = {
+  name: 'Priya',
+  greet() {
+    console.log(`Hi, I'm ${this.name}`);
+  },
+};
+
+user.greet();              // ?
+const greet = user.greet;
+greet();                   // ?
+setTimeout(user.greet, 0); // ?</code></pre>
+</div>
+
+<details>
+<summary>Show me the answer</summary>
+<p>The first one logs <code>Hi, I'm Priya</code>. The second logs <code>Hi, I'm undefined</code>. The third also logs <code>Hi, I'm undefined</code> (in a browser — in Node it's a little different, but still not Priya).</p>
+</details>
+
+<p>Here's what makes this genuinely weird. We didn't modify <code>user</code>. We didn't modify the function. We pulled the exact same function out of the exact same object and called it, and it behaved differently. Nothing about the function <em>changed</em> — and yet <code>this.name</code> went from <code>'Priya'</code> to <code>undefined</code>.</p>
+
+<p>That's not a bug. It's the single most important fact about <code>this</code>, and once you internalise it, ninety percent of the confusion evaporates. Let's build up to it.</p>
+
+<h2 id="callsite">The thing nobody tells you about <code>this</code></h2>
+
+<p>Most tutorials introduce <code>this</code> as "a reference to the current object." That definition is not just incomplete — it's actively misleading, because it implies <code>this</code> is a property <em>of the function</em>, something baked in when the function was written.</p>
+
+<p>It isn't. Here's the real deal:</p>
+
+<p><strong><code>this</code> is an extra, invisible argument that gets passed to a function every time you call it.</strong> Its value is decided at the moment of the call — not when the function was defined, not by where the function lives, but by <em>how you called it</em>.</p>
+
+<p>Think of it like a delivery address on a package. 📦 The package (the function body) is written once and sealed. But the shipping label — where it's going, whose hands it lands in — is stuck on at the moment of dispatch. Same package, different label, different destination. Ship the identical package twice with two different labels and it ends up in two different houses.</p>
+
+<p>That's <code>this</code>. The function is the package. The call site sticks on the label.</p>
+
+<p>This is why the code above behaves the way it does. <code>user.greet()</code> and <code>greet()</code> are two different call sites, so two different labels get stuck on.</p>
+
+<div class="note wait">
+<span class="tag">Wait, what about…?</span>
+<p>"Where does the analogy break down?" Good instinct. A shipping label is attached by <em>you</em>, deliberately. With <code>this</code>, the label is usually stuck on automatically by the shape of the syntax you used — you often don't realise you're addressing it at all. That's exactly why it bites people. There <em>is</em> a way to write the label by hand, and that's <code>call</code>/<code>apply</code>/<code>bind</code>, which we'll get to.</p>
+</div>
+
+<p>So: to work out what <code>this</code> is, you never look at where the function was <em>written</em>. You look at the line where it was <em>called</em>. Every time. Even years in, when I read unfamiliar code I still catch myself looking at the wrong place — the definition instead of the call. That reflex takes a while to retrain.</p>
+
+<h2 id="rules">The four binding rules, as a decision procedure</h2>
+
+<p>There are exactly four ways <code>this</code> can get its value, and they have a strict priority order. If you memorise nothing else from this guide, memorise this ladder — you literally run it top to bottom at any call site and stop at the first match.</p>
+
+<figure>
+<svg viewBox="0 0 660 420" role="img" aria-label="Flowchart: check new binding, then explicit binding, then implicit binding, then default binding">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7d7a86"/>
+    </marker>
+  </defs>
+
+  <rect class="svg-box-accent" x="14" y="10" width="300" height="62" rx="8"/>
+  <text class="svg-t" x="30" y="34">1. Called with `new`?</text>
+  <text class="svg-t-sm" x="30" y="54">new Person('Ada')</text>
+  <rect class="svg-box-green" x="390" y="18" width="256" height="46" rx="8"/>
+  <text class="svg-t" x="404" y="46">this = the brand-new object</text>
+  <line class="svg-line" x1="314" y1="41" x2="384" y2="41" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="330" y="32">yes</text>
+
+  <rect class="svg-box-accent" x="14" y="110" width="300" height="62" rx="8"/>
+  <text class="svg-t" x="30" y="134">2. Called with call/apply/bind?</text>
+  <text class="svg-t-sm" x="30" y="154">greet.call(user)</text>
+  <rect class="svg-box-green" x="390" y="118" width="256" height="46" rx="8"/>
+  <text class="svg-t" x="404" y="146">this = what you passed in</text>
+  <line class="svg-line" x1="314" y1="141" x2="384" y2="141" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="330" y="132">yes</text>
+
+  <rect class="svg-box-accent" x="14" y="210" width="300" height="62" rx="8"/>
+  <text class="svg-t" x="30" y="234">3. Is there an object left of the dot?</text>
+  <text class="svg-t-sm" x="30" y="254">user.greet()</text>
+  <rect class="svg-box-green" x="390" y="218" width="256" height="46" rx="8"/>
+  <text class="svg-t" x="404" y="246">this = that object</text>
+  <line class="svg-line" x1="314" y1="241" x2="384" y2="241" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="330" y="232">yes</text>
+
+  <rect class="svg-box-blue" x="14" y="310" width="300" height="62" rx="8"/>
+  <text class="svg-t" x="30" y="334">4. None of the above</text>
+  <text class="svg-t-sm" x="30" y="354">greet()</text>
+  <rect class="svg-box-green" x="390" y="300" width="256" height="66" rx="8"/>
+  <text class="svg-t" x="404" y="326">this = undefined (strict/module)</text>
+  <text class="svg-t" x="404" y="348">this = globalThis (sloppy mode)</text>
+  <line class="svg-line" x1="314" y1="341" x2="384" y2="333" marker-end="url(#arrow)"/>
+
+  <line class="svg-line" x1="164" y1="72" x2="164" y2="104" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="172" y="93">no</text>
+  <line class="svg-line" x1="164" y1="172" x2="164" y2="204" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="172" y="193">no</text>
+  <line class="svg-line" x1="164" y1="272" x2="164" y2="304" marker-end="url(#arrow)"/>
+  <text class="svg-t-lbl" x="172" y="293">no</text>
+</svg>
+<figcaption>The ladder. Start at the top, stop at the first "yes."</figcaption>
+</figure>
+
+<p>Now let's do each rung properly, but in the order that's easiest to learn — which is bottom to top, simplest to trickiest.</p>
+
+<h3>Rung 4: default binding</h3>
+
+<p>A plain function call, nothing to the left of it:</p>
+
+<div class="cb neutral">
+<div class="cb-label">default binding</div>
+<pre><code>function whoAmI() {
+  console.log(this);
+}
+
+whoAmI();  // → undefined   (in a module or 'use strict')
+           // → Window      (in a plain non-strict script)</code></pre>
+</div>
+
+<p>When there's no other information, <code>this</code> falls back to a default. In <em>sloppy mode</em> (old-school scripts without <code>'use strict'</code>) that default is the global object — <code>window</code> in a browser, <code>globalThis</code> generally. In <em>strict mode</em> it's <code>undefined</code>.</p>
+
+<p>You should assume strict mode, because you're almost certainly in it. ES modules (anything with <code>import</code>/<code>export</code>) are strict automatically. Class bodies are strict automatically. Anything bundled by Vite, webpack, or Next.js is strict. So in modern code, "no label on the package" means <code>this</code> is <code>undefined</code>, and touching <code>this.name</code> throws:</p>
+
+<pre><code>TypeError: Cannot read properties of undefined (reading 'name')</code></pre>
+
+<p>That error message is one of the most common in all of frontend, and now you know what it usually means: <em>somebody called a method without its object</em>.</p>
+
+<h3>Rung 3: implicit binding</h3>
+
+<p>This is the everyday one. If the call has an object to the left of the dot, that object becomes <code>this</code>.</p>
+
+<div class="cb neutral">
+<div class="cb-label">implicit binding</div>
+<pre><code>const cart = {
+  items: ['mug', 'poster'],
+  count() {
+    return this.items.length;
+  },
+};
+
+cart.count();  // → 2   this === cart</code></pre>
+</div>
+
+<p>The mental shortcut people use is "look immediately left of the dot." That's mostly right, and it's a fine thing to say in an interview. But be careful: it's the <strong>last</strong> dot that counts, not the first.</p>
+
+<pre><code>const app = {
+  ui: {
+    label: 'Checkout',
+    render() { return this.label; },
+  },
+};
+
+app.ui.render();  // → 'Checkout'   this === app.ui, NOT app</code></pre>
+
+<p>Only the final <code>.ui</code> is doing the binding. The <code>app.</code> part just got us to the object; it doesn't stick around.</p>
+
+<p>And here's the crucial detail: <strong>implicit binding is a property of the call expression, not of the function.</strong> The moment you separate the function from the dot — by assigning it to a variable, passing it as an argument, returning it — the binding is gone. It was never attached to the function. It only ever existed in that one call expression.</p>
+
+<div class="note misconception">
+<span class="tag">A common misconception</span>
+<p><em>"The function belongs to the object, so it remembers the object."</em></p>
+<p>It doesn't. <code>user.greet</code> is not a special "method object." It's an ordinary function that happens to be stored in a property, exactly like a number stored in a property. When you write <code>const g = user.greet</code>, you copy the function reference out — and a function reference carries no memory of where it was found. This is the whole reason the "lost <code>this</code>" bug exists, and we'll hit it head-on in a minute.</p>
+</div>
+
+<h3>Rung 2: explicit binding</h3>
+
+<p>Sometimes you want to write the shipping label by hand. That's what <code>call</code>, <code>apply</code>, and <code>bind</code> are for.</p>
+
+<div class="cb neutral">
+<div class="cb-label">explicit binding</div>
+<pre><code>function introduce(greeting) {
+  console.log(`${greeting}, I'm ${this.name}`);
+}
+
+const dev = { name: 'Sam' };
+
+introduce.call(dev, 'Hey');   // → Hey, I'm Sam
+introduce.apply(dev, ['Yo']); // → Yo, I'm Sam</code></pre>
+</div>
+
+<p>Notice <code>introduce</code> isn't stored on <code>dev</code> at all. There's no dot relationship here. We simply handed the function an object and said "use this as <code>this</code>." That's why it's called <em>explicit</em> — it beats implicit binding because you asked for it out loud. Full section on these three coming up.</p>
+
+<h3>Rung 1: <code>new</code> binding</h3>
+
+<p>The top of the ladder. When you call a function with <code>new</code>, JavaScript builds a brand-new empty object and makes <em>that</em> the <code>this</code> inside the call.</p>
+
+<div class="cb neutral">
+<div class="cb-label">new binding</div>
+<pre><code>function Product(title, price) {
+  this.title = title;
+  this.price = price;
+  // no return statement — but we still get an object back
+}
+
+const mug = new Product('Enamel mug', 12);
+mug.title;  // → 'Enamel mug'</code></pre>
+</div>
+
+<p>The function looks like it returns nothing, and yet <code>mug</code> is a fully-formed object. <code>new</code> did that. Exactly <em>how</em> it did it is one of the classic interview questions, and it involves prototypes, so I'm deliberately holding it until we've built the prototype half of this guide. We'll come back and take it apart line by line.</p>
+
+<h3>Running the ladder on a nasty example</h3>
+
+<p>Let's push on it. What does this log?</p>
+
+<pre><code>const timer = {
+  seconds: 30,
+  report() { console.log(this.seconds); },
+};
+
+const other = { seconds: 99 };
+
+timer.report.call(other);   // ?</code></pre>
+
+<details>
+<summary>Work it out, then check</summary>
+<p><code>99</code>. Run the ladder: not <code>new</code> (rung 1, no). Called with <code>call</code>? Yes — stop. Rung 2 wins, and <code>this</code> is <code>other</code>. The <code>timer.</code> dot looks like it should matter, and a naive "left of the dot" model gets this wrong. Explicit beats implicit, always.</p>
+</details>
+
+<h2 id="arrows">Arrow functions: the fifth non-rule</h2>
+
+<p>Arrow functions break the entire ladder, and they break it in the best possible way: <strong>an arrow function has no <code>this</code> of its own at all.</strong></p>
+
+<p>Not "it has a special <code>this</code>." Not "its <code>this</code> defaults to the outer one." It genuinely does not have the binding. So when you write <code>this</code> inside an arrow function, JavaScript does exactly what it does with any other variable it can't find locally — it looks in the enclosing scope. And the one outside that. And so on, until it finds a function that <em>does</em> have a <code>this</code>.</p>
+
+<p>Here's the analogy I like. A regular function is a person with their own phone number; call them and you reach <em>them</em>. An arrow function is more like a desk extension in an open-plan office — it has no line of its own, so calls route to whoever's sitting at the nearest real desk. Where the desk is <em>installed</em> decides who picks up, and that's fixed when the office was built. (Where it breaks down: a real extension can be re-patched by IT. An arrow's <code>this</code> can never be changed, by anyone, ever — see below.)</p>
+
+<div class="cb neutral">
+<div class="cb-label">lexical this</div>
+<pre><code>const clock = {
+  label: 'Session',
+  start() {
+    setTimeout(() =&gt; {
+      console.log(`${this.label} finished`);  // 👈 which `this`?
+    }, 1000);
+  },
+};
+
+clock.start();  // → Session finished</code></pre>
+</div>
+
+<p>The arrow has no <code>this</code>, so it borrows from <code>start</code>. And <code>start</code> was called as <code>clock.start()</code> — implicit binding, rung 3 — so <code>this</code> is <code>clock</code>. The arrow inherits that. This works no matter how deeply you nest arrows.</p>
+
+<p>Swap in a regular function and it falls apart:</p>
+
+<div class="cb bad">
+<div class="cb-label">❌ Buggy</div>
+<pre><code>start() {
+  setTimeout(function () {
+    console.log(`${this.label} finished`);
+    // → TypeError: Cannot read properties of undefined
+  }, 1000);
+}</code></pre>
+</div>
+
+<p>Why? <code>setTimeout</code> calls that function later, on its own, with no object to the left of any dot. Rung 4: default binding. <code>this</code> is <code>undefined</code>.</p>
+
+<div class="note hood">
+<span class="tag">Under the hood</span>
+<p>Because arrows have no <code>this</code> slot, <code>call</code>, <code>apply</code> and <code>bind</code> <strong>cannot change an arrow's <code>this</code></strong>. They don't error — they just silently do nothing to it:</p>
+<pre><code>const show = () =&gt; this;
+show.call({ a: 1 });  // → still the outer this, not { a: 1 }</code></pre>
+<p>Same story for <code>arguments</code> and <code>new</code>: arrows don't have their own <code>arguments</code> object, and <code>new (() =&gt; {})</code> throws <code>TypeError: ... is not a constructor</code>.</p>
+</div>
+
+<div class="note trap">
+<span class="tag">Trap</span>
+<p>Don't write object methods as arrows when you need <code>this</code> to be the object:</p>
+<pre><code>const user = {
+  name: 'Priya',
+  greet: () =&gt; console.log(this.name),  // 👈 wrong
+};
+user.greet();  // → undefined</code></pre>
+<p>The arrow is created in the <em>module/global</em> scope — the object literal is not a scope — so it inherits <code>this</code> from there, not from <code>user</code>. Candidates get dinged for confidently claiming "arrows always fix <code>this</code>." Arrows fix <code>this</code> when the surrounding scope already has the right one.</p>
+</div>
+
+<h2 id="lost">The "lost <code>this</code>" problem, and three fixes</h2>
+
+<p>Now we're equipped to properly explain the snippet we opened with. This bug has a shape, and once you see the shape you'll spot it everywhere:</p>
+
+<p><strong>You hand a method to something else, and that something else calls it later, plainly.</strong> The dot never travels with the function.</p>
+
+<div class="cb bad">
+<div class="cb-label">❌ Buggy — three flavours of the same bug</div>
+<pre><code>setTimeout(user.greet, 100);          // greet() later, no dot
+element.addEventListener('click', user.greet);
+[1, 2, 3].forEach(counter.add);       // add(item) — no dot
+&lt;button onClick={this.handleClick}&gt;  // React class component</code></pre>
+</div>
+
+<p>In every case, the receiving code eventually does something like <code>callback()</code> or <code>callback(arg)</code>. Rung 4. <code>this</code> is <code>undefined</code>, and any <code>this.something</code> in the body throws.</p>
+
+<div class="note wait">
+<span class="tag">Wait, what about…?</span>
+<p>"Why doesn't DOM <code>addEventListener</code> break, then? I've seen <code>this</code> work in event handlers." Because the DOM is a special case: when a listener fires, the browser explicitly calls your handler with <code>this</code> set to the element the listener is attached to. That's explicit binding done on your behalf. Which is also why an <em>arrow</em> handler gives you the surrounding <code>this</code> instead of the element — the arrow ignores what the DOM tried to hand it. Use <code>event.currentTarget</code> if you want the element regardless.</p>
+</div>
+
+<h3>Fix 1: bind in the constructor</h3>
+
+<p>The classic React-class-component fix, and the one you'll see in older codebases.</p>
+
+<div class="cb good">
+<div class="cb-label">✅ Fixed</div>
+<pre><code>class SearchBar extends React.Component {
+  constructor(props) {
+    super(props);
+    this.handleClick = this.handleClick.bind(this);  // 👈
+  }
+  handleClick() {
+    console.log(this.props.query);
+  }
+}</code></pre>
+</div>
+
+<p>What's happening: <code>this.handleClick</code> finds the shared method, <code>.bind(this)</code> returns a <em>new</em> function permanently welded to this instance, and we store that new function directly on the instance. From then on, <code>this.handleClick</code> finds the bound copy first, and you can pass it anywhere safely.</p>
+
+<h3>Fix 2: arrow function as a class field</h3>
+
+<p>The modern one, and the one I'd write today.</p>
+
+<div class="cb good">
+<div class="cb-label">✅ Fixed</div>
+<pre><code>class SearchBar extends React.Component {
+  handleClick = () =&gt; {          // 👈 class field, arrow
+    console.log(this.props.query);
+  };
+}</code></pre>
+</div>
+
+<p>Class fields are initialised per instance, during construction, so the arrow is created in a scope where <code>this</code> is already the instance. It captures that and never lets go. No constructor boilerplate, and it's impossible to forget.</p>
+
+<p>The trade-off — and interviewers <em>love</em> this trade-off: a class-field arrow is a separate function object <strong>per instance</strong>, stored on the instance itself. A normal method lives once on the prototype and is shared by all instances. So field arrows cost a bit more memory, and they're not on the prototype, which means you can't call them via <code>super.handleClick()</code> from a subclass and they're harder to stub in tests. In practice, for React components, nobody cares. For a class you instantiate 100,000 times, you might.</p>
+
+<h3>Fix 3: the arrow wrapper at the call site</h3>
+
+<div class="cb good">
+<div class="cb-label">✅ Fixed</div>
+<pre><code>setTimeout(() =&gt; user.greet(), 100);
+&lt;button onClick={() =&gt; this.handleClick()}&gt;</code></pre>
+</div>
+
+<p>This one's sneaky-clever. We don't pass the method at all — we pass a brand-new arrow whose <em>body</em> contains a proper <code>user.greet()</code> call, dot and all. The dot is preserved because we delayed it. Implicit binding does its job at the moment the arrow runs.</p>
+
+<p>Bonus: this is also how you pass arguments — <code>onClick={() =&gt; deleteItem(item.id)}</code>. The cost is that a fresh function is created on every render, which can defeat <code>React.memo</code> on a child component. That's a real but usually-overrated concern; mention that you know about it and you'll sound like you've shipped things.</p>
+
+<div class="note interview">
+<span class="tag">In an interview</span>
+<p><strong>How it gets asked:</strong> "Why does <code>this</code> become <code>undefined</code> in an extracted method?" or "This React handler throws <em>cannot read props of undefined</em> — why, and how do you fix it?"</p>
+<div class="say">
+<strong>Say something like:</strong> "Because <code>this</code> isn't part of the function — it's set by the call site. <code>user.greet()</code> binds <code>this</code> to <code>user</code> because of the dot, but once I pass <code>user.greet</code> as a callback, the receiving code just calls it plainly, so there's no dot and no binding. In strict mode, which class bodies and modules always are, that means <code>this</code> is <code>undefined</code>. I'd fix it with a class-field arrow so it captures <code>this</code> lexically, or bind it in the constructor if I'm in an older codebase."
+</div>
+<p><strong>Why it lands:</strong> you named the mechanism (call site, not definition site), you knew strict mode is why it's <code>undefined</code> rather than <code>window</code>, and you offered a fix with an awareness of context. That's a conversation, not a recital.</p>
+</div>
+
+<h2 id="cab"><code>call</code> vs <code>apply</code> vs <code>bind</code></h2>
+
+<p>Three methods that every function has. Two of them are nearly identical, and the third is the odd one out — and that's the whole answer to the question.</p>
+
+<table>
+  <tr><th>Method</th><th>Arguments</th><th>Calls the function?</th><th>Returns</th></tr>
+  <tr><td><code>fn.call(obj, a, b)</code></td><td>listed out, comma-separated</td><td>Yes, immediately</td><td>whatever <code>fn</code> returns</td></tr>
+  <tr><td><code>fn.apply(obj, [a, b])</code></td><td>one array</td><td>Yes, immediately</td><td>whatever <code>fn</code> returns</td></tr>
+  <tr><td><code>fn.bind(obj, a)</code></td><td>listed out</td><td><strong>No</strong></td><td><strong>a new function</strong></td></tr>
+</table>
+
+<p>Little mnemonic that has never failed me: <strong>A</strong>pply takes an <strong>A</strong>rray. <strong>C</strong>all takes a <strong>C</strong>omma list. <strong>B</strong>ind gives you it <strong>B</strong>ack for later.</p>
+
+<div class="cb neutral">
+<div class="cb-label">all three, same function</div>
+<pre><code>function order(size, extra) {
+  return `${size} ${this.drink} with ${extra}`;
+}
+
+const cafe = { drink: 'flat white' };
+
+order.call(cafe, 'large', 'oat milk');    // → 'large flat white with oat milk'
+order.apply(cafe, ['large', 'oat milk']); // → same thing
+
+const orderAtCafe = order.bind(cafe);
+orderAtCafe('small', 'honey');            // → 'small flat white with honey'</code></pre>
+</div>
+
+<h3>When you'd actually reach for each</h3>
+
+<p><code>apply</code> used to be the way to spread an array into arguments — <code>Math.max.apply(null, numbers)</code> — but spread syntax replaced that in ES6, so <code>Math.max(...numbers)</code> is what you'd write now. <code>apply</code> survives mostly in library internals and in code that forwards an unknown argument list.</p>
+
+<p><code>call</code> shows up when borrowing a method from one object for another. The classic is borrowing array methods for array-<em>like</em> things (objects with a <code>length</code> and numeric keys, like the old <code>arguments</code> object or a <code>NodeList</code>):</p>
+
+<pre><code>Array.prototype.slice.call(arguments);   // real array from arguments
+Object.prototype.toString.call([]);      // → '[object Array]'</code></pre>
+
+<p>That second line is how people used to do reliable type-checking, because <code>typeof []</code> unhelpfully says <code>'object'</code>.</p>
+
+<p><code>bind</code> is the one you'll use most, because it's the one that fits the callback problem: you need to hand a function to someone else and guarantee its <code>this</code>.</p>
+
+<h3>Partial application with <code>bind</code></h3>
+
+<p>Here's the underused half of <code>bind</code>. Any arguments you pass <em>after</em> the <code>this</code> value get permanently pre-filled:</p>
+
+<div class="cb neutral">
+<div class="cb-label">partial application</div>
+<pre><code>function log(level, message) {
+  console.log(`[${level}] ${message}`);
+}
+
+const warn = log.bind(null, 'WARN');  // 👈 pre-fill the first arg
+
+warn('Cart is empty');       // → [WARN] Cart is empty
+warn('Payment retrying');    // → [WARN] Payment retrying</code></pre>
+</div>
+
+<p>We passed <code>null</code> as the <code>this</code> value because <code>log</code> doesn't use <code>this</code> — a common idiom when you only want the argument pre-filling. The bound arguments always go <em>first</em>, ahead of whatever the caller supplies later.</p>
+
+<div class="note trap">
+<span class="tag">Trap</span>
+<p><strong>A bound function can't be re-bound.</strong> The first bind wins, permanently:</p>
+<pre><code>const bound = greet.bind(userA);
+bound.call(userB);       // → still userA
+bound.bind(userB)();     // → still userA</code></pre>
+<p>People assume the second bind overrides. It doesn't. The one exception is <code>new</code>: calling <code>new bound()</code> <em>does</em> ignore the bound <code>this</code>, because <code>new</code> is rung 1 and outranks everything. Bound arguments still get pre-filled, though.</p>
+</div>
+
+<h3>Implementing <code>bind</code> yourself</h3>
+
+<p>This is asked constantly, so let's build it. Start with the version that gets you most of the credit:</p>
+
+<div class="cb neutral">
+<div class="cb-label">myBind — the version to write on a whiteboard</div>
+<pre><code>Function.prototype.myBind = function (thisArg, ...boundArgs) {
+  const fn = this;                 // 👈 `this` is the function we're binding
+  return function (...callArgs) {
+    return fn.apply(thisArg, [...boundArgs, ...callArgs]);
+  };
+};</code></pre>
+</div>
+
+<p>Read the first line again, because it's the bit that makes people pause: inside <code>myBind</code>, what is <code>this</code>? We called it as <code>greet.myBind(user)</code> — there's an object left of the dot, and that object <em>is the function</em> <code>greet</code>. Implicit binding, rung 3. So <code>this</code> is the function we want to bind. Functions are objects; this is legal and it's the whole trick.</p>
+
+<p>Then we return a closure that remembers <code>fn</code>, <code>thisArg</code>, and <code>boundArgs</code>, and forwards everything through <code>apply</code>. Bound args first, call-time args after — matching real <code>bind</code>.</p>
+
+<p>If you want the version that handles the <code>new</code> edge case too:</p>
+
+<div class="cb neutral">
+<div class="cb-label">myBind — new-aware</div>
+<pre><code>Function.prototype.myBind = function (thisArg, ...boundArgs) {
+  const fn = this;
+  function bound(...callArgs) {
+    const calledWithNew = this instanceof bound;   // 👈
+    return fn.apply(calledWithNew ? this : thisArg, [...boundArgs, ...callArgs]);
+  }
+  bound.prototype = Object.create(fn.prototype || null);
+  return bound;
+};</code></pre>
+</div>
+
+<p>Don't worry if <code>Object.create</code> and <code>instanceof</code> are fuzzy right now — that's the entire second half of this guide, and this snippet will read as obvious by the end. Saying <em>"and if you want to be thorough you also handle being called with <code>new</code>"</em> in an interview is a strong signal even if you don't write it perfectly.</p>
+
+<hr>
+
+<h2 id="objects">Before prototypes: what an object really is</h2>
+
+<p>Right — <code>this</code> is done. Now the other half. And I want to start somewhere more basic than most explanations do, because the prototype confusion almost always traces back to a shaky picture of what an object <em>is</em>.</p>
+
+<p>A JavaScript object is a bag of key–value pairs. That's it:</p>
+
+<pre><code>const song = { title: 'Blue Monday', minutes: 7 };</code></pre>
+
+<p>When you write <code>song.title</code>, the engine looks in the bag for a key called <code>title</code>, finds it, hands you the value. When you write <code>song.publisher</code>, it looks, doesn't find it, and hands you <code>undefined</code>.</p>
+
+<p>Except… that's not <em>quite</em> what happens. Try this:</p>
+
+<pre><code>const song = { title: 'Blue Monday' };
+song.toString();  // → '[object Object]'</code></pre>
+
+<p>Hang on. We never put a <code>toString</code> in that bag. We put exactly one key in it. So where did <code>toString</code> come from?</p>
+
+<p>This is the question the whole prototype system exists to answer, and the answer is genuinely elegant.</p>
+
+<h2 id="link">The hidden link, and how lookup walks it</h2>
+
+<p><strong>Every object has a hidden link to another object.</strong> The spec calls it the <em>[[Prototype]]</em> internal slot. When you look up a property and it isn't in the bag, the engine follows that link and looks in the <em>next</em> bag. And if it's not there, it follows <em>that</em> object's link. It keeps going until it either finds the property or reaches the end of the chain — which is always <code>null</code> — and only then gives up and returns <code>undefined</code>.</p>
+
+<p>That path is the <strong>prototype chain</strong>.</p>
+
+<p>Here's the analogy. Imagine you work in an office and you need a stapler. 📎 You check your own desk drawer. Nothing. So you check the shared shelf your team uses. Still nothing. So you check the building's supply cupboard. If it's not there either, there's nowhere else to look — you go without.</p>
+
+<p>Crucially: when you find the stapler on the shared team shelf, <strong>it does not get copied into your drawer</strong>. You use it where it lives. If someone swaps it for a better stapler tomorrow, you get the better one, automatically, without doing anything. Hold on to that — it's the difference between prototypal and classical inheritance, and we'll come back to it.</p>
+
+<p>So for our <code>song</code>: <code>toString</code> isn't in <code>song</code>'s own bag. But <code>song</code>'s hidden link points at <code>Object.prototype</code>, which is a real object that ships with the language, and <em>that</em> object has a <code>toString</code>. Found it. Done.</p>
+
+<p>You can inspect the link. The proper way is <code>Object.getPrototypeOf</code>:</p>
+
+<pre><code>Object.getPrototypeOf(song) === Object.prototype;                  // → true
+Object.getPrototypeOf(Object.prototype);                           // → null
+Object.getPrototypeOf(song).hasOwnProperty('toString');            // → true
+song.hasOwnProperty('toString');                                   // → false 👈</code></pre>
+
+<p>That last pair is worth sitting with. <code>song.toString</code> gives you a function — the property is <em>reachable</em>. But <code>song.hasOwnProperty('toString')</code> is <code>false</code> — the property is not <em>own</em>. "Reachable" and "own" are different questions, and the whole prototype system lives in that gap.</p>
+
+<div class="note hood">
+<span class="tag">Under the hood</span>
+<p>You'll also see <code>song.__proto__</code>, with two underscores on each side, which reads the same link. It's a legacy accessor that browsers all implemented, then the spec grudgingly standardised in an appendix so the web wouldn't break. It works everywhere, it's great for poking around in a console, and you should use <code>Object.getPrototypeOf(obj)</code> / <code>Object.setPrototypeOf(obj, p)</code> in real code. Naming it correctly in an interview is a small, cheap credibility win.</p>
+<p>Also: <code>Object.create(null)</code> makes an object with <em>no</em> link at all. No <code>toString</code>, no <code>hasOwnProperty</code>, nothing. People use it for pure dictionaries where a key like <code>"constructor"</code> would otherwise collide with inherited stuff.</p>
+</div>
+
+<h2 id="vs"><code>prototype</code> vs <code>__proto__</code> (the big one)</h2>
+
+<p>OK. Deep breath. This is the confusion that trips up basically everyone, including people who've shipped JavaScript for a decade, and it exists almost entirely because of a catastrophically bad naming decision made in 1995.</p>
+
+<p>Two different things share almost the same name:</p>
+
+<p><strong><code>__proto__</code></strong> (or <code>Object.getPrototypeOf(x)</code>) is the actual link. Every object has it. It points to the object we look in next when a lookup misses. This is the real mechanism.</p>
+
+<p><strong><code>prototype</code></strong> is an ordinary property that exists <em>only on functions</em>. It is <strong>not</strong> that function's own link. Instead, it's a box the function holds, and its job is: <em>"when someone calls me with <code>new</code>, this is the object I'll set as the new instance's link."</em></p>
+
+<p>Let me say the thing that makes it click: <strong><code>Fn.prototype</code> is not Fn's prototype.</strong> It's the prototype-to-be of Fn's future instances. It's misnamed. If it had been called <code>Fn.instanceBlueprint</code> or <code>Fn.sharedMethods</code>, nobody would ever have been confused.</p>
+
+<figure>
+<svg viewBox="0 0 660 330" role="img" aria-label="Diagram showing Dog function with a prototype property pointing to Dog.prototype, and instance rex whose __proto__ points to the same Dog.prototype object">
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b4de6"/>
+    </marker>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f5f9e"/>
+    </marker>
+  </defs>
+
+  <rect class="svg-box" x="14" y="24" width="215" height="76" rx="8"/>
+  <text class="svg-t" x="30" y="50">function Dog(name)</text>
+  <text class="svg-t-sm" x="30" y="72">(a function object)</text>
+  <text class="svg-t-sm" x="30" y="90">.prototype  ──────►</text>
+
+  <rect class="svg-box-accent" x="372" y="14" width="270" height="106" rx="8"/>
+  <text class="svg-t" x="388" y="40">Dog.prototype</text>
+  <text class="svg-t-sm" x="388" y="62">bark: ƒ</text>
+  <text class="svg-t-sm" x="388" y="80">describe: ƒ</text>
+  <text class="svg-t-sm" x="388" y="98">constructor: Dog</text>
+
+  <rect class="svg-box-blue" x="14" y="212" width="215" height="82" rx="8"/>
+  <text class="svg-t" x="30" y="238">rex  (an instance)</text>
+  <text class="svg-t-sm" x="30" y="260">name: 'Rex'</text>
+  <text class="svg-t-sm" x="30" y="280">[[Prototype]] ─────►</text>
+
+  <path class="svg-line" d="M 232 86 L 366 78" stroke="#6b4de6" marker-end="url(#arrow2)"/>
+  <text class="svg-t-lbl" x="248" y="70" fill="#6b4de6">.prototype (a normal property)</text>
+
+  <path class="svg-line" d="M 232 276 L 507 276 L 507 126" stroke="#1f5f9e" marker-end="url(#arrow3)"/>
+  <text class="svg-t-lbl" x="252" y="296" fill="#1f5f9e">rex.__proto__ (the real link)</text>
+
+  <text class="svg-t-lbl" x="272" y="176">new Dog('Rex') creates rex and</text>
+  <text class="svg-t-lbl" x="272" y="194">wires its link to Dog.prototype</text>
+</svg>
+<figcaption>One object, two arrows pointing at it, from two completely different kinds of reference.</figcaption>
+</figure>
+
+<p>The single most useful equation in this whole topic:</p>
+
+<pre><code>const rex = new Dog('Rex');
+
+Object.getPrototypeOf(rex) === Dog.prototype;  // → true  ✅
+rex.prototype;                                 // → undefined  (instances don't have one)
+Dog.__proto__ === Dog.prototype;               // → false (Dog's own link is Function.prototype)</code></pre>
+
+<p>Read those three lines a few times. The first is the relationship that matters. The second kills the "everything has a <code>.prototype</code>" idea. The third kills the "<code>__proto__</code> and <code>prototype</code> are the same thing" idea.</p>
+
+<div class="note misconception">
+<span class="tag">A common misconception</span>
+<p><em>"<code>obj.prototype</code> gives me an object's prototype."</em></p>
+<p>Nope — on a plain object that's just <code>undefined</code>, because <code>prototype</code> is a property functions have, not objects in general. If you catch yourself typing <code>someInstance.prototype</code>, you almost certainly wanted <code>Object.getPrototypeOf(someInstance)</code>. This mix-up in an interview reads as "learned the words, not the model," so it's worth being precise here.</p>
+</div>
+
+<h3>The chain, drawn out</h3>
+
+<p>Now let's see the full path a lookup walks. Say we have this:</p>
+
+<pre><code>function Dog(name) {
+  this.name = name;
+}
+Dog.prototype.bark = function () {
+  return `${this.name} says woof`;
+};
+
+const rex = new Dog('Rex');</code></pre>
+
+<figure>
+<svg viewBox="0 0 660 440" role="img" aria-label="Prototype chain from rex to Dog.prototype to Object.prototype to null, with lookup arrows on the left">
+  <defs>
+    <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7d7a86"/>
+    </marker>
+    <marker id="arrow5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b0293c"/>
+    </marker>
+  </defs>
+
+  <rect class="svg-box-blue" x="200" y="14" width="300" height="76" rx="8"/>
+  <text class="svg-t" x="218" y="40">rex</text>
+  <text class="svg-t-sm" x="218" y="62">name: 'Rex'</text>
+  <text class="svg-t-sm" x="218" y="80">(own properties only)</text>
+
+  <rect class="svg-box-accent" x="200" y="130" width="300" height="76" rx="8"/>
+  <text class="svg-t" x="218" y="156">Dog.prototype</text>
+  <text class="svg-t-sm" x="218" y="178">bark: ƒ</text>
+  <text class="svg-t-sm" x="218" y="196">constructor: Dog</text>
+
+  <rect class="svg-box-green" x="200" y="246" width="300" height="94" rx="8"/>
+  <text class="svg-t" x="218" y="272">Object.prototype</text>
+  <text class="svg-t-sm" x="218" y="294">toString: ƒ</text>
+  <text class="svg-t-sm" x="218" y="312">hasOwnProperty: ƒ</text>
+  <text class="svg-t-sm" x="218" y="330">valueOf: ƒ</text>
+
+  <rect class="svg-box" x="270" y="380" width="160" height="42" rx="8"/>
+  <text class="svg-t" x="322" y="407">null</text>
+
+  <line class="svg-line" x1="350" y1="90" x2="350" y2="124" marker-end="url(#arrow4)"/>
+  <line class="svg-line" x1="350" y1="206" x2="350" y2="240" marker-end="url(#arrow4)"/>
+  <line class="svg-line" x1="350" y1="340" x2="350" y2="374" marker-end="url(#arrow4)"/>
+
+  <text class="svg-t-lbl" x="360" y="112">[[Prototype]]</text>
+  <text class="svg-t-lbl" x="360" y="228">[[Prototype]]</text>
+  <text class="svg-t-lbl" x="360" y="362">end of the chain</text>
+
+  <path class="svg-line-red" d="M 190 52 L 120 52 L 120 168 L 190 168" marker-end="url(#arrow5)"/>
+  <text class="svg-t-lbl" x="8" y="100" fill="#b0293c">rex.bark()</text>
+  <text class="svg-t-lbl" x="8" y="118" fill="#b0293c">miss → found here</text>
+
+  <path class="svg-line-red" d="M 190 76 L 60 76 L 60 292 L 190 292" marker-end="url(#arrow5)"/>
+  <text class="svg-t-lbl" x="8" y="212" fill="#b0293c">rex.toString()</text>
+  <text class="svg-t-lbl" x="8" y="230" fill="#b0293c">miss, miss → here</text>
+</svg>
+<figcaption>Property lookup walks up, never down, and stops at the first hit.</figcaption>
+</figure>
+
+<p>So <code>rex.bark()</code> misses on <code>rex</code>, hits on <code>Dog.prototype</code>. <code>rex.toString()</code> misses twice and hits on <code>Object.prototype</code>. And <code>rex.fly</code> misses all the way to <code>null</code> and returns <code>undefined</code>.</p>
+
+<p>And here's a lovely connection back to the first half of this guide: when <code>bark</code> finally runs, what is <code>this</code>? The function <em>lives</em> on <code>Dog.prototype</code>, but we <em>called</em> it as <code>rex.bark()</code>. Rung 3 — object left of the dot. <code>this</code> is <code>rex</code>. Which is exactly why one shared function on the prototype can serve a thousand different dogs and print the right name each time. The chain finds the function; the call site supplies the data.</p>
+
+<h2 id="create"><code>Object.create</code> and pure delegation</h2>
+
+<p>Everything so far has involved constructors and <code>new</code>. But you can build a chain by hand, with no functions involved at all — and honestly, this is the clearest way to see what's really going on.</p>
+
+<div class="cb neutral">
+<div class="cb-label">Object.create</div>
+<pre><code>const animal = {
+  describe() {
+    return `${this.name} is a ${this.species}`;
+  },
+};
+
+const cat = Object.create(animal);  // 👈 cat's link points at animal
+cat.name = 'Mochi';
+cat.species = 'cat';
+
+cat.describe();                    // → 'Mochi is a cat'
+cat.hasOwnProperty('describe');    // → false
+Object.getPrototypeOf(cat) === animal;  // → true</code></pre>
+</div>
+
+<p><code>Object.create(proto)</code> does exactly one interesting thing: it makes a fresh empty object whose hidden link points at <code>proto</code>. That's it. No constructor, no <code>new</code>, no <code>.prototype</code> anywhere. Objects linked directly to objects.</p>
+
+<p>This style is sometimes called <em>OLOO</em> — Objects Linked to Other Objects — and it's the version of prototypal inheritance that Douglas Crockford and Kyle Simpson argued we should have been using all along. You don't need to advocate for it in an interview, but understanding it proves you know that constructors are optional decoration on top of a simpler mechanism.</p>
+
+<h2 id="new">What <code>new</code> actually does</h2>
+
+<p>Promised you we'd come back. Now we have the vocabulary. When you write <code>new Dog('Rex')</code>, the engine does four things:</p>
+
+<ol>
+<li>Creates a brand-new, empty object.</li>
+<li>Sets that object's hidden link ([[Prototype]]) to <code>Dog.prototype</code>.</li>
+<li>Calls <code>Dog</code> with <code>this</code> bound to the new object, passing along your arguments.</li>
+<li>Returns the new object — <em>unless</em> the constructor explicitly returned an object of its own, in which case that one wins.</li>
+</ol>
+
+<p>Steps 1 and 3 are the <code>this</code> half; step 2 is the prototype half. That's why this question is such an interview favourite — it's the exact hinge between the two topics, so it tests whether you understand both.</p>
+
+<p>You can write it yourself in about six lines:</p>
+
+<div class="cb neutral">
+<div class="cb-label">myNew</div>
+<pre><code>function myNew(Constructor, ...args) {
+  const obj = Object.create(Constructor.prototype);   // steps 1 + 2
+  const result = Constructor.apply(obj, args);        // step 3
+  return typeof result === 'object' &amp;&amp; result !== null
+    ? result                                          // step 4, the override
+    : obj;
+}
+
+const rex = myNew(Dog, 'Rex');
+rex.bark();               // → 'Rex says woof'
+rex instanceof Dog;       // → true</code></pre>
+</div>
+
+<p>Look how <code>Object.create(Constructor.prototype)</code> does steps 1 and 2 in one go, and <code>apply</code> does step 3. Every piece of this is something we've already built up. Being able to write these six lines cold is a genuinely strong interview moment.</p>
+
+<div class="note wait">
+<span class="tag">Wait, what about…?</span>
+<p>"Step 4 seems bizarre — why would a constructor return an object?" It's rare and mostly a historical wart, but it powers a real pattern: a factory that hands back a cached or wrapped instance instead of the fresh one. Also note the asymmetry — returning a <em>primitive</em> (<code>return 42</code>) is silently ignored and you still get the new object. Only objects can hijack the result.</p>
+</div>
+
+<div class="note trap">
+<span class="tag">Trap</span>
+<p>Forgetting <code>new</code> on a constructor function used to be a silent disaster: <code>Dog('Rex')</code> in sloppy mode ran with <code>this</code> as the global object and quietly created a global <code>name</code> variable. In strict mode you get a <code>TypeError</code> instead, which is much better. And an ES6 <code>class</code> throws immediately — <code>TypeError: Class constructor Dog cannot be invoked without 'new'</code>. That's one of the places where <code>class</code> is more than sugar.</p>
+</div>
+
+<h2 id="shadow">Method shadowing</h2>
+
+<p>Because lookup stops at the <em>first</em> match walking up, anything closer to the start of the chain hides what's further along. That's shadowing.</p>
+
+<div class="cb neutral">
+<div class="cb-label">shadowing</div>
+<pre><code>rex.bark = function () {
+  return 'REX SAYS WOOF (loudly)';
+};
+
+rex.bark();                            // → the loud one (own property wins)
+Object.getPrototypeOf(rex).bark.call(rex);  // → 'Rex says woof' (still there)
+
+delete rex.bark;
+rex.bark();                            // → 'Rex says woof'  the shadow lifts</code></pre>
+</div>
+
+<p>Notice that the prototype's method was never touched, damaged, or replaced. We just put something in front of it. Delete the shadow and the original is right there, unharmed. Back to the office analogy: you bought your own stapler for your desk, so you stop reaching for the shared one — but the shared one is still on the shelf for everybody else.</p>
+
+<div class="note trap">
+<span class="tag">Trap</span>
+<p>Assignment always creates an <strong>own</strong> property on the target object. It never writes through to the prototype. So this bites people:</p>
+<pre><code>const base = { count: 0 };
+const a = Object.create(base);
+const b = Object.create(base);
+
+a.count++;        // reads base.count (0), writes a.count = 1
+a.count;          // → 1
+b.count;          // → 0  👈 unchanged
+base.count;       // → 0  👈 also unchanged</code></pre>
+<p>Reads walk the chain; writes land locally. This asymmetry is worth being able to state crisply.</p>
+</div>
+
+<h2 id="instanceof">How <code>instanceof</code> works</h2>
+
+<p>People describe <code>instanceof</code> as "checks the type of an object." It doesn't — there's no type-checking anywhere. What it actually does is a walk:</p>
+
+<p><strong><code>x instanceof Fn</code> walks up <code>x</code>'s prototype chain, asking at every step: "are you <code>Fn.prototype</code>?"</strong> If it ever gets a yes, the answer is <code>true</code>. If it hits <code>null</code> first, <code>false</code>.</p>
+
+<div class="cb neutral">
+<div class="cb-label">myInstanceof</div>
+<pre><code>function myInstanceof(obj, Fn) {
+  let current = Object.getPrototypeOf(obj);
+  while (current !== null) {
+    if (current === Fn.prototype) return true;
+    current = Object.getPrototypeOf(current);
+  }
+  return false;
+}
+
+myInstanceof(rex, Dog);     // → true
+myInstanceof(rex, Object);  // → true 👈 Object.prototype is on the chain too</code></pre>
+</div>
+
+<p>Two consequences fall straight out of that definition, and both make good interview talking points.</p>
+
+<p><strong>It's a chain check, not an identity check.</strong> <code>rex instanceof Object</code> is <code>true</code>, because <code>Object.prototype</code> is up there. So <code>instanceof</code> tells you "somewhere in this object's ancestry," not "was made by exactly this."</p>
+
+<p><strong>It can lie across realms.</strong> An array created inside an <code>&lt;iframe&gt;</code> has a chain ending in <em>that frame's</em> <code>Array.prototype</code>, not yours. So <code>arrFromIframe instanceof Array</code> is <code>false</code> even though it's obviously an array. That's why <code>Array.isArray()</code> exists — it checks an internal marker instead of the chain, and works across realms. Mentioning this is a nice depth signal.</p>
+
+<p>You can even break it deliberately, which proves it's just a chain walk:</p>
+
+<pre><code>Dog.prototype = {};          // point .prototype at a fresh object
+rex instanceof Dog;          // → false 👈 rex's link points at the OLD object</code></pre>
+
+<div class="note hood">
+<span class="tag">Under the hood</span>
+<p>There's an escape hatch: <code>Symbol.hasInstance</code>. If a constructor defines a static method under that symbol, <code>instanceof</code> calls it instead of doing the walk. It's how you'd make <code>instanceof</code> lie on purpose — worth knowing the name exists, rarely worth using.</p>
+</div>
+
+<h2 id="class">Is <code>class</code> "real" inheritance?</h2>
+
+<p>ES6 gave us <code>class</code>, and the standard line is "it's just syntactic sugar over prototypes." That line is <em>mostly</em> right and it's what interviewers want to hear first — but the interesting conversation is where it stops being true.</p>
+
+<p>First, the sugar part. These two are near-identical in behaviour:</p>
+
+<div class="cb neutral">
+<div class="cb-label">the old way</div>
+<pre><code>function Dog(name) {
+  this.name = name;
+}
+Dog.prototype.bark = function () {
+  return `${this.name} says woof`;
+};</code></pre>
+</div>
+
+<div class="cb neutral">
+<div class="cb-label">the class way</div>
+<pre><code>class Dog {
+  constructor(name) {
+    this.name = name;
+  }
+  bark() {
+    return `${this.name} says woof`;
+  }
+}
+
+typeof Dog;                                   // → 'function' 👈 still a function!
+Object.getOwnPropertyNames(Dog.prototype);    // → ['constructor', 'bark']</code></pre>
+</div>
+
+<p>The class body isn't a new kind of thing. <code>Dog</code> is a function. <code>bark</code> is on <code>Dog.prototype</code>. <code>new Dog()</code> does the same four steps. And <code>class Puppy extends Dog</code> just wires <code>Puppy.prototype</code>'s link to <code>Dog.prototype</code>, so lookups walk one level further. Same machinery, nicer notation, and — importantly — one obvious place to put shared methods, which the old syntax scattered.</p>
+
+<h3>Where the sugar is not just sugar</h3>
+
+<p>Now the part that separates a memorised answer from an understood one. Classes do several things you genuinely cannot replicate with plain constructor functions:</p>
+
+<ul>
+<li><strong>Calling without <code>new</code> throws.</strong> A constructor function called plainly just runs. A class refuses.</li>
+<li><strong>Class bodies are always strict mode</strong>, whether or not the surrounding file is.</li>
+<li><strong>Classes are not hoisted-usable.</strong> They're in the temporal dead zone, so using one before its declaration throws a <code>ReferenceError</code>. Function declarations hoist fine.</li>
+<li><strong>Methods are non-enumerable</strong>, so they don't show up in <code>for...in</code>. Manually-assigned <code>Dog.prototype.bark</code> is enumerable and does.</li>
+<li><strong>Private fields (<code>#balance</code>) are truly private</strong> — enforced by the engine, invisible to <code>Object.keys</code>, un-reachable from outside. There is no prototype trick that gives you this; the old convention was an underscore and a pinky promise.</li>
+<li><strong><code>super</code> works properly.</strong> Methods carry an internal [[HomeObject]] reference that <code>super</code> uses to find the right parent method. You can't hand-roll that.</li>
+<li><strong>Extending built-ins actually works.</strong> <code>class MyArray extends Array</code> gives you a real array with a working <code>length</code>. The ES5 equivalent silently doesn't — because <code>super()</code> lets the base constructor create the exotic object, whereas <code>Array.call(this)</code> can't retrofit array-ness onto a plain object. Same for <code>extends Error</code>.</li>
+</ul>
+
+<div class="note interview">
+<span class="tag">In an interview</span>
+<p><strong>How it gets asked:</strong> "Is <code>class</code> real inheritance in JavaScript?" or "What's the difference between <code>class</code> and a constructor function?"</p>
+<div class="say">
+<strong>Say something like:</strong> "Mostly it's syntactic sugar — <code>typeof Dog</code> is still <code>'function'</code>, methods still land on <code>Dog.prototype</code>, and <code>extends</code> just links one prototype to another, so lookup is still a chain walk, not a copy. But it's not <em>only</em> sugar. Classes throw if you call them without <code>new</code>, they're always strict, they're in the TDZ rather than hoisted, methods are non-enumerable, and private <code>#</code> fields and correct <code>super</code> aren't things you can hand-roll. The big practical one is that <code>extends Array</code> or <code>extends Error</code> actually works with classes and never really did with ES5 constructors."
+</div>
+<p><strong>Why it lands:</strong> you gave the expected headline, then immediately showed you know its limits with concrete, checkable examples. Interviewers use this question to separate people who read a blog post from people who've hit the edges.</p>
+</div>
+
+<h2 id="delegation">Delegation vs. copying — why this is a different model</h2>
+
+<p>Here's the conceptual heart of it, and the question behind most "explain prototypal inheritance" prompts.</p>
+
+<p>In a classical language like Java or C++, a class is a <em>blueprint</em>. At instantiation time, the structure described by the blueprint gets stamped out into a new object. The relationship is a <strong>copy</strong>: the blueprint's job finishes the moment the instance exists. Change the blueprint afterwards and existing instances neither know nor care.</p>
+
+<p>JavaScript doesn't copy anything. An object holds a <em>live link</em> to another object, and missing properties are <strong>delegated</strong> up that link at lookup time — every single time. The relationship never finishes.</p>
+
+<p>Which means this works, and it's genuinely startling the first time:</p>
+
+<div class="cb neutral">
+<div class="cb-label">live delegation</div>
+<pre><code>const rex = new Dog('Rex');
+rex.fetch;                       // → undefined
+
+Dog.prototype.fetch = function () {  // 👈 added AFTER rex existed
+  return `${this.name} fetches the ball`;
+};
+
+rex.fetch();                     // → 'Rex fetches the ball'</code></pre>
+</div>
+
+<p>We taught an existing object a new trick by editing a different object. No re-instantiation, no recompile. In a copy-based model this is impossible; in a delegation model it's not even surprising — <code>rex</code> never had a <code>fetch</code>, and it still doesn't. It just knows where to ask.</p>
+
+<p>Blueprint vs. stapler shelf. The blueprint is consulted once at construction. The shelf is consulted every time you need a stapler. (Where the shelf analogy breaks down: real shelves are shared physical space, whereas here the "shelf" is itself just another ordinary object that can have its own shelf behind it, all the way up. Chains of shelves. The analogy runs out around there.)</p>
+
+<div class="note interview">
+<span class="tag">In an interview</span>
+<p><strong>How it gets asked:</strong> "Explain prototypal inheritance." Almost always phrased exactly like that, and it's a depth question disguised as a recall question.</p>
+<div class="say">
+<strong>Say something like:</strong> "Every object has a hidden link to another object. When you read a property, the engine checks the object's own keys, and if it's not there it follows that link and checks the next object, and keeps going until it finds it or hits <code>null</code>. That path is the prototype chain. The key difference from classical inheritance is that nothing is copied — it's live delegation, resolved at lookup time. So I can add a method to <code>Dog.prototype</code> after instances already exist and they'll all pick it up immediately."
+</div>
+<p><strong>Why it lands:</strong> you described a <em>mechanism</em> (a walk that terminates at <code>null</code>) rather than a vibe, you named the contrast, and the live-addition example proves you actually hold the model instead of the vocabulary.</p>
+</div>
+
+<h2 id="monkey">What happens if you add a method to <code>Array.prototype</code>?</h2>
+
+<p>Since built-ins are just objects with prototypes, nothing stops you from editing them:</p>
+
+<div class="cb bad">
+<div class="cb-label">❌ Please don't</div>
+<pre><code>Array.prototype.last = function () {
+  return this[this.length - 1];
+};
+
+[1, 2, 3].last();   // → 3   ...it works!</code></pre>
+</div>
+
+<p>Every array in your program, including ones created before this line ran and ones inside your dependencies, now has <code>.last()</code>. That's live delegation doing its thing. So why does everybody flinch? Four reasons, and being able to give them is the actual answer to this question:</p>
+
+<p><strong>1. Collisions.</strong> Your <code>last</code> and a library's <code>last</code> can't coexist — the second one silently wins, and now one of them is subtly broken with no error message pointing anywhere useful.</p>
+
+<p><strong>2. It leaks into <code>for...in</code>.</strong> A plain assignment creates an <em>enumerable</em> property, so any code doing <code>for (const i in arr)</code> now iterates <code>'last'</code> alongside the indices. This broke real websites in the 2000s and is a big part of why <code>for...in</code> has a bad reputation with arrays. If you must patch, use <code>Object.defineProperty</code> with <code>enumerable: false</code>.</p>
+
+<p><strong>3. The future will overtake you.</strong> TC39 tried to add <code>Array.prototype.contains</code> and had to rename it to <code>includes</code> because a widely-used library had patched in an incompatible <code>contains</code> and thousands of sites would have broken. That episode is affectionately called "SmooshGate" (the same thing happened with <code>flatten</code> → <code>flat</code>). Bringing this up is a really strong signal — it shows you know why the norm exists, not just that it exists.</p>
+
+<p><strong>4. It's action at a distance.</strong> A future maintainer reads <code>items.last()</code>, greps for it, finds nothing, and loses an hour.</p>
+
+<p>The alternative is boring and correct: a plain function (<code>last(items)</code>), or a subclass, or just <code>items.at(-1)</code>, which is now standard. <em>Adding</em> a genuine polyfill for a standardised method that a browser lacks is fine and normal — that's implementing an agreed spec, not inventing one.</p>
+
+<hr>
+
+<h2 id="followups">Interview follow-ups, answered</h2>
+
+<p>These are the ones that come after the main question, when the interviewer is probing for depth. Try to answer each before opening it.</p>
+
+<details>
+<summary>"What does <code>new</code> do under the hood?"</summary>
+<p>Four steps: creates an empty object; sets that object's [[Prototype]] to <code>Constructor.prototype</code>; calls the constructor with <code>this</code> bound to the new object; returns the new object unless the constructor returned an object of its own, which would override it. Returning a primitive is ignored. The whole thing is about six lines with <code>Object.create</code> and <code>apply</code>.</p>
+</details>
+
+<details>
+<summary>"How would you implement <code>bind</code> yourself?"</summary>
+<p>Capture <code>this</code> (which is the function itself, because you called it as <code>fn.myBind(...)</code>) and the bound arguments in a closure, and return a new function that <code>apply</code>s the original with the stored <code>this</code> and bound-args-first. Mention that a fully-correct version also handles being called with <code>new</code> — check <code>this instanceof bound</code> and prefer the new object over the bound one — and links the returned function's <code>prototype</code> to the original's.</p>
+</details>
+
+<details>
+<summary>"Why not just use arrow functions everywhere, then?"</summary>
+<p>Because sometimes you <em>want</em> dynamic <code>this</code>. Object methods and class prototype methods need to receive the instance from the call site — an arrow would freeze in whatever <code>this</code> surrounded the definition, which for an object literal is the module scope. Arrows also can't be used as constructors, have no <code>arguments</code>, can't be <code>bind</code>-ed, don't get the DOM's element-as-<code>this</code>, and can't be generators. Arrows are the right default for <em>callbacks</em>, not for everything.</p>
+</details>
+
+<details>
+<summary>"Arrow function or regular function for a class method — which and why?"</summary>
+<p>Regular method by default: it lives once on the prototype, is shared by every instance, is reachable via <code>super</code>, and is easy to spy on in tests. Reach for an arrow class field specifically when the method will be detached and passed as a callback — a React event handler being the canonical case — because it captures <code>this</code> at construction and can never lose it. The cost is one function object per instance, and it's an own property rather than a prototype one. In modern React you mostly sidestep the whole thing by writing function components with hooks.</p>
+</details>
+
+<details>
+<summary>"Why does <code>this</code> become <code>undefined</code> in an extracted method?"</summary>
+<p>Because <code>this</code> comes from the call site, and extracting the method throws the call site away. <code>user.greet()</code> has an object before the dot, so implicit binding applies; <code>const g = user.greet; g()</code> is a bare call, so default binding applies. In strict mode — which every module and every class body is — default binding gives <code>undefined</code> rather than the global object, so the first <code>this.anything</code> throws a TypeError.</p>
+</details>
+
+<details>
+<summary>"What's the difference between <code>__proto__</code> and <code>prototype</code>?"</summary>
+<p><code>__proto__</code> (properly: <code>Object.getPrototypeOf</code>) is the actual link every object has to the next object in its lookup chain. <code>prototype</code> is an ordinary property that only functions have, and it's <em>not</em> that function's own link — it's the object that will be used as the [[Prototype]] for instances the function creates with <code>new</code>. The equation to remember is <code>Object.getPrototypeOf(new Dog()) === Dog.prototype</code>. Plain objects and instances have no <code>.prototype</code> at all.</p>
+</details>
+
+<details>
+<summary>"How does <code>instanceof</code> work?"</summary>
+<p>It walks the left operand's prototype chain looking for the exact object that is the right operand's <code>.prototype</code>. Found it before <code>null</code> → true. So it's an ancestry check, not an identity check, which is why <code>rex instanceof Object</code> is true. It also fails across realms — an array from an iframe isn't <code>instanceof</code> your <code>Array</code> — which is why <code>Array.isArray</code> exists. A constructor can override the behaviour entirely via <code>Symbol.hasInstance</code>.</p>
+</details>
+
+<details>
+<summary>"What happens if you add a method to <code>Array.prototype</code>?"</summary>
+<p>Every array everywhere gets it instantly, including ones already created and ones inside dependencies — that's live delegation. But it's discouraged: name collisions with libraries resolve silently, a plain assignment is enumerable so it pollutes <code>for...in</code>, and you can conflict with future standard methods, which is exactly what happened with <code>contains</code>/<code>includes</code> and <code>flatten</code>/<code>flat</code>. Use a standalone function or a subclass. Polyfilling an actual standardised method is the acceptable exception.</p>
+</details>
+
+<details>
+<summary>"Why not just use <code>Object.setPrototypeOf</code> to change chains at runtime?"</summary>
+<p>You can, but it's a serious performance footgun. Engines optimise objects by assuming their "shape," including their prototype, is stable; mutating a prototype after the fact invalidates inline caches and can deoptimise every site that touched that object. MDN explicitly warns about it. If you need a different chain, create the object with the right one via <code>Object.create</code> or <code>new</code> in the first place.</p>
+</details>
+
+<details>
+<summary>"What is <code>this</code> at the top level of a module?"</summary>
+<p><code>undefined</code> in an ES module. In a classic non-module script it's the global object. In CommonJS (Node's <code>require</code>) it's <code>module.exports</code>, which is an empty object. Three different answers, which is a nice illustration that <code>this</code> is always contextual. If you need the global object reliably, <code>globalThis</code> works everywhere.</p>
+</details>
+
+<details>
+<summary>"If two objects share a prototype, does changing one change the other?"</summary>
+<p>Not through assignment — writes always create an own property on the target, so <code>a.count = 5</code> only affects <code>a</code>. But if the shared prototype holds a <em>mutable</em> value, mutating it in place does affect everyone: <code>a.tags.push('x')</code> reads the shared array off the prototype and pushes into it, and now <code>b.tags</code> shows it too. That's why you initialise arrays and objects per-instance in the constructor, never on the prototype.</p>
+</details>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in one breath, you're in good shape.</p>
+
+<ul class="cheat">
+<li><strong><code>this</code></strong> — decided by the call site, not the definition site. Look at how the function was <em>called</em>.</li>
+<li><strong>The ladder</strong> — <code>new</code> → explicit (<code>call</code>/<code>apply</code>/<code>bind</code>) → implicit (object left of the last dot) → default (<code>undefined</code> in strict mode, global otherwise).</li>
+<li><strong>Arrow functions</strong> — have no <code>this</code> of their own; they inherit it lexically from the enclosing scope, and <code>call</code>/<code>apply</code>/<code>bind</code> can't change it.</li>
+<li><strong>Lost <code>this</code></strong> — passing a method as a callback drops the dot. Fix with a class-field arrow, a constructor <code>bind</code>, or an arrow wrapper at the call site.</li>
+<li><strong><code>call</code> / <code>apply</code></strong> — invoke now; call takes a comma list, apply takes an array.</li>
+<li><strong><code>bind</code></strong> — invokes nothing; returns a new permanently-bound function, and pre-fills any extra args (partial application). Can't be re-bound.</li>
+<li><strong>Prototype chain</strong> — every object has a hidden link; property lookup walks it until it finds a match or hits <code>null</code>.</li>
+<li><strong><code>__proto__</code> vs <code>prototype</code></strong> — <code>__proto__</code> is the real link on every object; <code>prototype</code> is a property only functions have, holding the object that will become their instances' link. <code>Object.getPrototypeOf(new Dog()) === Dog.prototype</code>.</li>
+<li><strong><code>Object.create(p)</code></strong> — fresh object whose link is <code>p</code>. The whole mechanism, with no constructors involved.</li>
+<li><strong><code>new</code></strong> — new object → link it to <code>Fn.prototype</code> → run <code>Fn</code> with <code>this</code> as that object → return it unless an object was explicitly returned.</li>
+<li><strong>Shadowing</strong> — own properties hide prototype ones. Reads walk up; writes always land locally.</li>
+<li><strong><code>instanceof</code></strong> — walks the chain looking for <code>Fn.prototype</code>. Ancestry, not identity. Breaks across iframes.</li>
+<li><strong><code>class</code></strong> — sugar over prototypes, except: must use <code>new</code>, always strict, TDZ not hoisted, non-enumerable methods, real private <code>#</code> fields, working <code>super</code>, and <code>extends Array</code>/<code>Error</code> that actually works.</li>
+<li><strong>Delegation vs. copying</strong> — classical inheritance copies structure at instantiation; prototypes delegate live at lookup, so adding to a prototype updates existing instances instantly.</li>
+<li><strong>Monkey-patching built-ins</strong> — works, discouraged: collisions, <code>for...in</code> pollution, and future-standard conflicts (SmooshGate).</li>
+</ul>
+
+<p>One last thought. Both of these topics feel arbitrary while you're memorising rules, and then stop feeling arbitrary the moment you have the two pictures: <em>a shipping label applied at dispatch</em>, and <em>a walk up a chain of shelves</em>. Interviewers can tell which of those two states you're in within about thirty seconds — memorised rules come out as a list, a model comes out as a story. Go tell the story. 🚀</p>
+
+</div>
+</body>
+</html>

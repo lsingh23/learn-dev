@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Global State: Redux, Zustand &amp; Knowing When You Need Them</title>
+<style>
+  :root {
+    --ink: #1f2430;
+    --ink-soft: #4a5265;
+    --paper: #fdfcfa;
+    --rule: #e6e2db;
+    --accent: #4b3fd6;
+    --accent-soft: #efedff;
+    --green: #1f7a4d;
+    --green-soft: #e9f7ef;
+    --red: #b3261e;
+    --red-soft: #fdeceb;
+    --amber: #8a5b00;
+    --amber-soft: #fdf4e0;
+    --code-bg: #22262f;
+    --code-ink: #e7e5df;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 120px;
+  }
+
+  header.hero {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 44px;
+  }
+  header.hero .kicker {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+    margin: 64px 0 6px;
+    padding-top: 14px;
+    border-top: 3px solid var(--ink);
+  }
+  h2 .num {
+    display: block;
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  h3 {
+    font-size: 1.24rem;
+    letter-spacing: -0.01em;
+    margin: 40px 0 4px;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 28px 0 2px;
+    color: var(--ink-soft);
+  }
+
+  p { margin: 16px 0; }
+
+  a { color: var(--accent); }
+
+  ul, ol { padding-left: 1.35em; }
+  li { margin: 9px 0; }
+
+  code {
+    font-family: "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.875em;
+  }
+
+  p > code, li > code, td > code, h3 > code, h4 > code, summary > code {
+    background: #f0eee9;
+    border: 1px solid #e2ded6;
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 0.93rem;
+    line-height: 1.62;
+    margin: 18px 0;
+  }
+  pre code { font-size: 0.93rem; }
+  .cmt { color: #8f98a8; font-style: italic; }
+  .out { color: #7fd1a5; font-style: italic; }
+  .kw  { color: #c39bff; }
+  .str { color: #f0b27a; }
+
+  .codeblock { margin: 22px 0; }
+  .codeblock pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .codelabel {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 10px 10px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .bad .codelabel { background: var(--red-soft); color: var(--red); border: 1px solid #f3c9c6; border-bottom: none; }
+  .good .codelabel { background: var(--green-soft); color: var(--green); border: 1px solid #c3e6d3; border-bottom: none; }
+  .neutral .codelabel { background: #edeaf7; color: var(--accent); border: 1px solid #d9d4f2; border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 4px 20px;
+    margin: 26px 0;
+    border: 1px solid;
+    font-size: 0.99rem;
+  }
+  .callout .title {
+    font-weight: 700;
+    margin: 16px 0 -6px;
+    font-size: 0.94rem;
+    letter-spacing: 0.01em;
+  }
+  .what-about { background: #f2f7ff; border-color: #cfe0f7; }
+  .what-about .title { color: #17529c; }
+  .miscon { background: var(--red-soft); border-color: #f3c9c6; }
+  .miscon .title { color: var(--red); }
+  .hood { background: #f4f2ef; border-color: #ddd8d0; }
+  .hood .title { color: #5a5346; }
+  .interview { background: var(--accent-soft); border-color: #d5cffa; }
+  .interview .title { color: var(--accent); }
+
+  .answer {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 2px 18px;
+    margin: 16px 0;
+  }
+  .answer .said { font-style: italic; }
+  .answer .why {
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--rule);
+    padding-top: 10px;
+  }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 0 16px;
+    margin: 16px 0;
+    background: #fff;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    padding: 12px 0;
+    list-style-position: outside;
+  }
+  details[open] summary { border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+  details > *:last-child { margin-bottom: 14px; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px 26px;
+    margin: 34px 0 8px;
+  }
+  .toc h2 {
+    border: none;
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .toc ol { margin: 6px 0 0; padding-left: 1.2em; }
+  .toc li { margin: 5px 0; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 22px 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f4f2ee; font-size: 0.85rem; letter-spacing: 0.02em; }
+
+  figure { margin: 30px 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .cheat td:first-child { font-weight: 650; width: 34%; }
+
+  .lede { font-size: 1.06rem; }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 44px 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16.5px; }
+    header.hero h1 { font-size: 2rem; }
+    h2 { font-size: 1.45rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Guide · 15</p>
+  <h1>Global State: Redux, Zustand &amp; Knowing When You Need Them</h1>
+  <p>Where React state goes when it outgrows a single component — and the far more interesting question of whether it actually has.</p>
+</header>
+
+<p class="lede">I want to start this guide with a confession: for the first year I used Redux, I had no idea what problem it solved. I knew <em>how</em> to use it. I could write an action creator, a reducer, a <code>connect</code> call. But if you'd asked me "why does this exist?", I'd have said something vague about "managing state at scale" and hoped you'd move on.</p>
+
+<p>That's exactly the answer that loses you an interview. Not because it's wrong, but because it's a phrase you memorised instead of a thing you understood.</p>
+
+<p>So we're not going to start with Redux. We're going to start with a Tuesday afternoon and a component that needs a user's avatar.</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#pain">The pain: prop drilling (and why it's often fine)</a></li>
+    <li><a href="#composition">The first fix is not a library — it's composition</a></li>
+    <li><a href="#context">What Context solves, and what it very much does not</a></li>
+    <li><a href="#redux-core">Redux from scratch: store, actions, reducers, dispatch</a></li>
+    <li><a href="#purity">Why the rules exist: purity, time travel, predictability</a></li>
+    <li><a href="#decision">The decision framework: Context vs Redux vs Zustand</a></li>
+    <li><a href="#rtk">Redux Toolkit vs classic Redux (and how Immer works)</a></li>
+    <li><a href="#zustand">Zustand: the store as a hook</a></li>
+    <li><a href="#middleware">Middleware: where the side effects go</a></li>
+    <li><a href="#selectors">Selector memoization and reselect</a></li>
+    <li><a href="#normalize">Normalizing state: your store is a database</a></li>
+    <li><a href="#atomic">Atomic state: Jotai, Recoil, Valtio</a></li>
+    <li><a href="#interview">The interview layer: questions, answers, traps</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<!-- ===================================================================== -->
+<h2 id="pain"><span class="num">Part 1 · The problem</span>The pain: prop drilling</h2>
+
+<p>Here's a real, small app. A user logs in. Deep inside the UI — inside the dashboard, inside the sidebar, inside the header of the sidebar — there's a little avatar badge that shows their profile picture.</p>
+
+<p>The <code>user</code> object lives in <code>App</code>, because that's where we fetched it. The avatar badge lives eight levels down. So the <code>user</code> has to <em>travel</em>.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">The journey of one prop</div>
+<pre><code>function App() {
+  const [user, setUser] = useState(null);
+  return &lt;Dashboard user={user} /&gt;;
+}
+
+function Dashboard({ user }) {        <span class="cmt">// doesn't use it</span>
+  return &lt;Layout user={user} /&gt;;
+}
+function Layout({ user }) {           <span class="cmt">// doesn't use it</span>
+  return &lt;Sidebar user={user} /&gt;;
+}
+function Sidebar({ user }) {          <span class="cmt">// doesn't use it</span>
+  return &lt;SidebarHeader user={user} /&gt;;
+}
+function SidebarHeader({ user }) {    <span class="cmt">// doesn't use it either!</span>
+  return &lt;AvatarBadge user={user} /&gt;;
+}
+
+function AvatarBadge({ user }) {
+  return &lt;img src={user.avatarUrl} alt={user.name} /&gt;;  <span class="cmt">// 👈 finally</span>
+}</code></pre>
+</div>
+
+<p>Four components in the middle take a prop they never read. They're couriers. They exist, as far as <code>user</code> is concerned, only to hand the parcel to the next person in the corridor.</p>
+
+<p>This is <strong>prop drilling</strong>, and now that you've seen it, notice what's actually annoying about it. It isn't the typing. It's this:</p>
+
+<ul>
+  <li>To add one field to <code>AvatarBadge</code>, you edit <em>five</em> files.</li>
+  <li>Every intermediate component now has a prop in its type signature that lies about what it does. <code>Sidebar</code> claims to care about users. It doesn't.</li>
+  <li>If you want to reuse <code>Sidebar</code> somewhere without a user, you can't — the courier chain is baked in.</li>
+</ul>
+
+<div class="callout what-about">
+  <p class="title">Wait — isn't prop drilling supposed to be A Bad Thing?</p>
+  <p>Honestly? Much less than the internet suggests. Passing a prop down two or three levels is completely normal React and needs no fix at all. Props are the most obvious, most debuggable data flow there is: you can trace exactly where a value came from by reading upward. Global state trades that away for convenience.</p>
+  <p>Prop drilling becomes a real problem when the chain is <em>long</em> and the value changes <em>often</em> and it's needed in <em>many unrelated places</em>. Two levels deep for a stable value is not a problem. Reaching for a state library to avoid it is genuinely worse than the disease.</p>
+</div>
+
+<p>So we've got a real irritation, but before we go shopping for a library, let's try the thing that costs nothing.</p>
+
+<!-- ===================================================================== -->
+<h2 id="composition"><span class="num">Part 2 · The cheap fix</span>The first fix is composition, not a library</h2>
+
+<p>Here's the move most people skip, and it's the one that senior engineers reach for first.</p>
+
+<p>The reason <code>Sidebar</code> needs the <code>user</code> prop is that <code>Sidebar</code> is the one <em>constructing</em> <code>AvatarBadge</code>. But what if it didn't? What if <code>Sidebar</code> just left a <strong>hole</strong> in itself, and whoever renders it fills the hole in?</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Composition: pass the element, not the data</div>
+<pre><code>function App() {
+  const [user, setUser] = useState(null);
+
+  return (
+    &lt;Dashboard&gt;
+      &lt;Layout&gt;
+        &lt;Sidebar header={&lt;AvatarBadge user={user} /&gt;} /&gt;  <span class="cmt">// 👈 built here</span>
+      &lt;/Layout&gt;
+    &lt;/Dashboard&gt;
+  );
+}
+
+function Sidebar({ header }) {
+  return &lt;aside&gt;{header}&lt;nav&gt;...&lt;/nav&gt;&lt;/aside&gt;;   <span class="cmt">// knows nothing about users</span>
+}</code></pre>
+</div>
+
+<p>The <code>user</code> prop now travels <em>zero</em> levels. <code>AvatarBadge</code> is created right next to the state it needs, and then the finished element is handed down as <code>children</code> (or a named prop like <code>header</code>). The middle components hold an opaque box. They don't know or care what's in it.</p>
+
+<p>The analogy I like: prop drilling is passing a letter hand-to-hand down a line of people, and every person has to be told they'll be handling a letter. Composition is <strong>writing the letter and sealing it in an envelope first</strong>. The people in the line still carry it, but now they just carry "an envelope" — the contents are none of their business, and nobody's job description changes when you change the letter.</p>
+
+<p>Where the analogy breaks: React re-renders complicate this slightly. The element you pass as <code>children</code> was created by the parent, so it re-renders when the parent does, not when the middle components do — which is actually a nice performance side effect, but it's a different story from a physical envelope.</p>
+
+<div class="callout interview">
+  <p class="title">In an interview</p>
+  <p>If someone asks "how do you avoid prop drilling?" and your first word is "Context" — you've answered the recall question. If your first word is "composition, usually", you've answered the judgement question. Say both. The second one is the signal.</p>
+</div>
+
+<p>Composition doesn't fix everything, though. Sometimes the consumer isn't one element you can hoist — it's <em>forty</em> components scattered through the tree, all needing the theme, or the current locale, or the logged-in user. You can't hoist forty holes. This is where Context earns its keep.</p>
+
+<!-- ===================================================================== -->
+<h2 id="context"><span class="num">Part 3 · Context</span>What Context solves — and what it very much doesn't</h2>
+
+<p>Context is React's built-in answer to prop drilling. You create a channel, a Provider broadcasts a value on that channel, and any component underneath tunes in — no matter how deep — without anyone in between knowing.</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Context: teleport a value down the tree</div>
+<pre><code>const UserContext = createContext(null);
+
+function App() {
+  const [user, setUser] = useState(null);
+  return (
+    &lt;UserContext.Provider value={user}&gt;
+      &lt;Dashboard /&gt;                     <span class="cmt">// no user prop anywhere below</span>
+    &lt;/UserContext.Provider&gt;
+  );
+}
+
+function AvatarBadge() {
+  const user = useContext(UserContext);  <span class="cmt">// 👈 reaches up, 8 levels, instantly</span>
+  return &lt;img src={user.avatarUrl} alt={user.name} /&gt;;
+}</code></pre>
+</div>
+
+<p>Beautiful. The couriers are gone.</p>
+
+<p>Now here's the sentence that I want you to be able to say in an interview without hesitating, because it's the single crispest thing you can say about Context:</p>
+
+<p style="font-size:1.1rem; border-left:4px solid var(--accent); padding-left:18px; margin:26px 0;"><strong>Context is a transport mechanism, not a state manager.</strong> It solves <em>getting a value from here to there</em>. It doesn't solve anything about <em>how that value is stored, updated, or subscribed to</em>.</p>
+
+<p>People conflate the two constantly because Context is usually paired with <code>useState</code> — but the <code>useState</code> is doing the state management, and Context is doing the delivery. They're separate jobs. Let's be concrete about what "doesn't manage state" actually costs you.</p>
+
+<h3>1. Every consumer re-renders on any change</h3>
+
+<p>This is the big one. Imagine you get lazy — as everyone does — and make one <code>AppContext</code> holding everything:</p>
+
+<div class="codeblock bad">
+  <div class="codelabel">❌ The context that re-renders your whole app</div>
+<pre><code>&lt;AppContext.Provider value={{ user, theme, cart, notifications, setCart }}&gt;
+  &lt;WholeApp /&gt;
+&lt;/AppContext.Provider&gt;</code></pre>
+</div>
+
+<p>Two things are wrong here, and they compound.</p>
+
+<p>First, that object literal <code>{ user, theme, ... }</code> is <strong>a brand new object on every single render of the provider</strong>. Context compares values with <code>Object.is</code>. A new object is never <code>Object.is</code>-equal to the old one, so every consumer is notified — even if nothing inside actually changed.</p>
+
+<p>Second — and this is the part people don't expect — <em>even if you memoize that object perfectly</em>, Context has no concept of "part of the value". If <code>cart</code> changes, the context value changed, so <strong>every component calling <code>useContext(AppContext)</code> re-renders</strong>, including the fifty components that only read <code>theme</code> and don't care about carts at all.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram: a single context value change notifies every consumer, versus a selector-based store notifying only the relevant consumer">
+  <rect x="0" y="0" width="700" height="250" fill="none"/>
+  <!-- left: context -->
+  <text x="20" y="24" font-family="sans-serif" font-size="14" font-weight="700" fill="#b3261e">Context: cart changes</text>
+  <rect x="20" y="38" width="300" height="42" rx="8" fill="#fdeceb" stroke="#f3c9c6"/>
+  <text x="170" y="64" font-family="monospace" font-size="13" fill="#b3261e" text-anchor="middle">AppContext value (new object)</text>
+  <g stroke="#b3261e" stroke-width="1.6" fill="none" marker-end="url(#ar-red)">
+    <path d="M80 80 L60 130"/><path d="M150 80 L150 130"/><path d="M240 80 L260 130"/>
+  </g>
+  <rect x="20" y="132" width="80" height="40" rx="7" fill="#fff" stroke="#b3261e"/>
+  <text x="60" y="157" font-family="monospace" font-size="11" fill="#b3261e" text-anchor="middle">Cart</text>
+  <rect x="110" y="132" width="80" height="40" rx="7" fill="#fff" stroke="#b3261e"/>
+  <text x="150" y="151" font-family="monospace" font-size="11" fill="#b3261e" text-anchor="middle">Theme</text>
+  <text x="150" y="165" font-family="sans-serif" font-size="9" fill="#b3261e" text-anchor="middle">(didn't change!)</text>
+  <rect x="200" y="132" width="90" height="40" rx="7" fill="#fff" stroke="#b3261e"/>
+  <text x="245" y="151" font-family="monospace" font-size="11" fill="#b3261e" text-anchor="middle">Avatar</text>
+  <text x="245" y="165" font-family="sans-serif" font-size="9" fill="#b3261e" text-anchor="middle">(didn't change!)</text>
+  <text x="20" y="205" font-family="sans-serif" font-size="12" fill="#4a5265">All 3 re-render.</text>
+
+  <!-- divider -->
+  <line x1="350" y1="20" x2="350" y2="230" stroke="#e6e2db" stroke-width="2"/>
+
+  <!-- right: store with selectors -->
+  <text x="380" y="24" font-family="sans-serif" font-size="14" font-weight="700" fill="#1f7a4d">Store + selectors: cart changes</text>
+  <rect x="380" y="38" width="300" height="42" rx="8" fill="#e9f7ef" stroke="#c3e6d3"/>
+  <text x="530" y="64" font-family="monospace" font-size="13" fill="#1f7a4d" text-anchor="middle">store state</text>
+  <g stroke="#1f7a4d" stroke-width="1.6" fill="none" marker-end="url(#ar-green)">
+    <path d="M440 80 L420 130"/>
+  </g>
+  <g stroke="#c9ccd4" stroke-width="1.6" stroke-dasharray="4 4" fill="none">
+    <path d="M510 80 L510 128"/><path d="M600 80 L620 128"/>
+  </g>
+  <rect x="380" y="132" width="80" height="40" rx="7" fill="#fff" stroke="#1f7a4d"/>
+  <text x="420" y="157" font-family="monospace" font-size="11" fill="#1f7a4d" text-anchor="middle">Cart</text>
+  <rect x="470" y="132" width="80" height="40" rx="7" fill="#fff" stroke="#c9ccd4"/>
+  <text x="510" y="151" font-family="monospace" font-size="11" fill="#98a0ad" text-anchor="middle">Theme</text>
+  <text x="510" y="165" font-family="sans-serif" font-size="9" fill="#98a0ad" text-anchor="middle">skipped</text>
+  <rect x="560" y="132" width="90" height="40" rx="7" fill="#fff" stroke="#c9ccd4"/>
+  <text x="605" y="151" font-family="monospace" font-size="11" fill="#98a0ad" text-anchor="middle">Avatar</text>
+  <text x="605" y="165" font-family="sans-serif" font-size="9" fill="#98a0ad" text-anchor="middle">skipped</text>
+  <text x="380" y="205" font-family="sans-serif" font-size="12" fill="#4a5265">Only the subscriber whose slice changed re-renders.</text>
+
+  <defs>
+    <marker id="ar-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#b3261e"/></marker>
+    <marker id="ar-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#1f7a4d"/></marker>
+  </defs>
+</svg>
+<figcaption>Context broadcasts. A real store lets each component subscribe to just the bit it reads.</figcaption>
+</figure>
+
+<h3>2. No selectors, so no partial subscriptions</h3>
+
+<p>Following directly from the above: there's no <code>useContext(AppContext, value =&gt; value.theme)</code>. React has never shipped a selector API for Context (it's been proposed for years). Your only workaround is to split into many small contexts — one per slice — which works, but you're now hand-rolling the thing a state library gives you for free, and the nesting gets silly at ten providers deep.</p>
+
+<h3>3. No devtools</h3>
+
+<p>With Redux DevTools you get a scrolling log of every action, the state before and after each one, a diff view, and a slider that lets you scrub backwards through your app's history. With Context you get... <code>console.log</code>. When a bug is "the cart emptied itself and I don't know who did it", that difference is enormous.</p>
+
+<h3>4. No middleware</h3>
+
+<p>There's no place to hook into "every state change" globally. Want to log every update, persist a slice to <code>localStorage</code>, fire analytics on certain events, or retry a failed action? With Context you sprinkle that logic through components by hand. There's no interception point.</p>
+
+<h3>5. No state-shape discipline</h3>
+
+<p>Context imposes zero conventions. Anyone can put anything in there, update it from anywhere, in any shape. On a team of two that's freedom. On a team of twenty, six months in, it's a context value with 31 keys that nobody can safely change.</p>
+
+<div class="callout miscon">
+  <p class="title">A common misconception</p>
+  <p><em>"Context causes performance problems."</em></p>
+  <p>Context itself is fine — it's a lookup, it's fast. What causes performance problems is <strong>putting frequently-changing state in a context that many components consume</strong>, because there's no way to subscribe to part of it. That's a design problem, not a Context bug. A theme context that changes twice a day is perfect. A mouse-position context that changes 60 times a second is a bonfire.</p>
+</div>
+
+<p>Right. We know what's missing. Now let's build the thing that provides it — and I mean literally build it, because Redux's core is smaller than you think.</p>
+
+<!-- ===================================================================== -->
+<h2 id="redux-core"><span class="num">Part 4 · Redux core</span>Redux from scratch: store, actions, reducers, dispatch</h2>
+
+<p>Forget every Redux tutorial you've seen. Redux's actual core is about twenty lines of vanilla JavaScript with no React in it at all. Let's write it.</p>
+
+<p>We want one object holding all our state, a way to read it, a way to change it, and a way to be told when it changed.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">Redux, more or less, in 18 lines</div>
+<pre><code>function createStore(reducer, initialState) {
+  let state = initialState;
+  let listeners = [];
+
+  return {
+    getState: () =&gt; state,
+
+    dispatch(action) {
+      state = reducer(state, action);   <span class="cmt">// 👈 the only line that writes state</span>
+      listeners.forEach((fn) =&gt; fn());
+    },
+
+    subscribe(listener) {
+      listeners.push(listener);
+      return () =&gt; { listeners = listeners.filter((l) =&gt; l !== listener); };
+    },
+  };
+}</code></pre>
+</div>
+
+<p>That's it. That's the whole idea. Everything else — Redux Toolkit, thunks, sagas, <code>react-redux</code> — is scaffolding around those three methods. If you can rebuild this on a whiteboard, you understand Redux better than most people who've shipped it.</p>
+
+<p>Let's name the four nouns properly, because interviewers will use these words and expect you to use them back.</p>
+
+<h3>The store — one object tree</h3>
+
+<p>Not one store per feature. <strong>One store for the entire app</strong>, holding one plain-object state tree. It looks something like:</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">The whole app's state, in one object</div>
+<pre><code>{
+  auth:  { user: { id: 'u7', name: 'Priya' }, token: 'abc' },
+  cart:  { items: [{ sku: 'sku-42', qty: 2 }], coupon: null },
+  ui:    { sidebarOpen: false, activeModal: null },
+}</code></pre>
+</div>
+
+<p>The single-store rule sounds restrictive and it is, deliberately. Because there's exactly one tree, you can serialise the entire app's state to a string, email it to a colleague, and they can load it and see precisely what you saw. That's not a party trick — it's the basis of bug reports that actually reproduce.</p>
+
+<h3>Actions — plain objects describing what happened</h3>
+
+<p>An action is <em>not</em> a command. This is the most commonly missed nuance. An action is a <strong>past-tense description of an event</strong>, in the form of a plain, serialisable object with a <code>type</code> field.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">Actions are events, not instructions</div>
+<pre><code><span class="cmt">// ✅ describes what happened</span>
+{ type: 'cart/itemAdded', payload: { sku: 'sku-42', qty: 1 } }
+{ type: 'auth/loggedOut' }
+
+<span class="cmt">// 🤔 works, but thinks like a command — the UI is dictating the update</span>
+{ type: 'SET_CART_ITEMS', payload: [ ...allTheItemsRecomputedInTheComponent ] }</code></pre>
+</div>
+
+<p>Why does the distinction matter? Because if actions are events, <em>many</em> reducers can respond to one action. <code>cart/itemAdded</code> can update the cart, bump an analytics counter, and close the "empty cart" banner — three slices reacting to one fact about the world. If actions are commands ("set this value to that"), each one talks to exactly one place and you've just built a clumsier <code>useState</code>.</p>
+
+<p>The analogy: an action is a <strong>receipt</strong>, not an order. It records that something occurred. Anyone can read the receipt afterwards and decide what it means for them. This analogy leaks a bit — real receipts don't cause anything to happen, whereas dispatching an action does trigger the update — but the "record of a fact, readable by many parties" part is exactly right.</p>
+
+<h3>Reducers — pure <code>(state, action) =&gt; newState</code></h3>
+
+<p>A reducer takes the current state and an action, and returns <strong>the next state</strong>. It never modifies the state it was given. It computes a new value.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">A reducer for the cart slice</div>
+<pre><code>const initial = { items: [], coupon: null };
+
+function cartReducer(state = initial, action) {
+  switch (action.type) {
+    case 'cart/itemAdded':
+      return { ...state, items: [...state.items, action.payload] };
+
+    case 'cart/couponApplied':
+      return { ...state, coupon: action.payload };
+
+    default:
+      return state;      <span class="cmt">// 👈 unknown action? hand back exactly what you got</span>
+  }
+}</code></pre>
+</div>
+
+<p>Two details that trip people up:</p>
+
+<p><strong>The <code>default: return state</code> is mandatory.</strong> Every reducer sees every action — there's no routing. If your cart reducer doesn't recognise <code>auth/loggedIn</code>, it must return the state unchanged, or it'd wipe the cart every time anyone logs in.</p>
+
+<p><strong>The spread is not decoration.</strong> <code>{ ...state, items: [...] }</code> creates a new top-level object with a new <code>items</code> array, while <code>coupon</code> keeps its <em>exact same reference</em>. This is called <strong>structural sharing</strong>, and it's what makes change detection cheap: to ask "did the coupon change?", you compare two references with <code>===</code>. No deep equality scan. Remember this term — it comes back when we do Immer.</p>
+
+<h3>Dispatch and subscribe — the cycle</h3>
+
+<p>Now we can draw the thing that Redux is really about: a strictly one-way loop that nothing is allowed to shortcut.</p>
+
+<figure>
+<svg viewBox="0 0 700 330" role="img" aria-label="Diagram of the unidirectional Redux data flow cycle: UI dispatches an action, the reducer computes new state, the store notifies subscribers, the UI re-renders">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#4b3fd6"/>
+    </marker>
+  </defs>
+
+  <rect x="255" y="20" width="190" height="58" rx="10" fill="#efedff" stroke="#4b3fd6" stroke-width="1.6"/>
+  <text x="350" y="44" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#2c2288">UI (components)</text>
+  <text x="350" y="64" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a5265">reads state, renders</text>
+
+  <rect x="500" y="135" width="180" height="60" rx="10" fill="#fff" stroke="#4b3fd6" stroke-width="1.6"/>
+  <text x="590" y="159" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#2c2288">Action</text>
+  <text x="590" y="179" text-anchor="middle" font-family="monospace" font-size="11" fill="#4a5265">{ type: 'cart/itemAdded' }</text>
+
+  <rect x="255" y="255" width="190" height="58" rx="10" fill="#fff" stroke="#4b3fd6" stroke-width="1.6"/>
+  <text x="350" y="279" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#2c2288">Reducer</text>
+  <text x="350" y="299" text-anchor="middle" font-family="monospace" font-size="11" fill="#4a5265">(state, action) =&gt; newState</text>
+
+  <rect x="20" y="135" width="180" height="60" rx="10" fill="#fff" stroke="#4b3fd6" stroke-width="1.6"/>
+  <text x="110" y="159" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#2c2288">Store</text>
+  <text x="110" y="179" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a5265">holds the one state tree</text>
+
+  <g fill="none" stroke="#4b3fd6" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M445 58 Q 590 70 590 130"/>
+    <path d="M590 197 Q 590 284 450 284"/>
+    <path d="M255 284 Q 110 284 110 200"/>
+    <path d="M110 133 Q 110 49 250 49"/>
+  </g>
+
+  <text x="530" y="100" font-family="sans-serif" font-size="12.5" fill="#4b3fd6" font-weight="600">1. dispatch(action)</text>
+  <text x="600" y="245" font-family="sans-serif" font-size="12.5" fill="#4b3fd6" font-weight="600" text-anchor="middle">2. store runs reducer</text>
+  <text x="105" y="245" font-family="sans-serif" font-size="12.5" fill="#4b3fd6" font-weight="600" text-anchor="middle">3. new state saved</text>
+  <text x="118" y="100" font-family="sans-serif" font-size="12.5" fill="#4b3fd6" font-weight="600">4. subscribers notified</text>
+</svg>
+<figcaption>The unidirectional cycle. There is no arrow going the other way — nothing writes to the store except a reducer, and reducers only run because of a dispatch.</figcaption>
+</figure>
+
+<p>Walk it once with real events. You click "Add to cart". The click handler calls <code>dispatch({ type: 'cart/itemAdded', payload: item })</code>. The store hands the current state and that action to the root reducer. The reducer returns a new state object. The store swaps its internal <code>state</code> for the new one and calls every listener. <code>react-redux</code> is one of those listeners; it checks whether the slice your component reads actually changed, and if so, re-renders it. The UI now shows an extra item.</p>
+
+<p>And critically: <strong>there is no other path.</strong> No component can write to the store. No reducer can be called except by a dispatch. In a big app, that means the answer to "how did this value get like that?" is always findable — it's in a reducer, responding to an action, which you can see in the devtools log.</p>
+
+<div class="callout hood">
+  <p class="title">Under the hood — how React connects to this</p>
+  <p><code>react-redux</code>'s <code>useSelector</code> is built on React 18's <code>useSyncExternalStore</code> hook, whose whole job is "safely subscribe a component to a store that lives outside React". It calls <code>store.subscribe()</code>, and on each notification runs your selector function and compares the result to last time (with <code>===</code> by default). Same result? No re-render. Different? Re-render.</p>
+  <p>That comparison is the entire reason selectors exist, and it's why the "why does my component re-render on every dispatch?" question has the answer it does. We'll get there in Part 10.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="purity"><span class="num">Part 5 · The why</span>Why reducers must be pure</h2>
+
+<p>Redux insists that reducers be <strong>pure functions</strong>: same inputs always produce the same output, no mutation of the arguments, and no side effects (no API calls, no <code>Math.random()</code>, no <code>Date.now()</code>, no writing to <code>localStorage</code>).</p>
+
+<p>That sounds like dogma until you see what it buys.</p>
+
+<h4>Time-travel debugging</h4>
+<p>If <code>state<sub>n</sub></code> is purely a function of <code>state<sub>n-1</sub></code> and <code>action<sub>n</sub></code>, then the store can keep the list of actions and <em>recompute any past state at will</em>. Redux DevTools' time-travel slider isn't magic; it's just replaying the reducer from the start. The moment a reducer calls an API or reads the clock, replaying it produces a different answer, and time travel breaks.</p>
+
+<h4>Replayability and bug reports</h4>
+<p>A user hits a bug. You capture the action log. You replay it locally and land in the exact same broken state. That's only possible because reducers are deterministic and actions are plain serialisable objects — which, incidentally, is why "don't put a Promise, a function, or a class instance in an action payload" is a real rule and not fussiness.</p>
+
+<h4>Change detection</h4>
+<p>If a reducer mutated <code>state.items.push(x)</code> instead of returning a new array, the reference wouldn't change. <code>===</code> would say "nothing happened". Your component would not re-render, and you'd get the classic "the data is right in the devtools but the UI is stale" bug. <strong>Immutability isn't philosophical here — it's the mechanism that makes re-rendering work.</strong></p>
+
+<h4>Testability</h4>
+<p>A pure reducer is the easiest thing in the world to test: call it with a state and an action, assert on the returned object. No mocks, no DOM, no network stubbing.</p>
+
+<div class="callout what-about">
+  <p class="title">Wait — so where do API calls go?</p>
+  <p>Excellent, that's the exact question, and the honest answer is: <em>outside the reducer</em>. Side effects live in middleware (thunks, sagas) or in your components' event handlers. Part 9 is entirely about this. Hold the thought.</p>
+</div>
+
+<h3>The honest bit: this is a lot of ceremony</h3>
+
+<p>Let's not pretend. To add one boolean to classic Redux you'd historically write: an action type constant, an action creator, a case in a reducer, a <code>mapStateToProps</code>, a <code>mapDispatchToProps</code>, and a <code>connect</code> call — across three or four files. For a boolean.</p>
+
+<p>That ceremony is the reason the ecosystem moved. Not because unidirectional data flow was wrong — it was right, and it won so completely that it's now just how React works. But the <em>packaging</em> was exhausting, and everything that came after (Redux Toolkit, Zustand, Jotai) is an attempt to keep the good idea and drop the paperwork.</p>
+
+<div class="callout interview">
+  <p class="title">In an interview</p>
+  <p>Being able to say "the constraints exist to buy replayability and cheap change detection, and yes, classic Redux made you pay for that in boilerplate — which is exactly what RTK fixed" tells the interviewer you've held an opinion, not just an API surface. That's the depth signal.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="decision"><span class="num">Part 6 · Judgement</span>When Context is enough vs when you need a real store</h2>
+
+<p>This is the question that actually gets asked, and the one where candidates flail because they answer with preferences instead of criteria. So here are criteria.</p>
+
+<p>First, a split that reframes the whole problem:</p>
+
+<h3>Server state is not client state</h3>
+
+<p>Most of what people historically put in Redux wasn't really <em>state</em> — it was a <strong>cache of someone else's data</strong>. The list of products, the user profile, the order history: those live in a database on a server. Your app holds a copy that goes stale, needs refetching, needs loading and error flags, needs deduping when three components ask at once.</p>
+
+<p>That's <strong>server state</strong>, and it has its own tool category — React Query / TanStack Query, SWR, RTK Query — which handles caching, staleness, background refetch and deduplication for you. <em>That's covered in its own guide; I'm not going to duplicate it here.</em> The only thing you need from it for this guide is the punchline:</p>
+
+<p style="border-left:4px solid var(--accent); padding-left:18px; margin:24px 0;"><strong>Once you move server state to a query library, the amount of genuinely global client state left in a typical app is astonishingly small.</strong> Theme. Auth session. Sidebar open. A multi-step form in progress. A cart, maybe.</p>
+
+<p>Which is why so many teams pulled Redux out around 2021–2023: it wasn't that Redux got worse, it's that 80% of what was in it belonged somewhere else.</p>
+
+<h3>The five questions</h3>
+
+<p>For whatever client state is left, ask these:</p>
+
+<table>
+<thead><tr><th>Question</th><th>Context + useReducer</th><th>Redux Toolkit / Zustand</th></tr></thead>
+<tbody>
+<tr><td><strong>How often does it change?</strong></td><td>Rarely — theme, locale, auth. Every consumer re-rendering is harmless.</td><td>Often — a live cart, a canvas editor, form state, anything per-keystroke or per-frame.</td></tr>
+<tr><td><strong>How many independent slices?</strong></td><td>One or two. You can give each its own provider without silly nesting.</td><td>Five or more unrelated slices. Provider pyramids get ugly fast.</td></tr>
+<tr><td><strong>Do you need partial subscriptions?</strong></td><td>No — consumers roughly all care about the same thing.</td><td>Yes — a big state object where components read tiny disjoint pieces.</td></tr>
+<tr><td><strong>Devtools / middleware?</strong></td><td>Don't need an action log, persistence layer, or global interception.</td><td>You want time travel, an audit log, undo/redo, persistence, analytics on every action.</td></tr>
+<tr><td><strong>Team size &amp; convention</strong></td><td>Small team, everyone reads the whole codebase.</td><td>Large team over years. You want enforced patterns so twelve people can't invent twelve state styles.</td></tr>
+</tbody>
+</table>
+
+<p>Notice that the last row has nothing to do with technical capability. It's a <em>social</em> argument, and it's a completely legitimate one — probably Redux's strongest remaining case. Redux Toolkit's opinionated shape ("slices, in <code>features/</code>, with these naming conventions") means a new hire can find things. Zustand will happily let each team member invent their own architecture.</p>
+
+<h3>My actual recommendation, stated plainly</h3>
+
+<ul>
+  <li><strong>Server data</strong> → React Query / RTK Query. Not Redux, not Context.</li>
+  <li><strong>A couple of rarely-changing globals</strong> (theme, auth, locale) → Context, one provider per concern. No library.</li>
+  <li><strong>Genuinely shared, frequently-changing client state in a small-to-mid app</strong> → Zustand. Tiny, no provider, selectors built in.</li>
+  <li><strong>Large app, big team, complex flows, needs devtools and conventions</strong> → Redux Toolkit. It's still excellent at this and nothing has really replaced it.</li>
+  <li><strong>Lots of fine-grained, interdependent derived values</strong> (an editor, a spreadsheet, a design tool) → an atomic library like Jotai. More on that in Part 12.</li>
+</ul>
+
+<div class="callout miscon">
+  <p class="title">A common misconception</p>
+  <p><em>"You should put all your state in the global store."</em></p>
+  <p>No. Most state should stay local. If a value is only read by one component and its children, <code>useState</code> is the correct answer and moving it to a store makes the code worse — harder to trace, harder to delete, harder to reuse the component. <strong>Global state is a cost you pay to solve sharing.</strong> No sharing, no payment.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="rtk"><span class="num">Part 7 · Tier 2</span>Redux Toolkit vs classic Redux</h2>
+
+<p>Let's see the boilerplate problem with our own eyes, then watch it vanish.</p>
+
+<div class="codeblock bad">
+  <div class="codelabel">❌ Classic Redux — one feature, spread thin</div>
+<pre><code><span class="cmt">// constants.js</span>
+export const ITEM_ADDED = 'cart/ITEM_ADDED';
+
+<span class="cmt">// actions.js</span>
+export const itemAdded = (item) =&gt; ({ type: ITEM_ADDED, payload: item });
+
+<span class="cmt">// reducer.js</span>
+export function cartReducer(state = { items: [] }, action) {
+  switch (action.type) {
+    case ITEM_ADDED:
+      return { ...state, items: [...state.items, action.payload] };
+    default:
+      return state;
+  }
+}
+
+<span class="cmt">// store.js — plus applyMiddleware, composeEnhancers, devtools wiring...</span></code></pre>
+</div>
+
+<p>Now the same thing in Redux Toolkit:</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Redux Toolkit — one file, done</div>
+<pre><code>import { createSlice, configureStore } from '@reduxjs/toolkit';
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState: { items: [], coupon: null },
+  reducers: {
+    itemAdded(state, action) {
+      state.items.push(action.payload);   <span class="cmt">// 👈 wait, mutation?!</span>
+    },
+    couponApplied(state, action) {
+      state.coupon = action.payload;
+    },
+  },
+});
+
+export const { itemAdded, couponApplied } = cartSlice.actions;
+export const store = configureStore({ reducer: { cart: cartSlice.reducer } });</code></pre>
+</div>
+
+<p>Three things just happened, and they're worth naming individually because interviewers ask about them individually.</p>
+
+<h3><code>createSlice</code> generates the actions <em>from</em> the reducers</h3>
+
+<p>You wrote a function called <code>itemAdded</code>. RTK produced an action creator <code>cartSlice.actions.itemAdded</code> that returns <code>{ type: 'cart/itemAdded', payload: ... }</code> — the type string is auto-derived from <code>name</code> + the key. No constants file, no hand-written action creators, no chance of a typo'd string silently doing nothing. One place to change, and the whole triple stays in sync.</p>
+
+<h3><code>configureStore</code> gives you sane defaults</h3>
+
+<p>Classic Redux's <code>createStore</code> gave you nothing: you wired up devtools by hand with a <code>window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__</code> incantation, and added thunk yourself. <code>configureStore</code> ships with Redux DevTools connected, <code>redux-thunk</code> included, and — my favourite — dev-only middleware that <em>throws</em> if you accidentally mutate state outside a reducer or put a non-serialisable value in an action. It turns two of the classic silent Redux bugs into loud errors.</p>
+
+<h3>Immer: how "mutation" is safe</h3>
+
+<p>This is the one people ask about, so let's do it properly. That <code>state.items.push(...)</code> line looks like it breaks every rule in Part 5. It doesn't, and here's why.</p>
+
+<p>The <code>state</code> object handed to your reducer is <strong>not your real state</strong>. It's a <strong>draft</strong>: a JavaScript <code>Proxy</code> wrapping the real state. A Proxy is a language feature that lets you intercept property reads and writes on an object. So when you run <code>state.items.push(item)</code>, Immer's proxy notices "somebody is writing to <code>items</code>", and instead of touching the original, it lazily makes a shallow copy of just that branch and records the change there.</p>
+
+<p>When your reducer returns, Immer walks what it recorded and produces a brand new state object where:</p>
+<ul>
+  <li>every branch you touched is a fresh copy with your changes applied, and</li>
+  <li><strong>every branch you didn't touch is the exact same object reference as before</strong> — structural sharing, the same idea from Part 4.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 700 240" role="img" aria-label="Diagram showing Immer producing a new state tree where only the touched branch is copied and untouched branches share references">
+  <text x="90" y="22" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#4a5265">before</text>
+  <text x="480" y="22" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#4a5265">after state.cart.items.push(...)</text>
+
+  <!-- before tree -->
+  <rect x="40" y="40" width="100" height="34" rx="7" fill="#f0eee9" stroke="#c9c3b8"/>
+  <text x="90" y="62" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a5265">root</text>
+  <rect x="10" y="115" width="70" height="34" rx="7" fill="#f0eee9" stroke="#c9c3b8"/>
+  <text x="45" y="137" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a5265">auth</text>
+  <rect x="100" y="115" width="70" height="34" rx="7" fill="#f0eee9" stroke="#c9c3b8"/>
+  <text x="135" y="137" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a5265">cart</text>
+  <rect x="100" y="180" width="70" height="34" rx="7" fill="#f0eee9" stroke="#c9c3b8"/>
+  <text x="135" y="202" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a5265">items</text>
+  <g stroke="#c9c3b8" stroke-width="1.4" fill="none">
+    <path d="M75 74 L50 113"/><path d="M105 74 L130 113"/><path d="M135 149 L135 178"/>
+  </g>
+
+  <line x1="240" y1="30" x2="240" y2="220" stroke="#e6e2db" stroke-width="2"/>
+
+  <!-- after tree -->
+  <rect x="430" y="40" width="100" height="34" rx="7" fill="#efedff" stroke="#4b3fd6"/>
+  <text x="480" y="62" text-anchor="middle" font-family="monospace" font-size="12" fill="#2c2288">root'</text>
+  <rect x="300" y="115" width="70" height="34" rx="7" fill="#f0eee9" stroke="#c9c3b8"/>
+  <text x="335" y="137" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a5265">auth</text>
+  <text x="335" y="163" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#8a8478">same reference</text>
+  <rect x="490" y="115" width="70" height="34" rx="7" fill="#efedff" stroke="#4b3fd6"/>
+  <text x="525" y="137" text-anchor="middle" font-family="monospace" font-size="12" fill="#2c2288">cart'</text>
+  <rect x="490" y="180" width="70" height="34" rx="7" fill="#efedff" stroke="#4b3fd6"/>
+  <text x="525" y="202" text-anchor="middle" font-family="monospace" font-size="12" fill="#2c2288">items'</text>
+  <g stroke="#4b3fd6" stroke-width="1.4" fill="none">
+    <path d="M465 74 L370 113"/><path d="M515 74 L522 113"/><path d="M525 149 L525 178"/>
+  </g>
+  <text x="600" y="205" font-family="sans-serif" font-size="10" fill="#4b3fd6">copied</text>
+</svg>
+<figcaption>Only the path from the root to what you touched gets copied. <code>auth</code> is literally the same object, so <code>prev.auth === next.auth</code> is still <code>true</code> and nothing subscribed to auth re-renders.</figcaption>
+</figure>
+
+<div class="callout what-about">
+  <p class="title">"So does RTK actually mutate my state?"</p>
+  <p>No — and this is a real interview question, so here's the crisp answer. You mutate a <em>draft proxy</em>, not the state. Immer records those writes and produces a new immutable state via structural sharing; the previous state object is untouched, so time travel and <code>===</code> checks still work exactly as before.</p>
+  <p>Two practical caveats worth knowing: (1) don't both mutate the draft <em>and</em> return a new value from the same reducer — pick one, Immer throws otherwise; (2) Immer only proxies plain objects, arrays, Maps and Sets. A class instance or a <code>Date</code> in your state won't be drafted the way you expect, which is another reason to keep state plain and serialisable.</p>
+</div>
+
+<h3><code>createAsyncThunk</code> for async flows</h3>
+
+<p>Almost every async operation has the same three-phase shape: it started, it worked, it failed. <code>createAsyncThunk</code> generates all three action types for you.</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Async, with the three phases handled</div>
+<pre><code>export const fetchOrders = createAsyncThunk(
+  'orders/fetch',
+  async (userId) =&gt; {
+    const res = await fetch(`/api/users/${userId}/orders`);
+    return res.json();                <span class="cmt">// becomes action.payload on success</span>
+  }
+);
+
+const ordersSlice = createSlice({
+  name: 'orders',
+  initialState: { list: [], status: 'idle', error: null },
+  reducers: {},
+  extraReducers: (builder) =&gt; {       <span class="cmt">// 👈 responds to actions it didn't define</span>
+    builder
+      .addCase(fetchOrders.pending,   (s) =&gt; { s.status = 'loading'; })
+      .addCase(fetchOrders.fulfilled, (s, a) =&gt; { s.status = 'done'; s.list = a.payload; })
+      .addCase(fetchOrders.rejected,  (s, a) =&gt; { s.status = 'error'; s.error = a.error.message; });
+  },
+});</code></pre>
+</div>
+
+<p><code>extraReducers</code> is where a slice reacts to actions defined elsewhere — the "many reducers can respond to one action" idea from Part 4, made concrete.</p>
+
+<div class="callout interview">
+  <p class="title">In an interview: "would you use Redux or Redux Toolkit?"</p>
+  <p>RTK <strong>is</strong> Redux. It's the official, recommended way to write Redux and has been for years — the Redux docs actively tell you not to hand-write the classic patterns. Saying "I'd set up a classic Redux store with action constants and <code>connect</code>" reads as "I learned this in 2017 and stopped reading". Not fatal, but it's a mild flag, and it's free to avoid: say RTK, and mention you know what it's abstracting over.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="zustand"><span class="num">Part 8 · Tier 2</span>Zustand: the store as a hook</h2>
+
+<p>Zustand ("state" in German, and yes it's a pun on Redux being Russian-ish sounding — the same author also made Jotai, "state" in Japanese) takes a different bet: keep the external store and the selector subscriptions, throw away the actions, the reducers, and the provider.</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ A whole Zustand store</div>
+<pre><code>import { create } from 'zustand';
+
+export const useCartStore = create((set) =&gt; ({
+  items: [],
+  coupon: null,
+  addItem: (item) =&gt; set((s) =&gt; ({ items: [...s.items, item] })),
+  clear:   () =&gt; set({ items: [], coupon: null }),
+}));</code></pre>
+</div>
+
+<p>State and the functions that change it live in the same object. And to use it:</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Reading with a selector</div>
+<pre><code>function CartCount() {
+  const count = useCartStore((s) =&gt; s.items.length);  <span class="cmt">// 👈 subscribes to just this</span>
+  return &lt;span&gt;{count}&lt;/span&gt;;
+}
+
+function AddButton({ item }) {
+  const addItem = useCartStore((s) =&gt; s.addItem);     <span class="cmt">// stable, never re-renders</span>
+  return &lt;button onClick={() =&gt; addItem(item)}&gt;Add&lt;/button&gt;;
+}</code></pre>
+</div>
+
+<p>Look at what's <em>absent</em>:</p>
+
+<ul>
+  <li><strong>No <code>&lt;Provider&gt;</code>.</strong> The store is a module-level object; the hook reaches out to it directly. Nothing wraps your app.</li>
+  <li><strong>No action types, no reducer, no dispatch.</strong> You just call <code>addItem(item)</code>.</li>
+  <li><strong>No re-render when <code>coupon</code> changes</strong>, in <code>CartCount</code>. The selector returned the same number, so <code>useSyncExternalStore</code>'s comparison says "nothing to do". This is the Context problem solved by construction.</li>
+</ul>
+
+<p>The "no provider" point has one nuance worth knowing, because it's a good follow-up answer: a module-level store is a <em>singleton</em>. That's fine in a browser app, but in SSR it means one store shared across all users' requests — so for Next.js you create the store per-request and pass it through a Context provider after all. Knowing that caveat is a nice depth signal.</p>
+
+<h3>The tradeoff, stated fairly</h3>
+
+<table>
+<thead><tr><th></th><th>Redux Toolkit</th><th>Zustand</th></tr></thead>
+<tbody>
+<tr><td>Bundle</td><td>~12–14 kB gzipped (+ react-redux)</td><td>~1 kB gzipped</td></tr>
+<tr><td>Boilerplate</td><td>Low (post-RTK), but real: slices, dispatch, action types</td><td>Almost none</td></tr>
+<tr><td>Subscriptions</td><td>Selector-based via <code>useSelector</code></td><td>Selector-based, built in</td></tr>
+<tr><td>Devtools</td><td>First class, time travel, action log</td><td>Via a middleware; usable, less rich</td></tr>
+<tr><td>Enforced structure</td><td>Strong — one obvious way to do things</td><td>Weak — the store is just an object you wrote</td></tr>
+<tr><td>Async</td><td><code>createAsyncThunk</code>, middleware ecosystem</td><td>Just <code>async</code> functions in the store</td></tr>
+<tr><td>Best at</td><td>Big apps, big teams, complex flows, auditability</td><td>Small–mid apps, small teams, speed of writing</td></tr>
+</tbody>
+</table>
+
+<p>The critical honest point: Zustand's freedom is a real liability at scale. Redux's action log gives you an <em>audit trail</em> — a flat, named list of everything that has ever happened. Zustand's <code>set</code> calls are scattered across arbitrary functions; there's no equivalent narrative. On a team of three, you don't miss it. On a team of thirty, that narrative is how you debug production.</p>
+
+<!-- ===================================================================== -->
+<h2 id="middleware"><span class="num">Part 9 · Tier 2</span>Middleware: where the side effects go</h2>
+
+<p>Back to the tension we parked. Reducers must be pure. But real apps must call APIs, write to <code>localStorage</code>, fire analytics, set timers. So where does that code live?</p>
+
+<p>Redux's answer is <strong>middleware</strong>: a chain of functions that every dispatched action passes through <em>before</em> it reaches the reducer. Think of it as airport security between the check-in desk (dispatch) and the plane (reducer). Every passenger walks through. Each station can inspect them, log them, delay them, redirect them, or refuse to let them through entirely.</p>
+
+<p>The shape looks bizarre the first time you see it:</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">The middleware signature: three nested arrows</div>
+<pre><code>const logger = (store) =&gt; (next) =&gt; (action) =&gt; {
+  console.log('dispatching:', action.type);
+  const result = next(action);          <span class="cmt">// 👈 pass it to the next middleware</span>
+  console.log('new state:', store.getState());
+  return result;
+};</code></pre>
+</div>
+
+<p>Read the layers outside-in — each one is applied at a different moment:</p>
+
+<ol>
+  <li><code>(store) =&gt;</code> runs <strong>once</strong>, at store creation. It hands you <code>getState</code> and <code>dispatch</code>.</li>
+  <li><code>(next) =&gt;</code> runs <strong>once per middleware</strong>, when the chain is assembled. <code>next</code> is "the rest of the chain" — the next middleware, or the reducer if you're last.</li>
+  <li><code>(action) =&gt;</code> runs <strong>on every dispatch</strong>. This is where your actual work happens.</li>
+</ol>
+
+<p>The genius of <code>next</code> is that <em>you</em> decide the flow. Call <code>next(action)</code> to let it through. Don't call it, and the action dies right there. Call it with a different object, and you've transformed it. Call it later, and you've delayed it.</p>
+
+<h3>Thunk: "what if an action could be a function?"</h3>
+
+<p>Here is <code>redux-thunk</code>, in full. It really is this small:</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">The entire thunk middleware</div>
+<pre><code>const thunk = (store) =&gt; (next) =&gt; (action) =&gt;
+  typeof action === 'function'
+    ? action(store.dispatch, store.getState)   <span class="cmt">// 👈 it's a function: run it</span>
+    : next(action);                            <span class="cmt">// plain object: business as usual</span></code></pre>
+</div>
+
+<p>That's the whole idea. Normally you can only dispatch plain objects. With thunk installed, you can dispatch a <em>function</em>, and the middleware intercepts it and calls it, handing over <code>dispatch</code> and <code>getState</code>. Inside that function you can do anything — it's not a reducer, purity doesn't apply.</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ An async flow as a thunk</div>
+<pre><code>const submitOrder = (cart) =&gt; async (dispatch, getState) =&gt; {
+  dispatch({ type: 'checkout/started' });
+  try {
+    const order = await api.submitOrder(cart);
+    dispatch({ type: 'checkout/succeeded', payload: order });
+  } catch (err) {
+    dispatch({ type: 'checkout/failed', error: err.message });
+  }
+};
+
+dispatch(submitOrder(cart));   <span class="cmt">// dispatching a function 😅</span></code></pre>
+</div>
+
+<p>Note the shape: <strong>the reducers stay pure.</strong> They only ever see the three plain objects. All the messy async lives in the thunk, outside the store's contract. That's the trick — side effects didn't disappear, they got moved to a place where they're allowed.</p>
+
+<h3>Saga: effects as data</h3>
+
+<p><code>redux-saga</code> takes a stranger and more powerful approach using <strong>generator functions</strong> — functions declared with <code>function*</code> that can pause at each <code>yield</code> and resume later.</p>
+
+<p>The key idea: a saga doesn't <em>do</em> the API call. It <code>yield</code>s a plain object <em>describing</em> the call — <code>call(api.submitOrder, cart)</code> returns something like <code>{ type: 'CALL', fn: api.submitOrder, args: [cart] }</code> — and the saga middleware performs it and feeds the result back in.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">The same flow as a saga</div>
+<pre><code>function* checkoutSaga() {
+  yield takeLatest('checkout/submitted', function* (action) {  <span class="cmt">// 👈 auto-cancels prior runs</span>
+    try {
+      const order = yield call(api.submitOrder, action.payload);
+      yield put({ type: 'checkout/succeeded', payload: order });
+    } catch (err) {
+      yield put({ type: 'checkout/failed', error: err.message });
+    }
+  });
+}</code></pre>
+</div>
+
+<p>Two payoffs, and then the judgement call — which is the only part you need at speaking speed.</p>
+
+<p><strong>Testability.</strong> Since <code>call(...)</code> only returns a description, you test a saga by stepping the generator and asserting on the yielded objects. No network mocking at all — you're asserting "it intended to call this, with these args."</p>
+
+<p><strong>Orchestration and cancellation.</strong> Saga has real vocabulary for this: <code>takeLatest</code> (cancel the previous run when a new one starts — correct for search-as-you-type), <code>race</code> (for timeouts), <code>all</code>, <code>debounce</code>. "Cancel the previous request, unless a logout happens, in which case abandon everything" is a mess of flags with thunks and a few lines with sagas.</p>
+
+<p><strong>And is that complexity justified?</strong> Usually not, and less than it used to be — which is the answer to give. Sagas earn their keep for long-lived cancellable orchestration: websockets, polling with backoff, wizards abandoned mid-flight. For "fetch data and put it in the store" it's a bazooka, and the generator learning curve is a real tax on a team. If the flow is server-state fetching, the modern answer is neither — it's React Query / RTK Query.</p>
+
+<h3>Other middleware you'll mention</h3>
+
+<p>Logging, persistence (<code>redux-persist</code> writing a slice to <code>localStorage</code> and rehydrating on boot), analytics (mapping action types to tracking events so components stay clean), and crash reporting (wrap <code>next(action)</code> in try/catch, attach the last N actions to the report).</p>
+
+<p>That last one is the real argument for middleware generally: it's the only place you can say "on every state change, do X" <em>once</em> instead of in a hundred components.</p>
+
+<!-- ===================================================================== -->
+<h2 id="selectors"><span class="num">Part 10 · Tier 3</span>Selector memoization and reselect</h2>
+
+<p>Here's a bug that has bitten literally everyone. This component re-renders on <em>every single dispatch in the entire app</em>, even ones with nothing to do with todos. Can you see why?</p>
+
+<div class="codeblock bad">
+  <div class="codelabel">❌ Re-renders on every dispatch, anywhere</div>
+<pre><code>function TodoList() {
+  const visible = useSelector((state) =&gt;
+    state.todos.items.filter((t) =&gt; !t.done)     <span class="cmt">// 👈 look closely</span>
+  );
+  return &lt;ul&gt;{visible.map(renderTodo)}&lt;/ul&gt;;
+}</code></pre>
+</div>
+
+<p>Take a second before reading on. The logic is right — it really does return the incomplete todos.</p>
+
+<p>The problem is <code>.filter()</code>. It <strong>always returns a brand new array</strong>, even when every element inside is identical.</p>
+
+<p>Recall from the "Under the hood" box in Part 4 what <code>useSelector</code> does: on every store notification, it re-runs your selector and compares the result to last time with <code>===</code>. Two different array objects with identical contents are not <code>===</code>. So the comparison says "changed!", every time, for every action in the app. Someone toggles the sidebar; your todo list re-renders.</p>
+
+<p>The fix is <strong>memoization</strong>: remember the last inputs and the last output, and if the inputs are unchanged, hand back the <em>same output object</em> rather than computing a new one. That's what <code>createSelector</code> from <code>reselect</code> (bundled inside Redux Toolkit) does.</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Memoized derived state</div>
+<pre><code>import { createSelector } from '@reduxjs/toolkit';
+
+const selectVisibleTodos = createSelector(
+  [(state) =&gt; state.todos.items, (state) =&gt; state.todos.filter],  <span class="cmt">// input selectors</span>
+  (items, filter) =&gt; items.filter((t) =&gt; t.status === filter)      <span class="cmt">// only runs if inputs changed</span>
+);
+
+function TodoList() {
+  const visible = useSelector(selectVisibleTodos);   <span class="cmt">// 👈 same array reference now</span>
+  return &lt;ul&gt;{visible.map(renderTodo)}&lt;/ul&gt;;
+}</code></pre>
+</div>
+
+<p>Mechanically: the input selectors are cheap and just <em>pluck</em> references out of state. <code>createSelector</code> compares those plucked values with <code>===</code>. If they're all identical to last time, it skips the expensive filter entirely and returns the cached array — the same object reference. <code>useSelector</code>'s <code>===</code> check now passes, and your component doesn't re-render. When <code>items</code> genuinely changes, the filter runs and produces a new array, and you re-render exactly once, correctly.</p>
+
+<p>The mental model: <strong>a memoized selector is a receptionist with a good memory.</strong> "Same question as last time? Here's the answer I already have. Something changed? Fine, I'll go find out again." The analogy's weak spot is that the default <code>reselect</code> cache size is <em>one</em> — ask a different question, and it forgets the previous answer.</p>
+
+<div class="callout what-about">
+  <p class="title">Wait — a cache of one? Doesn't that break with lists?</p>
+  <p>Yes, and this is the classic gotcha. If ten <code>&lt;TodoItem id={n} /&gt;</code> components all use the same <code>selectTodoById(state, id)</code> selector with different <code>id</code>s, each call evicts the previous cache entry and memoization does nothing.</p>
+  <p>Two fixes: create a per-component selector instance with <code>useMemo</code>, or use RTK's newer <code>createSelector</code> options / <code>weakMapMemoize</code> to get a multi-entry cache. Naming this problem in an interview is a strong depth signal.</p>
+</div>
+
+<p>Two more things worth knowing, and both come up as follow-ups:</p>
+
+<p><strong>Selectors are also an abstraction boundary.</strong> If every component reads <code>state.todos.items</code> directly, restructuring your state means editing fifty files. If they all call <code>selectTodos(state)</code>, you edit one. Colocate selectors with their slice and export them.</p>
+
+<p><strong>Returning a fresh object has the same bug.</strong> <code>useSelector(s =&gt; ({ name: s.user.name, email: s.user.email }))</code> creates a new object every time — same problem as <code>.filter()</code>. Either call <code>useSelector</code> twice (once per primitive — usually the simplest answer), or pass an equality function: <code>useSelector(fn, shallowEqual)</code>.</p>
+
+<!-- ===================================================================== -->
+<h2 id="normalize"><span class="num">Part 11 · Tier 3</span>Normalizing state: your store is a database</h2>
+
+<p>Your API returns nested JSON, because that's convenient for the API. So you drop it straight into the store:</p>
+
+<div class="codeblock bad">
+  <div class="codelabel">❌ Nested and duplicated</div>
+<pre><code>{
+  posts: [
+    { id: 'p1', title: 'Hello', author: { id: 'u7', name: 'Priya' } },
+    { id: 'p2', title: 'Again', author: { id: 'u7', name: 'Priya' } },
+    { id: 'p3', title: 'More',  author: { id: 'u7', name: 'Priya' } },
+  ]
+}</code></pre>
+</div>
+
+<p>Priya is in there three times. Now she changes her display name to "Priya S." — and you have a genuinely nasty problem:</p>
+
+<ul>
+  <li>You must find and update <em>every</em> copy. Miss one and your UI shows two different names for one person.</li>
+  <li>To do it immutably, you have to map over the posts array, and inside that rebuild each matching post, and inside that rebuild its author. Deeply nested spread hell.</li>
+  <li>And because you rebuilt the whole <code>posts</code> array, <em>every</em> post component re-renders — including the ones that didn't change at all.</li>
+</ul>
+
+<p>The fix is to store data the way a relational database does: <strong>each entity once, in a lookup table, referenced by ID.</strong></p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ Normalized: byId + allIds</div>
+<pre><code>{
+  posts: {
+    byId: {
+      p1: { id: 'p1', title: 'Hello', authorId: 'u7' },   <span class="cmt">// 👈 a reference, not a copy</span>
+      p2: { id: 'p2', title: 'Again', authorId: 'u7' },
+    },
+    allIds: ['p1', 'p2'],          <span class="cmt">// keeps order, and gives you a cheap list to map</span>
+  },
+  users: {
+    byId: { u7: { id: 'u7', name: 'Priya' } },
+    allIds: ['u7'],
+  },
+}</code></pre>
+</div>
+
+<p>Now the rename is one line: <code>state.users.byId.u7.name = 'Priya S.'</code>. One source of truth, so inconsistency is <em>structurally impossible</em>. The <code>posts</code> slice isn't touched at all, so post components that only render titles don't re-render.</p>
+
+<p>Why the two fields? <code>byId</code> gives you O(1) lookup by ID — no <code>array.find()</code> scans. <code>allIds</code> preserves ordering and lets you render a list by mapping IDs. A list component maps over <code>allIds</code> and passes just an <code>id</code> to each child; each child selects its own record. That way, changing one post re-renders exactly one row.</p>
+
+<p>Redux Toolkit gives you this shape prebuilt via <code>createEntityAdapter</code>:</p>
+
+<div class="codeblock good">
+  <div class="codelabel">✅ createEntityAdapter does the bookkeeping</div>
+<pre><code>const postsAdapter = createEntityAdapter({
+  sortComparer: (a, b) =&gt; b.createdAt - a.createdAt,
+});
+
+const postsSlice = createSlice({
+  name: 'posts',
+  initialState: postsAdapter.getInitialState({ status: 'idle' }),  <span class="cmt">// { ids: [], entities: {} }</span>
+  reducers: {
+    postAdded:   postsAdapter.addOne,       <span class="cmt">// prewritten CRUD reducers</span>
+    postUpdated: postsAdapter.upsertOne,
+    postRemoved: postsAdapter.removeOne,
+    postsLoaded: postsAdapter.setAll,
+  },
+});
+
+export const { selectAll, selectById } = postsAdapter.getSelectors((s) =&gt; s.posts);</code></pre>
+</div>
+
+<p>It maintains <code>ids</code> and <code>entities</code> (RTK's names for <code>allIds</code>/<code>byId</code>), keeps sorting correct on insert, and generates memoized selectors. You get add/update/remove/upsert/setAll for free.</p>
+
+<div class="callout what-about">
+  <p class="title">"Should I normalize everything?"</p>
+  <p>No. Normalizing costs you readability — you trade "just read the object" for "join it back together in a selector". It's worth it when: the same entity appears in multiple places, entities get updated individually, or lists are long enough that re-rendering everything hurts.</p>
+  <p>It's <em>not</em> worth it for a settings object, or a one-off list you fetch, display, and throw away. And if the data is server state living in React Query, its cache is already keyed by query — normalization is usually someone else's problem at that point.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="atomic"><span class="num">Part 12 · Tier 3</span>Atomic state: Jotai, Recoil, Valtio</h2>
+
+<p>Everything so far has been <strong>top-down</strong>: one big state object, and components select slices out of it. There's a whole other family that works <strong>bottom-up</strong>.</p>
+
+<p>The unit is an <strong>atom</strong>: a single, tiny, independent piece of state that you define on its own and use directly. There's no root store to register it with.</p>
+
+<div class="codeblock neutral">
+  <div class="codelabel">Jotai: atoms, and atoms derived from atoms</div>
+<pre><code>import { atom, useAtom } from 'jotai';
+
+const cartAtom = atom([]);                                <span class="cmt">// a primitive atom</span>
+const cartCountAtom = atom((get) =&gt; get(cartAtom).length); <span class="cmt">// 👈 derived from it</span>
+const cartTotalAtom = atom((get) =&gt;
+  get(cartAtom).reduce((sum, i) =&gt; sum + i.price * i.qty, 0)
+);
+
+function CartBadge() {
+  const [count] = useAtom(cartCountAtom);   <span class="cmt">// only re-renders when the count changes</span>
+  return &lt;span&gt;{count}&lt;/span&gt;;
+}</code></pre>
+</div>
+
+<p>The interesting bit is <strong>derived atoms</strong>. <code>cartCountAtom</code> declares its dependency by calling <code>get(cartAtom)</code>, so the library builds a dependency graph automatically. When <code>cartAtom</code> changes, it knows exactly which derived atoms are affected, recomputes only those, and re-renders only the components subscribed to <em>them</em>.</p>
+
+<p>Compare to the Context problem from Part 3. In Context, "which components care about this change?" is unanswerable, so everyone re-renders. In Redux, you answer it with selectors and memoization — a fix layered on top. In an atomic library, <strong>the granularity is the design</strong>. There's no big object to over-subscribe to, because there's no big object. The re-render problem is avoided by construction rather than patched.</p>
+
+<p>The mental model: Redux is <strong>one big whiteboard</strong> everyone reads, with selectors as the discipline of only looking at your corner. Atoms are <strong>a wall of sticky notes</strong> — you read only the ones you need, and some notes compute themselves from other notes. (The analogy breaks on actions: sticky notes have no equivalent of Redux's action log. That's the auditability tradeoff again.)</p>
+
+<p>Name-recognition is enough here: <strong>Jotai</strong> is the one to name today (small, TypeScript-first, maintained); <strong>Recoil</strong> is its Facebook-built ancestor, effectively unmaintained, so know it historically and don't propose it; <strong>Valtio</strong> is the mutable-proxy flavour where you write <code>state.count++</code> and readers re-render automatically.</p>
+
+<p>What earns the point isn't the list — it's saying <em>why the category exists</em>: fine-grained, automatically tracked dependencies, which suits apps with lots of interdependent derived values (editors, canvases, dashboards, forms with cross-field logic).</p>
+
+<!-- ===================================================================== -->
+<h2 id="interview"><span class="num">Part 13 · The interview layer</span>How this actually gets asked</h2>
+
+<p>State management is a <em>judgement</em> topic. Interviewers rarely want to know if you can write a reducer — they want to know whether you'd reach for Redux on a five-page marketing site. Almost every question here is secretly "do you know when <em>not</em> to use this?"</p>
+
+<h3>The literal phrasings</h3>
+
+<ul>
+  <li>"How do you manage state in a React app?"</li>
+  <li>"Walk me through how Redux works."</li>
+  <li>"When would you reach for a state management library?"</li>
+  <li>"What's the difference between Context and Redux?"</li>
+  <li>"Have you used Redux Toolkit? What does it give you over plain Redux?"</li>
+  <li>"How do you handle async operations in Redux?"</li>
+  <li>"Tell me about a time state management got messy. What did you do?"</li>
+</ul>
+
+<h3>The model answer to the big one</h3>
+
+<div class="answer">
+  <p><strong>Q: "How do you decide between Context and a state management library?"</strong></p>
+  <p class="said">"First I'd split the state up. Anything that's really server data — lists, profiles, anything fetched — I'd put in React Query rather than a global store, because that's a caching problem, not a state problem. Then for what's left, if it's a couple of values that change rarely, like theme or the auth session, Context is genuinely enough — it's a transport mechanism and that's all I need. I'd move to Zustand or Redux Toolkit when I need things Context can't do: selector-based subscriptions so components don't all re-render on every change, devtools and an action log for debugging, or middleware for things like persistence. And on a big team there's a convention argument for RTK too — it gives everyone one obvious way to structure state."</p>
+  <p class="why"><strong>Why it lands:</strong> it separates server state from client state unprompted (senior signal), it treats Context as legitimate rather than something to sneer at, and it names <em>specific capabilities</em> as the trigger for upgrading instead of vibes. You've shown you'd add a dependency for a reason.</p>
+</div>
+
+<div class="answer">
+  <p><strong>Q: "Walk me through the Redux data flow."</strong></p>
+  <p class="said">"There's one store holding the whole app's state as a single plain object. When something happens in the UI, you dispatch an action — a plain object with a type, describing what happened, in the past tense. The store passes the current state and that action to a reducer, which is a pure function that returns a brand new state object rather than mutating the old one. The store saves that and notifies subscribers, and react-redux re-renders the components whose selected slice actually changed. It's strictly one direction — nothing writes to the store except a reducer responding to a dispatch. That's what makes it debuggable: any state change is traceable to a named action in the devtools log."</p>
+  <p class="why"><strong>Why it lands:</strong> it's the full cycle in order, it uses the right nouns, and the last sentence explains the <em>point</em> of the constraint rather than just reciting it.</p>
+</div>
+
+<h3>Follow-up questions — the highest value part</h3>
+
+<details>
+<summary>"Why not just use Context for everything?"</summary>
+<p>Because Context is a transport mechanism, not a state manager. It has no selector API, so every component consuming a context re-renders whenever any part of that context value changes — you can't subscribe to just the piece you read. It also gives you no devtools, no middleware hook for cross-cutting concerns like persistence or logging, and no conventions about state shape.</p>
+<p>For a theme or a locale that changes twice a session, none of that matters and Context is the right call. For a value that changes frequently and is read by many unrelated components, the broadcast behaviour becomes a real performance problem, and the workaround — splitting into a dozen tiny contexts — is just hand-rolling a worse version of what a store gives you.</p>
+</details>
+
+<details>
+<summary>"Why must reducers be pure?"</summary>
+<p>Four reasons, and I'd give at least two. Purity means state<sub>n</sub> is a deterministic function of state<sub>n-1</sub> and the action, so the devtools can replay the action log to reconstruct any past state — that's how time-travel debugging works, and how a captured bug report reproduces exactly. Immutability specifically is also the change-detection mechanism: components compare state by reference, so if a reducer mutated an array in place, the reference wouldn't change and the UI would silently go stale. And pure reducers are trivially testable — inputs in, assert on the output, no mocks.</p>
+</details>
+
+<details>
+<summary>"Does RTK's Immer actually mutate my state?"</summary>
+<p>No. The <code>state</code> object your reducer receives is a draft — a Proxy wrapping the real state. The proxy intercepts your writes and records them instead of applying them. When the reducer returns, Immer produces a new state object using structural sharing: branches you touched are copied with the changes applied, and branches you didn't touch keep their original object references. So the previous state is untouched, <code>===</code> comparisons still work, and time travel is unaffected.</p>
+<p>Two caveats: don't both mutate the draft and return a new value from one reducer — Immer throws. And Immer only drafts plain objects, arrays, Maps and Sets, so class instances or Dates in state won't behave as expected.</p>
+</details>
+
+<details>
+<summary>"Why does my component re-render on every dispatch?"</summary>
+<p>Almost always because the selector returns a new reference each time. <code>useSelector</code> re-runs your selector on every store notification and compares the result with <code>===</code>; something like <code>useSelector(s =&gt; s.items.filter(...))</code> or <code>useSelector(s =&gt; ({ a, b }))</code> builds a fresh array or object every run, so the comparison always fails and it re-renders on every action in the app.</p>
+<p>Fixes: select primitives (call <code>useSelector</code> twice rather than returning an object), use <code>createSelector</code> from reselect so the derived value is memoized and the reference is stable, or pass <code>shallowEqual</code> as the second argument to <code>useSelector</code>.</p>
+</details>
+
+<details>
+<summary>"When would you pick Zustand over Redux?"</summary>
+<p>Small-to-mid app, small team, and I want selector-based subscriptions without the ceremony. Zustand is about 1 kB, needs no provider, and the store is just an object of state plus the functions that update it — so I get the thing Context can't do (partial subscriptions) at almost no cost.</p>
+<p>I'd go the other way — RTK — when I want the strong conventions, when the app has lots of interdependent slices and complex async flows, or when the devtools action log matters for debugging production. On a large team, having exactly one obvious way to write state is worth real boilerplate. And I'd note that Zustand's module-level store is a singleton, so under SSR you need to create it per-request.</p>
+</details>
+
+<details>
+<summary>"What problem does middleware solve?"</summary>
+<p>Reducers have to be pure, so there's nowhere in the core cycle for side effects — API calls, logging, persistence, analytics. Middleware is an interception layer that every dispatched action passes through before reaching the reducer, so it's the sanctioned home for that impure work. The signature is <code>store =&gt; next =&gt; action =&gt; {}</code>: you can inspect the action, pass it along with <code>next(action)</code>, transform it, delay it, or swallow it entirely.</p>
+<p>Thunk is the simplest example — nine lines that check whether the "action" is actually a function and call it with dispatch and getState if so, which is how async works in Redux. It's also the only place you can express "on every action, do X" once instead of in every component.</p>
+</details>
+
+<details>
+<summary>"Is Redux dead?"</summary>
+<p>No, but its scope shrank a lot, and that's a good thing. Historically most of what people put in Redux was cached server data, and query libraries like React Query and RTK Query handle that far better — caching, staleness, deduplication, background refetch. Once that moves out, the remaining global client state in most apps is small enough for Context or Zustand, so a lot of apps genuinely don't need Redux any more.</p>
+<p>Where it's still the right answer: large apps with lots of interdependent client state, big teams that benefit from enforced conventions, and anything where the action log and time-travel debugging are genuinely valuable. And Redux Toolkit removed most of the boilerplate that gave Redux its reputation. So: not dead, just no longer the default.</p>
+</details>
+
+<details>
+<summary>"How do you handle async in Redux?"</summary>
+<p>Not in reducers — they have to stay pure. The standard answer is <code>createAsyncThunk</code> from Redux Toolkit: you give it a name and an async function, and it generates pending / fulfilled / rejected action types automatically. You handle those in <code>extraReducers</code> to set loading, data, and error state. Under the hood it's just redux-thunk, which lets you dispatch a function that receives dispatch and getState.</p>
+<p>For complex orchestration — cancellation, racing, debouncing, websockets, multi-step flows that can be abandoned — redux-saga's generators are stronger, because it has real cancellation and effects like <code>takeLatest</code> and <code>race</code>. But if it's plain data fetching, the honest answer today is RTK Query or React Query rather than either.</p>
+</details>
+
+<details>
+<summary>"Why normalize state?"</summary>
+<p>Because nested API responses duplicate entities. If the same user is embedded in thirty posts and they change their name, you have to find and update thirty copies immutably — easy to get wrong, and you end up rebuilding the whole posts array so every post re-renders. Normalizing means storing each entity once in a <code>byId</code> lookup with an <code>allIds</code> array for order, and referencing by ID. Then an update is one line at one location, inconsistency is structurally impossible, lookups are O(1) instead of array scans, and only the components reading that specific entity re-render. RTK's <code>createEntityAdapter</code> builds that shape and its CRUD reducers and selectors for you.</p>
+</details>
+
+<details>
+<summary>"What are atoms, and how are they different?"</summary>
+<p>Atoms are bottom-up state — instead of one big store you select slices from, you define lots of tiny independent pieces and use them directly. Jotai is the main one today; Recoil was the original but is effectively unmaintained. The interesting part is derived atoms: an atom can be computed from other atoms, and the library tracks that dependency graph automatically, so a change recomputes only the affected derived atoms and re-renders only their subscribers. The over-rendering problem that Context has and that Redux solves with selectors and memoization simply doesn't arise, because there's no big object to over-subscribe to. It suits apps with lots of fine-grained interdependent values — editors, canvases, complex forms.</p>
+</details>
+
+<h3>Traps — the specific answers that get you dinged</h3>
+
+<table>
+<thead><tr><th>❌ Don't say</th><th>✅ Say instead</th></tr></thead>
+<tbody>
+<tr><td>"Context has bad performance."</td><td>"Context has no selector API, so every consumer re-renders when the value changes. That's fine for rarely-changing values and a problem for frequently-changing ones."</td></tr>
+<tr><td>"Redux is for large apps." (and stop)</td><td>Name the actual capabilities: partial subscriptions, devtools/action log, middleware, enforced conventions.</td></tr>
+<tr><td>"Redux is dead, everyone uses Zustand now."</td><td>"Its scope shrank because server state moved to query libraries. It's still the right pick for large apps and teams."</td></tr>
+<tr><td>"Immer mutates state." / "RTK lets you mutate state."</td><td>"You mutate a draft proxy; Immer produces a new immutable state with structural sharing."</td></tr>
+<tr><td>"I'd use classic Redux with action constants and connect."</td><td>"Redux Toolkit — it's the official recommended approach and removes the boilerplate that gave Redux its reputation."</td></tr>
+<tr><td>"You put all shared state in the store."</td><td>"Most state should stay local. Global state is a cost you pay only to solve actual sharing."</td></tr>
+<tr><td>"Redux for API data and loading flags."</td><td>"That's server state — a caching problem. React Query or RTK Query handles staleness, dedup, and refetch far better."</td></tr>
+<tr><td>Reciting the three-arrow middleware signature with no explanation.</td><td>Explain <em>why</em> it's curried: store at creation, next when the chain is assembled, action on every dispatch.</td></tr>
+</tbody>
+</table>
+
+<div class="callout interview">
+  <p class="title">Depth vs recall — how to tell what's being tested</p>
+  <p>"What is an action?" is a <strong>recall</strong> question; answer it in one sentence and stop. "Why does Redux insist reducers are pure?" or "why not just use Context?" are <strong>depth</strong> questions — they want a tradeoff, so give the benefit <em>and</em> the cost. And "how would you structure state for X?" is a <strong>judgement</strong> question: ask a clarifying question first (how often does it change? who reads it? is it server data?), then answer. Asking that clarifying question is itself most of the point.</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2 id="cheat"><span class="num">Part 14</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<table class="cheat">
+<tbody>
+<tr><td>Prop drilling</td><td>Passing a prop through components that don't use it. Often fine; only a problem when the chain is long, the value changes often, and many places need it.</td></tr>
+<tr><td>First fix</td><td>Composition — pass the built element as <code>children</code>/a prop, so the data travels zero levels. Try this before any library.</td></tr>
+<tr><td>What Context solves</td><td>Transport. Getting a value from an ancestor to a deep descendant without intermediaries.</td></tr>
+<tr><td>What Context doesn't solve</td><td>It's not a state manager: no selectors (every consumer re-renders on any change), no devtools, no middleware, no state-shape conventions.</td></tr>
+<tr><td>Redux store</td><td>One store, one plain-object state tree for the whole app. Serialisable, so it can be captured and replayed.</td></tr>
+<tr><td>Action</td><td>A plain serialisable object with a <code>type</code>, describing what <em>happened</em> (past tense), not what to do. Many reducers can respond to one action.</td></tr>
+<tr><td>Reducer</td><td>Pure <code>(state, action) =&gt; newState</code>. Never mutates; returns a new object. Unknown action → return state unchanged.</td></tr>
+<tr><td>The cycle</td><td>UI dispatches → reducer computes new state → store saves &amp; notifies → subscribed components re-render. One direction, no shortcuts.</td></tr>
+<tr><td>Why purity</td><td>Time travel / replay, deterministic bug reproduction, reference-equality change detection, trivial testing.</td></tr>
+<tr><td>Redux Toolkit</td><td>The official way to write Redux. <code>createSlice</code> (actions from reducers), Immer, <code>configureStore</code> (devtools + thunk + mutation checks), <code>createAsyncThunk</code>.</td></tr>
+<tr><td>Immer</td><td>You mutate a Proxy <em>draft</em>; it records writes and produces a new immutable state via structural sharing. Untouched branches keep their references.</td></tr>
+<tr><td>Structural sharing</td><td>Only the path from root to what changed is copied. Makes <code>===</code> change detection both correct and cheap.</td></tr>
+<tr><td>Zustand</td><td>Hook-based store, no provider, selector subscriptions, ~1 kB. Less structure — weaker for large teams. Singleton, so needs care under SSR.</td></tr>
+<tr><td>Middleware</td><td>Where side effects go, since reducers must be pure. <code>store =&gt; next =&gt; action =&gt; {}</code>: once at creation, once at assembly, once per dispatch.</td></tr>
+<tr><td>Thunk</td><td>Dispatch a function; the middleware calls it with <code>(dispatch, getState)</code>. Simple async. Nine lines of source.</td></tr>
+<tr><td>Saga</td><td>Generators yielding <em>descriptions</em> of effects. Worth it for cancellation and orchestration (<code>takeLatest</code>, <code>race</code>), overkill for plain fetching.</td></tr>
+<tr><td>Selector re-render bug</td><td>Inline <code>.filter()</code>/object literals return a new reference each run, so <code>useSelector</code>'s <code>===</code> check always fails → re-render on every dispatch.</td></tr>
+<tr><td><code>createSelector</code></td><td>Memoizes derived state: same inputs (by reference) → same cached output object. Default cache size is 1 — watch out for per-item selectors in lists.</td></tr>
+<tr><td>Normalization</td><td>State as a database: <code>byId</code> + <code>allIds</code>. One copy per entity → consistent updates, O(1) lookup, fewer re-renders. <code>createEntityAdapter</code> builds it.</td></tr>
+<tr><td>Atoms (Jotai)</td><td>Bottom-up tiny state units with auto-tracked derived atoms. Fine granularity by construction, so no over-rendering to fix. Recoil = ancestor, unmaintained. Valtio = mutable proxy flavour.</td></tr>
+<tr><td>Client vs server state</td><td>Server data is a cache, not state → React Query / RTK Query. What's left is usually small enough for Context or Zustand. (Covered in its own guide.)</td></tr>
+<tr><td>Is Redux dead?</td><td>No — its scope shrank. Still the right call for large apps, big teams, complex flows, and when the action log matters.</td></tr>
+</tbody>
+</table>
+
+<hr class="soft">
+
+<p>If you take one thing from all of this, make it the framing: <strong>global state is a cost you pay to solve a sharing problem</strong>. Every tool here — Context, Redux, Zustand, Jotai — is a different price for a different amount of sharing. The candidate who knows all four APIs is fine. The candidate who can say "here's the sharing problem I actually have, and here's the cheapest thing that solves it" is the one who gets hired. 🎯</p>
+
+</div>
+</body>
+</html>

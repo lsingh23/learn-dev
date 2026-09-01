@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iterators, Generators, Proxies &amp; Workers</title>
+<style>
+  :root {
+    --ink: #1b1c1f;
+    --ink-soft: #4a4d55;
+    --paper: #fdfcfa;
+    --rule: #e5e2dc;
+    --accent: #5b3df5;
+    --accent-soft: #f0edff;
+    --code-bg: #1e1f26;
+    --code-ink: #e8e6f0;
+    --green: #0d7a52;
+    --green-soft: #eaf7f1;
+    --red: #b3261e;
+    --red-soft: #fdeeed;
+    --amber: #8a5a00;
+    --amber-soft: #fff6e3;
+    --blue: #10557f;
+    --blue-soft: #eaf4fb;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 48px 22px 120px;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    margin: 0 0 0.35em;
+  }
+
+  .subtitle {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0 0 2.5em;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+    margin: 3.2em 0 0.7em;
+    padding-top: 0.6em;
+    border-top: 3px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 1.24rem;
+    line-height: 1.35;
+    margin: 2.3em 0 0.5em;
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-size: 1.03rem;
+    margin: 1.8em 0 0.4em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.82rem;
+  }
+
+  p { margin: 0 0 1.15em; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+  li { margin-bottom: 0.45em; }
+
+  code {
+    font-family: "SF Mono", SFMono-Regular, ui-monospace, "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.87em;
+  }
+
+  p code, li code, td code, summary code {
+    background: #f0eeea;
+    border: 1px solid #e2ded6;
+    border-radius: 4px;
+    padding: 0.08em 0.34em;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 9px;
+    overflow-x: auto;
+    line-height: 1.6;
+    font-size: 0.93rem;
+    margin: 0 0 1.4em;
+  }
+
+  pre code { font-size: 0.88rem; }
+
+  .cmt { color: #8b93a8; }
+  .out { color: #7ad9a8; }
+
+  .codehead {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 9px 9px 0 0;
+    margin-top: 0;
+  }
+  .codehead + pre { border-radius: 0 0 9px 9px; margin-top: 0; }
+  .bad  { background: var(--red-soft);   color: var(--red);   border: 1px solid #f3cfcc; border-bottom: none; }
+  .good { background: var(--green-soft); color: var(--green); border: 1px solid #c9e8db; border-bottom: none; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px 4px;
+    margin: 1.7em 0;
+    border: 1px solid;
+    font-size: 0.97rem;
+  }
+  .callout .label {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 0.5em;
+  }
+  .wait     { background: var(--blue-soft);  border-color: #c5e0f0; }
+  .wait .label { color: var(--blue); }
+  .miscon   { background: var(--red-soft);   border-color: #f3cfcc; }
+  .miscon .label { color: var(--red); }
+  .hood     { background: #f4f2ee;           border-color: #e2ded6; }
+  .hood .label { color: var(--ink-soft); }
+  .interview{ background: var(--accent-soft);border-color: #d8d0ff; }
+  .interview .label { color: var(--accent); }
+  .trap     { background: var(--amber-soft); border-color: #f0dfb6; }
+  .trap .label { color: var(--amber); }
+
+  .say {
+    background: #fff;
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 18px;
+    margin: 1em 0;
+    font-style: italic;
+    color: #33303d;
+  }
+  .say strong { font-style: normal; }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 1.3em 0;
+    background: #fff;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  details[open] summary { margin-bottom: 0.7em; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 24px 20px;
+    margin-bottom: 3em;
+  }
+  .toc h2 {
+    border: none;
+    margin: 0 0 0.4em;
+    padding: 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+  }
+  .toc ol { margin: 0; padding-left: 1.3em; }
+  .toc li { margin-bottom: 0.25em; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.4em 0;
+    font-size: 0.94rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f4f2ee; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  figure { margin: 1.8em 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 0.6em;
+  }
+
+  .cheat td:first-child { font-weight: 650; white-space: nowrap; }
+
+  .rare {
+    display: inline-block;
+    font-size: 0.6em;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 0.6em;
+    background: #f4f2ee;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 99px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 2.5em 0; }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.42rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Iterators, Generators, Proxies &amp; Workers</h1>
+<p class="subtitle">The senior-leaning corners of JavaScript — not because the syntax is hard, but because knowing <em>when to reach for them</em> is the actual signal.</p>
+
+<p>Here's the thing about this batch of topics. Nobody has ever been hired for reciting <code>function*</code> syntax. I promise you that. What gets you hired is being able to say, out loud, in a normal conversational tone: <em>"Vue's reactivity is built on Proxy, React's is built on re-running your component — that's why Vue can track a mutation and React needs a new object."</em></p>
+
+<p>That sentence takes ten seconds and it tells the interviewer you've thought about <em>why the language has these features</em>. So that's how I'm going to teach all of this. Every feature here exists because someone hit a wall, and I want you to feel the wall before I show you the door through it.</p>
+
+<p>We start slow. If you've never seen a Symbol before, that's completely fine — that's the assumption I'm writing under.</p>
+
+<div class="toc">
+<h2>What's in here</h2>
+<ol>
+  <li><a href="#symbol">Symbol — the unique primitive</a></li>
+  <li><a href="#iterators">Iterators &amp; the iterable protocol</a></li>
+  <li><a href="#generators">Generators — pausable functions</a></li>
+  <li><a href="#proxy">Proxy &amp; Reflect — intercepting the language</a></li>
+  <li><a href="#tagged">Tagged template literals</a></li>
+  <li><a href="#workers">Web Workers vs Service Workers</a></li>
+  <li><a href="#cheat">Interview cheat sheet</a></li>
+</ol>
+</div>
+
+<div class="callout wait">
+<span class="label">Read this first — how to spend your time here</span>
+<p>Be honest about the odds. In a normal frontend interview, this guide's topics come up roughly like this:</p>
+<table>
+<tr><th>Actually asked</th><th>Occasionally</th><th>Almost never</th></tr>
+<tr>
+<td>Web Worker vs Service Worker · "how does offline work" · <code>Symbol.iterator</code> (as "how would you make something iterable")</td>
+<td>What a Symbol is · when you'd use a generator · Proxy as "how does Vue reactivity work"</td>
+<td>Well-known symbols beyond <code>iterator</code> · two-way <code>gen.next(v)</code> · async generators · all 13 proxy traps · tagged templates</td>
+</tr>
+</table>
+<p>So: sections carrying a <span class="rare">rarely asked</span> badge are written short on purpose — enough to recognise the thing and say one confident sentence, no more. Anything deeper is tucked into a <em>"if you're curious"</em> toggle you can safely skip. Spend your real reading time on section 6.</p>
+</div>
+
+<!-- ══════════════════════════════════════ SYMBOL ══════════════════════════════════════ -->
+<h2 id="symbol">1. Symbol — the unique primitive</h2>
+
+<p>Let's start with a problem, not a definition.</p>
+
+<p>Imagine you're writing a little analytics library. Someone passes you their objects and you need to quietly tag each one so you can recognise it later — "have I already sent this to the server?" The obvious move:</p>
+
+<pre><code>function track(user) {
+  user.sent = true;   <span class="cmt">// 👈 our little bookkeeping flag</span>
+}</code></pre>
+
+<p>And this works! Until the day a customer's user object already has a <code>sent</code> property, because their app tracks whether the user has sent a message. Now you've silently corrupted their data. Their app breaks. They file an issue. You have a bad afternoon.</p>
+
+<p>You could try <code>user.__analytics_internal_sent_flag__</code> and hope. But "hope" isn't a collision-avoidance strategy — it's just a longer name.</p>
+
+<p>What you actually want is a key that is <strong>guaranteed</strong> not to equal anyone else's key. Not "unlikely to". Guaranteed. And that's exactly what a Symbol is.</p>
+
+<h3>What a Symbol actually is</h3>
+
+<p>JavaScript has seven primitive types: <code>string</code>, <code>number</code>, <code>boolean</code>, <code>null</code>, <code>undefined</code>, <code>bigint</code>, and <code>symbol</code>. A symbol is a primitive value whose only interesting property is that <strong>it is not equal to anything except itself.</strong></p>
+
+<pre><code>const a = Symbol('sent');
+const b = Symbol('sent');
+
+a === b;   <span class="out">// → false</span>  👈 same description, different values
+a === a;   <span class="out">// → true</span>
+typeof a;  <span class="out">// → 'symbol'</span></code></pre>
+
+<p>That string you pass in — <code>'sent'</code> — is <strong>just a label for debugging</strong>. It's not an identifier. It has zero effect on equality. Two symbols with the same description are as different from each other as <code>{}</code> is from <code>{}</code>.</p>
+
+<p>The analogy I like: a symbol is a <strong>freshly-cut physical key</strong>. You can write "front door" on the little paper tag so you remember what it opens, but the tag isn't the key. Someone else can cut a key and write "front door" on theirs too, and it still won't open your door. The cuts are what matter, and every symbol gets unique cuts.</p>
+
+<p><em>Where the analogy breaks:</em> real keys can be copied. Symbols can't be re-created — once you lose the reference to a symbol, that key is gone forever (with one exception we'll get to, <code>Symbol.for</code>).</p>
+
+<h3>Job #1: collision-free object keys</h3>
+
+<p>Symbols are the only thing besides strings that can be an object key. So our analytics library becomes:</p>
+
+<div class="codehead good">✅ Fixed</div>
+<pre><code>const SENT = Symbol('analytics.sent');
+
+function track(user) {
+  user[SENT] = true;   <span class="cmt">// 👈 cannot collide with anything, ever</span>
+}
+
+const user = { name: 'Ada', sent: 'yesterday' };
+track(user);
+
+user.sent;    <span class="out">// → 'yesterday'</span>  their data, untouched
+user[SENT];   <span class="out">// → true</span>       our data, separate</code></pre>
+
+<p>Note that <code>user[SENT]</code> uses bracket notation with the <em>variable</em> <code>SENT</code>. You can't write <code>user.SENT</code> — that would look for a string key called <code>"SENT"</code>. Symbol keys are always accessed through a reference to the symbol itself.</p>
+
+<h3>The "hidden property" effect</h3>
+
+<p>Here's the second nice thing. Symbol-keyed properties are skipped by essentially every routine way of enumerating an object:</p>
+
+<pre><code>const user = { name: 'Ada', [SENT]: true };
+
+Object.keys(user);            <span class="out">// → ['name']</span>
+JSON.stringify(user);         <span class="out">// → '{"name":"Ada"}'</span>
+for (const k in user) { }     <span class="cmt">// only 'name'</span>
+Object.entries(user);         <span class="out">// → [['name', 'Ada']]</span></code></pre>
+
+<p>So your bookkeeping doesn't leak into the customer's API responses, their <code>console.log</code> of <code>Object.keys</code>, or their form serialisation. It's invisible <em>to code that isn't looking for it</em>.</p>
+
+<div class="callout miscon">
+<span class="label">A common misconception</span>
+<p>"Symbols are private." They're <strong>not</strong>. This is a favourite interviewer trap. Symbol keys are hidden from <em>casual</em> enumeration, but <code>Object.getOwnPropertySymbols(user)</code> hands you every one of them, and <code>Reflect.ownKeys(user)</code> returns strings <em>and</em> symbols. Symbols give you <strong>collision safety</strong>, not <strong>secrecy</strong>. If you want genuine privacy, use a <code>#privateField</code> in a class or a closure.</p>
+</div>
+
+<h3><code>Symbol.for</code> and the global registry <span class="rare">rarely asked</span></h3>
+
+<p>One footnote, then we move on. Sometimes two separate scripts need to agree on the <em>same</em> symbol — and <code>Symbol('app.id')</code> in two files gives you two different keys. <code>Symbol.for()</code> is the shared version: it looks the string up in one global registry and hands everyone the same symbol back.</p>
+
+<pre><code>Symbol.for('app.id') === Symbol.for('app.id');  <span class="out">// → true</span>   shared
+Symbol('app.id')     === Symbol('app.id');      <span class="out">// → false</span>  fresh each time</code></pre>
+
+<p><code>Symbol()</code> cuts you a brand new key; <code>Symbol.for()</code> asks the front desk for the one labelled <code>app.id</code>. Which means registry keys <em>can</em> collide, so namespace them (<code>'myLib.cache'</code>, not <code>'cache'</code>). That's genuinely all you need.</p>
+
+<h3>Job #2: well-known symbols — hooking into the language</h3>
+
+<p>This is the part that matters most for interviews, and it's the bridge to everything else in this guide.</p>
+
+<p>JavaScript has a set of pre-made symbols that live on the <code>Symbol</code> object itself: <code>Symbol.iterator</code>, <code>Symbol.asyncIterator</code>, <code>Symbol.toPrimitive</code>, <code>Symbol.hasInstance</code>, <code>Symbol.toStringTag</code>, and a few more. These are called <strong>well-known symbols</strong>.</p>
+
+<p>They're the language's <strong>plug sockets</strong>. When you write <code>for...of</code>, or <code>+</code>, or <code>instanceof</code>, the engine goes looking for a method stored under one of these symbol keys on your object. If it finds one, it calls yours. If not, it uses its default (or throws).</p>
+
+<p>Why symbols instead of just using the string <code>"iterator"</code>? Because if the protocol were <code>obj.iterator</code>, then every object in the world that happens to have a property called <code>iterator</code> would suddenly claim to be iterable. Symbols let the language add new hooks forever without ever colliding with your property names. <em>That's the real reason symbols exist.</em></p>
+
+<h3>One concrete well-known symbol <span class="rare">rarely asked</span></h3>
+
+<p>Just so "hook into the language" isn't abstract, here's one you can try in a console. When JS needs to turn your object into a primitive, it looks for <code>Symbol.toPrimitive</code> first:</p>
+
+<pre><code>const cartTotal = {
+  amount: 4250,
+  [Symbol.toPrimitive](hint) {
+    return hint === 'number' ? this.amount / 100 : `$${(this.amount / 100).toFixed(2)}`;
+  }
+};
+
+cartTotal * 2;           <span class="out">// → 85</span>            hint: 'number'
+`Total: ${cartTotal}`;   <span class="out">// → 'Total: $42.50'</span>  hint: 'string'</code></pre>
+
+<p>That's the shape of every well-known symbol: <em>you put a method at a symbol key, and the engine calls it instead of its default.</em> Same idea powers <code>Symbol.iterator</code> — which is the one that actually matters, and it's the whole next section.</p>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>How it gets asked:</strong> "What's a Symbol and why would you use one?" / "Are symbol properties private?" / "What's <code>Symbol.iterator</code> for?"</p>
+<div class="say"><strong>Say this:</strong> "A symbol is a primitive that's guaranteed unique — two symbols are never equal even with the same description. It does two jobs. One, it lets you add properties to an object you don't own without any risk of clobbering an existing key, and those keys don't show up in <code>Object.keys</code> or <code>JSON.stringify</code>, so they don't leak. Two — and this is the bigger one — the well-known symbols like <code>Symbol.iterator</code> are how the language exposes its own protocols. Putting a method at <code>Symbol.iterator</code> is what makes <code>for...of</code> and spread work on your object. They had to be symbols so the spec could add hooks without colliding with anyone's property names."</div>
+<p><strong>Why it lands:</strong> most candidates stop at "unique key". Connecting symbols to <em>protocol extension</em> shows you understand the design decision, not just the API.</p>
+</div>
+
+<!-- ══════════════════════════════════════ ITERATORS ══════════════════════════════════════ -->
+<h2 id="iterators">2. Iterators &amp; the iterable protocol</h2>
+
+<p>Try this in a console:</p>
+
+<pre><code>const scores = [10, 20, 30];
+for (const s of scores) console.log(s);   <span class="cmt">// works fine</span>
+
+const user = { name: 'Ada', role: 'admin' };
+for (const x of user) console.log(x);
+<span class="out">// → TypeError: user is not iterable</span></code></pre>
+
+<p>Why? Objects have things in them. Arrays have things in them. Why does one work and the other explode?</p>
+
+<p>The naive answer is "because arrays are special". That's wrong, and knowing <em>why</em> it's wrong is the whole point of this section. Arrays aren't special. Arrays just <strong>opted in to a protocol</strong> — and you can opt in too.</p>
+
+<h3>What <code>for...of</code> actually does</h3>
+
+<p>When you write <code>for (const x of thing)</code>, the engine does something very mechanical:</p>
+
+<ol>
+  <li>Look for <code>thing[Symbol.iterator]</code>. If it's not a function → <code>TypeError: not iterable</code>.</li>
+  <li>Call it. It must return an object — call this the <strong>iterator</strong>.</li>
+  <li>Call <code>iterator.next()</code>. It returns <code>{ value, done }</code>.</li>
+  <li>If <code>done</code> is <code>false</code>, run the loop body with <code>value</code>, then go back to step 3.</li>
+  <li>If <code>done</code> is <code>true</code>, stop.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 700 250" role="img" aria-label="Diagram: for-of calls Symbol.iterator to get an iterator, then repeatedly calls next().">
+  <rect x="8" y="60" width="150" height="70" rx="10" fill="#f0edff" stroke="#5b3df5" stroke-width="2"/>
+  <text x="83" y="90" text-anchor="middle" font-family="monospace" font-size="15" fill="#3a2a9e">for...of</text>
+  <text x="83" y="112" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5a5a6a">(the consumer)</text>
+
+  <rect x="270" y="20" width="170" height="70" rx="10" fill="#fff" stroke="#4a4d55" stroke-width="2"/>
+  <text x="355" y="47" text-anchor="middle" font-family="monospace" font-size="14" fill="#1b1c1f">the iterable</text>
+  <text x="355" y="70" text-anchor="middle" font-family="monospace" font-size="12" fill="#5a5a6a">[Symbol.iterator]()</text>
+
+  <rect x="270" y="150" width="170" height="80" rx="10" fill="#eaf7f1" stroke="#0d7a52" stroke-width="2"/>
+  <text x="355" y="178" text-anchor="middle" font-family="monospace" font-size="14" fill="#0d7a52">the iterator</text>
+  <text x="355" y="200" text-anchor="middle" font-family="monospace" font-size="12" fill="#0d7a52">.next()</text>
+  <text x="355" y="219" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a4d55">holds the position</text>
+
+  <line x1="160" y1="80" x2="264" y2="55" stroke="#5b3df5" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="212" y="55" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#5b3df5">1. ask</text>
+
+  <line x1="355" y1="92" x2="355" y2="144" stroke="#4a4d55" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="440" y="122" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a4d55">2. returns</text>
+
+  <path d="M 270 190 Q 190 195 160 110" fill="none" stroke="#0d7a52" stroke-width="2" marker-end="url(#arg)"/>
+  <text x="180" y="185" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#0d7a52">3. next() →</text>
+  <text x="180" y="200" text-anchor="middle" font-family="monospace" font-size="11" fill="#0d7a52">{value, done}</text>
+
+  <rect x="500" y="150" width="190" height="80" rx="10" fill="#f4f2ee" stroke="#c9c5bd" stroke-width="1.5"/>
+  <text x="595" y="176" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">repeat until</text>
+  <text x="595" y="197" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a4d55">done: true</text>
+  <line x1="444" y1="190" x2="494" y2="190" stroke="#c9c5bd" stroke-width="2" marker-end="url(#arn)"/>
+
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b3df5"/></marker>
+    <marker id="arg" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0d7a52"/></marker>
+    <marker id="arn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c9c5bd"/></marker>
+  </defs>
+</svg>
+<figcaption>Two protocols, not one. <em>Iterable</em> = "I can give you an iterator." <em>Iterator</em> = "I have a <code>next()</code> and I remember where I am."</figcaption>
+</figure>
+
+<p>That distinction trips everyone up, so let me nail it down:</p>
+
+<ul>
+  <li>An <strong>iterable</strong> is any object with a <code>[Symbol.iterator]</code> method. It's a <em>source</em>. Arrays, strings, Maps, Sets, <code>arguments</code>, NodeLists — all iterable.</li>
+  <li>An <strong>iterator</strong> is the object that method returns. It has <code>next()</code> and it holds the <em>cursor position</em>. It's single-use — once it's exhausted, it stays exhausted.</li>
+</ul>
+
+<p>The analogy: the iterable is a <strong>book</strong>; the iterator is a <strong>bookmark</strong>. Asking a book for a bookmark gives you a fresh one at page 1, which is why you can loop over the same array twice and both loops start at the beginning. But if you grab one bookmark and read to the end with it, that bookmark is done — using it again gets you nothing.</p>
+
+<p>You can drive it by hand:</p>
+
+<pre><code>const it = ['a', 'b'][Symbol.iterator]();
+
+it.next();  <span class="out">// → { value: 'a', done: false }</span>
+it.next();  <span class="out">// → { value: 'b', done: false }</span>
+it.next();  <span class="out">// → { value: undefined, done: true }</span>  👈 the stop signal
+it.next();  <span class="out">// → { value: undefined, done: true }</span>  still exhausted</code></pre>
+
+<p>That's it. That's the entire protocol. <code>for...of</code> is just sugar over that loop.</p>
+
+<h3>Making a plain object iterable</h3>
+
+<p>So now the fix for our broken example is obvious — we teach the object the protocol.</p>
+
+<pre><code>const playlist = {
+  tracks: ['Kind of Blue', 'So What', 'Blue in Green'],
+
+  [Symbol.iterator]() {           <span class="cmt">// 👈 computed key: the well-known symbol</span>
+    let i = 0;
+    const { tracks } = this;
+    return {
+      next() {
+        return i &lt; tracks.length
+          ? { value: tracks[i++], done: false }
+          : { value: undefined, done: true };
+      }
+    };
+  }
+};
+
+for (const t of playlist) console.log(t);   <span class="out">// Kind of Blue, So What, Blue in Green</span></code></pre>
+
+<p>Notice <code>let i = 0</code> lives <em>inside</em> the <code>[Symbol.iterator]</code> method, not on the object. That's deliberate — each call gets a fresh cursor, so nested loops over the same playlist don't interfere. Fresh bookmark every time.</p>
+
+<h3>The payoff: three features unlock at once</h3>
+
+<p>Here's what makes this worth learning. <code>for...of</code> isn't the only thing that uses the iterable protocol. So does <strong>spread</strong>, and so does <strong>array destructuring</strong>, and so does <code>Array.from</code>, and <code>Promise.all</code>, and <code>new Map(...)</code>, and <code>yield*</code>.</p>
+
+<p>By writing that one method, all of this now works on <code>playlist</code>:</p>
+
+<pre><code>[...playlist];                  <span class="out">// → ['Kind of Blue', 'So What', 'Blue in Green']</span>
+const [first, second] = playlist;  <span class="out">// → 'Kind of Blue', 'So What'</span>
+Array.from(playlist);           <span class="out">// → [...]</span>
+new Set(playlist);              <span class="out">// → Set(3)</span></code></pre>
+
+<p>One method, five features. <em>That's</em> the argument for protocols over special-casing.</p>
+
+<div class="callout wait">
+<span class="label">Wait, what about <code>for...in</code>?</span>
+<p><code>for...in</code> is a totally different thing and it's easy to mix them up. <code>for...in</code> walks an object's <strong>enumerable string keys</strong>, including inherited ones from the prototype chain, in no guaranteed order. It has nothing to do with <code>Symbol.iterator</code>. <code>for...of</code> walks <strong>values</strong> via the iterable protocol. Rule of thumb: <code>for...in</code> for object keys (and honestly, prefer <code>Object.keys</code>), <code>for...of</code> for everything else.</p>
+<p>And this finally explains the original mystery: plain objects aren't iterable because <strong>there's no obvious right answer</strong> to what an object should yield — keys? values? entries? Rather than guess, the spec made you choose: <code>Object.keys(user)</code>, <code>Object.values(user)</code>, or <code>Object.entries(user)</code>, all of which return arrays, which <em>are</em> iterable.</p>
+</div>
+
+<div class="callout hood">
+<span class="label">Under the hood</span>
+<p>Iterators also have two <em>optional</em> methods: <code>return()</code> and <code>throw()</code>. When you <code>break</code> out of a <code>for...of</code> early, the engine calls <code>iterator.return()</code> if it exists — that's your cleanup hook. It's how a generator's <code>try/finally</code> block still runs when a loop bails out early, and how you'd close a file handle or cancel a subscription in a custom iterator.</p>
+</div>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>Follow-up: "How would you make an object iterable?"</strong></p>
+<div class="say"><strong>Say this:</strong> "I'd add a <code>[Symbol.iterator]</code> method that returns an object with a <code>next()</code> method, and <code>next()</code> returns <code>{ value, done }</code>. In practice I'd almost always write it as a generator instead — <code>*[Symbol.iterator]() { yield* this.tracks }</code> — because the generator gives me the whole iterator protocol for free. And once you've done that, you get spread, destructuring, <code>Array.from</code> and <code>for...of</code> all at once, because they all consume the same protocol."</div>
+<p><strong>Follow-up: "Why isn't a plain object iterable?"</strong> Because there's no single sensible answer for what it should yield — keys, values, or entries — so the spec declined to pick. Arrays have an unambiguous order and unambiguous values; objects don't.</p>
+</div>
+
+<!-- ══════════════════════════════════════ GENERATORS ══════════════════════════════════════ -->
+<h2 id="generators">3. Generators — functions that pause</h2>
+
+<p>Everything you know about JavaScript functions includes one deep assumption: <strong>once a function starts, it runs to completion.</strong> You call it, it goes, it returns. Nobody can hit pause halfway through and come back later.</p>
+
+<p>Generators break that assumption. And once a function can pause, a surprising number of hard problems get easy.</p>
+
+<pre><code>function* countdown() {
+  console.log('starting');
+  yield 3;
+  console.log('after 3');
+  yield 2;
+  yield 1;
+  console.log('done');
+}
+
+const gen = countdown();   <span class="cmt">// 👈 nothing logged yet!</span></code></pre>
+
+<p>Take a guess at what happened when we called <code>countdown()</code>. Did <code>'starting'</code> print?</p>
+
+<p>No. Nothing ran. Calling a generator function doesn't execute the body — it hands you back a <strong>generator object</strong>, which is a paused machine sitting at the very first line. It only moves when you tell it to:</p>
+
+<pre><code>gen.next();  <span class="cmt">// logs 'starting'</span>  <span class="out">→ { value: 3, done: false }</span>
+gen.next();  <span class="cmt">// logs 'after 3'</span>  <span class="out">→ { value: 2, done: false }</span>
+gen.next();  <span class="out">// → { value: 1, done: false }</span>
+gen.next();  <span class="cmt">// logs 'done'</span>     <span class="out">→ { value: undefined, done: true }</span></code></pre>
+
+<p>Look at the shape of that return value. <code>{ value, done }</code>. Sound familiar? <strong>A generator object is already an iterator.</strong> It also happens to be iterable (its <code>[Symbol.iterator]</code> returns itself), which means everything from section 2 works on it for free.</p>
+
+<figure>
+<svg viewBox="0 0 700 200" role="img" aria-label="Timeline showing control passing back and forth between caller and generator at each yield.">
+  <text x="20" y="30" font-family="sans-serif" font-size="13" font-weight="700" fill="#5b3df5">caller</text>
+  <text x="20" y="160" font-family="sans-serif" font-size="13" font-weight="700" fill="#0d7a52">generator</text>
+  <line x1="90" y1="24" x2="680" y2="24" stroke="#d8d0ff" stroke-width="2"/>
+  <line x1="90" y1="154" x2="680" y2="154" stroke="#c9e8db" stroke-width="2"/>
+
+  <g font-family="monospace" font-size="11">
+    <path d="M120 30 L170 148" stroke="#5b3df5" stroke-width="2" marker-end="url(#a2)"/>
+    <text x="98" y="48" fill="#5b3df5">.next()</text>
+    <path d="M190 148 L240 30" stroke="#0d7a52" stroke-width="2" marker-end="url(#a3)"/>
+    <text x="215" y="140" fill="#0d7a52">yield 3</text>
+
+    <path d="M290 30 L340 148" stroke="#5b3df5" stroke-width="2" marker-end="url(#a2)"/>
+    <text x="270" y="48" fill="#5b3df5">.next()</text>
+    <path d="M360 148 L410 30" stroke="#0d7a52" stroke-width="2" marker-end="url(#a3)"/>
+    <text x="385" y="140" fill="#0d7a52">yield 2</text>
+
+    <path d="M460 30 L510 148" stroke="#5b3df5" stroke-width="2" marker-end="url(#a2)"/>
+    <text x="440" y="48" fill="#5b3df5">.next()</text>
+    <path d="M530 148 L580 30" stroke="#0d7a52" stroke-width="2" marker-end="url(#a3)"/>
+    <text x="548" y="140" fill="#0d7a52">done: true</text>
+  </g>
+
+  <rect x="170" y="146" width="20" height="16" fill="#eaf7f1" stroke="#0d7a52"/>
+  <rect x="340" y="146" width="20" height="16" fill="#eaf7f1" stroke="#0d7a52"/>
+  <rect x="510" y="146" width="20" height="16" fill="#eaf7f1" stroke="#0d7a52"/>
+  <text x="350" y="192" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a4d55">green boxes = the only moments the generator body is actually running</text>
+
+  <defs>
+    <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b3df5"/></marker>
+    <marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0d7a52"/></marker>
+  </defs>
+</svg>
+<figcaption>Control ping-pongs. Between yields, the generator's local variables stay frozen exactly where they were.</figcaption>
+</figure>
+
+<p>The mental model: a generator is a <strong>vending machine</strong>. It doesn't dump its entire stock on the floor when you walk up. You press a button (<code>.next()</code>), one item comes out, and the machine goes back to sleep with everything else still inside. It remembers exactly what's left.</p>
+
+<p><em>Where it breaks down:</em> a vending machine has finite stock. A generator can be infinite, which is the next trick.</p>
+
+<h3>Trick #1: iterators, but cheap</h3>
+
+<p>Remember that clunky hand-written iterator from section 2? Here it is as a generator:</p>
+
+<div class="codehead good">✅ Same thing, one line of logic</div>
+<pre><code>const playlist = {
+  tracks: ['Kind of Blue', 'So What', 'Blue in Green'],
+  *[Symbol.iterator]() {        <span class="cmt">// 👈 the * makes it a generator method</span>
+    yield* this.tracks;         <span class="cmt">// 👈 yield* delegates to another iterable</span>
+  }
+};
+
+[...playlist];  <span class="out">// → ['Kind of Blue', 'So What', 'Blue in Green']</span></code></pre>
+
+<p>No <code>i</code>, no <code>{ value, done }</code>, no manual bookkeeping. The generator machinery <em>is</em> the iterator protocol. <code>yield*</code> means "hand control to this other iterable and yield everything it yields" — great for recursion, like walking a tree:</p>
+
+<pre><code>function* walk(node) {
+  yield node.name;
+  for (const child of node.children ?? []) {
+    yield* walk(child);   <span class="cmt">// 👈 recursion, flattened into one stream</span>
+  }
+}
+
+[...walk(fileTree));   <span class="cmt">// every name, depth-first, lazily</span></code></pre>
+
+<h3>Trick #2: laziness and infinite sequences</h3>
+
+<p>This is the one that makes people sit up. You can express an infinite sequence in finite memory, because nothing is computed until it's asked for.</p>
+
+<pre><code>function* naturals() {
+  let n = 1;
+  while (true) yield n++;   <span class="cmt">// 👈 infinite loop that doesn't hang your tab</span>
+}
+
+function* take(iterable, count) {
+  let i = 0;
+  for (const item of iterable) {
+    if (i++ >= count) return;
+    yield item;
+  }
+}
+
+[...take(naturals(), 5)];   <span class="out">// → [1, 2, 3, 4, 5]</span></code></pre>
+
+<p>That <code>while (true)</code> would normally freeze the browser forever. It doesn't, because it only runs one step per <code>.next()</code>, and <code>take</code> stops asking after five. The generator is left suspended mid-loop, never to be resumed, and gets garbage collected.</p>
+
+<p>This is genuinely useful for pagination and streams: <code>for await (const page of fetchAllPages(url))</code> lets the consumer decide when to stop, instead of the fetcher eagerly downloading 400 pages nobody wanted.</p>
+
+<h3>Trick #3: <code>await</code> is really just <code>yield</code> <span class="rare">rarely asked, but a great line</span></h3>
+
+<p>One more property of <code>yield</code>, and then the payoff. <code>yield</code> isn't only an output — whatever you pass to <code>.next(value)</code> comes back <em>in</em> as the result of the paused <code>yield</code>:</p>
+
+<pre><code>function* conversation() {
+  const name = yield 'What is your name?';
+  return `Hi ${name}!`;
+}
+
+const chat = conversation();
+chat.next();        <span class="out">// → { value: 'What is your name?', done: false }</span>
+chat.next('Ada');   <span class="out">// → { value: 'Hi Ada!', done: true }</span>  👈 'Ada' became the yield's value</code></pre>
+
+<p>So a generator can hand something out, get something back, and carry on. Now hold that next to <code>async/await</code>: a function that hands out a promise, gets the resolved value back, and carries on. <strong>It's the same machine.</strong> <code>async function</code> is a generator that yields promises, with the driver built into the engine — <code>await</code> <em>is</em> <code>yield</code>. That single sentence is a genuinely strong thing to say out loud; you don't need the implementation.</p>
+
+<details>
+<summary>If you're curious: the ~8-line driver that turns generators into async/await</summary>
+<pre><code>function run(genFn) {
+  const gen = genFn();
+  function step(prev) {
+    const { value, done } = gen.next(prev);   <span class="cmt">// feed the resolved value back in</span>
+    if (done) return Promise.resolve(value);
+    return Promise.resolve(value).then(step); <span class="cmt">// wait, then resume</span>
+  }
+  return step();
+}
+
+run(function* () {
+  const res = yield fetch('/api/user');   <span class="cmt">// reads exactly like await</span>
+  console.log((yield res.json()).name);
+});</code></pre>
+<p>That's roughly what Babel compiles <code>async/await</code> into for old targets, and it's what the <code>co</code> library did before <code>async</code> existed.</p>
+</details>
+
+<h3>Async generators, in 30 seconds <span class="rare">rarely asked</span></h3>
+
+<p><code>async function*</code> + <code>for await...of</code>. Same protocol, except <code>next()</code> returns a promise. You'd recognise it in streaming or pagination code:</p>
+
+<pre><code>async function* fetchPages(url) {
+  let next = url;
+  while (next) {
+    const page = await (await fetch(next)).json();
+    yield page.items;        <span class="cmt">// hand this batch over now</span>
+    next = page.nextUrl;     <span class="cmt">// page 2 only fetched if they come back</span>
+  }
+}
+
+for await (const items of fetchPages('/api/orders')) {
+  render(items);
+  if (userNavigatedAway) break;   <span class="cmt">// 👈 and we simply stop fetching</span>
+}</code></pre>
+
+<p>The <code>break</code> is the whole point: the consumer controls the flow, so pages nobody looks at are never requested. That's the one-liner if it ever comes up.</p>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>The big one: "When would you actually use a generator?"</strong> This is a depth question dressed as a recall question. The interviewer half-expects you to say "um, Fibonacci?" Don't.</p>
+<div class="say"><strong>Say this:</strong> "Honestly, in app code, rarely — and I think that's the right answer. The three places I'd reach for one: implementing a custom iterator, because <code>*[Symbol.iterator]()</code> is far less code than a hand-rolled <code>next()</code>; lazy or infinite sequences, like paginating an API where the consumer decides when to stop so you never fetch pages nobody looks at; and pausable, controllable flows — redux-saga is the famous example, where your saga yields plain description objects like <code>call(api.fetchUser)</code> and the middleware performs the effect. Because the saga only <em>describes</em> what should happen, you can unit test it by calling <code>.next()</code> and asserting on the yielded object, with no mocking at all. That testability is the real reason sagas used generators. And under the hood async/await is the same machinery — a generator yielding promises with a built-in driver."</div>
+<p><strong>Why it lands:</strong> starting with "rarely, and that's correct" signals judgment. Juniors reach for the fancy tool; seniors know its cost. Then you back it with three concrete cases and the async/await connection.</p>
+</div>
+
+<div class="callout trap">
+<span class="label">Traps</span>
+<p><strong>"A generator is asynchronous."</strong> No. A plain generator is entirely synchronous — it just pauses. It doesn't yield to the event loop, doesn't wait for anything. Only <code>async function*</code> involves promises.</p>
+<p><strong>Reusing an exhausted generator.</strong> Once <code>done: true</code>, it's done forever. <code>const gen = naturals(); [...take(gen,3)]; [...take(gen,3)]</code> gives you <code>[1,2,3]</code> then <code>[4,5,6]</code> — not two identical arrays. Call the generator function again for a fresh one.</p>
+<p><strong>Arrow generators don't exist.</strong> There's no <code>*() =&gt; {}</code>. It has to be <code>function*</code> or a <code>*method()</code> in an object/class.</p>
+</div>
+
+<!-- ══════════════════════════════════════ PROXY ══════════════════════════════════════ -->
+<h2 id="proxy">4. Proxy &amp; Reflect — intercepting the language itself</h2>
+
+<p>Everything so far has been about extending JavaScript at specific, sanctioned hook points. Proxy is different in kind. Proxy lets you intercept the <em>fundamental operations</em> — reading a property, writing one, checking <code>in</code>, deleting, calling a function — and run your own code instead.</p>
+
+<p>Here's the setup problem. Say you want to know every time someone reads <code>user.email</code>. With plain objects... you can't. Property access isn't an event. It just happens, silently, at the engine level.</p>
+
+<p>Unless you wrap the object in a Proxy.</p>
+
+<pre><code>const user = { name: 'Ada', email: 'ada@example.com' };
+
+const watched = new Proxy(user, {
+  get(target, key) {                    <span class="cmt">// 👈 a "trap"</span>
+    console.log(`read: ${String(key)}`);
+    return target[key];
+  }
+});
+
+watched.name;   <span class="cmt">// logs "read: name"</span>  <span class="out">→ 'Ada'</span>
+watched.email;  <span class="cmt">// logs "read: email"</span> <span class="out">→ 'ada@example.com'</span>
+user.name;      <span class="cmt">// logs nothing</span>      <span class="out">→ 'Ada'</span>  👈 original is untouched</code></pre>
+
+<p><code>new Proxy(target, handler)</code> gives you a stand-in object. The <code>target</code> is the real object. The <code>handler</code> is a bag of functions called <strong>traps</strong>, each named after an operation. Any operation you don't trap passes straight through to the target unchanged.</p>
+
+<p>The analogy: a proxy is a <strong>receptionist</strong> sitting in front of an executive's office. Everyone who wants something from the executive has to go through her. She can pass the request straight through, refuse it, log it, modify it, or answer it herself without ever disturbing the executive. The executive (the target) has no idea any of this is happening.</p>
+
+<p><em>Where it breaks down:</em> people who already know the executive's direct line can bypass reception entirely. Same with proxies — anyone holding a reference to the original <code>user</code> object skips your traps completely. A proxy is not a security boundary.</p>
+
+<figure>
+<svg viewBox="0 0 700 190" role="img" aria-label="Diagram: code talks to a proxy, whose traps sit in front of the target object.">
+  <rect x="10" y="65" width="130" height="60" rx="9" fill="#f0edff" stroke="#5b3df5" stroke-width="2"/>
+  <text x="75" y="92" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#3a2a9e">your code</text>
+  <text x="75" y="111" text-anchor="middle" font-family="monospace" font-size="11" fill="#5a5a6a">watched.email</text>
+
+  <rect x="230" y="25" width="200" height="140" rx="9" fill="#fff6e3" stroke="#8a5a00" stroke-width="2"/>
+  <text x="330" y="50" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#8a5a00">Proxy handler</text>
+  <text x="330" y="76" text-anchor="middle" font-family="monospace" font-size="12" fill="#8a5a00">get(t, key)</text>
+  <text x="330" y="97" text-anchor="middle" font-family="monospace" font-size="12" fill="#8a5a00">set(t, key, val)</text>
+  <text x="330" y="118" text-anchor="middle" font-family="monospace" font-size="12" fill="#8a5a00">has(t, key)</text>
+  <text x="330" y="139" text-anchor="middle" font-family="monospace" font-size="12" fill="#8a5a00">deleteProperty(...)</text>
+
+  <rect x="520" y="65" width="165" height="60" rx="9" fill="#eaf7f1" stroke="#0d7a52" stroke-width="2"/>
+  <text x="602" y="92" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#0d7a52">target object</text>
+  <text x="602" y="111" text-anchor="middle" font-family="monospace" font-size="11" fill="#0d7a52">{ name, email }</text>
+
+  <line x1="143" y1="95" x2="224" y2="95" stroke="#5b3df5" stroke-width="2" marker-end="url(#a4)"/>
+  <line x1="434" y1="95" x2="514" y2="95" stroke="#8a5a00" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a5)"/>
+  <text x="474" y="86" text-anchor="middle" font-family="monospace" font-size="10.5" fill="#8a5a00">Reflect.get</text>
+
+  <defs>
+    <marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b3df5"/></marker>
+    <marker id="a5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8a5a00"/></marker>
+  </defs>
+</svg>
+<figcaption>Every operation goes through the handler first. Whatever isn't trapped falls through to the target.</figcaption>
+</figure>
+
+<h3>A real use: validation on write</h3>
+
+<pre><code>function validated(obj, rules) {
+  return new Proxy(obj, {
+    set(target, key, value) {
+      const rule = rules[key];
+      if (rule &amp;&amp; !rule.test(value)) {
+        throw new TypeError(`Invalid ${String(key)}: ${value}`);
+      }
+      target[key] = value;
+      return true;        <span class="cmt">// 👈 set must report success, or strict mode throws</span>
+    }
+  });
+}
+
+const account = validated({}, { email: /@/, age: /^\d+$/ });
+account.email = 'ada@example.com';   <span class="cmt">// fine</span>
+account.age   = 'thirty';            <span class="out">// → TypeError: Invalid age: thirty</span></code></pre>
+
+<p>That <code>return true</code> matters. The <code>set</code> trap's return value is the answer to "did the assignment succeed?" Return a falsy value in strict mode (which all modules are) and you get a <code>TypeError</code> from the assignment itself. Easy bug to write.</p>
+
+<h3><code>Reflect</code> — the "just do the normal thing" button <span class="rare">rarely asked</span></h3>
+
+<p>In that trap I wrote <code>target[key] = value</code> to do the write by hand. There's a proper tool for that, and it's the only reason <code>Reflect</code> exists.</p>
+
+<p><code>Reflect</code> is a plain object with one method per proxy trap — <code>Reflect.get</code>, <code>Reflect.set</code>, <code>Reflect.has</code>, <code>Reflect.deleteProperty</code> — and each does <strong>exactly what the engine would have done</strong> if you hadn't intercepted. The signatures match the traps exactly, so a pass-through is always just <code>return Reflect.thing(...arguments)</code>:</p>
+
+<pre><code>get(target, key, receiver) {
+  console.log('read:', key);
+  return Reflect.get(target, key, receiver);   <span class="cmt">// 👈 the default, done properly</span>
+}</code></pre>
+
+<p>If someone asks why you'd bother over <code>target[key]</code>: that third argument, <code>receiver</code>, keeps <code>this</code> pointing at the object the read actually started from, so getters on an inherited object still see the right data. It's a real bug, it's just not a common interview question.</p>
+
+<h3>The big one: this is how Vue 3 reactivity works</h3>
+
+<p>Here is a reactivity system. It is 20 lines and it is not a toy — it's a simplified but structurally honest version of what Vue 3 does.</p>
+
+<pre><code>let activeEffect = null;
+const deps = new Map();   <span class="cmt">// key → Set of effects that read it</span>
+
+function reactive(obj) {
+  return new Proxy(obj, {
+    get(target, key, receiver) {
+      if (activeEffect) {                      <span class="cmt">// 👈 TRACK: who is reading this?</span>
+        if (!deps.has(key)) deps.set(key, new Set());
+        deps.get(key).add(activeEffect);
+      }
+      return Reflect.get(target, key, receiver);
+    },
+    set(target, key, value, receiver) {
+      const ok = Reflect.set(target, key, value, receiver);
+      deps.get(key)?.forEach(fn => fn());       <span class="cmt">// 👈 TRIGGER: re-run readers</span>
+      return ok;
+    }
+  });
+}
+
+function watchEffect(fn) {
+  activeEffect = fn; fn(); activeEffect = null;  <span class="cmt">// run once to discover deps</span>
+}</code></pre>
+
+<p>And using it:</p>
+
+<pre><code>const cart = reactive({ items: 2, price: 10 });
+
+watchEffect(() => console.log('Total:', cart.items * cart.price));
+<span class="out">// logs "Total: 20"  — and records that this effect depends on items + price</span>
+
+cart.items = 5;
+<span class="out">// logs "Total: 50"  — automatically, because we mutated a tracked key</span></code></pre>
+
+<p>Sit with that for a second, because it's genuinely lovely. Nobody registered a listener. Nobody declared a dependency array. The <code>get</code> trap <em>observed</em> which properties the effect touched while it ran, and the <code>set</code> trap re-ran exactly the effects that touched that property. That's automatic dependency tracking, and it falls out of proxies almost for free.</p>
+
+<p>MobX works the same way (its modern version uses Proxy too), and Vue's <code>ref</code>/<code>computed</code>/<code>watch</code> are all built on this core.</p>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>Follow-up: "How does Vue's reactivity differ from React's?"</strong> This one separates people fast.</p>
+<div class="say"><strong>Say this:</strong> "They solve the same problem from opposite ends. Vue wraps your state in a Proxy, so it can see the exact property you read and the exact property you wrote — which means it can mutate-and-update, <code>state.count++</code> just works, and it re-renders only the components that actually read <code>count</code>. React deliberately doesn't observe anything: you hand it a new value with <code>setState</code>, it re-runs the component function, and it compares the output. That's why React needs immutable updates and dependency arrays — it can't see your reads, so you have to declare them. The tradeoff is Vue gets fine-grained updates and less boilerplate; React gets a simpler, more predictable mental model where rendering is just a function of props and state, plus no proxy overhead and no proxy edge cases. And React 19's compiler is closing a lot of the ergonomic gap by inserting the memoization for you."</div>
+<p><strong>Why it lands:</strong> you framed it as a tradeoff, not a winner. Anyone who says "Vue is better because it's automatic" has revealed they've only used one.</p>
+<p><strong>Likely follow-up: "Why did Vue 2 need <code>Vue.set</code> and Vue 3 doesn't?"</strong> Vue 2 used <code>Object.defineProperty</code>, which can only convert properties that <em>already exist</em> at setup time. Adding a brand-new key or setting an array index was invisible to it, hence <code>Vue.set</code>. A Proxy traps the operation itself, not individual properties, so new keys, deletions and array index writes are all caught natively. That's the single biggest reason for the rewrite.</p>
+</div>
+
+<h3>The other traps, and the costs</h3>
+
+<p>There are 13 traps. Nobody will ask you to list them — you just need to know the shape: <code>has</code> intercepts <code>in</code>, <code>deleteProperty</code> intercepts <code>delete</code>, <code>apply</code> intercepts calling a function, <code>ownKeys</code> intercepts <code>Object.keys</code> and spread. Same pattern every time: name the operation, get a hook.</p>
+
+<p>The <em>costs</em> are the part worth remembering, because saying them unprompted is what makes you sound like you've shipped one:</p>
+
+<div class="callout trap">
+<span class="label">The three costs to mention</span>
+<p><strong>It's slower.</strong> Every trapped read is a function call instead of a direct property access, and it defeats the engine's JIT optimisations. Irrelevant for a store; real inside a loop over 100k items.</p>
+<p><strong><code>proxy !== target</code>.</strong> If half your code holds the proxy and half holds the raw object, equality checks and <code>Map</code> keys quietly betray you. Pick one, be consistent.</p>
+<p><strong>It's not security, and it's not polyfillable.</strong> Anyone holding the original reference skips every trap — and no library can fake Proxy, which is exactly why Vue 3 dropped IE11.</p>
+</div>
+
+<!-- ══════════════════════════════════════ TAGGED TEMPLATES ══════════════════════════════════════ -->
+<h2 id="tagged">5. Tagged template literals <span class="rare">rarely asked</span></h2>
+
+<p>You've written this a hundred times:</p>
+
+<pre><code>const greeting = `Hi ${user.name}, you have ${count} messages`;</code></pre>
+
+<p>Now here's the bit almost nobody notices: you can stick a function name <em>directly in front</em> of the backtick, with no parentheses, and JavaScript will call that function with the pieces.</p>
+
+<pre><code>const styled = css`color: ${color}; padding: ${pad}px;`;
+                <span class="cmt">// ↑ no parens — this is a function call</span></code></pre>
+
+<p>That's a <strong>tagged template</strong>. And it's the mechanism behind a bunch of libraries you've definitely seen.</p>
+
+<h3>What the function receives</h3>
+
+<p>The tag gets the literal string chunks as an array, then each interpolated value as a separate argument:</p>
+
+<pre><code>function inspect(strings, ...values) {
+  console.log(strings);  <span class="out">// → ['Hi ', ', you have ', ' messages']</span>
+  console.log(values);   <span class="out">// → ['Ada', 3]</span>
+}
+
+inspect`Hi ${user.name}, you have ${count} messages`;</code></pre>
+
+<p>And that's the whole feature. But notice what it buys you, because this is the only idea here worth carrying into an interview: <strong>the tag can tell apart the text the developer typed and the values that came from data.</strong> A normal template literal can't — by the time it runs, it's one flat string.</p>
+
+<h3>Why that separation matters</h3>
+
+<p>Once you can distinguish the two, you can treat data as data. The clearest example is the <code>sql</code> tag (postgres.js, slonik):</p>
+
+<pre><code>const rows = await sql`SELECT * FROM users WHERE email = ${email}`;</code></pre>
+
+<p>That <em>looks</em> like string concatenation and an injection catastrophe. It isn't. The tag never splices <code>email</code> into the SQL text — it builds a parameterised query, <code>... WHERE email = $1</code>, and sends the value separately. <strong>Injection is structurally impossible</strong>, because an interpolated value can never become SQL syntax. Same trick makes an HTML tag escape only the slots and leave your own markup alone.</p>
+
+<p>The other two you'll recognise on sight: <code>styled.button`...`</code> (styled-components — it receives your interpolated <em>functions</em> unevaluated, so it can re-run them with props on every render) and <code>gql`query { ... }`</code> (parses the text into a GraphQL AST, and gives build tooling a marker to find queries by).</p>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<div class="say"><strong>Say this:</strong> "A tagged template is a function call where the arguments are the template's pieces — the literal strings as an array, then each interpolated value. The reason that's powerful is the tag can tell developer-authored text apart from injected data, so it can treat them differently. That's how the <code>sql</code> tag makes injection structurally impossible: it turns interpolations into query parameters instead of splicing them into the SQL. It's also how styled-components handles prop-based interpolations — it receives the functions themselves, not their stringified output, so it can re-run them per render."</div>
+</div>
+
+<!-- ══════════════════════════════════════ WORKERS ══════════════════════════════════════ -->
+<h2 id="workers">6. Web Workers vs Service Workers</h2>
+
+<p>These two have confusingly similar names and do <strong>completely different jobs</strong>. Interviewers ask about this precisely <em>because</em> the names are confusing. Let me give you the one-line separation up front, and then we'll earn it:</p>
+
+<table>
+<tr><th>Web Worker</th><th>Service Worker</th></tr>
+<tr>
+<td>A second thread for <strong>computation</strong>. "Do this maths off the main thread."</td>
+<td>A proxy between your page and <strong>the network</strong>. "Intercept this request and answer it from cache."</td>
+</tr>
+<tr><td>Lives as long as the page (you create it, you kill it).</td><td>Outlives the page. Can wake up with no page open at all.</td></tr>
+<tr><td>One per page instance.</td><td>One per origin+scope, shared by every tab.</td></tr>
+<tr><td>Solves: <strong>jank</strong>.</td><td>Solves: <strong>offline &amp; network control</strong>.</td></tr>
+</table>
+
+<h3>First, the problem Web Workers solve</h3>
+
+<p>JavaScript in the browser runs on <strong>one thread</strong> — the main thread. And that one thread also does layout, painting, and handling your clicks and scrolls. It's a single-lane road, and everything shares it.</p>
+
+<p>So this is a disaster:</p>
+
+<div class="codehead bad">❌ Freezes the tab</div>
+<pre><code>button.addEventListener('click', () => {
+  const result = analyseImage(hugePixelArray);  <span class="cmt">// takes 4 seconds</span>
+  render(result);
+});</code></pre>
+
+<p>For those four seconds the page is <em>dead</em>. Scroll does nothing. Hover states don't update. CSS animations stop mid-flight. The browser eventually offers to kill the tab. You cannot fix this with <code>async</code>/<code>await</code> or <code>setTimeout</code> — those only control <em>when</em> the work runs, not <em>where</em>. A promise doesn't get you a second thread. Four seconds of synchronous maths is four seconds of blocked main thread no matter how you schedule it.</p>
+
+<p>To fix it you need actual parallelism. That's a Web Worker.</p>
+
+<figure>
+<svg viewBox="0 0 700 210" role="img" aria-label="Main thread handles DOM and input; worker thread runs computation; they exchange postMessage.">
+  <rect x="15" y="15" width="290" height="180" rx="10" fill="#f0edff" stroke="#5b3df5" stroke-width="2"/>
+  <text x="160" y="40" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#3a2a9e">Main thread</text>
+  <text x="160" y="65" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">DOM · layout · paint</text>
+  <text x="160" y="86" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">clicks · scroll · animation</text>
+  <text x="160" y="107" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">your React app</text>
+  <rect x="45" y="128" width="220" height="30" rx="6" fill="#fff" stroke="#5b3df5" stroke-dasharray="4 3"/>
+  <text x="155" y="148" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#3a2a9e">stays at 60fps 🎉</text>
+
+  <rect x="400" y="15" width="285" height="180" rx="10" fill="#eaf7f1" stroke="#0d7a52" stroke-width="2"/>
+  <text x="542" y="40" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#0d7a52">Worker thread</text>
+  <text x="542" y="65" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">heavy computation</text>
+  <text x="542" y="86" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#4a4d55">parsing · crypto · image maths</text>
+  <rect x="430" y="105" width="225" height="52" rx="6" fill="#fff" stroke="#b3261e" stroke-dasharray="4 3"/>
+  <text x="542" y="125" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b3261e">no document, no window</text>
+  <text x="542" y="145" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b3261e">no localStorage</text>
+
+  <line x1="308" y1="90" x2="396" y2="90" stroke="#4a4d55" stroke-width="2" marker-end="url(#a6)"/>
+  <line x1="396" y1="125" x2="308" y2="125" stroke="#4a4d55" stroke-width="2" marker-end="url(#a7)"/>
+  <text x="352" y="82" text-anchor="middle" font-family="monospace" font-size="10" fill="#4a4d55">postMessage</text>
+  <text x="352" y="145" text-anchor="middle" font-family="monospace" font-size="10" fill="#4a4d55">postMessage</text>
+  <text x="352" y="175" text-anchor="middle" font-family="sans-serif" font-size="10.5" fill="#8a5a00">(copied, not shared)</text>
+
+  <defs>
+    <marker id="a6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4a4d55"/></marker>
+    <marker id="a7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#4a4d55"/></marker>
+  </defs>
+</svg>
+<figcaption>Two threads, zero shared memory. The only channel is message-passing.</figcaption>
+</figure>
+
+<h3>Using one</h3>
+
+<div class="codehead good">✅ main.js</div>
+<pre><code>const worker = new Worker('/analyse.worker.js');
+
+worker.postMessage({ pixels: hugePixelArray });   <span class="cmt">// 👈 send work out</span>
+
+worker.onmessage = (e) => render(e.data);         <span class="cmt">// 👈 result comes back</span>
+worker.onerror   = (e) => console.error(e.message);
+<span class="cmt">// later: worker.terminate();</span></code></pre>
+
+<div class="codehead good">✅ analyse.worker.js</div>
+<pre><code>self.onmessage = (e) => {
+  const result = analyseImage(e.data.pixels);   <span class="cmt">// blocks THIS thread only</span>
+  self.postMessage(result);
+};</code></pre>
+
+<p>The page stays perfectly smooth the whole time. Scroll works. Animations run. The user has no idea anything heavy is happening.</p>
+
+<h3>Why can't a worker touch the DOM?</h3>
+
+<p>This is a favourite interview question, and the answer is more interesting than "because the spec says so."</p>
+
+<p>The DOM is a big, deeply interconnected mutable tree, and it was designed on the assumption that <strong>exactly one thread touches it</strong>. If two threads could both call <code>appendChild</code> at the same moment, you'd need locks around every node — and once you have locks you have deadlocks, race conditions, and torn reads mid-layout. Every language that has tried multithreaded UI toolkits has eventually retreated to "one UI thread" (Java's Swing, Android, iOS — all the same rule).</p>
+
+<p>So browsers took the option that removes the problem instead of managing it: <strong>workers get no shared mutable state at all.</strong> No <code>document</code>, no <code>window</code>, no <code>localStorage</code> (which is synchronous and would need locking too), no parent variables. Communication is by <em>copying</em> messages, so there's nothing to race over.</p>
+
+<p>Workers <em>do</em> get: <code>fetch</code>, <code>XMLHttpRequest</code>, <code>WebSocket</code>, <code>IndexedDB</code> (async, so it's safe), <code>setTimeout</code>, <code>crypto</code>, WASM, <code>importScripts</code>, and ES module imports. That's plenty for computation and I/O — just not for UI. The pattern is always: worker computes, main thread renders.</p>
+
+<h3>The cost of talking to a worker</h3>
+
+<p>One thing you should be able to say, because it's what makes workers a judgement call rather than a free win: <strong><code>postMessage</code> copies.</strong> The object isn't shared by reference, it's deep-cloned (by the <em>structured clone</em> algorithm — more capable than <code>JSON.stringify</code>, it handles <code>Date</code>, <code>Map</code>, <code>Set</code> and cycles, but not functions or DOM nodes).</p>
+
+<p>And copying costs time proportional to size. Ship 50MB back and forth to save 20ms of compute and you've made things worse.</p>
+
+<p>The escape hatch, worth one sentence: for an <code>ArrayBuffer</code> you can <em>transfer</em> ownership instead of copying — instant at any size, but the sender loses it:</p>
+
+<pre><code>worker.postMessage(buffer, [buffer]);   <span class="cmt">// 👈 2nd arg = transfer list</span>
+buffer.byteLength;  <span class="out">// → 0</span>  detached — we gave it away, we don't have it any more</code></pre>
+
+<p>Copying is photocopying a document and mailing the copy; transferring is handing over the original.</p>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>Follow-up: "When is a Web Worker worth the complexity?"</strong> This is the judgment question.</p>
+<div class="say"><strong>Say this:</strong> "The bar is: the work is CPU-bound, it takes long enough to drop frames — roughly 50ms and up — and the data crossing the boundary is small relative to the compute. Good candidates are things like parsing or diffing a big CSV or JSON payload, image and video processing, client-side search indexing, crypto, or running a WASM module. Bad candidates are anything I/O-bound — <code>fetch</code> is already off-thread, so wrapping it in a worker just adds a hop — and anything where I'd be shipping megabytes back and forth to save a few milliseconds of compute, because structured clone isn't free. Also the worker has real fixed costs: a separate bundle, no shared closures, async-only communication, harder debugging. So I'd measure first, and if it's a one-off 30ms task I'd look at chunking it with <code>scheduler.yield</code> or breaking it across frames before I reached for a thread."</div>
+<p><strong>Why it lands:</strong> naming the <em>bad</em> candidates is what proves you've actually used one. Anyone can list the good ones.</p>
+</div>
+
+<div class="callout hood">
+<span class="label">Name-recognition only</span>
+<p><strong>SharedWorker</strong> — one worker shared across all tabs on an origin. Patchy support, so teams usually reach for <code>BroadcastChannel</code> for cross-tab messaging instead. <strong>SharedArrayBuffer + Atomics</strong> — genuinely shared memory between threads, which is how threaded WebAssembly works; it's locked behind cross-origin isolation headers because of Spectre. Recognise the names, move on.</p>
+</div>
+
+<hr class="soft">
+
+<h3>Service Workers: a proxy that sits in front of the network</h3>
+
+<p>Completely different animal. Forget threads for a moment.</p>
+
+<p>A service worker is a script the browser <strong>installs for your origin</strong> and then runs in the background — with or without your page open. Its superpower is that it can <strong>intercept every network request the page makes</strong> and decide what to do: hit the network, answer from a cache, synthesise a response out of thin air, or something in between.</p>
+
+<p>The analogy: think of a <strong>mailroom in an office building</strong>. Normally, letters go straight out to the postal service. Install a mailroom and every outgoing request passes through it first. The clerk might say "I already have a copy of that document, here you go" — instant, no post needed. Or "the postal service is down, but here's last week's copy." Or "I'll send this and also keep a copy for next time." Your page never knows the difference; it just calls <code>fetch</code> and gets a Response.</p>
+
+<p><em>Where it breaks down:</em> the mailroom clerk goes home constantly. The browser aggressively kills idle service workers and restarts them on the next event — so a service worker <strong>cannot hold state in variables between events</strong>. Anything that must persist goes in the Cache API or IndexedDB.</p>
+
+<figure>
+<svg viewBox="0 0 700 160" role="img" aria-label="Page fetch goes to service worker, which chooses between cache and network.">
+  <rect x="10" y="55" width="120" height="52" rx="9" fill="#f0edff" stroke="#5b3df5" stroke-width="2"/>
+  <text x="70" y="78" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#3a2a9e">your page</text>
+  <text x="70" y="96" text-anchor="middle" font-family="monospace" font-size="11" fill="#5a5a6a">fetch()</text>
+
+  <rect x="215" y="40" width="160" height="82" rx="9" fill="#fff6e3" stroke="#8a5a00" stroke-width="2"/>
+  <text x="295" y="66" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="#8a5a00">Service Worker</text>
+  <text x="295" y="87" text-anchor="middle" font-family="monospace" font-size="11" fill="#8a5a00">'fetch' event</text>
+  <text x="295" y="106" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#8a5a00">you decide</text>
+
+  <rect x="490" y="8" width="185" height="52" rx="9" fill="#eaf7f1" stroke="#0d7a52" stroke-width="2"/>
+  <text x="582" y="32" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#0d7a52">Cache Storage</text>
+  <text x="582" y="50" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a4d55">works offline · instant</text>
+
+  <rect x="490" y="100" width="185" height="52" rx="9" fill="#eaf4fb" stroke="#10557f" stroke-width="2"/>
+  <text x="582" y="124" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#10557f">the network</text>
+  <text x="582" y="142" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#4a4d55">fresh · may fail</text>
+
+  <line x1="133" y1="81" x2="209" y2="81" stroke="#5b3df5" stroke-width="2" marker-end="url(#a8)"/>
+  <line x1="378" y1="68" x2="484" y2="40" stroke="#0d7a52" stroke-width="2" marker-end="url(#a9)"/>
+  <line x1="378" y1="98" x2="484" y2="122" stroke="#10557f" stroke-width="2" marker-end="url(#a10)"/>
+
+  <defs>
+    <marker id="a8" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b3df5"/></marker>
+    <marker id="a9" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0d7a52"/></marker>
+    <marker id="a10" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#10557f"/></marker>
+  </defs>
+</svg>
+<figcaption>Every request the page makes can be answered by the service worker without the network being involved at all.</figcaption>
+</figure>
+
+<h3>The lifecycle — install, activate, fetch</h3>
+
+<p>Three events, and each has one job:</p>
+
+<ul>
+  <li><strong><code>install</code></strong> — fires once per new SW file. <em>Pre-cache the app shell here</em>, while the user is definitely online.</li>
+  <li><strong><code>activate</code></strong> — fires when this SW takes control. <em>Delete old caches here.</em></li>
+  <li><strong><code>fetch</code></strong> — fires for every request in scope. Call <code>event.respondWith(response)</code> and you've answered it yourself; don't call it and the request goes to the network as normal.</li>
+</ul>
+
+<pre><code>const CACHE = 'app-v3';   <span class="cmt">// 👈 bump this to invalidate everything</span>
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c =>
+    c.addAll(['/', '/app.css', '/app.js', '/offline.html'])
+  ));
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(caches.match(e.request).then(hit => hit ?? fetch(e.request)));
+});</code></pre>
+
+<p><code>event.waitUntil()</code> is just "don't call me installed until this promise settles". And you register it from the page with <code>navigator.serviceWorker.register('/sw.js')</code>.</p>
+
+<h3>How offline actually works</h3>
+
+<p>Now the question "how does a service worker enable offline mode?" answers itself. During <code>install</code>, while the user <em>is</em> online, you stuffed the HTML, CSS, JS and an offline fallback page into Cache Storage — which is real, persistent, on-disk storage. Later, with no connection, the page requests <code>/app.css</code>, the fetch handler intercepts it, finds it in the cache, and returns it. The network is never consulted, so its absence doesn't matter.</p>
+
+<p>The user can be on a plane and your app boots. That's the entire trick: <strong>you moved the assets to the device ahead of time and installed something that knows to look there.</strong> That's also the core of a PWA — that plus a web app manifest is what makes an app installable to a home screen.</p>
+
+<h3>The three caching strategies you must be able to name</h3>
+
+<p><strong>Cache-first.</strong> Check the cache; only hit the network on a miss. Fastest possible, works offline, but can serve stale content forever. Use it for content-hashed static assets (<code>app.a3f9c2.js</code>) where a change means a new URL anyway.</p>
+
+<pre><code>event.respondWith(
+  caches.match(event.request).then(hit => hit ?? fetch(event.request))
+);</code></pre>
+
+<p><strong>Network-first.</strong> Try the network; fall back to cache if it fails. Always fresh when online, still works offline. Use it for API calls and HTML documents where staleness is a real problem.</p>
+
+<pre><code>event.respondWith(
+  fetch(event.request)
+    .then(res => {
+      const copy = res.clone();     <span class="cmt">// 👈 a Response body is single-use!</span>
+      caches.open(CACHE).then(c => c.put(event.request, copy));
+      return res;
+    })
+    .catch(() => caches.match(event.request))
+);</code></pre>
+
+<p><strong>Stale-while-revalidate.</strong> Serve the cached copy <em>immediately</em>, and fetch a fresh one in the background for next time. Instant loads, content is one visit behind. This is the default for most content — avatars, feeds, non-critical API data.</p>
+
+<pre><code>event.respondWith(
+  caches.match(event.request).then(cached => {
+    const fresh = fetch(event.request).then(res => {
+      caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+      return res;
+    });
+    return cached ?? fresh;   <span class="cmt">// 👈 return stale now, update in background</span>
+  })
+);</code></pre>
+
+<p>That <code>res.clone()</code> is a classic bug source. A <code>Response</code> body is a stream and can only be read once — put the original in the cache and return it to the page, and one of them gets an already-consumed body.</p>
+
+<h3>Push notifications, briefly <span class="rare">rarely asked</span></h3>
+
+<p>You only need the causal chain here, not the API. Because a service worker can run with <em>no page open</em>, it's what receives web push: the server sends a message, the browser wakes the SW, a <code>push</code> event fires, and the SW calls <code>showNotification()</code>. <strong>Background Sync</strong> is the same trick pointing outward — queue a failed POST, let the SW retry it when connectivity comes back.</p>
+
+<p>That's the interview-sized version: <em>"push works because the service worker outlives the page."</em></p>
+
+<div class="callout trap">
+<span class="label">Service worker gotchas — the ones that cause real incidents</span>
+<p><strong>HTTPS only</strong> (localhost exempted). A script that can rewrite every response on your origin would be a gift to an attacker on café wifi.</p>
+<p><strong>Scope is path-based.</strong> <code>/sw.js</code> controls the whole origin; <code>/app/sw.js</code> only controls <code>/app/*</code>. Serve it from the root.</p>
+<p><strong>The waiting problem — this is the one to know.</strong> A new <code>sw.js</code> installs, then <em>waits</em>: it won't activate while any tab controlled by the old worker is open, and a normal reload doesn't count, because there's never a moment with zero controlled tabs. Users can sit on stale code for days. The escape hatch is <code>skipWaiting()</code> + <code>clients.claim()</code>, paired with a "new version available, reload?" prompt — swapping assets under a running page can break its lazy-loaded chunks.</p>
+<p><strong>Don't let your CDN cache <code>sw.js</code></strong> (<code>Cache-Control: no-cache</code>), and never cache-first unversioned HTML. Both are ways to pin users to old code semi-permanently. Both have bricked real apps.</p>
+</div>
+
+<div class="callout interview">
+<span class="label">In an interview</span>
+<p><strong>"What's the difference between a Web Worker and a Service Worker?"</strong></p>
+<div class="say"><strong>Say this:</strong> "They only share a name. A Web Worker is a background thread for computation — you spin one up to keep heavy CPU work off the main thread so the UI doesn't jank, it dies with the page, and it can't touch the DOM. A Service Worker is a network proxy: it sits between the page and the network, intercepts fetch events, and decides whether to answer from the Cache API or go out to the network. It's what makes offline mode and PWAs possible, it's shared across all tabs on the origin, and it can wake up with no page open at all, which is how push notifications work. Web Worker solves jank; service worker solves offline and caching."</div>
+<p><strong>"How does a service worker enable offline mode?"</strong> During <code>install</code>, while online, it pre-caches the app shell into Cache Storage on disk. Afterwards its <code>fetch</code> handler intercepts every request and can serve from that cache, so a missing network never reaches the page.</p>
+<p><strong>"Why can't a worker touch the DOM?"</strong> Because the DOM is mutable shared state designed for a single thread. Allowing two threads in would require locking every node, which brings deadlocks and races. Browsers chose to remove shared state entirely — messages are copied, so there's nothing to race over.</p>
+<p><strong>"Why not just use a service worker for the heavy computation too?"</strong> Nice trap. Technically it's also a background thread, but it's the wrong tool: the browser terminates idle service workers whenever it likes, so a long computation can just be killed mid-run. It's event-driven and stateless by design. Use a Web Worker, which you own and control.</p>
+</div>
+
+<!-- ══════════════════════════════════════ CHEAT SHEET ══════════════════════════════════════ -->
+<h2 id="cheat">7. Interview cheat sheet</h2>
+
+<p>Read this on the train. One crisp line per idea.</p>
+
+<table class="cheat">
+<tr><th>Concept</th><th>The one-liner</th></tr>
+<tr><td>Symbol</td><td>A guaranteed-unique primitive. Two jobs: collision-free object keys, and well-known symbols that let you plug into language protocols.</td></tr>
+<tr><td>Symbol privacy</td><td>Hidden from <code>Object.keys</code>/<code>JSON.stringify</code>, but <code>Object.getOwnPropertySymbols</code> finds them. Collision-safe, not secret.</td></tr>
+<tr><td><code>Symbol.for</code></td><td>Global registry — <code>Symbol.for('x') === Symbol.for('x')</code>. Use for cross-realm/cross-library agreement. Namespace your keys.</td></tr>
+<tr><td><code>Symbol.toPrimitive</code></td><td>Your hook into coercion. Gets a hint: <code>'number'</code>, <code>'string'</code>, or <code>'default'</code>.</td></tr>
+<tr><td>Iterable protocol</td><td>An object with <code>[Symbol.iterator]()</code> returning an iterator. Powers <code>for...of</code>, spread, destructuring, <code>Array.from</code>.</td></tr>
+<tr><td>Iterator protocol</td><td>An object with <code>next()</code> returning <code>{ value, done }</code>. Stateful and single-use — the bookmark, not the book.</td></tr>
+<tr><td>Why objects aren't iterable</td><td>No unambiguous answer for what they'd yield — keys, values, or entries. So the spec makes you pick.</td></tr>
+<tr><td>Generator</td><td>A function that can pause at <code>yield</code> and resume with its locals intact. Calling it runs nothing; you get a paused iterator.</td></tr>
+<tr><td>When to use one</td><td>Custom iterators, lazy/infinite sequences, and controllable flows (redux-saga). Rarely in app code — and knowing that is the answer.</td></tr>
+<tr><td><code>gen.next(v)</code></td><td>Two-way: <code>v</code> becomes the value of the paused <code>yield</code>. This is the mechanism behind async/await.</td></tr>
+<tr><td>async/await</td><td>A generator yielding promises, with the driver built into the engine. <code>await</code> is <code>yield</code>.</td></tr>
+<tr><td>Async generator</td><td><code>async function*</code> + <code>for await...of</code>, via <code>Symbol.asyncIterator</code>. For streams and pagination the consumer can stop.</td></tr>
+<tr><td>Proxy</td><td>Wraps a target and intercepts fundamental ops via traps (<code>get</code>, <code>set</code>, <code>has</code>, <code>deleteProperty</code>, <code>apply</code>…).</td></tr>
+<tr><td>Reflect</td><td>One method per trap, doing exactly the default behaviour. Same signatures as traps; forwards <code>receiver</code> so <code>this</code> stays correct.</td></tr>
+<tr><td>Vue vs React</td><td>Vue proxies state and tracks reads → mutation works, fine-grained updates. React re-runs the component and diffs → needs immutability and dep arrays. Tradeoff, not a winner.</td></tr>
+<tr><td>Vue 2 vs Vue 3</td><td><code>Object.defineProperty</code> only sees pre-existing keys (hence <code>Vue.set</code>); Proxy traps the operation, so new keys and deletes just work.</td></tr>
+<tr><td>Proxy costs</td><td>Slower reads, breaks inline caches, <code>proxy !== target</code>, enforces invariants, unpolyfillable.</td></tr>
+<tr><td>Tagged template</td><td>A function call receiving the literal strings array plus each interpolated value. Lets the tag distinguish authored text from injected data.</td></tr>
+<tr><td>Real tags</td><td><code>styled</code> (gets interpolation <em>functions</em>, re-runs per render), <code>gql</code> (parses to AST, build-time tooling), <code>sql</code> (parameterises → injection impossible).</td></tr>
+<tr><td>Web Worker</td><td>A real second thread. No DOM/window/localStorage. <code>postMessage</code> + structured clone. Solves main-thread jank.</td></tr>
+<tr><td>Worker worth it?</td><td>CPU-bound, &gt;50ms, small payload relative to compute. Not for I/O (fetch is already async) or huge data transfers.</td></tr>
+<tr><td>No DOM in workers</td><td>The DOM is single-thread-by-design mutable shared state. No shared state = no locks, no races.</td></tr>
+<tr><td>Transferables</td><td><code>ArrayBuffer</code>/<code>ImageBitmap</code>/<code>OffscreenCanvas</code> can be transferred, not copied — instant, but the sender's copy is detached.</td></tr>
+<tr><td>Service Worker</td><td>A network proxy between page and network. Intercepts <code>fetch</code>, serves from Cache Storage. Enables offline, PWAs, push.</td></tr>
+<tr><td>SW lifecycle</td><td><code>install</code> (pre-cache) → <code>activate</code> (clean old caches) → <code>fetch</code> (intercept). New SWs wait until all old tabs close.</td></tr>
+<tr><td>Caching strategies</td><td>Cache-first (hashed assets), network-first (APIs/HTML), stale-while-revalidate (the sane default).</td></tr>
+<tr><td>SW gotchas</td><td>HTTPS only, path-based scope, stale-worker waiting problem (<code>skipWaiting</code> + <code>clients.claim</code> + a reload prompt), never CDN-cache <code>sw.js</code>.</td></tr>
+<tr><td>SharedWorker / SAB</td><td>SharedWorker = one worker across tabs (patchy support; <code>BroadcastChannel</code> is the usual alternative). <code>SharedArrayBuffer</code>+<code>Atomics</code> = real shared memory for threaded WASM, gated behind COOP/COEP because of Spectre.</td></tr>
+</table>
+
+<hr class="soft">
+
+<h3>One last thought</h3>
+
+<p>If you take one thing from this guide, make it this: every feature here is an <strong>extension point</strong>. Symbols let the language add hooks without collisions. The iterable protocol lets any object join <code>for...of</code>. Generators let a function hand control back. Proxies let you intervene in operations that were previously invisible. Tagged templates let a function see a template's seams. Workers let you escape the single thread.</p>
+
+<p>They're all answers to "JavaScript does X a certain way — what if I need it to do X differently?" When an interviewer asks about any of them, that framing — <em>what wall did this knock down?</em> — is the answer that sounds senior.</p>
+
+<p>Good luck. You know more than you think you do. 🎧</p>
+
+</div>
+</body>
+</html>

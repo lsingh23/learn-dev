@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Props, State, Controlled Components &amp; Data Flow</title>
+<style>
+  :root {
+    --bg: #fdfcfb;
+    --ink: #21201d;
+    --ink-soft: #55524d;
+    --rule: #e6e2dc;
+    --accent: #6b4ee6;
+    --accent-soft: #f1edff;
+    --green: #1f7a4d;
+    --green-soft: #eaf7ef;
+    --red: #b3261e;
+    --red-soft: #fdeceb;
+    --amber: #8a5b00;
+    --amber-soft: #fdf3df;
+    --blue: #16608f;
+    --blue-soft: #e9f3fa;
+    --code-bg: #24222c;
+    --code-ink: #eae7f2;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.7;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 48px 22px 140px;
+  }
+
+  header.hero {
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  header.hero .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  header.hero h1 {
+    font-size: 2.35rem;
+    line-height: 1.15;
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 1.08rem;
+  }
+
+  h2 {
+    font-size: 1.65rem;
+    line-height: 1.25;
+    margin: 3.2rem 0 0.6rem;
+    letter-spacing: -0.015em;
+    padding-top: 0.4rem;
+  }
+  h2 .num {
+    display: block;
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  h3 {
+    font-size: 1.22rem;
+    margin: 2.2rem 0 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1.03rem;
+    margin: 1.6rem 0 0.4rem;
+  }
+
+  p { margin: 0 0 1.15rem; }
+
+  a { color: var(--accent); }
+
+  ul, ol { margin: 0 0 1.15rem; padding-left: 1.35rem; }
+  li { margin-bottom: 0.5rem; }
+
+  strong { font-weight: 650; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+    background: #f0ece6;
+    padding: 0.13em 0.36em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 14.5px;
+    line-height: 1.62;
+    margin: 0 0 1.2rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .snippet { margin: 0 0 1.4rem; }
+  .snippet pre { margin: 0; border-radius: 0 0 10px 10px; }
+  .snippet .label {
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 6px 14px;
+    border-radius: 10px 10px 0 0;
+    display: block;
+  }
+  .snippet.bad .label { background: var(--red); color: #fff; }
+  .snippet.good .label { background: var(--green); color: #fff; }
+  .snippet.plain .label { background: #4a4655; color: #fff; }
+
+  .cols {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 1.4rem;
+  }
+  .cols > * { flex: 1 1 300px; min-width: 0; margin-bottom: 0; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 16px 18px 2px;
+    margin: 0 0 1.5rem;
+    border-left: 4px solid;
+    font-size: 0.97rem;
+  }
+  .callout .ct {
+    display: block;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .callout.wait { background: var(--blue-soft); border-color: var(--blue); }
+  .callout.wait .ct { color: var(--blue); }
+  .callout.misc { background: var(--red-soft); border-color: var(--red); }
+  .callout.misc .ct { color: var(--red); }
+  .callout.hood { background: #f2f0ee; border-color: #7a756e; }
+  .callout.hood .ct { color: #58534c; }
+  .callout.interview { background: var(--accent-soft); border-color: var(--accent); }
+  .callout.interview .ct { color: var(--accent); }
+  .callout.trap { background: var(--amber-soft); border-color: var(--amber); }
+  .callout.trap .ct { color: var(--amber); }
+
+  .model-answer {
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px 18px 4px;
+    margin: 0 0 1.4rem;
+  }
+  .model-answer .ct {
+    display: block;
+    font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .model-answer p { font-size: 1.02rem; }
+  .model-answer .why {
+    border-top: 1px dashed var(--rule);
+    padding-top: 10px;
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+  }
+
+  details {
+    background: #f4f2ef;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 0 0 1.2rem;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 650;
+    list-style-position: outside;
+  }
+  details[open] summary { margin-bottom: 10px; }
+  details > *:last-child { margin-bottom: 10px; }
+
+  .toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 24px 8px;
+    margin-bottom: 3rem;
+  }
+  .toc h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    padding: 0;
+  }
+  .toc ol { padding-left: 1.2rem; }
+  .toc li { margin-bottom: 0.3rem; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    background: #f4f2ef;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td code { font-size: 0.86em; }
+
+  figure { margin: 0 0 1.6rem; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 3rem 0;
+  }
+
+  .cheat {
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 6px 22px 10px;
+  }
+  .cheat dl { margin: 0; }
+  .cheat dt {
+    font-weight: 700;
+    margin-top: 16px;
+    font-size: 0.98rem;
+  }
+  .cheat dd {
+    margin: 2px 0 0;
+    color: var(--ink-soft);
+    font-size: 0.96rem;
+  }
+
+  .qa { border-top: 1px solid var(--rule); padding-top: 1.1rem; margin-top: 1.6rem; }
+  .qa .q { font-weight: 700; font-size: 1.06rem; margin-bottom: 0.5rem; }
+
+  @media (max-width: 560px) {
+    body { font-size: 17px; }
+    header.hero h1 { font-size: 1.9rem; }
+    .wrap { padding: 32px 16px 100px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">React · Interview Prep</p>
+  <h1>Props, State, Controlled Components &amp; Data Flow</h1>
+  <p>How data actually moves through a React app — and the six or seven bugs that come from getting it slightly wrong.</p>
+</header>
+
+<p>I want to start with a bug. Not a definition — a bug. Because this particular bug has bitten literally every React developer I know, including me, more than once, and it sits exactly on the fault line between the two ideas this whole guide is about.</p>
+
+<p>Here's a tiny component. It shows a user's display name in an editable text box:</p>
+
+<div class="snippet plain">
+  <span class="label">EditName.jsx</span>
+<pre><code>function EditName({ user }) {
+  const [name, setName] = useState(user.name); // 👈 keep an eye on this
+
+  return (
+    &lt;input
+      value={name}
+      onChange={(event) =&gt; setName(event.target.value)}
+    /&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Looks completely reasonable, right? We take the name that was handed to us, put it in a piece of state so the user can edit it, and wire it up to an input.</p>
+
+<p>Now the parent switches which user we're editing. It was showing Ada, now it's showing Grace. The parent re-renders, passes down <code>user = { name: "Grace" }</code>, and&hellip;</p>
+
+<p>The input still says <strong>Ada</strong>.</p>
+
+<p>Take a second with that. It's not a typo, it's not a stale cache, it's not a missing <code>await</code>. React did exactly what it was told. And if you can explain <em>why</em> — really explain it, not just recite "useState only reads its argument once" — then you understand the props/state boundary better than a lot of people who've been shipping React for years.</p>
+
+<p>We're going to build up to that answer properly. By the end of this guide you'll have a mental model that makes that bug obvious in hindsight, plus the whole surrounding territory: controlled inputs, lifting state up, prop drilling and how to dodge it without Context, and how all the old class lifecycle methods map onto hooks (and why that map is a bit of a lie).</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#components">First, what a component actually is</a></li>
+    <li><a href="#props-state">Props vs state — the real distinction</a></li>
+    <li><a href="#should-be-state">"Should this be state?" — a decision procedure</a></li>
+    <li><a href="#derived">Derived state, and the bug from the intro</a></li>
+    <li><a href="#unidirectional">Unidirectional data flow: data down, events up</a></li>
+    <li><a href="#lifting">Lifting state up (and what it costs you)</a></li>
+    <li><a href="#composition">Composition: beating prop drilling without Context</a></li>
+    <li><a href="#controlled">Controlled vs uncontrolled components</a></li>
+    <li><a href="#lifecycle">Class lifecycle methods, mapped to hooks</a></li>
+    <li><a href="#followups">The follow-up questions, with answers</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="components"><span class="num">Section 1</span>First, what a component actually is</h2>
+
+<p>I promised to assume nothing, so let's spend ninety seconds here. If this is old news, skim — but don't skip, because the framing I'm about to use is the one everything else in this guide rests on.</p>
+
+<p>A React component is <strong>a function that takes an object and returns a description of some UI</strong>. That's it. That's the whole thing.</p>
+
+<div class="snippet plain">
+  <span class="label">A component is a function</span>
+<pre><code>function Greeting(props) {
+  return &lt;h1&gt;Hello, {props.name}!&lt;/h1&gt;;
+}
+
+// When you write this in JSX...
+&lt;Greeting name="Ada" /&gt;
+
+// ...React essentially does this:
+Greeting({ name: "Ada" });
+// → a description of &lt;h1&gt;Hello, Ada!&lt;/h1&gt;</code></pre>
+</div>
+
+<p>Two things to notice, and they matter a lot later.</p>
+
+<p><strong>First:</strong> the thing you write between angle brackets — <code>name="Ada"</code> — becomes a property on a plain object that gets passed in as the function's argument. That object is <code>props</code>. "Props" is just short for properties, and it is genuinely, boringly, an ordinary JavaScript object. There's no magic in it.</p>
+
+<p><strong>Second:</strong> the component doesn't return DOM. It returns a <em>description</em> of DOM — a lightweight object tree that React then compares against what's on screen and uses to make the minimum set of real DOM changes. When people say a component "renders," they mean React called the function again to get a fresh description.</p>
+
+<p>And React calls it again a <em>lot</em>. Every time a prop changes, every time state changes, every time a parent re-renders. Your component function is not a one-time setup script; it's a thing that gets run over and over, and each run is a fresh, independent function call with its own local variables.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood</span>
+  <p>If your component function runs top-to-bottom on every render, and its local variables are wiped each time — how does <code>useState</code> remember anything? The answer is that the value doesn't live in the function. It lives in a data structure React keeps <em>outside</em> your component, attached to that component's position in the tree. <code>useState</code> is a lookup into that structure. That's also why the rules of hooks exist (same hooks, same order, every render) — React matches your hook calls to its stored slots by call order.</p>
+</div>
+
+<h2 id="props-state"><span class="num">Section 2</span>Props vs state — the real distinction</h2>
+
+<p>Here's the sentence you'll see in every tutorial: <em>"Props are passed in from the parent; state is managed inside the component."</em> That's true, and it's also nearly useless, because it describes the plumbing rather than the meaning.</p>
+
+<p>Let me give you the framing I actually use.</p>
+
+<h3>The analogy: a vending machine</h3>
+
+<p>Think of a component as a vending machine.</p>
+
+<p><strong>Props are the coins you push into the slot.</strong> They come from outside. The machine can read them, count them, react to them — but it cannot reach into your wallet and change how much money you have. And the machine doesn't decide when it gets coins; you do.</p>
+
+<p><strong>State is what's inside the machine.</strong> The current stock levels. Whether the "sold out" light is on. How much change is loaded. That belongs to the machine, the machine changes it as things happen, and nobody outside can reach in and adjust it directly — they can only push coins (props) or press buttons (events).</p>
+
+<p>The analogy isn't perfect: a real vending machine hangs onto coins forever, whereas a component's props are handed to it fresh on every single render — more like the coins evaporating and being re-inserted each time you look at the machine. But the ownership part is exactly right, and ownership is the whole game.</p>
+
+<p>So the crisp version:</p>
+
+<blockquote style="margin:0 0 1.4rem; padding:14px 20px; border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:0 10px 10px 0;">
+<p style="margin:0"><strong>Props are arguments. State is memory.</strong><br>
+Props are owned by whoever rendered you. State is owned by you.</p>
+</blockquote>
+
+<h3>"Read-only" — what that really means</h3>
+
+<p>You'll hear "props are read-only" or "props are immutable." Let's be precise, because interviewers poke at this.</p>
+
+<p>React does not freeze the props object in production. If you write <code>props.user.name = "Grace"</code>, JavaScript will happily do it. Nothing throws. So what does read-only actually mean?</p>
+
+<p>It means: <strong>mutating props is a broken thing to do, and React will not help you.</strong> Three reasons:</p>
+
+<ol>
+  <li><strong>It won't re-render anything.</strong> React only schedules a re-render when you call a state setter (or a couple of other specific triggers). Mutating an object doesn't notify anyone. Your screen goes stale.</li>
+  <li><strong>You just corrupted the parent's data.</strong> That object is the parent's object. You were handed a reference to it, not a copy. Editing it is like a house guest reorganising your kitchen — the change is real, and you didn't ask for it.</li>
+  <li><strong>The next render overwrites you anyway.</strong> The parent re-renders, builds props again from <em>its</em> source of truth, and hands them down. Whatever you scribbled on gets replaced.</li>
+</ol>
+
+<p>Notice how weak the reassignment case is too. <code>props.name = "Grace"</code> inside the function body only changes a local object for the remainder of this one function call. Next render, brand new props object, brand new call. Your edit is gone. Props are effectively write-once-per-render from above.</p>
+
+<div class="callout interview">
+  <span class="ct">In an interview</span>
+  <p><strong>"Can a child modify its props?"</strong> — This is a recall question with a depth trap sitting under it. The bad answer is just "no, props are immutable." The good answer is: <em>"Not meaningfully. JavaScript won't stop you from mutating the object, but React won't re-render, you'd be mutating data the parent owns, and the parent will overwrite it on its next render. If a child needs to change something, it calls a function the parent passed down — the parent changes its own state and the new value flows back down as a prop."</em> That last sentence is the one that shows you understand the model rather than the rule.</p>
+</div>
+
+<h3>State: memory that survives between renders</h3>
+
+<p>Because a component function runs from scratch every render, ordinary variables are useless for remembering things:</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Buggy — this counter never counts</span>
+<pre><code>function Counter() {
+  let count = 0; // 👈 reset to 0 on every single render
+
+  return (
+    &lt;button onClick={() =&gt; { count = count + 1; }}&gt;
+      Clicked {count} times
+    &lt;/button&gt;
+  );
+}
+// → always renders "Clicked 0 times"</code></pre>
+</div>
+
+<p>Two separate failures here, and it's worth naming both: the value doesn't <em>persist</em> across renders, and changing it doesn't <em>trigger</em> a render. <code>useState</code> fixes both at once.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed</span>
+<pre><code>function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+      Clicked {count} times
+    &lt;/button&gt;
+  );
+}</code></pre>
+</div>
+
+<p>That's the two-part job description of state, and it's a genuinely good thing to be able to say out loud: <strong>state persists across renders, and updating it schedules a render.</strong> A value that needs only the first of those (persistence, but no re-render) wants a <em>ref</em>, not state — we'll come back to that in the decision procedure.</p>
+
+<h2 id="should-be-state"><span class="num">Section 3</span>"Should this be state?" — a decision procedure</h2>
+
+<p>Most React messes I've cleaned up come from the same root cause: too much state. People reach for <code>useState</code> reflexively, and every extra piece of state is another thing that can get out of sync with the others.</p>
+
+<p>So here's a checklist. Run a candidate value through it in order. The first "yes" tells you the answer.</p>
+
+<figure>
+<svg viewBox="0 0 700 420" role="img" aria-label="Flowchart deciding whether a value should be state">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 z" fill="#55524d"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="13.5">
+
+    <rect x="140" y="8" width="420" height="46" rx="10" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="350" y="30" text-anchor="middle" fill="#21201d" font-weight="700">Can I compute it from props or other state?</text>
+    <text x="350" y="47" text-anchor="middle" fill="#55524d">(e.g. total = items.reduce(...))</text>
+
+    <line x1="560" y1="31" x2="646" y2="31" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="600" y="22" text-anchor="middle" fill="#1f7a4d" font-weight="700">yes</text>
+    <rect x="560" y="58" width="132" height="40" rx="8" fill="#eaf7ef" stroke="#1f7a4d" stroke-width="1.6"/>
+    <text x="626" y="76" text-anchor="middle" fill="#1f7a4d" font-weight="700">Not state.</text>
+    <text x="626" y="91" text-anchor="middle" fill="#1f7a4d">Just calculate it.</text>
+    <line x1="646" y1="31" x2="646" y2="56" stroke="#55524d" stroke-width="1.6"/>
+
+    <line x1="350" y1="54" x2="350" y2="98" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="363" y="80" fill="#b3261e" font-weight="700">no</text>
+
+    <rect x="140" y="104" width="420" height="46" rx="10" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="350" y="126" text-anchor="middle" fill="#21201d" font-weight="700">Does it stay the same for the component's whole life?</text>
+    <text x="350" y="143" text-anchor="middle" fill="#55524d">(a config object, a constant, a timer ID)</text>
+
+    <line x1="560" y1="127" x2="646" y2="127" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="600" y="118" text-anchor="middle" fill="#1f7a4d" font-weight="700">yes</text>
+    <rect x="560" y="154" width="132" height="54" rx="8" fill="#eaf7ef" stroke="#1f7a4d" stroke-width="1.6"/>
+    <text x="626" y="172" text-anchor="middle" fill="#1f7a4d" font-weight="700">Not state.</text>
+    <text x="626" y="187" text-anchor="middle" fill="#1f7a4d">Module constant,</text>
+    <text x="626" y="201" text-anchor="middle" fill="#1f7a4d">or useRef.</text>
+    <line x1="646" y1="127" x2="646" y2="152" stroke="#55524d" stroke-width="1.6"/>
+
+    <line x1="350" y1="150" x2="350" y2="194" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="363" y="176" fill="#b3261e" font-weight="700">no</text>
+
+    <rect x="140" y="200" width="420" height="46" rx="10" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="350" y="222" text-anchor="middle" fill="#21201d" font-weight="700">Does anyone else need to read or change it?</text>
+    <text x="350" y="239" text-anchor="middle" fill="#55524d">(a sibling, a parent, a distant cousin)</text>
+
+    <line x1="560" y1="223" x2="646" y2="223" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="600" y="214" text-anchor="middle" fill="#1f7a4d" font-weight="700">yes</text>
+    <rect x="560" y="250" width="132" height="54" rx="8" fill="#eaf7ef" stroke="#1f7a4d" stroke-width="1.6"/>
+    <text x="626" y="268" text-anchor="middle" fill="#1f7a4d" font-weight="700">Still state —</text>
+    <text x="626" y="283" text-anchor="middle" fill="#1f7a4d">but lift it up to</text>
+    <text x="626" y="297" text-anchor="middle" fill="#1f7a4d">a common parent.</text>
+    <line x1="646" y1="223" x2="646" y2="248" stroke="#55524d" stroke-width="1.6"/>
+
+    <line x1="350" y1="246" x2="350" y2="290" stroke="#55524d" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="363" y="272" fill="#b3261e" font-weight="700">no</text>
+
+    <rect x="180" y="296" width="340" height="56" rx="10" fill="#eaf7ef" stroke="#1f7a4d" stroke-width="2.5"/>
+    <text x="350" y="320" text-anchor="middle" fill="#1f7a4d" font-weight="700" font-size="15">✅ Yes — this is local state.</text>
+    <text x="350" y="339" text-anchor="middle" fill="#1f7a4d">useState, right here in this component.</text>
+
+    <text x="350" y="382" text-anchor="middle" fill="#55524d" font-style="italic">Rule of thumb: state should be the smallest set of values</text>
+    <text x="350" y="400" text-anchor="middle" fill="#55524d" font-style="italic">from which everything else on screen can be derived.</text>
+  </g>
+</svg>
+<figcaption>Four questions. The first "yes" wins.</figcaption>
+</figure>
+
+<p>Let me walk each one, because each corresponds to a real class of bug.</p>
+
+<h3>Question 1: can I just calculate it?</h3>
+
+<p>If a value is a pure function of props or other state, it should not be state. Compute it during render.</p>
+
+<div class="cols">
+<div class="snippet bad">
+  <span class="label">❌ Buggy</span>
+<pre><code>const [items, setItems] = useState([]);
+const [total, setTotal] = useState(0);
+
+function addItem(item) {
+  setItems([...items, item]);
+  setTotal(total + item.price);
+  // 👆 two sources of truth,
+  //    one forgotten call away
+  //    from disagreeing
+}</code></pre>
+</div>
+<div class="snippet good">
+  <span class="label">✅ Fixed</span>
+<pre><code>const [items, setItems] = useState([]);
+
+const total = items.reduce(
+  (sum, item) =&gt; sum + item.price,
+  0
+);
+// 👆 can never be wrong.
+//    Recalculated every render.</code></pre>
+</div>
+</div>
+
+<p>"But isn't recalculating on every render slow?" Almost never. Summing a shopping cart is nanoseconds. If you genuinely measure a hot, expensive calculation, <code>useMemo</code> exists for exactly that — and notice that <code>useMemo</code> caches a <em>derived</em> value, it doesn't turn it into state. The source of truth stays singular.</p>
+
+<h3>Question 2: does it ever change?</h3>
+
+<p>If it's the same forever, it's a constant. Move it outside the component so it isn't re-created each render:</p>
+
+<div class="snippet plain">
+  <span class="label">Constants live outside</span>
+<pre><code>const SORT_OPTIONS = ["newest", "price", "rating"]; // 👈 outside
+
+function ProductList() {
+  // ...
+}</code></pre>
+</div>
+
+<p>The subtler version: a value that must <em>persist</em> across renders and can change, but that no visible output depends on. A <code>setInterval</code> ID. A previous scroll position. A "have I already fired the analytics event?" flag. Those want <code>useRef</code>, because a ref persists but doesn't trigger a re-render when you change it.</p>
+
+<p>That gives us a clean three-way split, which is a nice thing to be able to rattle off:</p>
+
+<table>
+  <thead><tr><th>Need</th><th>Persists across renders?</th><th>Triggers re-render?</th><th>Use</th></tr></thead>
+  <tbody>
+    <tr><td>Scratch value for this render</td><td>No</td><td>—</td><td>plain <code>const</code></td></tr>
+    <tr><td>Remember, but nothing on screen depends on it</td><td>Yes</td><td>No</td><td><code>useRef</code></td></tr>
+    <tr><td>Remember, and the UI shows it</td><td>Yes</td><td>Yes</td><td><code>useState</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Question 3: does someone else need it?</h3>
+
+<p>If a sibling needs to read the value, it can't live in your component — siblings have no way to see into each other. It has to move up to a shared ancestor. That's "lifting state up," and it gets its own section shortly.</p>
+
+<h2 id="derived"><span class="num">Section 4</span>Derived state, and the bug from the intro</h2>
+
+<p>"Derived state" is the name for the antipattern in Question 1: <strong>copying or computing a value into state when it could have been read or calculated directly.</strong> The classic form is copying a prop into state.</p>
+
+<p>Now let's go back to that opening bug, because we finally have the tools to dismantle it.</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Buggy — the input won't update when `user` changes</span>
+<pre><code>function EditName({ user }) {
+  const [name, setName] = useState(user.name);
+  return &lt;input value={name} onChange={(e) =&gt; setName(e.target.value)} /&gt;;
+}</code></pre>
+</div>
+
+<p><strong>Why doesn't it update?</strong> Because of what the argument to <code>useState</code> actually is. It is not a binding. It is not a subscription. It's an <em>initial value</em> — used exactly once, on the very first render of this component instance, to seed the state slot React keeps for it. On every render after that, React looks in the slot, finds a value already there, and <strong>ignores the argument entirely</strong>.</p>
+
+<p>So on render #1, <code>user.name</code> is <code>"Ada"</code>, the slot gets seeded with <code>"Ada"</code>. On render #7, the parent passes <code>user.name === "Grace"</code>, React looks in the slot, sees <code>"Ada"</code> sitting there, shrugs, and hands you <code>"Ada"</code>. The expression <code>user.name</code> is still evaluated — JavaScript has to evaluate arguments before calling a function — but its result is thrown away.</p>
+
+<p>An analogy that makes this stick: <code>useState(user.name)</code> is like writing your name on a nametag when you arrive at a conference. Someone changing your name in the attendee database later doesn't rewrite your nametag. The nametag was a snapshot at the door.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p><em>"React must not have noticed the prop changed."</em> React noticed perfectly well — the component re-rendered, that's why you're seeing this at all. The prop <em>is</em> the new value inside the function. It's the state that's stale, because state's whole job is to survive re-renders. This is state doing exactly what state does. The bug is that we asked state to do a prop's job.</p>
+</div>
+
+<h3>So what's the fix?</h3>
+
+<p>There are three, and picking the right one is a great signal in an interview because it shows you're thinking about ownership rather than reaching for a patch.</p>
+
+<p><strong>Fix 1 — don't copy it at all.</strong> If the component doesn't truly need independent local memory, just use the prop. Boring, and correct more often than people expect.</p>
+
+<p><strong>Fix 2 — lift the state to the parent.</strong> If the edited name matters to anyone outside this component (it usually does — you're going to save it), the parent should own it and pass down <code>value</code> and <code>onChange</code>. Now there's one source of truth and no copy to go stale.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed — parent owns it</span>
+<pre><code>function EditName({ name, onNameChange }) {
+  return &lt;input value={name} onChange={(e) =&gt; onNameChange(e.target.value)} /&gt;;
+}</code></pre>
+</div>
+
+<p><strong>Fix 3 — the <code>key</code> trick.</strong> Sometimes the local state genuinely is local (a draft that's meaningless until submitted), and what you actually want is: <em>when the user changes, throw this component away and start fresh.</em> React has a built-in way to say that.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed — reset by changing the key</span>
+<pre><code>&lt;EditName key={user.id} user={user} /&gt;
+{/* 👆 different id → React unmounts the old instance
+       and mounts a brand new one, with brand new state */}</code></pre>
+</div>
+
+<p>This deserves a proper explanation, because "use a key" sounds like folklore until you know the mechanism. React identifies elements by their position in the tree <em>plus</em> their key. When it re-renders and finds a different key in the same position, it doesn't try to update the existing component — it concludes this is a <em>different</em> component, unmounts the old one (destroying its state and running cleanup) and mounts a fresh one. The state resets not because <code>key</code> is a "reset" feature, but because you gave React a brand new component instance. It's the same mechanism you already use in lists, pointed at a different problem.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait, what about — isn't there a hooks way?</span>
+  <p>There is, and the React docs mention it, but it's the last resort: adjust state during render by tracking the previous prop in another piece of state, and calling the setter directly in the render body when it differs. React handles this specially — it re-runs the component immediately, before touching the DOM. It works, it's rarely the clearest option, and I'd only bring it up in an interview as <em>"and there's an adjust-during-render escape hatch if you only want to reset part of the state, but I'd try <code>key</code> first."</em> Saying that shows range without looking like you'd actually reach for it.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap</span>
+  <p>The instinct almost everyone has first is <code>useEffect(() =&gt; setName(user.name), [user])</code>. Please don't. It renders once with the stale value, paints that to the screen, then immediately renders again with the right value — a visible flash on slow devices, plus an extra render every time. React docs explicitly call this out. If you propose it in an interview, expect "can we do that without an effect?" as the follow-up, so get ahead of it.</p>
+</div>
+
+<div class="model-answer">
+  <span class="ct">Model answer — "Why is derived state an antipattern?"</span>
+  <p>"Because it creates a second source of truth that can drift out of sync with the first. If I copy a prop into state with <code>useState(props.value)</code>, that argument is only an <em>initial</em> value — React ignores it on every subsequent render — so when the prop changes, my state keeps the old value and the UI is stale. The fix depends on ownership: if it's just calculable, calculate it during render; if the parent needs it, lift it up and pass <code>value</code> plus a change handler; and if I genuinely want the local state to reset when the prop changes, I pass a <code>key</code> so React remounts the component with fresh state."</p>
+  <p class="why"><strong>Why it lands:</strong> you named the mechanism (initial-value-only), not just the symptom, and you gave three fixes indexed by <em>who owns the data</em>. That's an architecture answer, not a trivia answer.</p>
+</div>
+
+<h2 id="unidirectional"><span class="num">Section 5</span>Unidirectional data flow: data down, events up</h2>
+
+<p>Everything so far has been circling one architectural decision React made early and never wavered on: data flows in exactly one direction, downward.</p>
+
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="Diagram showing data flowing down through props and events flowing up through callbacks">
+  <defs>
+    <marker id="down" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#6b4ee6"/>
+    </marker>
+    <marker id="up" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#8a5b00"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="13">
+
+    <rect x="230" y="14" width="180" height="52" rx="10" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="320" y="36" text-anchor="middle" font-weight="700" fill="#21201d">&lt;App /&gt;</text>
+    <text x="320" y="54" text-anchor="middle" fill="#55524d">owns cartItems (state)</text>
+
+    <rect x="60" y="152" width="180" height="52" rx="10" fill="#fff" stroke="#55524d" stroke-width="1.6"/>
+    <text x="150" y="174" text-anchor="middle" font-weight="700" fill="#21201d">&lt;ProductList /&gt;</text>
+    <text x="150" y="192" text-anchor="middle" fill="#55524d">reads + calls onAdd</text>
+
+    <rect x="400" y="152" width="180" height="52" rx="10" fill="#fff" stroke="#55524d" stroke-width="1.6"/>
+    <text x="490" y="174" text-anchor="middle" font-weight="700" fill="#21201d">&lt;CartSummary /&gt;</text>
+    <text x="490" y="192" text-anchor="middle" fill="#55524d">reads cartItems</text>
+
+    <path d="M280 68 C 250 100, 190 110, 160 148" fill="none" stroke="#6b4ee6" stroke-width="2.2" marker-end="url(#down)"/>
+    <path d="M360 68 C 390 100, 450 110, 480 148" fill="none" stroke="#6b4ee6" stroke-width="2.2" marker-end="url(#down)"/>
+    <text x="196" y="104" text-anchor="middle" fill="#6b4ee6" font-weight="700">props ↓</text>
+    <text x="452" y="104" text-anchor="middle" fill="#6b4ee6" font-weight="700">props ↓</text>
+
+    <path d="M120 148 C 100 108, 140 78, 232 56" fill="none" stroke="#8a5b00" stroke-width="2.2" stroke-dasharray="6 4" marker-end="url(#up)"/>
+    <text x="104" y="126" text-anchor="end" fill="#8a5b00" font-weight="700">onAdd() ↑</text>
+
+    <line x1="30" y1="240" x2="610" y2="240" stroke="#e6e2dc" stroke-width="1.5"/>
+    <text x="320" y="264" text-anchor="middle" fill="#55524d">Data goes <tspan font-weight="700" fill="#6b4ee6">down</tspan> as props. Events go <tspan font-weight="700" fill="#8a5b00">up</tspan> as function calls.</text>
+    <text x="320" y="284" text-anchor="middle" fill="#55524d">Siblings never talk to each other directly.</text>
+</g>
+</svg>
+<figcaption>The only two arrows that exist in React's data model.</figcaption>
+</figure>
+
+<p>A child can never reach sideways to a sibling, and it can never reach up and mutate the parent. When a child needs something to change, it calls a function the parent gave it. The parent decides what to do, updates <em>its own</em> state, and the new value comes back down as a prop.</p>
+
+<p>The postal analogy: props are mail delivered to your address. You can read your mail. You cannot walk into the sorting office and edit the letters other people are about to receive. If you want something changed, you post a reply — a callback — and let the sender decide.</p>
+
+<h3>Why React chose this, and what it buys you</h3>
+
+<p>The alternative is <strong>two-way binding</strong>, which older frameworks leaned on heavily (AngularJS's <code>ng-model</code> is the famous example, and Vue's <code>v-model</code> is a modern, more disciplined descendant). With two-way binding you glue a variable to an input and they update each other automatically. It's genuinely lovely for about the first two weeks.</p>
+
+<p>The problem is debugging. When a value is wrong, the question you always ask is <em>"who changed this?"</em> With one-way flow, that question has a bounded answer: find where the state lives, then look at every <code>setX</code> call in that one component. There is exactly one place a given value can be written. With two-way binding, anything holding a binding can write to it, so "who changed this?" becomes a search across the whole app, and you get cascades where a change in one place silently triggers a change somewhere else that triggers another. AngularJS had an actual digest cycle that looped until values stopped changing, and could throw "infinite digest" errors.</p>
+
+<p>So the trade React made: <strong>more typing, radically more predictability.</strong> You write <code>value</code> and <code>onChange</code> by hand instead of one directive. In exchange, rendering becomes something close to a pure function of state, which means you can reason about the screen by reading the state, and time-travel debugging and dev tools state inspection actually work.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — doesn't React have two-way binding for forms?</span>
+  <p>No, and this trips people up because controlled inputs <em>feel</em> two-way. But look at it closely: you pass <code>value</code> down, and you pass a callback that receives the typed character and calls <code>setState</code> yourself. It's a loop made of two one-way arrows that you wired manually. Vue's <code>v-model</code> is sugar that writes that loop for you; React makes you see it. Same shape, different level of visibility.</p>
+</div>
+
+<h2 id="lifting"><span class="num">Section 6</span>Lifting state up (and what it costs you)</h2>
+
+<p>Here's the situation that forces the pattern. Two siblings need the same value.</p>
+
+<p>Say we're building a temperature widget. One component is a slider that sets a temperature in Celsius. Another is a panel that says whether water would boil. They're siblings.</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Doesn't work — the state is stuck inside one sibling</span>
+<pre><code>function TemperatureInput() {
+  const [celsius, setCelsius] = useState(20); // 👈 trapped in here
+  return &lt;input type="range" value={celsius}
+           onChange={(e) =&gt; setCelsius(Number(e.target.value))} /&gt;;
+}
+
+function BoilingVerdict() {
+  // ...how would this ever see `celsius`? It can't.
+}</code></pre>
+</div>
+
+<p>There is no mechanism for <code>BoilingVerdict</code> to peek at its sibling's state. Data flows down, not sideways. So the value has to move to somewhere that <em>is</em> above both of them — their closest common parent.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed — state lifted to the common parent</span>
+<pre><code>function TemperatureWidget() {
+  const [celsius, setCelsius] = useState(20); // 👈 now it lives up here
+
+  return (
+    &lt;&gt;
+      &lt;TemperatureInput celsius={celsius} onCelsiusChange={setCelsius} /&gt;
+      &lt;BoilingVerdict celsius={celsius} /&gt;
+    &lt;/&gt;
+  );
+}
+
+function TemperatureInput({ celsius, onCelsiusChange }) {
+  return &lt;input type="range" value={celsius}
+           onChange={(e) =&gt; onCelsiusChange(Number(e.target.value))} /&gt;;
+}
+
+function BoilingVerdict({ celsius }) {
+  return &lt;p&gt;{celsius &gt;= 100 ? "Water boils. 🔥" : "No boiling here."}&lt;/p&gt;;
+}</code></pre>
+</div>
+
+<p>Read what happened to the two children: they both became <strong>controlled by their parent</strong>. Neither owns anything. They take data in and report events out. In React vocabulary they're now "presentational" or "dumb" components — and that's a compliment, because a component with no state is trivially testable and trivially reusable.</p>
+
+<p>The general recipe, which is worth memorising because it's a common whiteboard question:</p>
+
+<ol>
+  <li>Find the value that more than one component needs.</li>
+  <li>Find their closest common ancestor.</li>
+  <li>Move the <code>useState</code> there.</li>
+  <li>Pass the value down as a prop to everyone who reads it.</li>
+  <li>Pass a setter (or a handler wrapping one) down to everyone who changes it.</li>
+</ol>
+
+<h3>The costs — and yes, the interviewer wants these</h3>
+
+<p>"Lift state up" is the textbook answer, so the interesting question is always the follow-up: <em>what's wrong with it?</em> Three real costs.</p>
+
+<p><strong>1. Prop drilling.</strong> Common ancestor is right next door? Fine. Common ancestor is six levels up? Now the value has to be threaded through six components, and four of them don't care about it at all — they're just couriers. That's noisy, it makes every intermediate component's prop list a lie about what it actually does, and renaming the prop means touching seven files.</p>
+
+<p><strong>2. Re-rendering a bigger subtree.</strong> State changing re-renders the component that owns it and, by default, everything below it. Move state from a leaf to the root and a keystroke now re-renders your entire app instead of one input. Usually React is fast enough that nobody notices; on a big form or a big list, people very much notice.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood</span>
+  <p>"Re-render" means React calls those component functions again and diffs the result. It does <em>not</em> mean it touches the DOM — if the output is identical, no DOM changes happen. That's why most unnecessary re-renders are harmless. They stop being harmless when the subtree is large, or when a component does expensive work during render. <code>React.memo</code> lets a component skip re-rendering when its props are shallow-equal to last time, which is the standard mitigation — and it's exactly why passing a fresh inline arrow function as a prop can defeat <code>memo</code>, since a new function identity every render means props are never equal.</p>
+</div>
+
+<p><strong>3. The parent accumulates responsibility it doesn't want.</strong> Lift enough things and your once-simple layout component becomes a 300-line state depot for its descendants, holding form values, modal open/closed flags and hover states that have nothing to do with each other. This is how "smart parent, dumb children" degrades into "one enormous component."</p>
+
+<p>So the honest framing is: <strong>lift state as high as it needs to go, and not one level higher.</strong> The right owner is the <em>closest</em> common ancestor, not the top.</p>
+
+<h2 id="composition"><span class="num">Section 7</span>Composition: beating prop drilling without Context</h2>
+
+<p>When someone hits prop drilling, the reflex is "time for Context." And Context is a fine tool. But there's a simpler technique that solves a big chunk of drilling cases with zero new API, and forgetting it is one of the most common gaps I see. If you produce this in an interview, you'll stand out, because most candidates jump straight to Context or Redux.</p>
+
+<p>The insight: <strong>props don't have to be data. They can be UI.</strong></p>
+
+<p>Let's set up the drilling problem concretely. We have a user object at the top, and a deeply nested avatar that needs it.</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Prop drilling — `user` passed through components that don't use it</span>
+<pre><code>function App() {
+  const [user, setUser] = useState(currentUser);
+  return &lt;Layout user={user} /&gt;;
+}
+
+function Layout({ user })  { return &lt;Sidebar user={user} /&gt;; }  // doesn't use it
+function Sidebar({ user }) { return &lt;UserPanel user={user} /&gt;; } // doesn't use it
+function UserPanel({ user }) { return &lt;Avatar src={user.avatarUrl} /&gt;; } // finally!</code></pre>
+</div>
+
+<p><code>Layout</code> and <code>Sidebar</code> are pure overhead. They accept a prop, do nothing with it, and hand it on. Now watch what happens when we let <code>App</code> build the avatar itself and pass it <em>as</em> a prop.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Composition — the element is created where the data lives</span>
+<pre><code>function App() {
+  const [user, setUser] = useState(currentUser);
+
+  return (
+    &lt;Layout&gt;
+      &lt;Sidebar&gt;
+        &lt;UserPanel&gt;
+          &lt;Avatar src={user.avatarUrl} /&gt;  {/* 👈 built right here */}
+        &lt;/UserPanel&gt;
+      &lt;/Sidebar&gt;
+    &lt;/Layout&gt;
+  );
+}
+
+function Layout({ children })  { return &lt;div className="layout"&gt;{children}&lt;/div&gt;; }
+function Sidebar({ children }) { return &lt;aside&gt;{children}&lt;/aside&gt;; }
+function UserPanel({ children }) { return &lt;div className="panel"&gt;{children}&lt;/div&gt;; }</code></pre>
+</div>
+
+<p><code>user</code> now appears in exactly one file. <code>Layout</code> and <code>Sidebar</code> never hear about it. They got <em>simpler</em> — they're now generic containers that will work with any content, forever.</p>
+
+<h3>How this actually works</h3>
+
+<p>Anything you nest between a component's opening and closing tags arrives as a prop called <code>children</code>. It's not special syntax; <code>children</code> is an ordinary prop with a reserved name, holding an already-created element.</p>
+
+<p>And that's the mechanism that matters: <strong>the element is created in <code>App</code>, where <code>user</code> is in scope, and merely <em>carried</em> by the components in between.</strong> They're holding a sealed envelope. They don't need to know what's inside to deliver it. That's the whole trick — you moved the point of creation up to the data, instead of moving the data down to the point of creation.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — what if I need two slots?</span>
+  <p>Then use regular props that happen to hold elements. There's nothing magic about the name <code>children</code>; any prop can hold JSX. This is often called the "slots" or "component as prop" pattern, and it's how basically every UI library builds layouts:</p>
+<pre><code>&lt;PageShell
+  header={&lt;SearchBar query={query} onQueryChange={setQuery} /&gt;}
+  sidebar={&lt;FilterList filters={filters} /&gt;}
+  main={&lt;Results items={results} /&gt;}
+/&gt;
+
+function PageShell({ header, sidebar, main }) {
+  return (
+    &lt;div className="shell"&gt;
+      &lt;header&gt;{header}&lt;/header&gt;
+      &lt;aside&gt;{sidebar}&lt;/aside&gt;
+      &lt;main&gt;{main}&lt;/main&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <p><code>PageShell</code> knows nothing about search, filters or results. It knows about boxes.</p>
+</div>
+
+<h3>When composition <em>isn't</em> enough</h3>
+
+<p>Be honest about the limits — an interviewer will respect it more than an oversell.</p>
+
+<p>Composition works when the data is needed at a <strong>known place in the tree that an ancestor can construct</strong>. It stops working when the consumers are many, scattered, and unpredictable — theme, current user, locale, auth. You can't reasonably hoist every button that needs the theme up into the app root. That's Context's actual job description: values that a wide, unknowable slice of the tree needs.</p>
+
+<p>It also gets awkward when the child needs data the parent can't compute — for example, an item inside a list rendered by an intermediate component. Sometimes the render-prop shape (passing a function that receives the item) covers it; sometimes Context is genuinely the cleaner answer.</p>
+
+<div class="model-answer">
+  <span class="ct">Model answer — "How do you avoid prop drilling without Context?"</span>
+  <p>"Usually by restructuring with composition rather than adding a new data channel. Instead of passing data down through layers that don't use it, I create the element where the data already lives and pass it down as <code>children</code> or as a prop — so the intermediate components just carry an opaque element and never learn about the data at all. That removes the drilling and actually makes the middle components more reusable. I'd reach for Context when the consumers are wide and scattered — theme, auth, locale — where hoisting every consumer to a common ancestor isn't realistic."</p>
+  <p class="why"><strong>Why it lands:</strong> it shows you treat Context as a deliberate choice with a cost, not the default reaction to any inconvenience. Naming the boundary — "known place in the tree" vs "wide and scattered" — is what separates this from a memorised tip.</p>
+</div>
+
+<h2 id="controlled"><span class="num">Section 8</span>Controlled vs uncontrolled components</h2>
+
+<p>Now to forms, which is where all of this stops being theoretical, because HTML inputs have a rude property: <strong>they already have their own state.</strong></p>
+
+<p>A <code>&lt;input&gt;</code> in a plain HTML page remembers what you typed. Nobody wrote any JavaScript for that. The DOM node itself holds a value, and it updates as you type. So the moment React shows up wanting to be the single source of truth, we have two things that both think they own the value. Something has to give.</p>
+
+<p>The two answers to "who wins?" are exactly what controlled and uncontrolled mean.</p>
+
+<h3>Controlled: React holds the value</h3>
+
+<div class="snippet plain">
+  <span class="label">A controlled input</span>
+<pre><code>function SearchBox() {
+  const [query, setQuery] = useState("");
+
+  return (
+    &lt;input
+      value={query}                                    {/* 👈 React tells the DOM what to show */}
+      onChange={(e) =&gt; setQuery(e.target.value)}        {/* 👈 DOM tells React what happened */}
+    /&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Follow one keystroke through this, because the loop is the entire concept:</p>
+
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="The controlled input loop: keystroke, onChange, setState, re-render, value">
+  <defs>
+    <marker id="c1" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#6b4ee6"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, Segoe UI, sans-serif" font-size="13">
+    <rect x="40" y="30" width="150" height="46" rx="9" fill="#fff" stroke="#55524d" stroke-width="1.6"/>
+    <text x="115" y="50" text-anchor="middle" font-weight="700">You press "h"</text>
+    <text x="115" y="67" text-anchor="middle" fill="#55524d">in the DOM input</text>
+
+    <rect x="245" y="30" width="150" height="46" rx="9" fill="#fff" stroke="#55524d" stroke-width="1.6"/>
+    <text x="320" y="50" text-anchor="middle" font-weight="700">onChange fires</text>
+    <text x="320" y="67" text-anchor="middle" fill="#55524d">e.target.value = "h"</text>
+
+    <rect x="450" y="30" width="150" height="46" rx="9" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="525" y="50" text-anchor="middle" font-weight="700">setQuery("h")</text>
+    <text x="525" y="67" text-anchor="middle" fill="#55524d">state updates</text>
+
+    <rect x="450" y="150" width="150" height="46" rx="9" fill="#f1edff" stroke="#6b4ee6" stroke-width="2"/>
+    <text x="525" y="170" text-anchor="middle" font-weight="700">Component</text>
+    <text x="525" y="187" text-anchor="middle" fill="#55524d">re-renders</text>
+
+    <rect x="150" y="150" width="230" height="46" rx="9" fill="#fff" stroke="#55524d" stroke-width="1.6"/>
+    <text x="265" y="170" text-anchor="middle" font-weight="700">React sets input.value = "h"</text>
+    <text x="265" y="187" text-anchor="middle" fill="#55524d">…and now you see the letter</text>
+
+    <line x1="190" y1="53" x2="240" y2="53" stroke="#6b4ee6" stroke-width="2" marker-end="url(#c1)"/>
+    <line x1="395" y1="53" x2="445" y2="53" stroke="#6b4ee6" stroke-width="2" marker-end="url(#c1)"/>
+    <line x1="525" y1="76" x2="525" y2="146" stroke="#6b4ee6" stroke-width="2" marker-end="url(#c1)"/>
+    <line x1="450" y1="173" x2="385" y2="173" stroke="#6b4ee6" stroke-width="2" marker-end="url(#c1)"/>
+
+    <text x="320" y="230" text-anchor="middle" fill="#55524d" font-style="italic">The character you see on screen is the one React put there — not the one you typed.</text>
+  </g>
+</svg>
+<figcaption>Every keystroke makes a full round trip through React state.</figcaption>
+</figure>
+
+<p>That last line is the bit that surprises people. In a controlled input, the letter appearing on screen is <em>not</em> the letter your keyboard produced. Your keystroke is an event; React takes it, updates state, re-renders, and writes the value back into the DOM node. The visual result is identical, so it feels the same — but the value on screen is always React's value.</p>
+
+<p>Which is precisely why the read-only bug happens.</p>
+
+<h3>"Why can't I type in my input?"</h3>
+
+<p>Roughly the most-asked React question on the internet:</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Buggy — the input appears frozen</span>
+<pre><code>const [query, setQuery] = useState("");
+
+&lt;input value={query} /&gt;   {/* 👈 no onChange */}
+// → typing does nothing. React logs a warning about
+//    providing `value` without `onChange`.</code></pre>
+</div>
+
+<p>Walk the loop and it's obvious. You type "h". The DOM briefly holds "h". React re-renders (or reconciles) and sees that <code>value</code> should be <code>""</code> — because <code>query</code> never changed, because nothing called <code>setQuery</code> — so it writes <code>""</code> back into the node. Your character is erased faster than the screen can show it. The input isn't broken; it's being held at <code>""</code> by an authority you gave it.</p>
+
+<p>Three legitimate fixes, depending on intent:</p>
+
+<ul>
+  <li>You want editing → add <code>onChange</code> and update state. (What you meant.)</li>
+  <li>You want a genuinely read-only field → add the <code>readOnly</code> attribute, which is honest about the intent and doesn't warn.</li>
+  <li>You want an initial value that the user can then edit freely → you wanted <code>defaultValue</code>, not <code>value</code>. Which brings us to the other half.</li>
+</ul>
+
+<h3>Uncontrolled: the DOM holds the value</h3>
+
+<p>Uncontrolled means you let the input keep its own value, the way plain HTML always did, and you go <em>ask</em> for it when you need it — usually on submit.</p>
+
+<div class="snippet plain">
+  <span class="label">An uncontrolled input</span>
+<pre><code>function SearchBox() {
+  const inputRef = useRef(null);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    console.log(inputRef.current.value); // 👈 ask the DOM, at the moment we care
+  }
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input ref={inputRef} defaultValue="" /&gt;   {/* 👈 defaultValue, not value */}
+      &lt;button&gt;Search&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Two new pieces there, so let's be sure they're clear.</p>
+
+<p><strong><code>useRef</code></strong> gives you a stable box (<code>{ current: null }</code>) that survives re-renders. Attach it to a DOM element with the <code>ref</code> attribute, and React puts the actual DOM node into <code>.current</code>. So <code>inputRef.current.value</code> is just reading the real DOM node's value — plain old DOM API, reached through React.</p>
+
+<p><strong><code>defaultValue</code></strong> is React's way of saying "seed this input's value once, then leave it alone." Using the plain HTML <code>value</code> attribute here wouldn't work as expected in React, so React gives you <code>defaultValue</code> (and <code>defaultChecked</code> for checkboxes and radios) as the uncontrolled counterpart.</p>
+
+<p>Notice the shape: <code>defaultValue</code> is to <code>value</code> exactly what <code>useState(initial)</code> is to a prop you keep passing. Both mean "initial only, ignored afterwards." Same idea, two places. Once you see that, the intro bug and the <code>defaultValue</code> semantics stop being two facts and become one.</p>
+
+<h3>Side by side</h3>
+
+<table>
+  <thead><tr><th></th><th>Controlled</th><th>Uncontrolled</th></tr></thead>
+  <tbody>
+    <tr><td>Source of truth</td><td>React state</td><td>The DOM node</td></tr>
+    <tr><td>Props used</td><td><code>value</code> + <code>onChange</code></td><td><code>defaultValue</code> / <code>defaultChecked</code>, usually <code>ref</code></td></tr>
+    <tr><td>Reading the value</td><td>It's already in state</td><td><code>ref.current.value</code>, or from the form on submit</td></tr>
+    <tr><td>Renders per keystroke</td><td>One</td><td>Zero</td></tr>
+    <tr><td>Live validation / formatting</td><td>Easy</td><td>Awkward</td></tr>
+    <tr><td>Disable submit until valid</td><td>Easy</td><td>Needs extra work</td></tr>
+    <tr><td>Code volume</td><td>More</td><td>Less</td></tr>
+  </tbody>
+</table>
+
+<h3>So which one, and when?</h3>
+
+<p>Go <strong>controlled</strong> when something else on the page depends on the value <em>as you type</em>. Live search results. A character counter. Formatting a phone number mid-typing. Greying out "Submit" until the email looks valid. Showing "passwords don't match" the instant they don't. In every one of these, React has to know the current value at every keystroke to render correctly — which is the definition of "it should be state."</p>
+
+<p>Go <strong>uncontrolled</strong> when nothing needs the value until submit. A login form. A search box where you only search on Enter. Any form with a lot of fields where per-keystroke re-rendering starts to hurt. Also when you're integrating a non-React widget (a legacy jQuery date picker, say) that insists on owning its own DOM.</p>
+
+<p>The React docs' own guidance is to prefer controlled by default — it keeps everything in one model — and reach for uncontrolled when you have a reason. That's the balanced thing to say in an interview: <em>"controlled by default, uncontrolled when the value isn't needed until submit or when re-render cost actually shows up."</em></p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p><em>"Controlled inputs are slow, so I should use uncontrolled everywhere."</em> For most forms this is nonsense — re-rendering one small component per keystroke is nothing. The cost appears when the state lives high up and a keystroke re-renders a huge subtree. Note that the real culprit there is <em>where the state lives</em>, not controlled-ness itself. Often the fix isn't going uncontrolled — it's pushing the state down into a smaller component so the re-render is local. Saying that out loud is a strong signal, because it shows you diagnose before you prescribe.</p>
+</div>
+
+<h3>Don't switch between the two</h3>
+
+<p>If you've ever seen this warning, here's what caused it:</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Buggy — switches from uncontrolled to controlled</span>
+<pre><code>const [name, setName] = useState();   // 👈 undefined!
+
+&lt;input value={name} onChange={(e) =&gt; setName(e.target.value)} /&gt;
+// → Warning: A component is changing an uncontrolled input to be
+//    controlled.</code></pre>
+</div>
+
+<p><code>useState()</code> with no argument gives <code>undefined</code>. When React sees <code>value={undefined}</code> it can't distinguish that from "no <code>value</code> prop at all," so it treats the input as uncontrolled and lets the DOM drive. Then you type, state becomes a string, and suddenly <code>value</code> is defined — so React switches modes mid-life. React warns because the change is almost always accidental and the behaviour around it is confusing.</p>
+
+<div class="snippet good">
+  <span class="label">✅ Fixed</span>
+<pre><code>const [name, setName] = useState("");  // 👈 always a string
+// Same fix for values from an API: value={name ?? ""}</code></pre>
+</div>
+
+<p>The same applies to <code>null</code>. Rule: for a controlled input, the value must never be <code>undefined</code> or <code>null</code>. Empty string, always.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — what about file inputs?</span>
+  <p>Great follow-up, and a favourite because it catches people who learned the rules without the reasons. <code>&lt;input type="file" /&gt;</code> is <strong>always uncontrolled</strong>. You cannot set its value from React.</p>
+  <p>Why? Security. If a page could set a file input's value programmatically, it could point it at <code>C:\Users\you\tax-return.pdf</code> and silently upload your files. So browsers make the value read-only to scripts — only a real user gesture can set it. React can't control what the browser won't let it write. (You <em>can</em> clear it by setting it to the empty string, which is the one allowed write and the standard "reset the file picker" move.) You read files via <code>onChange</code> from <code>event.target.files</code>, or with a ref: <code>fileRef.current.files[0]</code>.</p>
+</div>
+
+<h3>Mixing the two</h3>
+
+<p>You can absolutely have both styles in one form — a controlled email field with live validation next to three uncontrolled fields read on submit. That's fine and sometimes ideal. What you must not do is make a <em>single</em> input half-controlled: passing both <code>value</code> and <code>defaultValue</code> to the same element gets you a warning, because you've given React two contradictory instructions about who owns the value. Pick one per input.</p>
+
+<h3>How React Hook Form exploits this</h3>
+
+<p>This is a great thing to bring up unprompted, because it shows you've connected a concept to real ecosystem design.</p>
+
+<p>Form libraries used to keep every field in React state — controlled — meaning every keystroke in any field re-rendered the whole form. On a 30-field checkout, on a mid-range phone, that's noticeable.</p>
+
+<p>React Hook Form's core move is to go <strong>uncontrolled by default</strong>. Its <code>register()</code> attaches a ref to each input and lets the DOM hold the values. Typing produces <em>zero</em> React re-renders, because nothing is in React state to update. The library reads values out of the DOM when it needs them — on submit, or when a validation rule triggers.</p>
+
+<div class="snippet plain">
+  <span class="label">React Hook Form, roughly</span>
+<pre><code>const { register, handleSubmit } = useForm();
+
+&lt;form onSubmit={handleSubmit(onValid)}&gt;
+  &lt;input {...register("email")} /&gt;   {/* 👈 spreads a ref + handlers onto the input */}
+  &lt;input {...register("password")} /&gt;
+&lt;/form&gt;
+// Typing here causes no re-renders at all.</code></pre>
+</div>
+
+<p>The trade-off is real, and mentioning it makes the point land harder: because values aren't in React state, anything that needs to <em>react</em> to a value as you type needs an explicit opt-in — that's what the library's <code>watch</code> and <code>useWatch</code> are for, and using them re-introduces re-renders for exactly the fields you're watching. So it isn't magic, it's a deliberate default: pay for reactivity only where you actually use it. (Formik, by contrast, was built controlled-first, which is why its performance story on large forms is different.)</p>
+
+<h2 id="lifecycle"><span class="num">Section 9</span>Class lifecycle methods, mapped to hooks</h2>
+
+<p>Two reasons to know this: you will one day open a file that starts with <code>class Something extends React.Component</code>, and interviewers with a few years on them still ask, partly to see if you understand what effects are actually <em>for</em>.</p>
+
+<p>Quick orientation for anyone who's only written function components. Before hooks (React 16.8, early 2019), a component with state had to be a class. State lived on <code>this.state</code>, you changed it with <code>this.setState()</code>, and instead of hooks you got a set of methods React would call at specific moments in the component's life: when it mounted, when it updated, when it was about to be removed.</p>
+
+<div class="snippet plain">
+  <span class="label">The same counter, as a class</span>
+<pre><code>class Counter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { count: 0 };            // 👈 initial state
+  }
+  componentDidMount() {
+    document.title = `Count: ${this.state.count}`;
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.count !== this.state.count) {
+      document.title = `Count: ${this.state.count}`;   // 👈 note the duplication
+    }
+  }
+  componentWillUnmount() {
+    document.title = "My App";
+  }
+  render() {
+    return &lt;button onClick={() =&gt; this.setState({ count: this.state.count + 1 })}&gt;
+      {this.state.count}
+    &lt;/button&gt;;
+  }
+}</code></pre>
+</div>
+
+<p>Here's the mapping table. Memorise the left two columns; the third column is where the marks are.</p>
+
+<table>
+  <thead><tr><th>Class</th><th>Hooks equivalent</th><th>The catch</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>constructor</code> / <code>this.state = {}</code></td>
+      <td><code>useState(initial)</code></td>
+      <td>One <code>this.state</code> object becomes several independent <code>useState</code> calls (or one <code>useReducer</code>). Also, <code>setState</code> merged partial objects; <code>useState</code> setters <em>replace</em>, so you spread manually.</td>
+    </tr>
+    <tr>
+      <td><code>componentDidMount</code></td>
+      <td><code>useEffect(fn, [])</code></td>
+      <td>Not identical: <code>componentDidMount</code> runs synchronously after the DOM is updated but before paint; <code>useEffect</code> runs <em>after</em> paint. If you need pre-paint (measuring layout to avoid a flicker), that's <code>useLayoutEffect</code>. Also, in Strict Mode in development, React mounts, unmounts and remounts once — so this runs twice on purpose.</td>
+    </tr>
+    <tr>
+      <td><code>componentDidUpdate</code></td>
+      <td><code>useEffect(fn, [deps])</code></td>
+      <td>You no longer compare <code>prevProps</code> by hand; the dependency array does it. But the effect also runs on mount, whereas <code>componentDidUpdate</code> didn't.</td>
+    </tr>
+    <tr>
+      <td><code>componentWillUnmount</code></td>
+      <td>The function returned from <code>useEffect</code></td>
+      <td>The cleanup runs before <em>every</em> re-run of the effect, not just on unmount. That's a feature, not a mismatch — see below.</td>
+    </tr>
+    <tr>
+      <td><code>shouldComponentUpdate</code></td>
+      <td><code>React.memo</code> (+ <code>useMemo</code>/<code>useCallback</code>)</td>
+      <td><code>memo</code> wraps the component from outside and does a shallow props comparison; <code>shouldComponentUpdate</code> was a method inside with access to state too. <code>PureComponent</code> is the closest class analogue of <code>memo</code>.</td>
+    </tr>
+    <tr>
+      <td><code>getDerivedStateFromProps</code></td>
+      <td>Usually: nothing. Calculate during render, or use <code>key</code>.</td>
+      <td>Its existence is a smell. See the derived-state section — the hooks answer is normally "don't."</td>
+    </tr>
+    <tr>
+      <td><code>getSnapshotBeforeUpdate</code></td>
+      <td><code>useLayoutEffect</code></td>
+      <td>For reading DOM measurements (like scroll position) before React commits changes.</td>
+    </tr>
+    <tr>
+      <td><code>getDerivedStateFromError</code><br><code>componentDidCatch</code></td>
+      <td><strong>No hook exists.</strong> Error boundaries are still class-only.</td>
+      <td>You write one class (or use <code>react-error-boundary</code>) and wrap function components in it. Great trivia follow-up.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout interview">
+  <span class="ct">In an interview</span>
+  <p><strong>"Is there anything you still can't do with hooks?"</strong> The answer they're fishing for is <strong>error boundaries</strong>. There is no <code>useErrorBoundary</code>; catching render errors in a subtree requires a class component implementing <code>getDerivedStateFromError</code> (to render a fallback) and/or <code>componentDidCatch</code> (to log). In practice most teams write one small class once, or install <code>react-error-boundary</code>, and never think about it again. Worth adding: error boundaries don't catch errors in event handlers, async code, or during SSR — those need ordinary <code>try/catch</code>.</p>
+</div>
+
+<h3>Now the important part: the mapping is a bit of a lie</h3>
+
+<p>If the interview stops at the table, you've answered a recall question. The senior answer is the next paragraph, so let's make sure it's genuinely clear rather than a slogan.</p>
+
+<p>The table implies <code>useEffect</code> is "the hook you use to do lifecycle things," with the dependency array selecting <em>which</em> lifecycle moment. That framing will actively mislead you. <strong>Effects are not about moments in time. They're about keeping something outside React in sync with your React state.</strong></p>
+
+<p>Here's the concrete case that proves it. A chat room component connects to a server:</p>
+
+<div class="snippet plain">
+  <span class="label">Written as synchronisation</span>
+<pre><code>useEffect(() =&gt; {
+  const connection = createConnection(roomId);
+  connection.connect();
+  return () =&gt; connection.disconnect();   // 👈 cleanup
+}, [roomId]);</code></pre>
+</div>
+
+<p>Read that with lifecycle eyes and you get: "connect on mount, disconnect on unmount, and&hellip; something about <code>roomId</code>?" Read it with synchronisation eyes and it says one sentence: <em>"While this component is on screen, there should be a live connection to <code>roomId</code>."</em> React's job is to make reality match that statement. If <code>roomId</code> changes, reality no longer matches, so React tears down the old connection and builds a new one. Mount and unmount are just the first and last time reality has to be brought in line.</p>
+
+<p>The lifecycle-minded developer writes this instead:</p>
+
+<div class="snippet bad">
+  <span class="label">❌ Buggy — thinking in moments</span>
+<pre><code>useEffect(() =&gt; {
+  const connection = createConnection(roomId);
+  connection.connect();
+  return () =&gt; connection.disconnect();
+}, []);   // 👈 "connect once on mount" — leaks a connection to the old room</code></pre>
+</div>
+
+<p>Switching rooms leaves you talking to the previous room forever. The empty array wasn't a description of the world, it was an instruction about timing — and it lied.</p>
+
+<p>Three more ways the lifecycle mindset leads people astray, all of which are worth having ready:</p>
+
+<p><strong>It makes cleanup feel like "the unmount handler."</strong> It isn't. Cleanup runs before every re-run of the effect. Once you see it as "undo what this effect did, so the next run starts clean," the double-fire in Strict Mode stops being scary and becomes a test: if mount → unmount → mount breaks your component, you had a cleanup bug that would have shown up in production anyway.</p>
+
+<p><strong>It makes the dependency array feel like a trigger list.</strong> "Run this when <code>userId</code> changes" invites you to leave things out to control timing — and omitted dependencies are how you get stale closures reading last render's values. The array isn't a trigger list; it's a declaration of what the effect <em>reads</em>. If you're fighting it, the honest read is usually that this shouldn't be an effect at all.</p>
+
+<p><strong>It makes people use effects for things that aren't effects.</strong> The single biggest one: effects that only update React state in response to other React state. That's not synchronising with an external system — that's a calculation wearing a costume, and it should be plain code in the render body. Same for event responses: code that should run because the user clicked belongs in the click handler, not in an effect watching a flag the click set.</p>
+
+<div class="model-answer">
+  <span class="ct">Model answer — "How do lifecycle methods map to hooks?"</span>
+  <p>"Roughly: the constructor's state becomes <code>useState</code>, <code>componentDidMount</code> becomes <code>useEffect</code> with an empty dependency array, <code>componentDidUpdate</code> becomes <code>useEffect</code> with dependencies, <code>componentWillUnmount</code> becomes the cleanup function you return, and <code>shouldComponentUpdate</code> becomes <code>React.memo</code>. Error boundaries are the one thing with no hook equivalent — <code>getDerivedStateFromError</code> and <code>componentDidCatch</code> still require a class. But I'd add that the mapping is approximate and a bit misleading: an effect isn't a lifecycle moment, it's a way of keeping something external in sync with state, and the dependency array describes what the effect reads rather than when it should fire. Thinking in mount-and-update is how you end up with empty dependency arrays that leak subscriptions."</p>
+  <p class="why"><strong>Why it lands:</strong> the first half proves you can work in a legacy codebase. The second half is the part junior candidates never say, and it's the difference between "knows the API" and "knows the model."</p>
+</div>
+
+<h2 id="followups"><span class="num">Section 10</span>The follow-up questions, with answers</h2>
+
+<p>These are the ones that actually come up. Some restate things above — that's on purpose, since answering out loud is a different skill from recognising. Each answer is written roughly as you'd say it.</p>
+
+<div class="qa">
+  <p class="q">"When would you use an uncontrolled component?"</p>
+  <p>When nothing needs the value until the user submits. A login form is the classic case — I don't need to react to each keystroke, so I'll let the DOM hold the values and read them on submit with a ref or from the form. The other big case is performance on large forms, which is exactly why React Hook Form is uncontrolled by default: no state means no re-render per keystroke. And file inputs, which are <em>always</em> uncontrolled because browsers won't let scripts set their value. My default is still controlled, since it keeps one source of truth — I go uncontrolled deliberately, not out of habit.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"Why is my input not updating / read-only?"</p>
+  <p>Almost always because <code>value</code> was passed without an <code>onChange</code>. That makes React the source of truth but never lets the value change, so on every render React writes the same value back into the DOM node and your keystroke gets wiped. Fix is to add <code>onChange</code> and update state; if it's genuinely meant to be read-only, use the <code>readOnly</code> attribute; if I just wanted an initial value the user can edit, I wanted <code>defaultValue</code>. The other flavour of this is <code>useState()</code> with no initial value, which starts as <code>undefined</code> — React treats that as uncontrolled and then warns when it flips to controlled.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"Can a child modify its props?"</p>
+  <p>No, not in any useful sense. JavaScript won't stop me from mutating the object, but React won't re-render from it, the object belongs to the parent, and the parent overwrites it next render anyway. If a child needs a value to change, the parent passes down a callback, the child calls it, and the parent updates its own state — the new value comes back down as a prop. Data down, events up.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"How do two sibling components share state?"</p>
+  <p>They can't talk directly — data only flows down — so the state moves up to their closest common ancestor, which passes the value down to both and a setter down to whichever one changes it. That's lifting state up. If the common ancestor is far away and the value would have to thread through a lot of uninterested components, I'd look at restructuring with composition first, and reach for Context when the consumers are genuinely wide and scattered.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"Why is derived state an antipattern?"</p>
+  <p>It creates a second copy of a value that can drift from the original. The classic version is <code>useState(props.value)</code>: that argument is only an initial value, so once the prop changes the state keeps the old one and the UI goes stale. If it can be calculated, calculate it during render — a value you compute can't be out of sync. If it needs to be shared, lift it. If I want a genuine reset, use <code>key</code>. What I'd avoid is a <code>useEffect</code> that syncs the prop into state, since that renders twice and can flash the stale value.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"How do you reset a component's state when a prop changes?"</p>
+  <p>Pass a <code>key</code> that changes with the prop — <code>&lt;EditName key={user.id} user={user} /&gt;</code>. React identifies a component by position plus key, so a new key means it treats it as a different component: it unmounts the old instance, runs its cleanup, and mounts a fresh one with fresh state. It's the same mechanism as keys in lists, used deliberately. If I only want to reset part of the state I'd adjust state during render while tracking the previous prop, but <code>key</code> is cleaner and I'd try it first.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"What replaced <code>componentWillReceiveProps</code>, and why was it deprecated?"</p>
+  <p>It was replaced by <code>getDerivedStateFromProps</code> in classes, and in hooks the answer is usually "nothing, because you shouldn't need it" — calculate during render or use <code>key</code>.</p>
+  <p>It was deprecated for two reasons. The first is that it, along with <code>componentWillMount</code> and <code>componentWillUpdate</code>, ran <em>before</em> render, in the phase React wanted to make interruptible for concurrent rendering. React needed to be free to start rendering, pause, and restart — which means anything in that phase might run multiple times per commit. Any side effect in there, like kicking off a fetch or setting up a subscription, would fire more than once. So they were renamed with an <code>UNSAFE_</code> prefix and pushed out of the way. The replacement, <code>getDerivedStateFromProps</code>, is <code>static</code>, which is the giveaway: no <code>this</code>, so you physically cannot do side effects or read instance state in it.</p>
+  <p>The second reason is that it was chronically misused for derived state. People wrote <code>if (nextProps.value !== this.props.value) this.setState({ value: nextProps.value })</code>, which introduces exactly the two-sources-of-truth bug we've been talking about, plus a subtle one: it compares against the incoming props rather than current state, so it silently blows away user edits whenever the parent re-renders for an unrelated reason.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"What are the downsides of lifting state up?"</p>
+  <p>Three. Prop drilling, if the common ancestor is far from the consumers — the value threads through components that don't use it, which is noisy and makes those components' APIs misleading. Wider re-renders, because updating state re-renders that component and its subtree, so a keystroke that used to re-render one input now re-renders a whole page. And responsibility creep: the parent accumulates unrelated state until it's a dumping ground. So I lift to the <em>closest</em> common ancestor, not the top, and if performance shows up as a real problem I look at pushing state back down into a smaller component or memoising the expensive children.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"How do you avoid prop drilling without Context?"</p>
+  <p>Composition. Instead of passing data down through layers, I create the element where the data already lives and pass it down as <code>children</code> or as an element-valued prop. The intermediate components carry an opaque element and never learn about the data — which removes the drilling and makes them more reusable, since they now work with any content. Context is still right when consumers are wide and scattered, like theme or auth, but for a known destination in the tree, composition solves it with no new machinery.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"Why not just use two-way binding? It's less code."</p>
+  <p>It is less code, and that's a real benefit. What you give up is the ability to answer "who changed this value?" cheaply. With one-way flow, a value is written in exactly one place — the component that owns the state — so debugging is a bounded search. With two-way binding, anything holding a binding can write, and updates can cascade into each other. React took the more-typing-for-more-predictability trade, and it's what makes rendering close to a pure function of state, which is what dev tools and time-travel debugging rely on. Controlled inputs give you the two-way <em>feel</em> anyway; you just write the loop yourself.</p>
+</div>
+
+<div class="qa">
+  <p class="q">"Why not just put every value in state? It's simpler to reason about."</p>
+  <p>The opposite, actually — every extra piece of state is another thing that can disagree with the others. If a value can be computed from props or other state, computing it during render means it's structurally impossible for it to be wrong, whereas storing it means every code path that changes the source has to remember to update the copy. I keep state as the minimal set of values that everything else can be derived from. If a derivation is genuinely expensive, that's what <code>useMemo</code> is for — and note it caches a derived value rather than making a second source of truth.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Traps to avoid saying</span>
+  <ul>
+    <li>"Props are immutable, state is mutable." State isn't mutable either — you replace it via the setter. Mutating a state object directly is just as broken, and often won't re-render because React compares by reference.</li>
+    <li>"<code>useEffect</code> is <code>componentDidMount</code>." Only approximately, and the differences (runs after paint, cleanup between runs, Strict Mode double-invoke) are exactly what gets probed next.</li>
+    <li>"Controlled is slow." Too broad. Say what's slow — a re-render of a large subtree per keystroke — and note that pushing state down often fixes it without going uncontrolled.</li>
+    <li>"Use Context to avoid prop drilling." Fine as a second sentence, never as the first. Composition first shows judgement.</li>
+    <li>"State updates are asynchronous, so you can't read the new value." Close but muddled. The precise version: setters queue an update and don't change the current render's variable, because that variable is a const captured by this render. Use the updater form <code>setCount(c =&gt; c + 1)</code> when the new value depends on the old.</li>
+  </ul>
+</div>
+
+<h2 id="cheat"><span class="num">Section 11</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<div class="cheat">
+<dl>
+  <dt>Props vs state</dt>
+  <dd>Props are arguments passed in and owned by the parent; state is memory owned by the component. Props are read-only from below; state persists across renders and triggers a re-render when set.</dd>
+
+  <dt>Can a child modify props?</dt>
+  <dd>No — mutating won't re-render, corrupts the parent's data, and gets overwritten next render. Call a callback instead.</dd>
+
+  <dt>Should this be state?</dt>
+  <dd>Derivable from props/state → calculate it. Never changes → constant. Persists but nothing renders it → <code>useRef</code>. Someone else needs it → lift it. Otherwise → <code>useState</code>.</dd>
+
+  <dt>Derived state antipattern</dt>
+  <dd>Copying a prop into state creates a second source of truth; <code>useState(props.x)</code> only reads <code>x</code> on the first render, so it goes stale.</dd>
+
+  <dt>Resetting state on a prop change</dt>
+  <dd>Change the <code>key</code>. New key = new instance = fresh state, because React identifies components by position + key.</dd>
+
+  <dt>Unidirectional data flow</dt>
+  <dd>Data down as props, events up as callbacks. One writer per value makes "who changed this?" a bounded question.</dd>
+
+  <dt>Two-way binding contrast</dt>
+  <dd>Less code, worse debuggability — any binding holder can write, and updates cascade. React trades verbosity for predictability.</dd>
+
+  <dt>Lifting state up</dt>
+  <dd>Two components need a value → move it to their closest common ancestor, pass value down, pass setter down.</dd>
+
+  <dt>Costs of lifting</dt>
+  <dd>Prop drilling, wider re-renders, and a parent that becomes a state dumping ground. Lift to the <em>closest</em> ancestor, not the top.</dd>
+
+  <dt>Avoiding prop drilling without Context</dt>
+  <dd>Composition: build the element where the data lives, pass it as <code>children</code> or an element prop. Middle layers carry a sealed envelope.</dd>
+
+  <dt>Controlled component</dt>
+  <dd><code>value</code> + <code>onChange</code>; React state is the single source of truth. Every keystroke round-trips through state.</dd>
+
+  <dt>Uncontrolled component</dt>
+  <dd><code>defaultValue</code>/<code>defaultChecked</code>; the DOM holds the value and you read it via a ref or on submit. Zero re-renders while typing.</dd>
+
+  <dt>"I can't type in my input"</dt>
+  <dd><code>value</code> without <code>onChange</code>. Add the handler, or use <code>readOnly</code>, or switch to <code>defaultValue</code>.</dd>
+
+  <dt>"Uncontrolled → controlled" warning</dt>
+  <dd>The value started as <code>undefined</code>/<code>null</code>. Initialise to <code>""</code> or use <code>value={x ?? ""}</code>.</dd>
+
+  <dt>File inputs</dt>
+  <dd>Always uncontrolled — browsers forbid scripts setting a file input's value for security. Read <code>event.target.files</code>.</dd>
+
+  <dt>React Hook Form</dt>
+  <dd>Uncontrolled by default via refs, so typing causes no re-renders; you opt into reactivity per field with <code>watch</code>.</dd>
+
+  <dt>Lifecycle → hooks</dt>
+  <dd>constructor → <code>useState</code>; didMount → <code>useEffect(fn, [])</code>; didUpdate → <code>useEffect(fn, [deps])</code>; willUnmount → the returned cleanup; shouldComponentUpdate → <code>React.memo</code>.</dd>
+
+  <dt>The one thing hooks can't do</dt>
+  <dd>Error boundaries. <code>getDerivedStateFromError</code>/<code>componentDidCatch</code> are still class-only.</dd>
+
+  <dt>Why the lifecycle map misleads</dt>
+  <dd>Effects synchronise with external systems; they aren't lifecycle moments. Deps describe what the effect reads, not when it fires — which is why <code>[]</code> so often hides a bug.</dd>
+
+  <dt>Why <code>componentWillReceiveProps</code> died</dt>
+  <dd>It ran in the interruptible pre-render phase (so side effects could fire multiple times), and it was overwhelmingly misused for derived state.</dd>
+</dl>
+</div>
+
+<hr>
+
+<h3>One last thing</h3>
+
+<p>If you remember one sentence from all of this, make it this one: <strong>every bug in this guide is a question about ownership.</strong></p>
+
+<p>Stale copied prop? Two owners for one value. Input you can't type in? React owns the value but nothing ever updates it. Siblings that can't communicate? The value is owned too low. Prop drilling? The value is owned too high, or created in the wrong place. Leaked chat connection? An effect that described a moment instead of describing what it depends on.</p>
+
+<p>So when something's behaving strangely, don't start by asking what React is doing wrong. Ask: <em>who owns this value, and is that the right owner?</em> That question resolves an unreasonable share of React confusion — including, I'll admit, most of my own. 🙂</p>
+
+</div>
+</body>
+</html>

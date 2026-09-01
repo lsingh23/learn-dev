@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memoization, Re-renders &amp; Context — a frontend interview guide</title>
+<style>
+  :root {
+    --ink: #1c1c22;
+    --ink-soft: #4a4a58;
+    --paper: #fdfdfb;
+    --rule: #e4e2dc;
+    --accent: #5b4bd6;
+    --accent-soft: #efedff;
+    --green: #17734f;
+    --green-soft: #e7f6ee;
+    --red: #b3261e;
+    --red-soft: #fdecea;
+    --amber: #8a5a00;
+    --amber-soft: #fff5e0;
+    --slate: #2a3140;
+    --code-bg: #22222c;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    padding: 0 20px 120px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+  }
+
+  .wrap { max-width: 750px; margin: 0 auto; }
+
+  header.hero {
+    padding: 72px 0 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 36px;
+  }
+  header.hero .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  header.hero h1 {
+    font-size: 2.45rem;
+    line-height: 1.15;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    margin: 3.2em 0 0.6em;
+    padding-top: 0.4em;
+    border-top: 3px solid var(--ink);
+    display: block;
+  }
+  h2 .num {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  h3 { font-size: 1.24rem; margin: 2.2em 0 0.5em; letter-spacing: -0.01em; }
+  h4 { font-size: 1.02rem; margin: 1.8em 0 0.4em; }
+
+  p { margin: 0 0 1.1em; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.87em;
+    background: #f0eef8;
+    padding: 0.12em 0.36em;
+    border-radius: 4px;
+    color: #37306b;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: #e8e8ef;
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    line-height: 1.6;
+    font-size: 14.5px;
+    margin: 0 0 1.2em;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  pre .c { color: #8f93a8; font-style: italic; }
+  pre .k { color: #c48fff; }
+  pre .s { color: #9ae6a0; }
+  pre .f { color: #79c0ff; }
+  pre .hl { color: #ffd479; font-weight: 600; }
+
+  .codeblock { margin: 0 0 1.4em; }
+  .codeblock > .label {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 5px 12px;
+    border-radius: 8px 8px 0 0;
+    margin: 0;
+  }
+  .codeblock > .label + pre { border-top-left-radius: 0; margin-bottom: 0; }
+  .codeblock.bad > .label { background: var(--red); color: #fff; }
+  .codeblock.good > .label { background: var(--green); color: #fff; }
+  .codeblock.neutral > .label { background: var(--slate); color: #fff; }
+
+  .callout {
+    border-radius: 10px;
+    padding: 18px 20px 4px;
+    margin: 1.7em 0;
+    border: 1px solid transparent;
+  }
+  .callout .ct {
+    font-weight: 700;
+    font-size: 0.93rem;
+    letter-spacing: 0.01em;
+    margin: 0 0 0.5em;
+    display: block;
+  }
+  .callout p:last-child { margin-bottom: 1.1em; }
+  .callout.wait { background: var(--accent-soft); border-color: #d8d3ff; }
+  .callout.wait .ct { color: #4436bd; }
+  .callout.misc { background: var(--red-soft); border-color: #f6d5d1; }
+  .callout.misc .ct { color: var(--red); }
+  .callout.hood { background: #f3f4f6; border-color: #e0e2e6; }
+  .callout.hood .ct { color: var(--slate); }
+  .callout.iv { background: var(--amber-soft); border-color: #f2e0b8; }
+  .callout.iv .ct { color: var(--amber); }
+
+  .answer {
+    background: #fff;
+    border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 18px 4px;
+    margin: 1.2em 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .answer .who {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--green);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .answer p { font-size: 1.02rem; }
+  .why {
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+    border-left: 3px solid var(--rule);
+    padding-left: 14px;
+    margin: -0.2em 0 1.4em;
+  }
+
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 0 12px;
+    background: #fff;
+  }
+  details[open] { padding-bottom: 2px; }
+  summary {
+    cursor: pointer;
+    font-weight: 650;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: "▸";
+    color: var(--accent);
+    display: inline-block;
+    width: 1.1em;
+    transition: transform 0.15s ease;
+  }
+  details[open] summary::before { content: "▾"; }
+  details > *:not(summary) { margin-top: 0.9em; }
+
+  ul, ol { margin: 0 0 1.2em; padding-left: 1.4em; }
+  li { margin-bottom: 0.45em; }
+
+  .toc {
+    background: #f6f5f1;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 22px 26px 8px;
+    margin: 0 0 2em;
+  }
+  .toc h2 {
+    all: unset;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 700;
+    color: var(--ink-soft);
+    display: block;
+    margin-bottom: 12px;
+  }
+  .toc ol { padding-left: 1.3em; }
+  .toc li { margin-bottom: 0.3em; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.94rem;
+    margin: 0 0 1.5em;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f2f1ec; font-size: 0.86rem; letter-spacing: 0.02em; }
+
+  figure { margin: 1.8em 0; }
+  figcaption {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 10px;
+  }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+  .cheat {
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 6px 24px 12px;
+  }
+  .cheat dt { font-weight: 700; margin-top: 1.1em; }
+  .cheat dd { margin: 0.2em 0 0; color: var(--ink-soft); }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 2.6em 0; }
+
+  .big-q {
+    font-size: 1.06rem;
+    font-weight: 650;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin: 2em 0 1em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Frontend interview guide · 12</p>
+  <h1>Memoization, Re-renders &amp; Context</h1>
+  <p>Why your <code>React.memo</code> isn't working, why <code>useMemo</code> everywhere is a bad idea, and why Context is not a state manager — explained from the ground up.</p>
+</header>
+
+<div class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#render">What a "render" actually is</a></li>
+    <li><a href="#causes">The three things that cause a re-render</a></li>
+    <li><a href="#cheap">Why re-renders are usually cheap</a></li>
+    <li><a href="#refs">Detour: values vs. references</a></li>
+    <li><a href="#memo"><code>React.memo</code></a></li>
+    <li><a href="#usememo"><code>useMemo</code></a></li>
+    <li><a href="#usecallback"><code>useCallback</code></a></li>
+    <li><a href="#cost">What memoization actually costs</a></li>
+    <li><a href="#structural">The structural fixes you should try first</a></li>
+    <li><a href="#compiler">The React Compiler</a></li>
+    <li><a href="#context">Context, properly understood</a></li>
+    <li><a href="#context-perf">Why Context causes performance problems</a></li>
+    <li><a href="#stores">Context vs. prop drilling vs. an external store</a></li>
+    <li><a href="#diagnose">How to actually diagnose a perf problem</a></li>
+    <li><a href="#followups">The follow-up questions, answered</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</div>
+
+<p>Here's a piece of React that has confused approximately every developer who has ever written React. Have a look and tell me what you think happens.</p>
+
+<div class="codeblock neutral">
+<p class="label">A perfectly ordinary component</p>
+<pre><code><span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="hl">0</span>);
+
+  <span class="k">return</span> (
+    &lt;div&gt;
+      &lt;button onClick={() =&gt; <span class="f">setCount</span>(count + <span class="hl">1</span>)}&gt;Clicked {count} times&lt;/button&gt;
+      &lt;Sidebar /&gt;   <span class="c">{/* 👈 no props at all */}</span>
+    &lt;/div&gt;
+  );
+}</code></pre>
+</div>
+
+<p>You click the button. <code>count</code> goes from 0 to 1. <code>App</code> re-renders — obviously, its state changed.</p>
+
+<p>But what about <code>Sidebar</code>? It receives no props. Nothing about it changed. Nothing it depends on changed. Does React re-render it?</p>
+
+<p>Take a second and actually commit to an answer, because your instinct here determines whether the rest of this guide makes sense.</p>
+
+<details>
+  <summary>Show me the answer</summary>
+  <p><strong>Yes. <code>Sidebar</code> re-renders.</strong> Every single time you click that button. So does everything inside <code>Sidebar</code>, and everything inside <em>that</em>, all the way down the tree.</p>
+  <p>If you believed React would skip it because "nothing changed" — good, that's the belief we're going to dismantle, and dismantling it is the entire foundation of this topic.</p>
+</details>
+
+<p>This one behaviour is the root of nearly every React performance question you'll ever be asked. So we're going to start there, slowly, and we're not going to touch <code>React.memo</code> until it's completely airtight.</p>
+
+<h2 id="render"><span class="num">Section 1</span>What a "render" actually is</h2>
+
+<p>The word "render" is badly overloaded. People use it to mean "draw pixels on screen," which is what the word means everywhere else in computing. In React it means something much more boring, and the boringness is the point.</p>
+
+<p><strong>A render is React calling your component function.</strong> That's it. That's the whole thing.</p>
+
+<p>Your component is a function. It takes props, it runs some hooks, and it returns a description of what the UI should look like. When React "renders" your component, it invokes that function and collects the returned description.</p>
+
+<div class="codeblock neutral">
+<p class="label">What your JSX actually is</p>
+<pre><code><span class="c">// This JSX...</span>
+&lt;button className=<span class="s">"primary"</span>&gt;Save&lt;/button&gt;
+
+<span class="c">// ...is just this object. It's a description, not a DOM node.</span>
+{
+  type: <span class="s">'button'</span>,
+  props: { className: <span class="s">'primary'</span>, children: <span class="s">'Save'</span> }
+}</code></pre>
+</div>
+
+<p>So a render produces a plain JavaScript object tree. Nothing has touched the screen yet. React then compares that new tree with the previous one, works out the minimal set of real DOM operations needed, and applies them. React calls these two phases the <strong>render phase</strong> and the <strong>commit phase</strong>. Afterwards the browser does its own thing — layout, paint — and you finally see pixels.</p>
+
+<figure>
+<svg viewBox="0 0 700 190" role="img" aria-label="Diagram of the three phases: render, commit, paint">
+  <defs>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#4a4a58"/>
+    </marker>
+  </defs>
+  <rect x="10" y="40" width="195" height="86" rx="10" fill="#efedff" stroke="#5b4bd6" stroke-width="1.5"/>
+  <text x="107" y="66" text-anchor="middle" font-size="15" font-weight="700" fill="#37306b" font-family="sans-serif">1. Render</text>
+  <text x="107" y="89" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">Call the component fn,</text>
+  <text x="107" y="107" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">get an object tree, diff it</text>
+
+  <line x1="212" y1="83" x2="240" y2="83" stroke="#4a4a58" stroke-width="1.6" marker-end="url(#arw)"/>
+
+  <rect x="250" y="40" width="195" height="86" rx="10" fill="#e7f6ee" stroke="#17734f" stroke-width="1.5"/>
+  <text x="347" y="66" text-anchor="middle" font-size="15" font-weight="700" fill="#0f5537" font-family="sans-serif">2. Commit</text>
+  <text x="347" y="89" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">Apply the differences</text>
+  <text x="347" y="107" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">to the real DOM</text>
+
+  <line x1="452" y1="83" x2="480" y2="83" stroke="#4a4a58" stroke-width="1.6" marker-end="url(#arw)"/>
+
+  <rect x="490" y="40" width="195" height="86" rx="10" fill="#fff5e0" stroke="#8a5a00" stroke-width="1.5"/>
+  <text x="587" y="66" text-anchor="middle" font-size="15" font-weight="700" fill="#7a4f00" font-family="sans-serif">3. Paint</text>
+  <text x="587" y="89" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">Browser does layout</text>
+  <text x="587" y="107" text-anchor="middle" font-size="12.5" fill="#4a4a58" font-family="sans-serif">and paints pixels</text>
+
+  <text x="107" y="152" text-anchor="middle" font-size="12" fill="#5b4bd6" font-family="sans-serif" font-style="italic">memoization lives here</text>
+  <text x="347" y="152" text-anchor="middle" font-size="12" fill="#17734f" font-family="sans-serif" font-style="italic">the genuinely expensive part</text>
+  <text x="587" y="152" text-anchor="middle" font-size="12" fill="#8a5a00" font-family="sans-serif" font-style="italic">not React's job</text>
+</svg>
+<figcaption>Rendering is cheap bookkeeping. Committing touches the DOM. Everything we talk about in this guide is about skipping work in phase 1.</figcaption>
+</figure>
+
+<p>Here's the piece that trips people up: <strong>a re-render does not imply a DOM update.</strong> If <code>Sidebar</code> re-renders and produces an identical description to last time, React diffs it, finds nothing different, and touches the DOM zero times. The user sees nothing. Nothing flickers. The only cost was running the function and comparing some objects.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p>"Re-rendering means React rebuilds the DOM." No. Re-rendering means React re-runs your function and compares the result. Rebuilding the DOM only happens for the parts that genuinely differ. This is why re-renders are much less scary than beginners think — and why "stop this re-render!" is often the wrong instinct.</p>
+</div>
+
+<h2 id="causes"><span class="num">Section 2</span>The three things that cause a re-render</h2>
+
+<p>This is the section to get right. Everything else in this guide is a consequence of it.</p>
+
+<p>A component re-renders when one of exactly three things happens:</p>
+
+<ol>
+  <li><strong>Its own state changed.</strong> You called a <code>setState</code> from <code>useState</code>, or dispatched with <code>useReducer</code>, and the new value is actually different.</li>
+  <li><strong>Its parent re-rendered.</strong> Full stop. No conditions. If the parent re-renders, the child re-renders.</li>
+  <li><strong>A context it consumes got a new value.</strong> If the component calls <code>useContext(SomethingContext)</code> and the value the provider hands down changes identity, this component re-renders — even if its parent didn't.</li>
+</ol>
+
+<p>Notice what's <em>not</em> on that list.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception (the big one)</span>
+  <p>"A component re-renders when its props change."</p>
+  <p>This is the single most widespread false belief about React, and it's false in <em>both</em> directions.</p>
+  <p><strong>Props changing is not sufficient</strong> — props can't change on their own; the only way a prop gets a new value is if the parent re-rendered and passed something new. The parent re-render is the cause; the new prop is a side effect.</p>
+  <p><strong>Props changing is not necessary</strong> — <code>Sidebar</code> in our opening example takes no props whatsoever, and it re-renders every single click.</p>
+  <p>Say it in an interview like this: <em>"A component re-renders because its parent did, not because its props changed."</em> That one sentence signals more understanding than a paragraph of hedging.</p>
+</div>
+
+<p>Let's make this concrete. Add some logging to the opening example:</p>
+
+<div class="codeblock neutral">
+<p class="label">Watch the cascade</p>
+<pre><code><span class="k">function</span> <span class="f">Sidebar</span>() {
+  console.<span class="f">log</span>(<span class="s">'Sidebar rendered'</span>);
+  <span class="k">return</span> &lt;nav&gt;&lt;NavLinks /&gt;&lt;/nav&gt;;
+}
+
+<span class="k">function</span> <span class="f">NavLinks</span>() {
+  console.<span class="f">log</span>(<span class="s">'NavLinks rendered'</span>);
+  <span class="k">return</span> &lt;ul&gt;{<span class="c">/* ... */</span>}&lt;/ul&gt;;
+}
+
+<span class="c">// Click the counter button once:</span>
+<span class="c">// → 'Sidebar rendered'</span>
+<span class="c">// → 'NavLinks rendered'</span>
+<span class="c">// Neither of them takes a single prop. 🤷</span></code></pre>
+</div>
+
+<p>The mental model to carry around: <strong>a state update doesn't re-render "the component that owns the state" — it re-renders that component and its entire subtree.</strong> State updates fall <em>downwards</em>, like water. They can never flow up or sideways.</p>
+
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="Component tree showing a state update re-rendering a whole subtree">
+  <rect x="255" y="12" width="130" height="40" rx="8" fill="#f2f1ec" stroke="#c9c6bd" stroke-width="1.5"/>
+  <text x="320" y="37" text-anchor="middle" font-size="14" font-family="sans-serif" fill="#4a4a58">App</text>
+
+  <line x1="320" y1="52" x2="200" y2="90" stroke="#c9c6bd" stroke-width="1.5"/>
+  <line x1="320" y1="52" x2="450" y2="90" stroke="#c9c6bd" stroke-width="1.5"/>
+
+  <rect x="120" y="90" width="160" height="42" rx="8" fill="#fdecea" stroke="#b3261e" stroke-width="2.2"/>
+  <text x="200" y="109" text-anchor="middle" font-size="13.5" font-weight="700" font-family="sans-serif" fill="#b3261e">Dashboard</text>
+  <text x="200" y="125" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#b3261e">setCount() called here</text>
+
+  <rect x="380" y="90" width="140" height="42" rx="8" fill="#f2f1ec" stroke="#c9c6bd" stroke-width="1.5"/>
+  <text x="450" y="116" text-anchor="middle" font-size="13.5" font-family="sans-serif" fill="#4a4a58">Footer</text>
+
+  <line x1="200" y1="132" x2="120" y2="176" stroke="#e8a5a0" stroke-width="1.8"/>
+  <line x1="200" y1="132" x2="270" y2="176" stroke="#e8a5a0" stroke-width="1.8"/>
+
+  <rect x="45" y="176" width="150" height="40" rx="8" fill="#fdecea" stroke="#e08b84" stroke-width="1.8"/>
+  <text x="120" y="201" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#b3261e">Chart</text>
+
+  <rect x="200" y="176" width="150" height="40" rx="8" fill="#fdecea" stroke="#e08b84" stroke-width="1.8"/>
+  <text x="275" y="201" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#b3261e">Sidebar</text>
+
+  <line x1="275" y1="216" x2="275" y2="248" stroke="#e8a5a0" stroke-width="1.8"/>
+  <rect x="200" y="248" width="150" height="40" rx="8" fill="#fdecea" stroke="#e08b84" stroke-width="1.8"/>
+  <text x="275" y="273" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#b3261e">NavLinks</text>
+
+  <text x="560" y="200" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#b3261e" font-weight="700">red = re-rendered</text>
+  <text x="560" y="220" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#7d7a72">grey = untouched</text>
+</svg>
+<figcaption>State updates flow strictly downward. <code>App</code> and <code>Footer</code> are above/beside the update, so they're left alone. Everything under <code>Dashboard</code> re-renders regardless of props.</figcaption>
+</figure>
+
+<div class="callout wait">
+  <span class="ct">Wait — what about that fourth cause?</span>
+  <p>There's technically a fourth: subscribing to an external data source with <code>useSyncExternalStore</code> (which is what Redux, Zustand and friends use under the hood). That's a component subscribing to something outside React and asking to be re-rendered when it changes. We'll come back to it in the section on external stores — it's exactly the escape hatch Context lacks.</p>
+  <p>Also worth knowing: in development with <strong>StrictMode</strong> on, React deliberately calls your component function twice per render to help you catch impure components. So if your console logs look doubled, that's why, and it doesn't happen in production.</p>
+</div>
+
+<h2 id="cheap"><span class="num">Section 3</span>Why re-renders are usually cheap (and premature memoization isn't)</h2>
+
+<p>Reading section 2, the natural reaction is panic. "My whole app re-renders on every keystroke?! I need to wrap everything in <code>React.memo</code> immediately!"</p>
+
+<p>Hold on. Let's think about what a re-render actually costs.</p>
+
+<p>Running a component function means: executing some straight-line JavaScript, calling a handful of hooks (which are basically array lookups), and allocating a few small objects for the JSX. On a modern device that's typically in the <em>microseconds</em>. React can comfortably do thousands of these within a single 16ms frame.</p>
+
+<p>Here's an analogy I like. Imagine a restaurant kitchen. When an order comes in, the head chef re-reads the whole ticket for the table — all six dishes — even though only one dish changed. Re-reading a ticket takes a second. <em>Cooking</em> the dish takes twenty minutes. Optimising the ticket-reading is not where your wins are.</p>
+
+<p>In React, "re-reading the ticket" is the render phase. "Cooking" is the commit phase touching the DOM — and React already skips that automatically for anything that didn't change. <em>(Where this analogy breaks down: if you have 5,000 tickets, re-reading them all does start to matter. Volume is what turns cheap into expensive.)</em></p>
+
+<p>So when <em>is</em> a re-render expensive? Realistically:</p>
+
+<ul>
+  <li><strong>Volume.</strong> A table with 2,000 rows, each re-rendering, each producing JSX. A thousand cheap things is one expensive thing.</li>
+  <li><strong>Genuinely heavy work inside the render.</strong> Sorting a 50,000-item array, running a syntax highlighter, parsing markdown, doing date math over a big list — on every keystroke.</li>
+  <li><strong>Frequency.</strong> Re-rendering half your app on a mousemove or a scroll handler firing 60 times a second.</li>
+  <li><strong>Heavy trees.</strong> A chart library or rich text editor that does real work when it re-renders.</li>
+</ul>
+
+<p>Notice that "a few dozen simple components re-rendered" isn't on that list, because it costs about a millisecond and nobody will ever perceive it.</p>
+
+<div class="callout iv">
+  <span class="ct">In an interview</span>
+  <p>If you're asked "how do you optimise a React app?" and your first word is "<code>useMemo</code>," you've already given away that you optimise by reflex rather than by measurement. The strong opening is: <em>"First I'd profile it, because most re-renders are cheap and I'd want to know which ones actually aren't."</em></p>
+</div>
+
+<p>And memoization is not free. Every <code>React.memo</code> boundary means React must compare the previous props to the new props on every render. Every <code>useMemo</code> means storing the previous value and the previous deps array in memory forever, and comparing the deps every render. If the work you're skipping is smaller than the work of checking whether you can skip it, you've made your app slower <em>and</em> harder to read.</p>
+
+<p>The honest framing: <strong>memoization is a trade, not an upgrade.</strong> You spend memory and complexity to buy back CPU time. That's a good trade when the CPU time is real and a bad trade when it isn't.</p>
+
+<h2 id="refs"><span class="num">Section 4</span>Detour: values vs. references</h2>
+
+<p>We need this before <code>React.memo</code>, and if it's already second nature to you, skim it. But almost every "why isn't my memo working?" bug is really this concept in disguise, so it's worth being ruthless about.</p>
+
+<p>JavaScript has two categories of things. <strong>Primitives</strong> — numbers, strings, booleans, <code>null</code>, <code>undefined</code>, symbols, bigints — are compared by their value. <strong>Objects</strong> — including arrays and functions — are compared by their <em>identity</em>: are these two names pointing at the same thing in memory?</p>
+
+<div class="codeblock neutral">
+<p class="label">The rule, in five lines</p>
+<pre><code><span class="hl">5</span> === <span class="hl">5</span>                    <span class="c">// → true  (same value)</span>
+<span class="s">'hello'</span> === <span class="s">'hello'</span>        <span class="c">// → true  (same value)</span>
+
+{ id: <span class="hl">1</span> } === { id: <span class="hl">1</span> }    <span class="c">// → false 👈 different objects, identical contents</span>
+[<span class="hl">1</span>, <span class="hl">2</span>] === [<span class="hl">1</span>, <span class="hl">2</span>]          <span class="c">// → false</span>
+(() =&gt; {}) === (() =&gt; {})  <span class="c">// → false</span></code></pre>
+</div>
+
+<p>Think of an object as a house, and a variable as a slip of paper with the house's address written on it. <code>===</code> on objects doesn't walk inside and compare the furniture. It just compares the two addresses. Two identical show-homes on the same street are still two different addresses.</p>
+
+<p>Now here's why this matters so much in React. <strong>Every render of a component re-executes its body from the top.</strong> Every object literal, array literal, and function defined in that body is <em>created fresh</em>, at a brand new address.</p>
+
+<div class="codeblock neutral">
+<p class="label">New addresses on every single render</p>
+<pre><code><span class="k">function</span> <span class="f">ProductPage</span>({ product }) {
+  <span class="k">const</span> [zoom, setZoom] = <span class="f">useState</span>(<span class="k">false</span>);
+
+  <span class="k">const</span> style = { padding: <span class="hl">16</span> };            <span class="c">// 👈 new object, every render</span>
+  <span class="k">const</span> tags = product.tags.<span class="f">filter</span>(Boolean); <span class="c">// 👈 new array, every render</span>
+  <span class="k">const</span> <span class="f">handleBuy</span> = () =&gt; <span class="f">addToCart</span>(product); <span class="c">// 👈 new function, every render</span>
+
+  <span class="k">return</span> &lt;ProductCard style={style} tags={tags} onBuy={handleBuy} /&gt;;
+}</code></pre>
+</div>
+
+<p>Those three values are <em>logically</em> the same every time. But they're three new addresses every time. React has no way to know they're "the same" — from its point of view, <code>ProductCard</code> received three different props.</p>
+
+<p>Keep that picture. It's about to explain everything.</p>
+
+<h2 id="memo"><span class="num">Section 5</span><code>React.memo</code></h2>
+
+<p>We established that a child re-renders whenever its parent does, regardless of props. <code>React.memo</code> is how you opt out of that rule.</p>
+
+<p>You wrap a component in it, and you get back a new component with a bouncer at the door. When the parent re-renders and React comes to render this child, the bouncer intercepts: <em>"Hang on. Are the new props the same as last time? If yes, you're not coming in — I'll reuse last render's output."</em></p>
+
+<div class="codeblock neutral">
+<p class="label">The basic shape</p>
+<pre><code><span class="k">const</span> Sidebar = React.<span class="f">memo</span>(<span class="k">function</span> <span class="f">Sidebar</span>({ links }) {
+  console.<span class="f">log</span>(<span class="s">'Sidebar rendered'</span>);
+  <span class="k">return</span> &lt;nav&gt;{links.<span class="f">map</span>(<span class="c">/* ... */</span>)}&lt;/nav&gt;;
+});</code></pre>
+</div>
+
+<p>Now, when <code>App</code> re-renders because of its counter, React checks <code>Sidebar</code>'s props, sees that <code>links</code> is the same as before, and skips the render entirely — <em>along with its whole subtree</em>. <code>NavLinks</code> doesn't render either, because <code>Sidebar</code> never ran to produce it.</p>
+
+<p>That last part is important and often missed: <strong>memo blocks the whole branch, not just one node.</strong> Placing a single memo high in the tree can skip hundreds of components. That's why <em>where</em> you put it matters far more than <em>how many</em> you place.</p>
+
+<h3>How does it compare props? Shallowly.</h3>
+
+<p>"Same props" means React walks the props object one level deep and runs <code>Object.is</code> on each value. Roughly:</p>
+
+<div class="codeblock neutral">
+<p class="label">The default comparison, in essence</p>
+<pre><code><span class="k">function</span> <span class="f">shallowEqual</span>(prev, next) {
+  <span class="k">const</span> keys = Object.<span class="f">keys</span>(prev);
+  <span class="k">if</span> (keys.length !== Object.<span class="f">keys</span>(next).length) <span class="k">return</span> <span class="k">false</span>;
+  <span class="k">return</span> keys.<span class="f">every</span>(key =&gt; Object.<span class="f">is</span>(prev[key], next[key])); <span class="c">// 👈 one level only</span>
+}</code></pre>
+</div>
+
+<p>One level. Not deep. It never recurses into a nested object. So if you pass <code>user={{ name: 'Ada' }}</code>, memo compares the <em>outer object's address</em>, and if that address is new, it does not care that the contents are identical.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p>"<code>React.memo</code> does a deep comparison of props." It does not, and it never has. It's a shallow, one-level, reference-based check. This is a favourite interview question precisely because getting it wrong explains the number one memo bug.</p>
+  <p>And this is deliberate: a deep comparison would have to walk arbitrarily large object graphs on every render, which could easily cost more than the render you're trying to skip. React chose the fast, predictable check.</p>
+</div>
+
+<h3>So: why isn't my <code>React.memo</code> working?</h3>
+
+<p>This is <em>the</em> question. Here's the classic failure — and it looks completely innocent.</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Buggy — memo does absolutely nothing here</p>
+<pre><code><span class="k">const</span> Sidebar = React.<span class="f">memo</span>(<span class="k">function</span> <span class="f">Sidebar</span>({ links, onSelect }) {
+  <span class="k">return</span> &lt;nav&gt;{<span class="c">/* ... */</span>}&lt;/nav&gt;;
+});
+
+<span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="hl">0</span>);
+
+  <span class="k">return</span> (
+    &lt;&gt;
+      &lt;button onClick={() =&gt; <span class="f">setCount</span>(count + <span class="hl">1</span>)}&gt;{count}&lt;/button&gt;
+      &lt;Sidebar
+        links={[<span class="s">'Home'</span>, <span class="s">'Settings'</span>]}       <span class="c">// 👈 new array, every render</span>
+        onSelect={(id) =&gt; <span class="f">navigate</span>(id)}    <span class="c">// 👈 new function, every render</span>
+      /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Every click, <code>App</code> re-renders. Every re-render creates a fresh array literal and a fresh arrow function — new addresses. Memo compares old vs. new, finds two mismatches, shrugs, and renders <code>Sidebar</code> anyway.</p>
+
+<p>You have added a comparison cost to every render and bought <em>literally nothing</em>. This is worse than not memoizing, and it's silent — no warning, no error, just an optimisation that quietly isn't one.</p>
+
+<p>The fix is to give those props stable identities, which is exactly what <code>useMemo</code> and <code>useCallback</code> are for:</p>
+
+<div class="codeblock good">
+<p class="label">✅ Fixed — stable references, so memo can actually do its job</p>
+<pre><code><span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="hl">0</span>);
+
+  <span class="k">const</span> links = <span class="f">useMemo</span>(() =&gt; [<span class="s">'Home'</span>, <span class="s">'Settings'</span>], []);      <span class="c">// same array forever</span>
+  <span class="k">const</span> handleSelect = <span class="f">useCallback</span>((id) =&gt; <span class="f">navigate</span>(id), []); <span class="c">// same fn forever</span>
+
+  <span class="k">return</span> (
+    &lt;&gt;
+      &lt;button onClick={() =&gt; <span class="f">setCount</span>(count + <span class="hl">1</span>)}&gt;{count}&lt;/button&gt;
+      &lt;Sidebar links={links} onSelect={handleSelect} /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Now the addresses are stable across renders, memo's shallow check passes, and <code>Sidebar</code> genuinely skips.</p>
+
+<div class="callout iv">
+  <span class="ct">In an interview</span>
+  <p>Say this out loud and you sound like you've debugged it for real: <em>"<code>React.memo</code> compares props shallowly by reference, so if the parent passes an inline object, array or arrow function, those are new references on every render and the comparison always fails. The memo runs, costs a little, and skips nothing. The fix is to stabilise the props with <code>useMemo</code>/<code>useCallback</code> — memo on the child and stable props from the parent are a matched pair; either one alone is useless."</em></p>
+</div>
+
+<h3>The other three ways memo "doesn't work"</h3>
+
+<p>Reference-unstable props are the big one, but there are three more, and knowing them is what separates a memorised answer from an understood one.</p>
+
+<p><strong>1. The component has its own state, or consumes context.</strong> Memo only blocks re-renders coming <em>from the parent</em>. It has no power over cause #1 (own state) or cause #3 (context). A memoized component whose context value changes will re-render, every time, no matter how stable its props are. Remember that — it comes back in the Context section.</p>
+
+<p><strong>2. You're passing <code>children</code>.</strong> This one is sneaky:</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Buggy — memo defeated by children</p>
+<pre><code>&lt;MemoizedPanel&gt;
+  &lt;ExpensiveChart /&gt;   <span class="c">{/* 👈 this is a prop called `children` */}</span>
+&lt;/MemoizedPanel&gt;</code></pre>
+</div>
+
+<p>JSX nested inside a component becomes the <code>children</code> prop, and as we saw in section 1, JSX compiles down to an object literal. A new object literal, created fresh in the parent's render. So <code>children</code> is a new reference every time, and the shallow comparison fails. Memo skips nothing.</p>
+
+<p><strong>3. You wrapped it but the parent never re-renders anyway.</strong> Then the memo is pure overhead. Dead weight, extra indirection, and one more thing for the next developer to reason about.</p>
+
+<h3>The custom comparator</h3>
+
+<p><code>React.memo</code> takes an optional second argument: your own comparison function.</p>
+
+<div class="codeblock neutral">
+<p class="label">Second argument: arePropsEqual</p>
+<pre><code><span class="k">const</span> UserRow = React.<span class="f">memo</span>(
+  <span class="k">function</span> <span class="f">UserRow</span>({ user, onSelect }) {
+    <span class="k">return</span> &lt;li&gt;{user.name}&lt;/li&gt;;
+  },
+  (prevProps, nextProps) =&gt; {
+    <span class="c">// return TRUE to SKIP the re-render (props are "equal")</span>
+    <span class="k">return</span> prevProps.user.id === nextProps.user.id
+        &amp;&amp; prevProps.user.name === nextProps.user.name;
+  }
+);</code></pre>
+</div>
+
+<p>Here we've said: I don't care that <code>user</code> is a new object each time, and I don't care about <code>onSelect</code> at all — if the id and name match, skip it.</p>
+
+<p>Two things people get wrong:</p>
+
+<p><strong>The return value is inverted from what your gut expects.</strong> <code>true</code> means "equal, so <em>don't</em> re-render." If you're coming from class components, <code>shouldComponentUpdate</code> returned <code>true</code> to mean "yes, update." <code>memo</code>'s comparator is the exact opposite. Getting this backwards produces a component that never updates, which is a genuinely horrible bug to chase.</p>
+
+<p><strong>It is a footgun.</strong> If you ignore a prop in your comparator — like <code>onSelect</code> above — you've promised React that stale prop can never matter. If someone later changes <code>onSelect</code> to close over state, your component silently calls the old one forever. Custom comparators are an escape hatch, not a default. And please don't reach for <code>JSON.stringify</code> or a deep-equal library in there: you'll pay a real cost on every render to avoid a cost that was probably smaller.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood</span>
+  <p><code>React.memo</code> is not the same thing as <code>PureComponent</code> from the class era, though the idea is the same. <code>PureComponent</code> shallow-compared both props <em>and</em> state; <code>memo</code> only compares props, because function components don't have a state object to compare.</p>
+  <p>Also: <code>memo</code> isn't a guarantee. React reserves the right to re-render a memoized component anyway — for example when it frees memory for offscreen content. Treat it as a performance hint, never as correctness. If your code only works because a component didn't re-render, your code is broken.</p>
+</div>
+
+<h2 id="usememo"><span class="num">Section 6</span><code>useMemo</code></h2>
+
+<p><code>React.memo</code> caches a <em>component's output</em>. <code>useMemo</code> caches a <em>value</em>.</p>
+
+<p>The problem it solves comes straight out of section 4: your component body runs top to bottom on every render, so every calculation in it re-runs on every render. Usually fine. Occasionally not.</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Slow — re-sorts 20,000 rows on every keystroke</p>
+<pre><code><span class="k">function</span> <span class="f">ProductList</span>({ products }) {
+  <span class="k">const</span> [query, setQuery] = <span class="f">useState</span>(<span class="s">''</span>);
+  <span class="k">const</span> [isDarkMode, setIsDarkMode] = <span class="f">useState</span>(<span class="k">false</span>);
+
+  <span class="c">// This runs on EVERY render — including when only isDarkMode changed 😬</span>
+  <span class="k">const</span> sorted = [...products].<span class="f">sort</span>((a, b) =&gt; a.price - b.price);
+
+  <span class="k">return</span> &lt;Table rows={sorted} /&gt;;
+}</code></pre>
+</div>
+
+<p>Toggle dark mode and you re-sort twenty thousand products for absolutely no reason. <code>useMemo</code> lets you say "only redo this when the inputs change."</p>
+
+<div class="codeblock good">
+<p class="label">✅ Fixed — re-sorts only when products changes</p>
+<pre><code><span class="k">const</span> sorted = <span class="f">useMemo</span>(
+  () =&gt; [...products].<span class="f">sort</span>((a, b) =&gt; a.price - b.price),
+  [products]  <span class="c">// 👈 the dependency array</span>
+);</code></pre>
+</div>
+
+<p>The mechanics: on the first render, React runs your function and stores both the result and the deps array. On every later render, it compares each dep to the stored one with <code>Object.is</code>. All the same? Hand back the stored value without running the function. Any different? Run it again, store the new result and new deps.</p>
+
+<p>A useful picture: <code>useMemo</code> is a sticky note on your desk. "Last time someone asked me for the sorted product list, and the list was <em>this exact list</em>, the answer was this." Someone asks again with the same list — you read the note instead of redoing the work. They ask with a different list — you throw the note away and do the work again. <em>(Where it breaks down: you only ever keep one note. It's a cache of size one, not a lookup table. Alternating between two different inputs means you recompute every single time.)</em></p>
+
+<h3>The second reason, which is the one people miss</h3>
+
+<p>Everyone learns <code>useMemo</code> as "for expensive calculations." That's reason one. Reason two is at least as important in real codebases and it has nothing to do with how expensive the computation is:</p>
+
+<p><strong><code>useMemo</code> preserves reference identity.</strong></p>
+
+<p>Look back at section 5. The reason memo failed was that <code>links={['Home', 'Settings']}</code> was a new array every render. Building that array costs nanoseconds — it's not expensive at all. But its <em>identity</em> mattered, because something downstream compared it by reference.</p>
+
+<div class="codeblock good">
+<p class="label">✅ Memoizing something trivially cheap — and still correct</p>
+<pre><code><span class="c">// Building this object is basically free. That's not why we're memoizing.</span>
+<span class="k">const</span> chartConfig = <span class="f">useMemo</span>(
+  () =&gt; ({ currency, locale, showLegend: <span class="k">true</span> }),
+  [currency, locale]
+);
+
+<span class="k">return</span> &lt;MemoizedChart config={chartConfig} /&gt;;  <span class="c">// 👈 the memo boundary needs stability</span></code></pre>
+</div>
+
+<p>Who compares by reference downstream? Three things, and they're the three places this matters:</p>
+
+<ul>
+  <li>A <code>React.memo</code> boundary's shallow prop check.</li>
+  <li>Another hook's dependency array — <code>useEffect</code>, <code>useMemo</code>, <code>useCallback</code>. An unstable object in a <code>useEffect</code>'s deps means the effect re-runs every render, which is how you get infinite fetch loops.</li>
+  <li>A Context provider's <code>value</code>. (Section 12. This is the big one.)</li>
+</ul>
+
+<div class="callout wait">
+  <span class="ct">Wait — is <code>useMemo</code> a guarantee?</span>
+  <p>No, and the React docs are explicit about it: <code>useMemo</code> is a performance optimisation, not a semantic one. React may discard the cached value — for instance to free memory for offscreen content — and recompute. So never put anything in <code>useMemo</code> that your app's <em>correctness</em> depends on running only once. No side effects, no writing to refs, no subscriptions. Those belong in <code>useEffect</code>. If you need a value created exactly once and never again, that's <code>useRef</code> or lazy <code>useState</code> initialisation, not <code>useMemo</code>.</p>
+</div>
+
+<h2 id="usecallback"><span class="num">Section 7</span><code>useCallback</code></h2>
+
+<p>Now that <code>useMemo</code> is clear, <code>useCallback</code> takes about thirty seconds, because it is <em>literally</em> a special case of it.</p>
+
+<p>Functions are objects. A function defined in a component body gets a new identity every render, and there's no way around that — the <code>function</code> keyword and arrow syntax both allocate. So how do you keep a handler stable? You could write <code>useMemo(() => handleClick, [])</code>... and that works! But the double-arrow is awkward enough that React ships a shorthand.</p>
+
+<div class="codeblock neutral">
+<p class="label">These two lines are exactly equivalent</p>
+<pre><code><span class="k">const</span> handleBuy = <span class="f">useCallback</span>(() =&gt; <span class="f">addToCart</span>(id), [id]);
+
+<span class="k">const</span> handleBuy = <span class="f">useMemo</span>(() =&gt; () =&gt; <span class="f">addToCart</span>(id), [id]);
+<span class="c">//                        👆 the outer arrow RETURNS the function we want</span></code></pre>
+</div>
+
+<p>That's the whole difference. <code>useMemo</code> calls your function and caches <em>what it returns</em>. <code>useCallback</code> caches <em>the function you passed in itself</em>, without calling it.</p>
+
+<p>So the distinction to say in an interview: <strong><code>useMemo</code> memoizes a result; <code>useCallback</code> memoizes a definition.</strong> If you catch yourself writing <code>useMemo(() => () => ...)</code>, use <code>useCallback</code>.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p>"<code>useCallback</code> stops the function from being created." It doesn't! The arrow function is still <em>created</em> on every render — it has to be, it's an expression in the function body being evaluated. It's then handed to <code>useCallback</code>, which throws it away and returns the one from last time. The allocation still happens; only the <em>identity you use</em> is stable.</p>
+  <p>Which is another reason wrapping trivial handlers in <code>useCallback</code> is pointless: you didn't avoid creating a function, you added a deps comparison on top of creating a function.</p>
+</div>
+
+<div class="callout hood">
+  <span class="ct">Under the hood</span>
+  <p>Both hooks store their cache on the component's fiber — React's internal object for that particular component instance. That's why the cache dies when the component unmounts, and why two instances of the same component don't share a memo. It's also why hook order must be stable: React finds your memo by position in the hook list, not by name.</p>
+</div>
+
+<h2 id="cost"><span class="num">Section 8</span>What memoization actually costs</h2>
+
+<p>We keep saying "it isn't free." Let's be specific, because "what's the cost of memoization?" is a real interview question and vague hand-waving about "overhead" doesn't land.</p>
+
+<p><strong>1. The comparison itself.</strong> Every render, React iterates the deps array or the props object and runs <code>Object.is</code> on each entry. Small, but it's strictly <em>additional</em> work on top of the work you were already doing. If the memoized computation is <code>a + b</code>, comparing the deps costs more than just doing the addition.</p>
+
+<p><strong>2. Memory.</strong> The cached value and the deps array stay alive for as long as the component is mounted. Memoize a big derived array in a list of 500 rows and you're now holding 500 extra arrays that the garbage collector can't touch. Memoization trades memory for CPU, and memory pressure has its own performance cost.</p>
+
+<p><strong>3. Correctness risk from the deps array.</strong> This is the expensive one, and it's a <em>human</em> cost. Every memo introduces a list you must keep in sync with reality. Miss a dep and you get a stale value — a callback closing over yesterday's state, a memo returning a result computed from props that have since changed. These bugs are subtle, intermittent, and hard to reproduce. <em>(The ESLint rule <code>react-hooks/exhaustive-deps</code> catches most of these. Turn it on. Don't silence it with a comment unless you can articulate exactly why.)</em></p>
+
+<p><strong>4. Readability.</strong> Compare these:</p>
+
+<div class="codeblock neutral">
+<p class="label">The same logic, twice</p>
+<pre><code><span class="c">// Before</span>
+<span class="k">const</span> fullName = user.firstName + <span class="s">' '</span> + user.lastName;
+
+<span class="c">// After</span>
+<span class="k">const</span> fullName = <span class="f">useMemo</span>(
+  () =&gt; user.firstName + <span class="s">' '</span> + user.lastName,
+  [user.firstName, user.lastName]
+);</code></pre>
+</div>
+
+<p>The second version is four times longer, has a dependency list to maintain, and saves you a string concatenation. Every future reader has to stop and ask "why is this memoized? is there something expensive here I'm not seeing?" You've added a permanent tax on comprehension for a benefit of zero.</p>
+
+<p><strong>5. It's often a placebo.</strong> The failure mode from section 5 — memo on the child but unstable props from the parent — costs you all four items above and buys nothing. Memoization is a chain, and a chain with any link broken transmits no force at all, but every link still weighs something.</p>
+
+<div class="callout iv">
+  <span class="ct">In an interview: "should you wrap everything in <code>useMemo</code>?"</span>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"No — I'd default to not memoizing. Every memo adds a comparison, holds memory, and adds a dependency array that can go stale, and it makes the code harder to read. Most renders are cheap enough that you'd never measure the difference. I reach for it when profiling shows a real problem, or when I specifically need a stable reference — to keep a <code>React.memo</code> boundary working, or to stop an effect firing on every render. Going forward the React Compiler does a lot of this automatically, which is a good signal that hand-memoizing everything was never the right default."</p>
+  </div>
+  <p class="why"><strong>Why it lands:</strong> it shows you know memoization is a trade with a real price, that you optimise from evidence rather than superstition, and that you're current with where React is heading. Candidates who answer "yes, it's always better to memoize" are showing they've never actually profiled anything.</p>
+</div>
+
+<h2 id="structural"><span class="num">Section 9</span>The structural fixes you should try first</h2>
+
+<p>Here's the thing about memoization that took me embarrassingly long to internalise: <strong>most re-render problems are component-structure problems wearing a costume.</strong> Reach for the structure first. It's usually less code, it has no deps array, and it can't go stale.</p>
+
+<p>There are two moves. Learn both — they show up constantly in interviews as the "what would you do instead?" follow-up.</p>
+
+<h3>Move 1: Push state down</h3>
+
+<p>If state lives high in the tree but is only used low in the tree, every update re-renders everything in between for nothing. So move the state to where it's used.</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Buggy-ish — every keystroke re-renders the huge list</p>
+<pre><code><span class="k">function</span> <span class="f">Page</span>() {
+  <span class="k">const</span> [name, setName] = <span class="f">useState</span>(<span class="s">''</span>);  <span class="c">// 👈 only the input cares about this</span>
+
+  <span class="k">return</span> (
+    &lt;&gt;
+      &lt;input value={name} onChange={e =&gt; <span class="f">setName</span>(e.target.value)} /&gt;
+      &lt;ExpensiveProductList /&gt;   <span class="c">// re-renders on every keystroke 😖</span>
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<div class="codeblock good">
+<p class="label">✅ Fixed — the state moved into its own little component</p>
+<pre><code><span class="k">function</span> <span class="f">NameField</span>() {
+  <span class="k">const</span> [name, setName] = <span class="f">useState</span>(<span class="s">''</span>);
+  <span class="k">return</span> &lt;input value={name} onChange={e =&gt; <span class="f">setName</span>(e.target.value)} /&gt;;
+}
+
+<span class="k">function</span> <span class="f">Page</span>() {
+  <span class="k">return</span> (
+    &lt;&gt;
+      &lt;NameField /&gt;              <span class="c">// updates are now trapped in here</span>
+      &lt;ExpensiveProductList /&gt;   <span class="c">// Page never re-renders, so this never does 🎉</span>
+    &lt;/&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Remember: state updates flow <em>downward</em>. By moving the state down, you shrank the subtree beneath it. No memo, no deps array, and the component is arguably better designed now anyway.</p>
+
+<h3>Move 2: Lift content up, using <code>children</code></h3>
+
+<p>Sometimes you can't move the state down — the state genuinely belongs at the top. A theme toggle, a modal open/closed, a drag position. In that case you move the <em>expensive content</em> up and pass it through as <code>children</code>.</p>
+
+<p>This one is genuinely brain-bending the first time you see it, so let's take it slowly.</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Buggy-ish — state at the top drags everything with it</p>
+<pre><code><span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">const</span> [isOpen, setIsOpen] = <span class="f">useState</span>(<span class="k">false</span>);
+
+  <span class="k">return</span> (
+    &lt;div className={isOpen ? <span class="s">'shifted'</span> : <span class="s">''</span>}&gt;
+      &lt;button onClick={() =&gt; <span class="f">setIsOpen</span>(!isOpen)}&gt;Toggle&lt;/button&gt;
+      &lt;ExpensiveDashboard /&gt;   <span class="c">// re-renders on every toggle</span>
+    &lt;/div&gt;
+  );
+}</code></pre>
+</div>
+
+<div class="codeblock good">
+<p class="label">✅ Fixed — the expensive thing is created by a component that doesn't re-render</p>
+<pre><code><span class="k">function</span> <span class="f">Shell</span>({ children }) {          <span class="c">// 👈 the state now lives here</span>
+  <span class="k">const</span> [isOpen, setIsOpen] = <span class="f">useState</span>(<span class="k">false</span>);
+
+  <span class="k">return</span> (
+    &lt;div className={isOpen ? <span class="s">'shifted'</span> : <span class="s">''</span>}&gt;
+      &lt;button onClick={() =&gt; <span class="f">setIsOpen</span>(!isOpen)}&gt;Toggle&lt;/button&gt;
+      {children}                    <span class="c">// 👈 just a prop, not re-created here</span>
+    &lt;/div&gt;
+  );
+}
+
+<span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">return</span> (
+    &lt;Shell&gt;
+      &lt;ExpensiveDashboard /&gt;        <span class="c">// created by App, which never re-renders</span>
+    &lt;/Shell&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Why does this work? Because <code>&lt;ExpensiveDashboard /&gt;</code> — that JSX object from section 1 — is created inside <code>App</code>'s render, not <code>Shell</code>'s. <code>App</code> has no state, so it renders once and never again. Its <code>children</code> element object is therefore created once, with a stable identity forever.</p>
+
+<p>When <code>Shell</code>'s state changes and <code>Shell</code> re-renders, it hits <code>{children}</code> and finds the exact same element object it had last time. React's reconciler sees an identical element reference and bails out of re-rendering that branch — <em>without any <code>React.memo</code> at all</em>. You got memoization for free, out of the shape of the tree.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — React bails out on identical elements automatically?</span>
+  <p>Yes. If React encounters the exact same element object (same reference) in the same position as last render, it knows the output can't have changed, and it skips that subtree. This is a built-in reconciler optimisation that predates hooks, and almost nobody knows it exists. It's the entire engine behind the <code>children</code> trick.</p>
+  <p>This is also, incidentally, why <code>&lt;MemoizedPanel&gt;&lt;Chart /&gt;&lt;/MemoizedPanel&gt;</code> from section 5 breaks: there, the <code>&lt;Chart /&gt;</code> element <em>is</em> being re-created by a parent that re-renders. Same mechanism, opposite outcome.</p>
+</div>
+
+<h3>Move 3 (bonus): split the component</h3>
+
+<p>A 400-line component with nine pieces of state re-renders all 400 lines when any one of them changes. Splitting it into four components with their own state means an update only re-renders a quarter of the work. Component splitting isn't just a code-cleanliness thing — it's a performance boundary, because <em>render scope follows component boundaries</em>.</p>
+
+<h2 id="compiler"><span class="num">Section 10</span>The React Compiler</h2>
+
+<p>Everything in the last five sections is manual bookkeeping. You, a human, working out which values need stable identities and maintaining dependency arrays by hand. That's exactly the kind of tedious, mechanical, error-prone job a compiler should be doing.</p>
+
+<p>So the React team built one. The <strong>React Compiler</strong> is a build-time tool (a Babel plugin) that analyses your components, figures out what depends on what, and inserts the memoization automatically — around values, around functions, and around chunks of JSX.</p>
+
+<div class="codeblock neutral">
+<p class="label">What you write vs. what ships</p>
+<pre><code><span class="c">// You write this — plain, readable, no hooks noise:</span>
+<span class="k">function</span> <span class="f">Cart</span>({ items }) {
+  <span class="k">const</span> total = items.<span class="f">reduce</span>((sum, i) =&gt; sum + i.price, <span class="hl">0</span>);
+  <span class="k">const</span> handleClear = () =&gt; <span class="f">clearCart</span>();
+  <span class="k">return</span> &lt;CartView total={total} onClear={handleClear} /&gt;;
+}
+
+<span class="c">// The compiler emits code that caches `total`, `handleClear` and the</span>
+<span class="c">// resulting JSX in a hidden per-render cache, keyed on what they depend on.</span></code></pre>
+</div>
+
+<p>It only does this where it can <em>prove</em> your code follows the Rules of React — components must be pure functions of their props and state, no mutating props, hooks called unconditionally. Where it can't prove that, it bails out on that component and leaves it alone. Which means writing idiomatic React is what unlocks the optimisation.</p>
+
+<div class="callout iv">
+  <span class="ct">In an interview: how to talk about the compiler today</span>
+  <p>Don't say "the compiler handles it, so memoization doesn't matter." That's the wrong lesson and interviewers hear it as a dodge. Say something closer to:</p>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"The React Compiler auto-memoizes at build time, so a lot of manual <code>useMemo</code> and <code>useCallback</code> becomes unnecessary. But I'd still want to understand what it's doing, for three reasons: most codebases I'd join aren't on it yet; it bails out on components that break the Rules of React, so you need to recognise when that's happened; and when you're profiling, you still have to reason about which components re-rendered and why. The compiler changes who writes the memo, not whether you need to understand re-renders."</p>
+  </div>
+  <p class="why"><strong>Why it lands:</strong> it shows you're tracking where the ecosystem is going without using it as an excuse to skip the fundamentals. That combination — current <em>and</em> grounded — is exactly the senior signal.</p>
+</div>
+
+<h2 id="context"><span class="num">Section 11</span>Context, properly understood</h2>
+
+<p>Let's change topic — though you'll see in about two sections why it isn't really a change of topic at all.</p>
+
+<p>Say the currently logged-in user needs to be available in a component seven levels deep. The obvious approach is to pass it down, hop by hop:</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Prop drilling</p>
+<pre><code>&lt;App user={user}&gt;
+  &lt;Layout user={user}&gt;
+    &lt;Sidebar user={user}&gt;
+      &lt;UserPanel user={user}&gt;
+        &lt;Avatar user={user} /&gt;   <span class="c">// 👈 finally, someone who wanted it</span></code></pre>
+</div>
+
+<p>Every component in the chain takes a prop it doesn't use, purely to hand it along. It's noisy, it makes those components harder to reuse, and adding one more field means editing five files.</p>
+
+<p>The analogy that gets Context right: <strong>prop drilling is passing a parcel hand-to-hand down a line of people. Context is the building's mail chute.</strong> You drop the parcel in at the top and anyone on any floor can open their hatch and take it out. The people in between never touch it and never even know it went past. <em>(Where it breaks down: a real mail chute delivers to one address. Context broadcasts to everyone who opens a hatch — which turns out to be the entire performance story.)</em></p>
+
+<h3>The three pieces</h3>
+
+<div class="codeblock neutral">
+<p class="label">Create → Provide → Consume</p>
+<pre><code><span class="c">// 1. Create the channel (module scope, outside any component)</span>
+<span class="k">const</span> UserContext = <span class="f">createContext</span>(<span class="k">null</span>);
+
+<span class="c">// 2. Provide a value to a subtree</span>
+<span class="k">function</span> <span class="f">App</span>() {
+  <span class="k">const</span> [user, setUser] = <span class="f">useState</span>(<span class="k">null</span>);
+  <span class="k">return</span> (
+    &lt;UserContext value={user}&gt;   <span class="c">{/* React 19+; before that: &lt;UserContext.Provider&gt; */}</span>
+      &lt;Layout /&gt;
+    &lt;/UserContext&gt;
+  );
+}
+
+<span class="c">// 3. Consume it, at any depth</span>
+<span class="k">function</span> <span class="f">Avatar</span>() {
+  <span class="k">const</span> user = <span class="f">useContext</span>(UserContext);  <span class="c">// 👈 no props needed</span>
+  <span class="k">return</span> &lt;img src={user.avatarUrl} alt={user.name} /&gt;;
+}</code></pre>
+</div>
+
+<p><code>useContext</code> walks <em>up</em> the tree from the calling component looking for the nearest matching provider, and returns that provider's <code>value</code>. If it doesn't find one, you get the default you passed to <code>createContext</code> — which, by the way, is why passing <code>null</code> and then reading <code>user.name</code> gives you the classic "cannot read property of null" when someone forgets the provider. A common pattern is a custom hook that throws a clear error instead:</p>
+
+<div class="codeblock good">
+<p class="label">✅ A friendlier consumer</p>
+<pre><code><span class="k">function</span> <span class="f">useUser</span>() {
+  <span class="k">const</span> context = <span class="f">useContext</span>(UserContext);
+  <span class="k">if</span> (context === <span class="k">null</span>) {
+    <span class="k">throw</span> <span class="k">new</span> <span class="f">Error</span>(<span class="s">'useUser must be used inside a &lt;UserProvider&gt;'</span>);
+  }
+  <span class="k">return</span> context;
+}</code></pre>
+</div>
+
+<h3>The thing you must say in an interview</h3>
+
+<p><strong>Context is not a state manager. Context is dependency injection.</strong></p>
+
+<p>This distinction is the whole ballgame, so let's make it precise. Context has no state of its own. It stores nothing, updates nothing, and has no notion of actions or reducers or selectors. It is a <em>transport</em> — a way to move a value from one place in the tree to another without threading it through the middle.</p>
+
+<p>The state still lives in a <code>useState</code> or <code>useReducer</code> somewhere. Context just makes it reachable. Saying "I'll use Context for state management" is like saying "I'll use the postal service for storing my documents." The post moves things. It doesn't file them.</p>
+
+<div class="callout misc">
+  <span class="ct">A common misconception</span>
+  <p>"Context re-renders consumers when the state changes." Nearly right, and the imprecision is where the bug lives. Context re-renders consumers when the <strong><code>value</code> prop's identity changes</strong>, compared with <code>Object.is</code>. That's often the same thing as "the state changed"... and often catastrophically not, as we're about to see.</p>
+</div>
+
+<h2 id="context-perf"><span class="num">Section 12</span>Why Context causes performance problems</h2>
+
+<p>Here's the rule, and it's short: <strong>when a provider's <code>value</code> changes identity, every component that consumes that context re-renders. All of them. Even ones that only read one field. Even ones wrapped in <code>React.memo</code>.</strong></p>
+
+<p>Read that last clause again, because it surprises people. <code>React.memo</code> blocks re-renders coming from the parent — that's cause #2 from section 2. A context update is cause #3, a completely separate channel. Memo has no authority over it. A memoized consumer will re-render on every context change, forever.</p>
+
+<figure>
+<svg viewBox="0 0 660 250" role="img" aria-label="Context provider broadcasting to all consumers regardless of memo">
+  <rect x="230" y="10" width="200" height="44" rx="9" fill="#efedff" stroke="#5b4bd6" stroke-width="2"/>
+  <text x="330" y="30" text-anchor="middle" font-size="13.5" font-weight="700" font-family="sans-serif" fill="#37306b">UserContext.Provider</text>
+  <text x="330" y="46" text-anchor="middle" font-size="11.5" font-family="sans-serif" fill="#5b4bd6">value = { user, setUser }</text>
+
+  <path d="M330 54 L100 120" stroke="#5b4bd6" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <path d="M330 54 L330 120" stroke="#5b4bd6" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <path d="M330 54 L560 120" stroke="#5b4bd6" stroke-width="1.6" stroke-dasharray="4 3"/>
+
+  <rect x="20" y="120" width="165" height="58" rx="9" fill="#fdecea" stroke="#b3261e" stroke-width="1.8"/>
+  <text x="102" y="141" text-anchor="middle" font-size="13" font-weight="650" font-family="sans-serif" fill="#b3261e">Avatar</text>
+  <text x="102" y="158" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">reads user.avatarUrl</text>
+  <text x="102" y="172" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">re-renders ✗</text>
+
+  <rect x="247" y="120" width="165" height="58" rx="9" fill="#fdecea" stroke="#b3261e" stroke-width="1.8"/>
+  <text x="330" y="141" text-anchor="middle" font-size="13" font-weight="650" font-family="sans-serif" fill="#b3261e">LogoutButton</text>
+  <text x="330" y="158" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">reads only setUser</text>
+  <text x="330" y="172" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">re-renders anyway ✗</text>
+
+  <rect x="475" y="120" width="165" height="58" rx="9" fill="#fdecea" stroke="#b3261e" stroke-width="1.8"/>
+  <text x="557" y="141" text-anchor="middle" font-size="13" font-weight="650" font-family="sans-serif" fill="#b3261e">memo(Greeting)</text>
+  <text x="557" y="158" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">wrapped in React.memo</text>
+  <text x="557" y="172" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#8a3a34">re-renders anyway ✗</text>
+
+  <text x="330" y="212" text-anchor="middle" font-size="12.5" font-family="sans-serif" fill="#4a4a58">One new <tspan font-family="monospace">value</tspan> identity → every consumer re-renders.</text>
+  <text x="330" y="232" text-anchor="middle" font-size="12.5" font-family="sans-serif" fill="#4a4a58">Context has no way to say "I only care about one field."</text>
+</svg>
+<figcaption>Context is a broadcast, not a subscription with filters. There is no selector.</figcaption>
+</figure>
+
+<h3>The classic <code>value={{ ... }}</code> bug</h3>
+
+<p>Now combine that rule with section 4, and you get the single most common Context performance bug in existence. It's in an enormous number of real codebases, probably including one you've worked in.</p>
+
+<div class="codeblock bad">
+<p class="label">❌ Buggy — looks completely normal, re-renders your entire app</p>
+<pre><code><span class="k">function</span> <span class="f">UserProvider</span>({ children }) {
+  <span class="k">const</span> [user, setUser] = <span class="f">useState</span>(<span class="k">null</span>);
+  <span class="k">const</span> [theme, setTheme] = <span class="f">useState</span>(<span class="s">'light'</span>);
+
+  <span class="k">return</span> (
+    &lt;UserContext value={{ user, setUser }}&gt;  <span class="c">{/* 👈 new object EVERY render */}</span>
+      {children}
+    &lt;/UserContext&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Spot it? <code>{{ user, setUser }}</code> is an object literal in the component body. New address on every render of <code>UserProvider</code>.</p>
+
+<p>So: someone toggles the theme. <code>UserProvider</code> re-renders. A brand new <code>{ user, setUser }</code> object is created — same contents, different identity. React compares it with <code>Object.is</code> against the old one, sees they differ, and notifies <em>every consumer of UserContext in the entire application</em> to re-render. The user object didn't change at all. Not one byte. But every consumer re-renders anyway.</p>
+
+<p>And this is precisely the case where memo can't save you. A memoized consumer still re-renders, because context bypasses memo entirely.</p>
+
+<div class="codeblock good">
+<p class="label">✅ Fixed — a stable value identity</p>
+<pre><code><span class="k">function</span> <span class="f">UserProvider</span>({ children }) {
+  <span class="k">const</span> [user, setUser] = <span class="f">useState</span>(<span class="k">null</span>);
+  <span class="k">const</span> [theme, setTheme] = <span class="f">useState</span>(<span class="s">'light'</span>);
+
+  <span class="k">const</span> value = <span class="f">useMemo</span>(() =&gt; ({ user, setUser }), [user]);
+  <span class="c">// 👆 setUser from useState is already stable, so `user` is the only real dep</span>
+
+  <span class="k">return</span> &lt;UserContext value={value}&gt;{children}&lt;/UserContext&gt;;
+}</code></pre>
+</div>
+
+<p>Now toggling the theme re-renders <code>UserProvider</code>, <code>useMemo</code> sees <code>user</code> is unchanged, hands back the same object, <code>Object.is</code> passes, and no consumer re-renders. This is that "reason two" for <code>useMemo</code> from section 6, doing serious work: the object is trivially cheap to build, and memoizing it is still absolutely correct, because <em>identity</em> is what matters here.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — is <code>setUser</code> really stable?</span>
+  <p>Yes. React guarantees the setter returned by <code>useState</code> keeps the same identity for the life of the component, and the same goes for <code>dispatch</code> from <code>useReducer</code>. That's a deliberate design decision, precisely so you can safely leave them out of dependency arrays. Custom functions you write yourself have no such guarantee — those need <code>useCallback</code>.</p>
+</div>
+
+<h3>Mitigation 2: split state from dispatch</h3>
+
+<p>The <code>useMemo</code> fix solves "the provider re-rendered for an unrelated reason." It does <em>not</em> solve the deeper problem: when <code>user</code> genuinely does change, every consumer still re-renders — including the ones that only ever call <code>setUser</code> and never read <code>user</code> at all.</p>
+
+<p>So split the context in two: one for the value, one for the updater.</p>
+
+<div class="codeblock good">
+<p class="label">✅ Two contexts, two audiences</p>
+<pre><code><span class="k">const</span> UserContext = <span class="f">createContext</span>(<span class="k">null</span>);
+<span class="k">const</span> UserDispatchContext = <span class="f">createContext</span>(<span class="k">null</span>);
+
+<span class="k">function</span> <span class="f">UserProvider</span>({ children }) {
+  <span class="k">const</span> [user, dispatch] = <span class="f">useReducer</span>(userReducer, <span class="k">null</span>);
+
+  <span class="k">return</span> (
+    &lt;UserContext value={user}&gt;
+      &lt;UserDispatchContext value={dispatch}&gt;  <span class="c">{/* 👈 identity never changes */}</span>
+        {children}
+      &lt;/UserDispatchContext&gt;
+    &lt;/UserContext&gt;
+  );
+}</code></pre>
+</div>
+
+<p>Now a component that only needs to dispatch — a logout button, a form's submit handler — subscribes only to <code>UserDispatchContext</code>. Since <code>dispatch</code>'s identity never changes, that context value never changes, and those components <strong>never re-render from state updates at all</strong>. Only the components that actually read the user data re-render when the user data changes.</p>
+
+<p>Notice we didn't even need <code>useMemo</code> here: passing <code>user</code> directly means the value <em>is</em> the state, so its identity only changes when the state does. Splitting removed the need for the memo entirely. Nice when that happens.</p>
+
+<p>The same idea generalises: <strong>make each context as narrow as the thing that changes.</strong> One giant <code>AppContext</code> holding user, theme, locale, cart and notifications is a machine for re-rendering everything whenever anything happens. Four small contexts means a theme change only wakes up the theme readers.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood: why is there no selector?</span>
+  <p>You might wonder why React can't just let you write <code>useContext(UserContext, u =&gt; u.name)</code> and only re-render when <code>name</code> changes. There have been proposals for exactly this for years (the community package <code>use-context-selector</code> approximates it with some clever internals), but it isn't in React.</p>
+  <p>The reason is that context propagation is baked into how React walks the fiber tree during a render pass — when a provider's value changes, React marks the consumers it finds as needing work. Adding per-consumer selector comparison changes the shape of that traversal in ways that interact with concurrent rendering. So for now: no selectors. Which is exactly the capability external stores exist to provide.</p>
+</div>
+
+<h2 id="stores"><span class="num">Section 13</span>Context vs. prop drilling vs. an external store</h2>
+
+<p>You now know enough to answer the real question, which is not "which is best" but "which problem am I actually having."</p>
+
+<h3>Prop drilling</h3>
+
+<p>The default, and it's underrated. Explicit, trivially debuggable, no indirection — you can read a component's signature and know precisely what it depends on. It's also the fastest, because React does nothing special.</p>
+
+<p>It becomes a problem when the chain gets long <em>and</em> the middle components have no use for the data. Two or three levels of drilling is completely fine and I'd leave it. Six levels through components that don't care is a smell — but check first whether <a href="#structural">composition</a> fixes it, because half the "I need Context" cases are really "I passed a component where I should have passed <code>children</code>."</p>
+
+<h3>Context</h3>
+
+<p>Right when: the value is needed in <em>many</em> places at <em>many</em> depths, and it changes <strong>infrequently</strong>.</p>
+
+<p>The canonical examples are canonical for a reason — theme, current user / auth, locale and translations, feature flags, a design-system config. Each is read all over the app and changes maybe once a session. A full-app re-render when you switch to dark mode is completely acceptable; it happens once and the user is expecting a visual change anyway.</p>
+
+<p>Wrong when:</p>
+<ul>
+  <li><strong>High-frequency updates.</strong> Mouse position, scroll offset, a form field on every keystroke, a websocket price tick. Every update re-renders every consumer, and at 60 updates a second you've built a stutter machine.</li>
+  <li><strong>One big blob of state with many independent slices.</strong> Without selectors, a change to any slice re-renders readers of all slices.</li>
+  <li><strong>You need real state-management features</strong> — middleware, devtools time-travel, derived/computed values with caching, optimistic updates, persistence, undo. Context provides none of that, because it isn't a state manager.</li>
+</ul>
+
+<h3>An external store (Redux Toolkit, Zustand, Jotai, MobX…)</h3>
+
+<p>Here's the key architectural difference, and it's worth saying explicitly in an interview because it shows you understand <em>why</em> these libraries exist rather than just that they do.</p>
+
+<p><strong>The state lives outside the React tree.</strong> Components don't receive it through rendering — they <em>subscribe</em> to it, and crucially they subscribe with a <strong>selector</strong>: "wake me up only when <code>cart.itemCount</code> changes."</p>
+
+<div class="codeblock neutral">
+<p class="label">Subscribing to a slice (Zustand-flavoured)</p>
+<pre><code><span class="k">function</span> <span class="f">CartBadge</span>() {
+  <span class="c">// Re-renders ONLY when itemCount changes.</span>
+  <span class="c">// Other parts of the store can churn all day; this component won't notice.</span>
+  <span class="k">const</span> itemCount = <span class="f">useCartStore</span>(state =&gt; state.items.length); <span class="c">// 👈 selector</span>
+  <span class="k">return</span> &lt;span&gt;{itemCount}&lt;/span&gt;;
+}</code></pre>
+</div>
+
+<p>That selector is the thing Context structurally cannot do. Under the hood these libraries use <code>useSyncExternalStore</code> — the fourth re-render trigger from section 2 — which lets a component say "here's how to subscribe, and here's the specific snapshot I care about." React re-renders it only when that snapshot changes.</p>
+
+<p>Which is why the honest answer to "can Context replace Redux?" is <em>partly</em>. Context + <code>useReducer</code> genuinely replaces Redux for small-to-medium app state with infrequent updates, and for a lot of apps that's plenty. What you don't get is selectors, middleware, devtools, or a good story for very frequent updates. If you're hand-rolling those on top of Context, you're building a worse Redux.</p>
+
+<h3>The decision framework</h3>
+
+<p>Learn this ladder. It's a genuinely good answer to a very common question, and the ordering is the point — you climb only when the current rung actually hurts.</p>
+
+<figure>
+<svg viewBox="0 0 660 300" role="img" aria-label="Five-rung decision ladder for state management">
+  <g font-family="sans-serif">
+    <rect x="20" y="248" width="620" height="44" rx="8" fill="#e7f6ee" stroke="#17734f" stroke-width="1.6"/>
+    <text x="36" y="269" font-size="13.5" font-weight="700" fill="#0f5537">1 · Local state</text>
+    <text x="200" y="269" font-size="12.5" fill="#4a4a58">useState in the component that needs it. Start here, always.</text>
+
+    <rect x="20" y="196" width="620" height="44" rx="8" fill="#eef7f2" stroke="#3d8d68" stroke-width="1.4"/>
+    <text x="36" y="217" font-size="13.5" font-weight="700" fill="#0f5537">2 · Lift it up</text>
+    <text x="200" y="217" font-size="12.5" fill="#4a4a58">Two siblings need it? Move it to their nearest common parent.</text>
+
+    <rect x="20" y="144" width="620" height="44" rx="8" fill="#f6f5f1" stroke="#a8a49a" stroke-width="1.4"/>
+    <text x="36" y="165" font-size="13.5" font-weight="700" fill="#5a5750">3 · Composition</text>
+    <text x="200" y="165" font-size="12.5" fill="#4a4a58">Drilling getting deep? Try children / slots before adding machinery.</text>
+
+    <rect x="20" y="92" width="620" height="44" rx="8" fill="#efedff" stroke="#5b4bd6" stroke-width="1.5"/>
+    <text x="36" y="113" font-size="13.5" font-weight="700" fill="#37306b">4 · Context</text>
+    <text x="200" y="113" font-size="12.5" fill="#4a4a58">App-wide + low-frequency: theme, auth, locale, feature flags.</text>
+
+    <rect x="20" y="40" width="620" height="44" rx="8" fill="#fff5e0" stroke="#8a5a00" stroke-width="1.6"/>
+    <text x="36" y="61" font-size="13.5" font-weight="700" fill="#7a4f00">5 · External store</text>
+    <text x="200" y="61" font-size="12.5" fill="#4a4a58">Frequent updates, many slices, selectors, devtools, middleware.</text>
+
+    <text x="330" y="22" text-anchor="middle" font-size="12" fill="#8a5a00" font-style="italic">climb only when the rung below actually hurts</text>
+  </g>
+</svg>
+<figcaption>Each rung is more powerful and more expensive in indirection. Most state never leaves rung 1.</figcaption>
+</figure>
+
+<div class="callout wait">
+  <span class="ct">Wait — what about server data?</span>
+  <p>Worth a sentence, because it's a strong extra point to make. A huge amount of what people put in Redux isn't really client state at all — it's a cached copy of data from the server. That has its own problems (caching, revalidation, loading and error states, deduping requests) that general state managers don't solve, which is why TanStack Query, SWR and RTK Query exist. Splitting "server cache" from "client UI state" often shrinks your global state to almost nothing. Saying this in an interview reads as genuine modern experience.</p>
+</div>
+
+<h2 id="diagnose"><span class="num">Section 14</span>How to actually diagnose a perf problem</h2>
+
+<p>Everything so far has been "what to do." This section is "how to know what to do," and it's the part most candidates can't speak to — which makes it a great place to stand out.</p>
+
+<p>The discipline, stated plainly: <strong>measure, change one thing, measure again.</strong> Optimising without profiling isn't engineering, it's ritual. And it's specifically dangerous in React because your intuitions about what's slow are usually wrong — the render you're worried about takes 0.3ms and the one that's killing you is a chart library you forgot re-mounts.</p>
+
+<h3>Step 1: is it actually a React problem?</h3>
+
+<p>Before opening React DevTools, check the browser's own Performance panel. Plenty of "React is slow" turns out to be a 4MB unoptimised image, a blocking third-party script, an N+1 waterfall of network requests, or a CSS animation on a property that triggers layout. React can't be blamed for any of those, and no amount of <code>useMemo</code> will help.</p>
+
+<h3>Step 2: "Highlight updates when components render"</h3>
+
+<p>This is the fastest possible triage and takes five seconds. In the React DevTools <strong>Components</strong> tab, open the settings gear → <strong>General</strong> → tick <em>"Highlight updates when components render."</em></p>
+
+<p>Now use your app. Every component that re-renders flashes with a coloured outline — and the colour tells you the frequency: blue/green for occasional, yellow then red for components re-rendering many times in quick succession.</p>
+
+<p>What you're looking for: type one character into a search box and see half the screen flash. That's your problem, located in seconds. If a big region flashes on an interaction that shouldn't affect it, you've found where state is living too high in the tree.</p>
+
+<h3>Step 3: the Profiler</h3>
+
+<p>The <strong>Profiler</strong> tab is the real instrument. Hit record, perform the slow interaction, hit stop. You get:</p>
+
+<p><strong>The commit bar chart</strong> across the top — one bar per commit, height and colour showing how long it took. Tall yellow bars are your suspects. Click one to inspect it.</p>
+
+<p><strong>The flame chart</strong> for the selected commit. Bars are the component tree; width is how long that component <em>and its descendants</em> took to render. Grey bars mean "did not render in this commit" — and grey is what you want to see. A wide coloured bar with lots of coloured children beneath it is a subtree that re-rendered when it probably didn't need to.</p>
+
+<p>Read it top-down: find the widest coloured bar, ask "why did this render at all?", then walk down to where the real time is being spent.</p>
+
+<p><strong>The ranked chart</strong> (the second toggle) sorts every component that rendered in that commit by its own render time, most expensive first. Great when the flame chart is too tall to scan.</p>
+
+<h3>Step 4: "Why did this render?"</h3>
+
+<p>This is the killer feature and it's off by default. In Profiler settings, tick <em>"Record why each component rendered while profiling."</em> Now clicking any component in a commit shows a reason:</p>
+
+<ul>
+  <li><em>"Props changed: (config, onSelect)"</em> — and it names them. If a prop is listed that you know is logically identical every time, you've just found a reference-identity bug.</li>
+  <li><em>"Hooks changed"</em> — its own state or a hook it depends on.</li>
+  <li><em>"Context changed"</em> — a context it consumes got a new value. If this fires on interactions unrelated to that context, go straight to the <code>value={{...}}</code> bug.</li>
+  <li><em>"The parent component rendered"</em> — the default cascade from section 2. Fix it structurally or with memo.</li>
+</ul>
+
+<p>That list maps one-to-one onto section 2's causes, which is not a coincidence — it's the same model, surfaced as a tool.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood: a couple of practical notes</span>
+  <p>Profile a <strong>production-like build</strong> where you can. Development React is substantially slower (extra checks, warnings, StrictMode double-invocation), so dev numbers overstate everything. React ships a <code>react-dom/profiling</code> build for profiling production bundles.</p>
+  <p>You can also instrument programmatically with <code>&lt;Profiler id="Cart" onRender={callback}&gt;</code>, which fires with actual and baseline durations for a subtree — handy for logging real-user timings rather than your own fast laptop.</p>
+</div>
+
+<div class="callout iv">
+  <span class="ct">In an interview: "how would you find why a component re-renders too much?"</span>
+  <div class="answer">
+    <span class="who">Say something like</span>
+    <p>"I'd start with the React DevTools Profiler rather than guessing. I'd turn on 'record why each component rendered', record the slow interaction, and find the expensive commits in the bar chart. Then in the flame chart I'd look for wide subtrees that shouldn't have rendered, and check the reason React gives — props changed, hooks changed, context changed, or parent rendered. Each of those points at a different fix: a props-changed on a value that's logically identical means an unstable reference, context-changed on an unrelated interaction usually means an unmemoized provider value, and parent-rendered usually means the state is sitting too high in the tree. I'd also flip on 'highlight updates' first, since that often shows the problem in about five seconds."</p>
+  </div>
+  <p class="why"><strong>Why it lands:</strong> almost everyone can name <code>React.memo</code>; far fewer can describe a diagnostic <em>process</em>. This answer shows you've actually sat in front of the Profiler, and it demonstrates the loop — measure, identify cause, choose the fix that matches the cause — which is the transferable skill they're really probing for.</p>
+</div>
+
+<h2 id="followups"><span class="num">Section 15</span>The follow-up questions, answered</h2>
+
+<p>These are the ones that come after the first answer, when the interviewer is checking whether you actually understand it or just memorised the headline. Try answering each before expanding it.</p>
+
+<div class="big-q">"Does <code>React.memo</code> do a deep comparison?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>No. It's a <em>shallow</em> comparison: it iterates the props object one level deep and runs <code>Object.is</code> on each value. It never recurses into nested objects or arrays. So <code>user={{ name: 'Ada' }}</code> fails the check every render even though the contents are identical, because the outer object is a new reference.</p>
+  <p>It's shallow on purpose — a deep comparison could walk an arbitrarily large object graph on every render and easily cost more than the render it's trying to skip. If you genuinely need different comparison semantics, you pass a custom comparator as the second argument, but that's an escape hatch and it's easy to introduce stale-prop bugs with it.</p>
+</details>
+
+<div class="big-q">"Why isn't my <code>React.memo</code> working?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>Almost always because the parent is passing a new reference every render — an inline object, array literal, or arrow function. Memo's shallow check compares by reference, so those always look "changed" and the memo skips nothing while still costing you a comparison.</p>
+  <p>The fix is to stabilise the props with <code>useMemo</code>/<code>useCallback</code>. Memo on the child and stable props from the parent are a matched pair; either one alone does nothing.</p>
+  <p>Three other causes worth naming: the component has its own state that's updating (memo can't block that); it consumes a context whose value is changing (memo can't block that either — context bypasses it); or you're passing <code>children</code>, which is a freshly-created element object every render.</p>
+</details>
+
+<div class="big-q">"<code>useMemo</code> vs <code>useCallback</code>?"</div>
+<details>
+  <summary>Answer</summary>
+  <p><code>useMemo</code> caches the <em>result</em> of calling a function. <code>useCallback</code> caches the <em>function itself</em>. They're literally the same mechanism — <code>useCallback(fn, deps)</code> is exactly <code>useMemo(() =&gt; fn, deps)</code>; <code>useCallback</code> just exists so you don't have to write the double arrow.</p>
+  <p>Use <code>useMemo</code> for an expensive computation or to keep a derived object/array's identity stable. Use <code>useCallback</code> when you're passing a handler to a memoized child or into another hook's dependency array.</p>
+</details>
+
+<div class="big-q">"Should you wrap everything in <code>useMemo</code>?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>No — the default should be not to memoize. Each one costs a comparison on every render, holds memory for the life of the component, adds a dependency array that can drift out of sync and cause stale bugs, and makes the code meaningfully harder to read. For a value like <code>a + b</code>, comparing the deps costs more than recomputing.</p>
+  <p>Memoize when profiling shows a real cost, or when you specifically need reference stability — to make a <code>React.memo</code> boundary work, to keep an effect from firing every render, or for a Context provider value. And note the React Compiler now automates much of this, which is a decent signal that manual memo-everything was never the right default.</p>
+</details>
+
+<div class="big-q">"What's the cost of memoization?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>Four things. <strong>CPU</strong>: the dependency or prop comparison runs on every render, in addition to the work you were already doing. <strong>Memory</strong>: the cached value and deps array are retained for the component's lifetime — multiply that by every row in a long list. <strong>Correctness risk</strong>: the deps array is a manual invariant, and a missing dep gives you a stale closure or stale value, which are nasty intermittent bugs. <strong>Readability</strong>: it's more code, and it signals to future readers that something here is expensive, which may not be true.</p>
+  <p>And there's a fifth, sneakier one: a memo whose props aren't stable pays all of the above and delivers none of the benefit.</p>
+</details>
+
+<div class="big-q">"How do you stop a component re-rendering?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>First I'd ask whether I should — most re-renders are cheap, and the render phase rarely touches the DOM. But assuming it's a measured problem, it depends on <em>why</em> it's rendering.</p>
+  <p>If it's because the parent re-rendered, the best fixes are structural: move the state down into a smaller component so the expensive subtree isn't beneath it, or pass the expensive part as <code>children</code> from a component that doesn't re-render — React bails out automatically when it sees the identical element reference. Those need no dependency arrays and can't go stale. If structure won't work, <code>React.memo</code> plus stable props.</p>
+  <p>If it's because of its own state, you can't block it and shouldn't want to — but you can shrink the component so less re-renders. If it's from context, memoize the provider value and split the context so it only consumes the slice it cares about; memo won't help there.</p>
+</details>
+
+<div class="big-q">"Why does Context cause performance problems?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>Because it's a broadcast with no selectors. When the provider's <code>value</code> changes identity — compared with <code>Object.is</code> — every consumer of that context re-renders, even one that only reads a single field, and even one wrapped in <code>React.memo</code>, because context updates bypass memo entirely.</p>
+  <p>The classic bug is passing an inline object, <code>value={{ user, setUser }}</code>. That's a new reference on every render of the provider, so any unrelated state in the provider re-renders every consumer in the app even though the user data never changed. You fix that with <code>useMemo</code> on the value.</p>
+  <p>The deeper mitigation is splitting contexts — separate the state from the dispatch, and keep each context narrow — since <code>dispatch</code> from <code>useReducer</code> is identity-stable, so components that only dispatch never re-render at all. But you can't fully fix the fan-out: when the state genuinely changes, all readers re-render, and that's why high-frequency state doesn't belong in Context.</p>
+</details>
+
+<div class="big-q">"Can Context replace Redux?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>For some apps, yes. Context plus <code>useReducer</code> gives you a store-like shape — state, dispatch, reducer — and for app state that's small and changes infrequently that's genuinely enough, with no dependency to add.</p>
+  <p>What you don't get is what Redux actually provides beyond storage: <strong>selectors</strong>, so components subscribe to a slice instead of everything; middleware; devtools and time-travel; and a structure that scales to many independent slices. Context has no selector mechanism, so every update wakes every consumer.</p>
+  <p>So my rule is: Context for low-frequency, app-wide values like theme, auth and locale; an external store like Redux Toolkit or Zustand when updates are frequent, the state has many independent slices, or I need selectors and devtools. And I'd add that a lot of what used to go in Redux is really server cache, which belongs in something like TanStack Query instead.</p>
+</details>
+
+<div class="big-q">"Why not just use one big <code>AppContext</code> for everything?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>Because the granularity of a context is the granularity of your re-renders. One context holding user, theme, cart and notifications means a notification arriving re-renders every component that reads the theme. Splitting into narrow contexts means each update only wakes the components that care. It's also better for testing and reuse — a component that only needs the theme shouldn't need the whole app's state mocked to render.</p>
+</details>
+
+<div class="big-q">"You memoized the provider value — does that solve Context's performance problem?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>It solves half of it. <code>useMemo</code> stops <em>spurious</em> re-renders — the case where the provider re-rendered for an unrelated reason and created a new value object with identical contents.</p>
+  <p>It doesn't help when the state genuinely changes, because then the value legitimately has a new identity and every consumer re-renders by design. Context has no way for a consumer to say "only wake me if this one field changed." That's a structural limit, and it's exactly the point where you split contexts, or move to a store with selectors.</p>
+</details>
+
+<div class="big-q">"Isn't <code>useCallback</code> avoiding the cost of creating a function?"</div>
+<details>
+  <summary>Answer</summary>
+  <p>No — the function is still created on every render; that expression evaluates regardless. <code>useCallback</code> receives it, throws it away, and returns the previously stored one. What you gain is a stable identity, not a skipped allocation. Creating a closure is cheap anyway; the reason to use <code>useCallback</code> is always identity, never allocation cost.</p>
+</details>
+
+<h3>Traps that get candidates dinged</h3>
+
+<table>
+  <tr><th>Don't say</th><th>Say instead</th></tr>
+  <tr>
+    <td>"A component re-renders when its props change."</td>
+    <td>"A component re-renders when its own state changes, its parent renders, or a context it consumes changes. Props changing is a symptom of the parent rendering, not an independent cause."</td>
+  </tr>
+  <tr>
+    <td>"Re-renders are bad / re-render means the DOM updates."</td>
+    <td>"A re-render is React calling the function and diffing the result. The DOM is only touched where the output actually differs, so most re-renders are cheap."</td>
+  </tr>
+  <tr>
+    <td>"I memoize everything to be safe."</td>
+    <td>"I profile first. Every memo has a real cost, and memoizing by reflex often adds cost without benefit."</td>
+  </tr>
+  <tr>
+    <td>"<code>React.memo</code> stops all re-renders."</td>
+    <td>"It only blocks re-renders caused by the parent. Its own state and context updates go straight past it."</td>
+  </tr>
+  <tr>
+    <td>"Context is React's built-in state management."</td>
+    <td>"Context is dependency injection — a transport for values. The state still lives in <code>useState</code>/<code>useReducer</code>; Context just avoids drilling it."</td>
+  </tr>
+  <tr>
+    <td>"<code>useMemo</code> guarantees the value is only computed once."</td>
+    <td>"It's a performance hint. React may discard the cache, so never rely on it for correctness or side effects."</td>
+  </tr>
+</table>
+
+<h2 id="cheatsheet"><span class="num">Section 16</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One crisp line each.</p>
+
+<div class="cheat">
+<dl>
+  <dt>What is a render?</dt>
+  <dd>React calling your component function to get a description of the UI. Committing that description to the DOM is a separate, later step.</dd>
+
+  <dt>What causes a re-render?</dt>
+  <dd>Own state changed · parent re-rendered · a consumed context value changed. (Plus an external store subscription firing.)</dd>
+
+  <dt>The misconception to kill</dt>
+  <dd>A component re-renders because its <em>parent</em> did, not because its props changed. Props can't change without the parent rendering.</dd>
+
+  <dt>Are re-renders expensive?</dt>
+  <dd>Usually no — microseconds, and no DOM work unless output actually differs. They get expensive through volume, heavy computation, or high frequency.</dd>
+
+  <dt>Value vs. reference</dt>
+  <dd>Objects, arrays and functions compare by identity, not contents. Every render creates new ones. This causes ~90% of memo bugs.</dd>
+
+  <dt><code>React.memo</code></dt>
+  <dd>Skips a component's render (and its whole subtree) if props are shallowly equal. Blocks parent-driven renders only — not own state, not context.</dd>
+
+  <dt>Shallow or deep?</dt>
+  <dd>Shallow. One level, <code>Object.is</code> per prop. Never recurses. Optional second-arg comparator returns <code>true</code> to <em>skip</em> — inverted vs. <code>shouldComponentUpdate</code>.</dd>
+
+  <dt><code>useMemo</code></dt>
+  <dd>Caches a computed value across renders, keyed on a deps array. Two reasons: expensive computation, <em>and</em> preserving reference identity for a memo boundary, a deps array, or a Context value.</dd>
+
+  <dt><code>useCallback</code></dt>
+  <dd>Caches a function's identity. Exactly <code>useMemo(() =&gt; fn, deps)</code>. The function is still created each render; only the identity you use is stable.</dd>
+
+  <dt>Cost of memoizing</dt>
+  <dd>Comparison on every render, retained memory, a deps array that can go stale, worse readability — and zero benefit if the props aren't stable.</dd>
+
+  <dt>Better than memoizing</dt>
+  <dd>Move state down · pass expensive content as <code>children</code> (React bails out on identical element references) · split big components.</dd>
+
+  <dt>React Compiler</dt>
+  <dd>Auto-memoizes at build time where it can prove your components follow the Rules of React. Changes who writes the memo, not the need to understand re-renders.</dd>
+
+  <dt>What Context <em>is</em></dt>
+  <dd>Dependency injection / transport, not a state manager. It moves a value down the tree without prop drilling. State still lives in a hook.</dd>
+
+  <dt>Context's performance problem</dt>
+  <dd>Every consumer re-renders when the provider <code>value</code>'s identity changes — even readers of one field, even memoized ones. No selectors.</dd>
+
+  <dt>The classic bug + fix</dt>
+  <dd><code>value={{ user, setUser }}</code> is a new object every render → wrap it in <code>useMemo</code>. Then split state and dispatch into two contexts; <code>dispatch</code> is identity-stable, so dispatch-only consumers never re-render.</dd>
+
+  <dt>Context vs. external store</dt>
+  <dd>Context: app-wide, low-frequency (theme, auth, locale, flags). Store: frequent updates, many slices, selectors, middleware, devtools.</dd>
+
+  <dt>The ladder</dt>
+  <dd>local state → lift up → composition → Context → external store. Climb only when the rung below actually hurts.</dd>
+
+  <dt>Diagnosing</dt>
+  <dd>Highlight updates for 5-second triage → Profiler, record, find tall commits → flame chart for wide subtrees (grey = didn't render) → "why did this render?" for the cause. Measure before and after.</dd>
+</dl>
+</div>
+
+<hr class="soft">
+
+<p>If you take one thing from all of this, make it the shape of the reasoning rather than the API surface. Interviewers asking about <code>useMemo</code> are almost never checking whether you know its signature — they're checking whether you understand that performance work is a trade, that you make trades from evidence, and that the cheapest fix is usually a better component structure rather than a smarter cache.</p>
+
+<p>Know why a component re-rendered, know what it actually cost, and know the boring structural fix you'd try before the clever one. That's the answer they're listening for. 🎯</p>
+
+
+</div>
+</body>
+</html>

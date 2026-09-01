@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>useState, useEffect &amp; the Hooks Rules</title>
+<style>
+  :root {
+    --bg: #fdfcfa;
+    --ink: #2b2b33;
+    --ink-soft: #55555f;
+    --rule: #e6e2da;
+    --accent: #4f46e5;
+    --accent-soft: #eef0ff;
+    --code-bg: #22212c;
+    --code-ink: #e8e6f0;
+    --red: #b91c1c;
+    --red-bg: #fff1f1;
+    --red-line: #f3c4c4;
+    --green: #15803d;
+    --green-bg: #f0fdf4;
+    --green-line: #b7e3c6;
+    --amber: #92600a;
+    --amber-bg: #fffaeb;
+    --amber-line: #f0ddab;
+    --blue: #1d4ed8;
+    --blue-bg: #f0f5ff;
+    --blue-line: #c6d6f7;
+    --purple: #6d28d9;
+    --purple-bg: #f7f2ff;
+    --purple-line: #ddcdf7;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17.5px;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 750px;
+    margin: 0 auto;
+    padding: 0 22px 140px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top {
+    padding: 72px 0 30px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 38px;
+  }
+  .kicker {
+    font-size: 13px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+  header.top h1 {
+    font-size: 2.55rem;
+    line-height: 1.14;
+    margin: 0 0 16px;
+    letter-spacing: -0.022em;
+  }
+  .standfirst {
+    font-size: 1.13rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* ---------- Typography ---------- */
+  h2 {
+    font-size: 1.72rem;
+    line-height: 1.25;
+    margin: 3.4em 0 0.1em;
+    letter-spacing: -0.018em;
+    scroll-margin-top: 20px;
+  }
+  h2 .num {
+    display: block;
+    font-size: 0.78rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  h2 + p { margin-top: 1em; }
+  h3 {
+    font-size: 1.24rem;
+    margin: 2.5em 0 0.55em;
+    letter-spacing: -0.012em;
+    scroll-margin-top: 20px;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin: 1.9em 0 0.4em;
+  }
+  p { margin: 1.05em 0; }
+  ul, ol { padding-left: 1.35em; }
+  li { margin: 0.45em 0; }
+  a { color: var(--accent); }
+  strong { font-weight: 650; }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 3.2em 0;
+  }
+
+  .lead { font-size: 1.06rem; }
+
+  /* ---------- Code ---------- */
+  code {
+    font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.855em;
+  }
+  p code, li code, td code, summary code, h3 code, h4 code, h2 code {
+    background: #f0eeea;
+    border: 1px solid #e2ded6;
+    border-radius: 4px;
+    padding: 0.09em 0.34em;
+    white-space: nowrap;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 9px;
+    overflow-x: auto;
+    margin: 0;
+    line-height: 1.6;
+    font-size: 14.5px;
+    tab-size: 2;
+  }
+  pre code {
+    font-size: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    white-space: pre;
+  }
+  .snippet { margin: 1.5em 0; }
+  .snippet figcaption {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 9px 9px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .snippet figcaption + pre { border-radius: 0 0 9px 9px; }
+  .cap-bad  { background: #3a2226; color: #ffb4b4; }
+  .cap-good { background: #16301f; color: #92e5ac; }
+  .cap-neutral { background: #2e2d3a; color: #b9b6cc; }
+
+  /* code token colours */
+  .c  { color: #8d89a3; font-style: italic; }  /* comment */
+  .s  { color: #a5e0a0; }                       /* string */
+  .k  { color: #d5a3f5; }                       /* keyword */
+  .f  { color: #8fc9ff; }                       /* function/identifier */
+  .n  { color: #ffc888; }                       /* number */
+  .hl { color: #ffd479; font-weight: 700; }     /* the important bit */
+
+  /* ---------- Callouts ---------- */
+  .box {
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 4px 20px 6px;
+    margin: 1.9em 0;
+    font-size: 0.965rem;
+  }
+  .box .label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 16px 0 -2px;
+  }
+  .box p:first-of-type { margin-top: 0.5em; }
+  .box.wait  { background: var(--blue-bg);   border-color: var(--blue-line); }
+  .box.wait .label { color: var(--blue); }
+  .box.myth  { background: var(--red-bg);    border-color: var(--red-line); }
+  .box.myth .label { color: var(--red); }
+  .box.hood  { background: var(--purple-bg); border-color: var(--purple-line); }
+  .box.hood .label { color: var(--purple); }
+  .box.itv   { background: var(--amber-bg);  border-color: var(--amber-line); }
+  .box.itv .label { color: var(--amber); }
+  .box.key   { background: var(--accent-soft); border-color: #ccd0ff; }
+  .box.key .label { color: var(--accent); }
+
+  /* ---------- Interview blocks ---------- */
+  .say {
+    border-left: 4px solid var(--amber);
+    background: #fffdf6;
+    padding: 2px 18px 4px;
+    margin: 1.3em 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .say .who {
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    color: var(--amber);
+    margin: 14px 0 0;
+  }
+  .say p { font-size: 1.005rem; }
+  .why-lands {
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--amber-line);
+    padding-top: 10px;
+    margin-top: 12px;
+  }
+
+  details.q {
+    border: 1px solid var(--rule);
+    background: #fff;
+    border-radius: 9px;
+    padding: 0 16px;
+    margin: 10px 0;
+  }
+  details.q > summary {
+    cursor: pointer;
+    font-weight: 640;
+    padding: 13px 0;
+    list-style: none;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  details.q > summary::-webkit-details-marker { display: none; }
+  details.q > summary::before {
+    content: "▸";
+    color: var(--accent);
+    font-size: 0.85em;
+    flex: 0 0 auto;
+  }
+  details.q[open] > summary::before { content: "▾"; }
+  details.q[open] > summary { border-bottom: 1px solid var(--rule); }
+  details.q > *:not(summary) { font-size: 0.965rem; }
+  details.q > p:last-child { margin-bottom: 16px; }
+
+  .trap {
+    background: var(--red-bg);
+    border: 1px solid var(--red-line);
+    border-radius: 9px;
+    padding: 2px 18px 6px;
+    margin: 1.5em 0;
+    font-size: 0.965rem;
+  }
+  .trap .label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin: 15px 0 -4px;
+  }
+
+  /* ---------- TOC ---------- */
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 11px;
+    padding: 8px 24px 20px;
+    margin: 2em 0 3em;
+  }
+  nav.toc h2 {
+    font-size: 0.8rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 18px 0 10px;
+  }
+  nav.toc ol { margin: 0; padding-left: 1.3em; }
+  nav.toc li { margin: 0.28em 0; font-size: 0.965rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* ---------- Diagrams ---------- */
+  figure.dia {
+    margin: 2em 0;
+    padding: 20px 18px 12px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 11px;
+    overflow-x: auto;
+  }
+  figure.dia svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  figure.dia figcaption {
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* ---------- Table ---------- */
+  .tbl-wrap { overflow-x: auto; margin: 1.7em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.94rem;
+    background: #fff;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f6f4f0; font-weight: 700; }
+
+  /* ---------- Cheat sheet ---------- */
+  .cheat {
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 6px 24px 22px;
+    margin: 2em 0;
+  }
+  .cheat dl { margin: 0; }
+  .cheat dt {
+    font-weight: 700;
+    margin-top: 16px;
+    color: var(--accent);
+    font-size: 0.98rem;
+  }
+  .cheat dd { margin: 3px 0 0; font-size: 0.96rem; }
+
+  footer.end {
+    margin-top: 4em;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 560px) {
+    body { font-size: 16.5px; }
+    header.top h1 { font-size: 2rem; }
+    header.top { padding-top: 46px; }
+    pre { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">Frontend Interview Guide · 10</p>
+  <h1>useState, useEffect &amp; the Hooks Rules</h1>
+  <p class="standfirst">Almost every confusing React bug you will ever hit comes from one of two misunderstandings: thinking state is a variable, and thinking effects are lifecycle callbacks. Let's fix both, properly, from the ground up.</p>
+</header>
+
+<p class="lead">Here's a component. It has a counter, and a button that's supposed to add three.</p>
+
+<figure class="snippet">
+<figcaption class="cap-neutral">What does this button actually do?</figcaption>
+<pre><code><span class="k">function</span> <span class="f">Counter</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="n">0</span>);
+
+  <span class="k">function</span> <span class="f">addThree</span>() {
+    <span class="f">setCount</span>(count + <span class="n">1</span>);
+    <span class="f">setCount</span>(count + <span class="n">1</span>);
+    <span class="f">setCount</span>(count + <span class="n">1</span>);
+  }
+
+  <span class="k">return</span> &lt;button onClick={addThree}&gt;Count: {count}&lt;/button&gt;;
+}</code></pre>
+</figure>
+
+<p>Take a guess before you read on. You click the button once. What does the count become?</p>
+
+<details class="q">
+  <summary>Reveal the answer</summary>
+  <p>It becomes <strong>1</strong>. Not 3. And it will keep going up by 1 every click, forever, no matter how many <code>setCount</code> calls you stack in there.</p>
+</details>
+
+<p>If that surprised you — good. If it didn't surprise you but you can't explain <em>why</em> in a sentence, that's the more common situation, and it's the one this guide is really for. Because the explanation isn't a quirk or a gotcha. It's the single mental model that React is built on, and once you have it, about eight other mysteries dissolve at once: why your state "doesn't update immediately", why your effect runs twice, why your <code>setInterval</code> is stuck logging zero, why your dependency array won't stop looping.</p>
+
+<p>I'm going to admit something up front: this stuff is genuinely brain-bending. I've watched people with two years of React on their CV get quietly tripped up by the counter above. Being confused here is not a sign that you're bad at this. It's a sign that your model of React is the intuitive one — and the intuitive one is wrong.</p>
+
+<p>So let's build the right one.</p>
+
+<nav class="toc">
+  <h2>What we'll cover</h2>
+  <ol>
+    <li><a href="#renders">A render is a snapshot (the model everything hangs off)</a></li>
+    <li><a href="#usestate">useState, properly: batching, updaters, lazy init, immutability</a></li>
+    <li><a href="#useeffect">useEffect: synchronisation, not lifecycle</a></li>
+    <li><a href="#no-effect">When you do <em>not</em> need an effect</a></li>
+    <li><a href="#deps">The dependency array and its three failure modes</a></li>
+    <li><a href="#stale">Stale closures — the most confusing bug in React</a></li>
+    <li><a href="#layout">useEffect vs useLayoutEffect</a></li>
+    <li><a href="#custom">Custom hooks (and why they don't share state)</a></li>
+    <li><a href="#rules">The Rules of Hooks, and the linked list that explains them</a></li>
+    <li><a href="#batching">React 18 automatic batching &amp; flushSync</a></li>
+    <li><a href="#ref-reducer">useRef and useReducer, briefly</a></li>
+    <li><a href="#fetching">How to actually fetch data</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="renders"><span class="num">Part 1</span>A render is a snapshot</h2>
+
+<p>Before we can talk about <code>useState</code>, we need to be precise about a word that gets thrown around loosely: <strong>render</strong>.</p>
+
+<p>When people say "the component renders", they often picture something happening on screen — pixels changing, the browser painting. That's not what it means in React. Let's separate three things that happen in sequence, because keeping them apart is going to matter a lot later:</p>
+
+<ol>
+  <li><strong>Render.</strong> React <em>calls your component function</em>. Literally: <code>Counter()</code>. Your function runs top to bottom and returns some JSX describing what the UI should look like. Nothing has touched the screen yet.</li>
+  <li><strong>Commit.</strong> React compares what you returned with what's currently on screen, works out the minimum set of DOM operations, and applies them. The DOM is now updated.</li>
+  <li><strong>Paint.</strong> The browser takes the updated DOM and draws actual pixels. The user finally sees something.</li>
+</ol>
+
+<p>So "a render" is just "one call to your component function". And here's the thing that unlocks everything:</p>
+
+<div class="box key">
+  <span class="label">The one idea to hold onto</span>
+  <p><strong>Every render is a separate call to your function, and each call gets its own props, its own state values, its own local variables, and its own event handlers. They're frozen in place for that render. They never change.</strong></p>
+</div>
+
+<p>Let me make that concrete, because it sounds abstract until you see it.</p>
+
+<h3>Your component is a function, so it has a fresh scope every time</h3>
+
+<p>Forget React for one second. Here's plain JavaScript:</p>
+
+<figure class="snippet">
+<pre><code><span class="k">function</span> <span class="f">greet</span>(name) {
+  <span class="k">const</span> message = <span class="s">`Hello, `</span> + name;
+  <span class="k">return</span> message;
+}
+
+<span class="f">greet</span>(<span class="s">"Ada"</span>);   <span class="c">// → "Hello, Ada"</span>
+<span class="f">greet</span>(<span class="s">"Grace"</span>); <span class="c">// → "Hello, Grace"</span></code></pre>
+</figure>
+
+<p>Nobody finds this confusing. Each call to <code>greet</code> creates a brand new scope, with its own <code>name</code> and its own <code>message</code>. The first call's <code>message</code> doesn't magically become <code>"Hello, Grace"</code> when we call it again. That call is over. Its variables are what they were.</p>
+
+<p>React components are exactly the same. They're just functions React calls. So when <code>Counter</code> renders with a count of 0, the <code>count</code> variable inside <em>that particular call</em> is the number <code>0</code>. Not "a reference to the count". Not "a live view of the state". The number 0. A constant, for the lifetime of that render.</p>
+
+<p>When state changes, React doesn't reach into the old call and update the variable. It <strong>calls your function again</strong>, from scratch, and this time <code>useState</code> hands back <code>1</code>. That's a completely separate scope with a completely separate <code>count</code> constant.</p>
+
+<figure class="dia">
+<svg viewBox="0 0 660 250" role="img" aria-label="Three renders shown as separate film frames, each containing its own frozen count value and its own handler function.">
+  <defs>
+    <marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#8b8798"/>
+    </marker>
+  </defs>
+  <!-- frames -->
+  <g>
+    <rect x="14" y="34" width="190" height="150" rx="9" fill="#f7f5ff" stroke="#ccc6ea" stroke-width="1.5"/>
+    <text x="109" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#6d28d9" font-family="sans-serif">Render #1</text>
+    <text x="30" y="62" font-size="12.5" fill="#2b2b33" font-family="monospace">count = 0</text>
+    <text x="30" y="88" font-size="12" fill="#55555f" font-family="monospace">addThree() {</text>
+    <text x="30" y="106" font-size="12" fill="#55555f" font-family="monospace">  setCount(0 + 1)</text>
+    <text x="30" y="124" font-size="12" fill="#55555f" font-family="monospace">  setCount(0 + 1)</text>
+    <text x="30" y="142" font-size="12" fill="#55555f" font-family="monospace">  setCount(0 + 1)</text>
+    <text x="30" y="160" font-size="12" fill="#55555f" font-family="monospace">}</text>
+    <text x="30" y="178" font-size="12" fill="#6d28d9" font-family="monospace">UI: "Count: 0"</text>
+  </g>
+  <g>
+    <rect x="234" y="34" width="190" height="150" rx="9" fill="#f7f5ff" stroke="#ccc6ea" stroke-width="1.5"/>
+    <text x="329" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#6d28d9" font-family="sans-serif">Render #2</text>
+    <text x="250" y="62" font-size="12.5" fill="#2b2b33" font-family="monospace">count = 1</text>
+    <text x="250" y="88" font-size="12" fill="#55555f" font-family="monospace">addThree() {</text>
+    <text x="250" y="106" font-size="12" fill="#55555f" font-family="monospace">  setCount(1 + 1)</text>
+    <text x="250" y="124" font-size="12" fill="#55555f" font-family="monospace">  setCount(1 + 1)</text>
+    <text x="250" y="142" font-size="12" fill="#55555f" font-family="monospace">  setCount(1 + 1)</text>
+    <text x="250" y="160" font-size="12" fill="#55555f" font-family="monospace">}</text>
+    <text x="250" y="178" font-size="12" fill="#6d28d9" font-family="monospace">UI: "Count: 1"</text>
+  </g>
+  <g>
+    <rect x="454" y="34" width="190" height="150" rx="9" fill="#f7f5ff" stroke="#ccc6ea" stroke-width="1.5"/>
+    <text x="549" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#6d28d9" font-family="sans-serif">Render #3</text>
+    <text x="470" y="62" font-size="12.5" fill="#2b2b33" font-family="monospace">count = 2</text>
+    <text x="470" y="88" font-size="12" fill="#55555f" font-family="monospace">addThree() {</text>
+    <text x="470" y="106" font-size="12" fill="#55555f" font-family="monospace">  setCount(2 + 1)</text>
+    <text x="470" y="124" font-size="12" fill="#55555f" font-family="monospace">  setCount(2 + 1)</text>
+    <text x="470" y="142" font-size="12" fill="#55555f" font-family="monospace">  setCount(2 + 1)</text>
+    <text x="470" y="160" font-size="12" fill="#55555f" font-family="monospace">}</text>
+    <text x="470" y="178" font-size="12" fill="#6d28d9" font-family="monospace">UI: "Count: 2"</text>
+  </g>
+  <line x1="206" y1="109" x2="230" y2="109" stroke="#8b8798" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <line x1="426" y1="109" x2="450" y2="109" stroke="#8b8798" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <text x="329" y="220" text-anchor="middle" font-size="12.5" fill="#55555f" font-family="sans-serif">Each frame is a separate function call with its own frozen variables.</text>
+  <text x="329" y="238" text-anchor="middle" font-size="12.5" fill="#55555f" font-family="sans-serif">Nothing ever &#8220;updates&#8221; inside a frame. React just draws a new one.</text>
+</svg>
+<figcaption>State doesn't change. React renders a new snapshot in which the value is different.</figcaption>
+</figure>
+
+<h3>The analogy: frames of a film</h3>
+
+<p>A render is a <strong>photograph</strong>. When you take a photo of a room, the photo doesn't update when someone walks in. It's fixed. To show the new arrangement, you take another photo.</p>
+
+<p>Your UI is a film strip of these photographs. React's job, when state changes, is to shoot a new frame. The old frames still exist in memory — event handlers from an old render can still be sitting in a timeout somewhere, holding onto that old frame's values, which is exactly how the stale-closure bugs we'll see later happen.</p>
+
+<p><em>Where this analogy breaks down:</em> photographs are passive, and your renders aren't quite — they contain live functions that can be called later. So a better image might be a <strong>flipbook where each page also has a little machine glued to it</strong>, and the machine only knows about the numbers printed on its own page. Clunkier, but more accurate. Hold onto that image; we'll come back to it.</p>
+
+<h3>Back to the counter</h3>
+
+<p>Now the original puzzle should almost solve itself. You click the button. React runs the <code>addThree</code> that belongs to render #1 — the one where <code>count</code> is the number <code>0</code>.</p>
+
+<figure class="snippet">
+<pre><code><span class="c">// Inside render #1, `count` IS 0. So this code is literally:</span>
+<span class="f">setCount</span>(<span class="n">0</span> + <span class="n">1</span>);  <span class="c">// → "set state to 1"</span>
+<span class="f">setCount</span>(<span class="n">0</span> + <span class="n">1</span>);  <span class="c">// → "set state to 1"</span>
+<span class="f">setCount</span>(<span class="n">0</span> + <span class="n">1</span>);  <span class="c">// → "set state to 1"</span></code></pre>
+</figure>
+
+<p>Three instructions, all saying the same thing: <em>make it 1</em>. React processes them in order, the last one wins, and the next render has a count of 1. There's no bug in React here. Your code asked for 1, three times.</p>
+
+<p>This also explains a related thing people hit constantly:</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Why is this logging the old value?</figcaption>
+<pre><code><span class="k">function</span> <span class="f">handleClick</span>() {
+  <span class="f">setCount</span>(count + <span class="n">1</span>);
+  <span class="f">console</span>.<span class="f">log</span>(count); <span class="c">// → 0  (not 1!) 👈</span>
+}</code></pre>
+</figure>
+
+<p>People describe this as "state updates are asynchronous". That's <em>sort of</em> true but it's the wrong mental model, because it makes you think if you just waited long enough — <code>setTimeout</code>, <code>await</code>, whatever — the variable would eventually change. It won't. <code>count</code> in this scope is a <code>const</code> holding the number 0. It is 0 now, it will be 0 in ten seconds, it will be 0 forever, because this render is a photograph and photographs don't update.</p>
+
+<p>The state <em>does</em> update. It just updates for the <em>next</em> render, which will get its own fresh <code>count</code>.</p>
+
+<div class="box myth">
+  <span class="label">A common misconception</span>
+  <p>"<code>setCount</code> is async, so I need to await it / put my code in a <code>setTimeout</code> to see the new value."</p>
+  <p>Neither works, and both make the code worse. There is nothing to await — <code>setState</code> returns <code>undefined</code>. And a <code>setTimeout</code> inside this handler still closes over <em>this render's</em> <code>count</code>, so it will happily log 0 a second later too. If you need to do something with the new value, compute it into a variable first (<code>const next = count + 1</code>) and use <code>next</code>. If you need to react to the value <em>changing</em>, that's a different tool, and we'll get there.</p>
+</div>
+
+<h3>Batching: why you only get one re-render</h3>
+
+<p>There's a second thing happening in that click handler, and it's a good thing. React doesn't re-render after each <code>setCount</code>. If it did, clicking that button would trigger three full renders, three commits, possibly three paints — for a UI that only ends up in one final state. Wasteful, and visually janky.</p>
+
+<p>Instead React <strong>batches</strong>. It collects every state update triggered during the handler, waits until your handler has finished running, then does a single re-render with the final result.</p>
+
+<p>The analogy I like: a waiter taking an order. You say "I'll have the soup." Then "actually, the salad." Then "no, the soup." The waiter doesn't sprint to the kitchen after each sentence. They wait until you've stopped talking, then walk over once with your final order. That's batching — and it's why the intermediate values never reach the screen.</p>
+
+<h3>The updater form: <code>setCount(c =&gt; c + 1)</code></h3>
+
+<p>Okay. So if <code>setCount(count + 1)</code> three times gives us 1, how do we actually add three?</p>
+
+<p>We need a way to say something the snapshot can't say: not "set it to 1", but <strong>"whatever it ends up being, add one to that"</strong>. React gives us exactly that. Instead of passing a value, pass a function:</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed</figcaption>
+<pre><code><span class="k">function</span> <span class="f">addThree</span>() {
+  <span class="f">setCount</span>(c =&gt; c + <span class="n">1</span>); <span class="c">// 👈 "take whatever's pending, add 1"</span>
+  <span class="f">setCount</span>(c =&gt; c + <span class="n">1</span>);
+  <span class="f">setCount</span>(c =&gt; c + <span class="n">1</span>);
+}
+<span class="c">// One click → count goes from 0 to 3. ✨</span></code></pre>
+</figure>
+
+<p>That function is called an <strong>updater function</strong>. React puts it in a queue, and when it's time to render, it walks the queue in order, feeding each function the result of the previous one:</p>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Queued</th><th>Value going in</th><th>Value coming out</th></tr></thead>
+  <tbody>
+    <tr><td><code>c =&gt; c + 1</code></td><td>0 <span style="color:#55555f">(current state)</span></td><td>1</td></tr>
+    <tr><td><code>c =&gt; c + 1</code></td><td>1</td><td>2</td></tr>
+    <tr><td><code>c =&gt; c + 1</code></td><td>2</td><td><strong>3</strong> ← final</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Notice what changed conceptually. <code>setCount(count + 1)</code> is a <em>value</em> — computed now, from a stale snapshot. <code>setCount(c =&gt; c + 1)</code> is a <em>recipe</em> — evaluated later, against the freshest value React has. That distinction is the whole ballgame.</p>
+
+<div class="box wait">
+  <span class="label">Wait — should I always use the updater form?</span>
+  <p>Not always, but here's a clean rule: <strong>if the new state is computed from the old state, use the updater form.</strong> <code>setCount(c =&gt; c + 1)</code>, <code>setItems(prev =&gt; [...prev, newItem])</code>, <code>setOpen(o =&gt; !o)</code>. If the new state has nothing to do with the old — <code>setName(input.value)</code>, <code>setUser(data)</code> — just pass the value; the updater form would be noise.</p>
+  <p>The updater form also saves you inside async code and effects, where the captured snapshot may be <em>very</em> old. We'll see that in the stale closures section, where it's not a style preference but the actual fix.</p>
+</div>
+
+<div class="box hood">
+  <span class="label">Under the hood</span>
+  <p>Each piece of state on a fiber (React's internal object representing a component instance) has a queue of pending updates. Calling the setter pushes onto that queue and schedules work. During the next render, React starts from the last committed value and applies each queued update: if it's a function it calls it, if it's a plain value it just replaces. That's genuinely all "batching" is — a queue that gets drained once.</p>
+  <p>One consequence worth knowing: React runs updater functions during render, so they must be <strong>pure</strong>. No fetching, no mutating, no <code>console.log</code>-and-hope. In StrictMode React will call them twice on purpose to shake out impurity.</p>
+</div>
+
+<h3>Bailing out: same value, no render</h3>
+
+<p>One small behaviour that occasionally confuses people. If you set state to the value it already has, React will usually skip the re-render:</p>
+
+<figure class="snippet">
+<pre><code><span class="k">const</span> [status, setStatus] = <span class="f">useState</span>(<span class="s">"idle"</span>);
+
+<span class="f">setStatus</span>(<span class="s">"idle"</span>); <span class="c">// → no re-render. React bails out. 👈</span></code></pre>
+</figure>
+
+<p>React compares with <code>Object.is</code>, which is basically <code>===</code> with saner handling of <code>NaN</code> and <code>-0</code>. This is why <strong>mutating</strong> state is so catastrophic — which brings us neatly to the next thing.</p>
+
+<h3>Never mutate state</h3>
+
+<p>Here's a bug that looks completely reasonable:</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — the UI never updates</figcaption>
+<pre><code><span class="k">const</span> [cart, setCart] = <span class="f">useState</span>([]);
+
+<span class="k">function</span> <span class="f">addItem</span>(item) {
+  cart.<span class="f">push</span>(item);   <span class="c">// 👈 mutating the existing array</span>
+  <span class="f">setCart</span>(cart);
+}</code></pre>
+</figure>
+
+<p>The item genuinely does get added to the array. But <code>setCart(cart)</code> hands React the exact same array object it already had. React does its <code>Object.is</code> check, sees the same reference, shrugs, and bails out. No re-render. Your data changed and your screen didn't, which is the most demoralising class of bug there is.</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed — a new array</figcaption>
+<pre><code><span class="k">function</span> <span class="f">addItem</span>(item) {
+  <span class="f">setCart</span>(prev =&gt; [...prev, item]); <span class="c">// 👈 brand new array</span>
+}</code></pre>
+</figure>
+
+<p>Same for objects. Treat everything in state as if it were frozen:</p>
+
+<figure class="snippet">
+<pre><code><span class="c">// ❌ mutate</span>
+user.name = <span class="s">"Ada"</span>;
+<span class="f">setUser</span>(user);
+
+<span class="c">// ✅ copy, then override</span>
+<span class="f">setUser</span>(prev =&gt; ({ ...prev, name: <span class="s">"Ada"</span> }));</code></pre>
+</figure>
+
+<p>The useful mental reframe: <strong>state is not a box you edit, it's a value you replace.</strong> Same as strings. You'd never expect <code>"hello".toUpperCase()</code> to change <code>"hello"</code> — it hands you a new string. Treat your arrays and objects with the same respect and a whole class of bugs evaporates.</p>
+
+<div class="box wait">
+  <span class="label">Wait — isn't copying the whole array slow?</span>
+  <p>Almost never, at UI scale. A spread of a few hundred items is a fraction of a millisecond, and it's a <em>shallow</em> copy — the item objects themselves aren't duplicated, just the references to them. If you genuinely have huge deeply-nested state that's hot in a profiler, that's when you reach for Immer (which lets you write mutating-looking code and produces immutable results underneath). Reaching for it before you've measured is premature.</p>
+</div>
+
+<h3>Lazy initial state</h3>
+
+<p>One more <code>useState</code> subtlety, and it's a real performance footgun because the code looks fine.</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — runs on every single render</figcaption>
+<pre><code><span class="k">function</span> <span class="f">Editor</span>() {
+  <span class="k">const</span> [doc, setDoc] = <span class="f">useState</span>(<span class="f">parseHugeDocument</span>()); <span class="c">// 👈</span>
+  ...
+}</code></pre>
+</figure>
+
+<p>Remember: a render is a call to your function. Every line runs, every time. So <code>parseHugeDocument()</code> is <strong>called on every render</strong> — every keystroke, every state change, forever. React politely ignores the result after the first render (initial state is only used once) but it doesn't stop your function from running. You're paying full price for a value that gets thrown away.</p>
+
+<p>The fix is to pass the function itself instead of calling it:</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed — lazy initial state</figcaption>
+<pre><code><span class="k">const</span> [doc, setDoc] = <span class="f">useState</span>(() =&gt; <span class="f">parseHugeDocument</span>()); <span class="c">// 👈 no parens on the outside</span></code></pre>
+</figure>
+
+<p>Now you're handing React a recipe rather than a result. React calls it exactly once, on the first render, and never again. Same pattern shows up with <code>useState(() =&gt; JSON.parse(localStorage.getItem("draft")))</code> — reading localStorage on every render would be a real, measurable cost.</p>
+
+<div class="box wait">
+  <span class="label">Wait — do I need this for <code>useState(0)</code> or <code>useState([])</code>?</span>
+  <p>No. Those are already values; there's nothing to compute. Lazy init is only worth it when producing the initial value costs something: parsing, reading storage, looping over data, generating an id. And notice the trap in the other direction — <code>useState(() =&gt; 0)</code> works but is pointless noise, while <code>useState(someFunction)</code> when you actually wanted to <em>store</em> a function will call it instead of storing it. To store a function in state you'd need <code>useState(() =&gt; myFn)</code>.</p>
+</div>
+
+<h3 id="usestate">The interview layer: useState</h3>
+
+<div class="box itv">
+  <span class="label">How this gets asked</span>
+  <p>"Why doesn't my state update immediately after I call setState?" · "If I call <code>setCount(count + 1)</code> three times in a row, what happens?" · "What's the difference between passing a value and passing a function to a setter?" · "Why do we never mutate state directly?" · "What's lazy initial state?"</p>
+  <p>These start as recall and turn into depth fast. The interviewer is listening for whether you say the word <em>snapshot</em> (or something equivalent), because that's the difference between someone who memorised a rule and someone who understands the model.</p>
+</div>
+
+<div class="say">
+  <p class="who">Say something like this</p>
+  <p>"State isn't a variable that mutates — each render is a snapshot, so <code>count</code> inside a given render is a constant for that render. When I call <code>setCount</code>, I'm not changing that constant, I'm asking React to re-render with a new value, and React batches those requests and re-renders once at the end of the event. So <code>setCount(count + 1)</code> three times is really 'set it to 1' three times. If the new state depends on the old, I use the updater form, <code>setCount(c =&gt; c + 1)</code>, because React applies those in order against the latest value rather than against my stale snapshot."</p>
+  <p class="why-lands"><strong>Why it lands:</strong> you've explained the behaviour <em>and</em> the mechanism <em>and</em> given the fix, in the right order. Saying "React batches" alone is the memorised answer; connecting it to the snapshot is the understood one.</p>
+</div>
+
+<div class="trap">
+  <span class="label">Traps</span>
+  <p><strong>Trap:</strong> saying "setState is asynchronous". It gets you halfway and then invites the follow-up "so can I await it?" — and if you hesitate there, you've shown the model is shaky. Say "React re-renders with the new value; the variable in the current render never changes" instead.</p>
+  <p><strong>Trap:</strong> saying you mutate state "because React does a shallow comparison and it's a performance thing". Closer, but incomplete — mention that the bail-out means the render never happens at all, and that concurrent features and things like <code>StrictMode</code> assume purity.</p>
+</div>
+
+<details class="q">
+  <summary>Follow-up: why not just make React deep-compare state so mutation works?</summary>
+  <p>Because deep comparison is O(size of your data) on <em>every</em> update, for every component, and you'd pay it constantly. Reference comparison is a single pointer check. Immutability buys React (and <code>memo</code>, and <code>useMemo</code>, and every state library) an O(1) "did this change?" check. It also makes time-travel, undo stacks, and concurrent rendering possible, because old values remain valid rather than being clobbered in place.</p>
+</details>
+
+<details class="q">
+  <summary>Follow-up: is there ever a time you'd read state right after setting it?</summary>
+  <p>You can't — but you rarely need to. Compute the next value into a local variable and use that: <code>const next = count + 1; setCount(next); analytics.track(next);</code>. If you need the value React <em>actually</em> settled on after a queue of updaters, you read it on the next render. And if you truly need the DOM to be updated synchronously before continuing (measuring, say), that's <code>flushSync</code> — a last resort we'll cover later.</p>
+</details>
+
+<details class="q">
+  <summary>Follow-up: what happens if you call a setter during render, not in a handler?</summary>
+  <p>An unconditional <code>setState</code> during render is an infinite loop — render triggers state change triggers render. React will actually throw "Too many re-renders" to stop you. There <em>is</em> one legitimate pattern: a conditional set during render to adjust state when a prop changes, which React handles specially by re-running the render before committing. But it's niche; the usual answer is that you derive the value instead, which is the next section's whole theme.</p>
+</details>
+
+<hr>
+
+<h2 id="useeffect"><span class="num">Part 2</span>useEffect is for synchronisation, not lifecycle</h2>
+
+<p>If you learned React from class components, or from most tutorials, you've probably absorbed a translation table like this:</p>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Class lifecycle</th><th>"Equivalent" hook</th></tr></thead>
+  <tbody>
+    <tr><td><code>componentDidMount</code></td><td><code>useEffect(fn, [])</code></td></tr>
+    <tr><td><code>componentDidUpdate</code></td><td><code>useEffect(fn, [deps])</code></td></tr>
+    <tr><td><code>componentWillUnmount</code></td><td>the returned cleanup function</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>This table is a trap. It's not exactly <em>wrong</em> — the timings roughly line up — but it plants the wrong question in your head. It makes you ask "<em>when</em> do I want this code to run?", and that question leads directly to every dependency-array bug in existence.</p>
+
+<p>The question React wants you to ask is completely different:</p>
+
+<div class="box key">
+  <span class="label">The reframe</span>
+  <p>An effect exists to <strong>keep something outside of React in sync with your React state</strong>. Not "run this at time T" — but "whenever this state says X, the outside world should be in configuration X."</p>
+</div>
+
+<p>"Something outside React" means: a network connection, a browser API, a <code>setInterval</code>, a subscription to a store, a third-party chart library that owns a DOM node, the document title, an event listener on <code>window</code>. React calls these <strong>external systems</strong>. They don't know your state exists, so somebody has to walk over and tell them. That somebody is an effect.</p>
+
+<h3>The analogy: a thermostat, not an alarm clock</h3>
+
+<p>An alarm clock fires <em>at a time</em>. You set it for 7am; at 7am it goes off. That's the lifecycle model, and it's how most people first read <code>useEffect</code>.</p>
+
+<p>A thermostat doesn't work like that. You set it to 20°C, and its job is to <em>keep the room at 20°C</em>, continuously. It doesn't care what time it is. If you change the target to 22, it does whatever's necessary to make the room match. If you leave the house and turn the system off, it stops heating — that's cleanup.</p>
+
+<p>Effects are thermostats. The dependency array is the target setting. When the target changes, the effect re-synchronises: it undoes what it did for the old target (cleanup), then does what's needed for the new one.</p>
+
+<p><em>Where the analogy breaks down:</em> a thermostat runs continuously, whereas your effect function runs at discrete moments after render. But the <em>intent</em> — "keep this thing matching that thing" — is exactly right, and it's the intent that fixes your dependency arrays.</p>
+
+<h3>A concrete effect</h3>
+
+<p>Here's the canonical example, a chat room that connects to a server:</p>
+
+<figure class="snippet">
+<pre><code><span class="k">function</span> <span class="f">ChatRoom</span>({ roomId }) {
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="k">const</span> connection = <span class="f">createConnection</span>(roomId);
+    connection.<span class="f">connect</span>();
+
+    <span class="k">return</span> () =&gt; connection.<span class="f">disconnect</span>(); <span class="c">// 👈 cleanup</span>
+  }, [roomId]);
+
+  <span class="k">return</span> &lt;h1&gt;Welcome to {roomId}&lt;/h1&gt;;
+}</code></pre>
+</figure>
+
+<p>Read that with the thermostat model, out loud: <em>"While this component is on screen, there should be a live connection to <code>roomId</code>. If <code>roomId</code> changes, the connection should change to match."</em></p>
+
+<p>Nothing in that sentence mentions mounting, updating, or unmounting. That's the point. The lifecycle stuff falls out automatically:</p>
+
+<ul>
+  <li>Component appears → nothing was synced, so connect.</li>
+  <li><code>roomId</code> goes from <code>"general"</code> to <code>"random"</code> → we're synced to the wrong thing, so disconnect from general, connect to random.</li>
+  <li>Component disappears → nothing should be synced any more, so disconnect.</li>
+</ul>
+
+<h3>Cleanup: when it runs and why it exists</h3>
+
+<p>The function you return from an effect is the <strong>cleanup</strong>, and this is the bit people under-use. Here's the precise rule:</p>
+
+<div class="box key">
+  <span class="label">Cleanup timing</span>
+  <p>The cleanup from the previous effect run happens <strong>before the next effect run</strong>, and also <strong>when the component unmounts</strong>. Every effect run is paired with exactly one cleanup run.</p>
+</div>
+
+<figure class="dia">
+<svg viewBox="0 0 660 210" role="img" aria-label="Timeline showing effect and cleanup alternating as roomId changes, ending with a final cleanup on unmount.">
+  <line x1="30" y1="120" x2="630" y2="120" stroke="#d5d1c8" stroke-width="2"/>
+  <g font-family="sans-serif" font-size="11.5">
+    <!-- events -->
+    <g>
+      <circle cx="80" cy="120" r="6" fill="#4f46e5"/>
+      <text x="80" y="145" text-anchor="middle" fill="#55555f">mount</text>
+      <text x="80" y="160" text-anchor="middle" fill="#55555f">room=&#8220;general&#8221;</text>
+      <rect x="34" y="76" width="92" height="24" rx="5" fill="#eef0ff" stroke="#ccd0ff"/>
+      <text x="80" y="92" text-anchor="middle" fill="#4f46e5" font-weight="700">connect(gen)</text>
+    </g>
+    <g>
+      <circle cx="290" cy="120" r="6" fill="#4f46e5"/>
+      <text x="290" y="145" text-anchor="middle" fill="#55555f">roomId changes</text>
+      <text x="290" y="160" text-anchor="middle" fill="#55555f">room=&#8220;random&#8221;</text>
+      <rect x="200" y="76" width="102" height="24" rx="5" fill="#fff1f1" stroke="#f3c4c4"/>
+      <text x="251" y="92" text-anchor="middle" fill="#b91c1c" font-weight="700">disconnect(gen)</text>
+      <rect x="308" y="76" width="96" height="24" rx="5" fill="#eef0ff" stroke="#ccd0ff"/>
+      <text x="356" y="92" text-anchor="middle" fill="#4f46e5" font-weight="700">connect(rand)</text>
+    </g>
+    <g>
+      <circle cx="560" cy="120" r="6" fill="#4f46e5"/>
+      <text x="560" y="145" text-anchor="middle" fill="#55555f">unmount</text>
+      <rect x="500" y="76" width="112" height="24" rx="5" fill="#fff1f1" stroke="#f3c4c4"/>
+      <text x="556" y="92" text-anchor="middle" fill="#b91c1c" font-weight="700">disconnect(rand)</text>
+    </g>
+    <text x="330" y="34" text-anchor="middle" fill="#2b2b33" font-size="12.5" font-weight="700">Every setup is paired with exactly one cleanup</text>
+    <text x="330" y="192" text-anchor="middle" fill="#55555f">Cleanup runs before the next setup &#8212; not only on unmount.</text>
+  </g>
+</svg>
+<figcaption>The "re-synchronise" cycle: tear down the old sync, set up the new one.</figcaption>
+</figure>
+
+<p>That "before the next run" half is the part people forget, and forgetting it produces leaks. Without the <code>disconnect</code> above, switching rooms five times leaves you with five open connections, all pushing messages into your app. With the cleanup, you always have exactly one.</p>
+
+<p>A checklist for whether you need cleanup: did the effect <strong>start</strong> something, <strong>subscribe</strong> to something, or <strong>claim</strong> something? Then it must stop, unsubscribe, or release it.</p>
+
+<figure class="snippet">
+<pre><code><span class="c">// timers</span>
+<span class="k">const</span> id = <span class="f">setInterval</span>(tick, <span class="n">1000</span>);   <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+
+<span class="c">// listeners</span>
+window.<span class="f">addEventListener</span>(<span class="s">"resize"</span>, onResize);
+<span class="k">return</span> () =&gt; window.<span class="f">removeEventListener</span>(<span class="s">"resize"</span>, onResize);
+
+<span class="c">// subscriptions</span>
+<span class="k">const</span> unsub = store.<span class="f">subscribe</span>(onChange);   <span class="k">return</span> unsub;
+
+<span class="c">// requests — ignore the response rather than using it</span>
+<span class="k">let</span> cancelled = <span class="k">false</span>;                     <span class="k">return</span> () =&gt; { cancelled = <span class="k">true</span>; };</code></pre>
+</figure>
+
+<h3>The dependency array: "re-synchronise when these change"</h3>
+
+<p>Now that the thermostat model is in place, let's be precise about the second argument. Most people read it as <em>"run the effect when these values change"</em>. The more accurate reading is:</p>
+
+<div class="box key">
+  <span class="label">Read your dep array like this</span>
+  <p>"These are all the values from the render that my effect uses. If any of them differ from last time, my effect is out of sync with reality — clean up and re-synchronise."</p>
+</div>
+
+<p>Why does the distinction matter if the observable behaviour is similar? Because it changes what you do when the array misbehaves. Under the "run when" reading, the dependency array is a <em>trigger list you control</em> — so when your effect runs too often, the natural move is to remove an entry. Under the "re-synchronise" reading, the array isn't yours to choose. It's a <strong>derived fact</strong>: it's exactly the set of reactive values your effect body reads. Removing one doesn't make the effect need it less; it just makes you lie to React.</p>
+
+<p>That reframe alone prevents the single most common React bug, and we'll take it apart properly in Part 4.</p>
+
+<h3>No array, empty array, or some deps?</h3>
+
+<p>This is a guaranteed interview question, so let's nail all three.</p>
+
+<figure class="snippet">
+<pre><code><span class="f">useEffect</span>(fn);              <span class="c">// after EVERY render</span>
+<span class="f">useEffect</span>(fn, []);          <span class="c">// after the first render only</span>
+<span class="f">useEffect</span>(fn, [a, b]);      <span class="c">// first render + whenever a or b changes</span></code></pre>
+</figure>
+
+<p>Read through the synchronisation lens:</p>
+
+<ul>
+  <li><strong>No array at all.</strong> You've told React "I can't promise anything about what I depend on, so assume everything." It re-syncs after every render. Usually a mistake, and often an infinite loop: if the effect sets state, that render triggers the effect, which sets state, forever.</li>
+  <li><strong><code>[]</code>.</strong> You've told React "my effect uses nothing from the render, so it never needs to re-sync." Setup once, cleanup on unmount. Legitimate for things genuinely independent of your data — a global listener, an analytics init. <em>Illegitimate</em> as a way of saying "only on mount please" when the effect actually does read props or state, because then you've just lied and earned yourself a stale closure.</li>
+  <li><strong><code>[a, b]</code>.</strong> The normal case. Re-sync whenever <code>a</code> or <code>b</code> changes, compared with <code>Object.is</code> — the same reference check as state. That reference detail is where the infinite loops come from.</li>
+</ul>
+
+<div class="box myth">
+  <span class="label">A common misconception</span>
+  <p>"<code>[]</code> means run on mount."</p>
+  <p>It means "this effect never needs to re-synchronise". The on-mount-only behaviour is a <em>consequence</em>, not the definition. The reason to care: if you write <code>[]</code> because you want mount-only, but your effect reads <code>userId</code>, then when <code>userId</code> changes your effect keeps working with the original value and no one tells you. React's lint rule flags this — and if you find yourself disabling that rule, treat it as a design smell, not a formality.</p>
+</div>
+
+<h3>Why does my effect run twice? (StrictMode)</h3>
+
+<p>You write a perfectly good effect, open the dev server, and your console log appears twice. Or your fetch fires twice. Or your chat connects, disconnects, and connects again.</p>
+
+<p>Nothing is broken. If your app is wrapped in <code>&lt;React.StrictMode&gt;</code> (which <code>create-react-app</code>, Vite's React template, and Next.js all do by default), then <strong>in development only</strong>, React deliberately mounts each component, unmounts it, and mounts it again. So every effect runs <em>setup → cleanup → setup</em>.</p>
+
+<p>Why on earth would React do that to you? Because it's a test you can't opt out of forgetting. React is checking that your effect is <strong>resilient to being run twice</strong> — that setup and cleanup are symmetrical.</p>
+
+<p>Think of it like a fire drill. Nobody enjoys the alarm, but the whole point is to discover <em>now</em>, in a safe setting, that a fire door is jammed — rather than during an actual fire. StrictMode is React pulling the alarm on your effects in dev, so that you find your missing cleanup on your laptop and not in production.</p>
+
+<p>And this isn't hypothetical paranoia. In React 18+ with features like Offscreen/Activity components and Fast Refresh, a component genuinely can be unmounted and remounted with its state preserved. Effects that only work the first time are a real bug class, not a theoretical one.</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Not resilient — double-mounting leaves two intervals</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="f">setInterval</span>(() =&gt; <span class="f">setSeconds</span>(s =&gt; s + <span class="n">1</span>), <span class="n">1000</span>);
+}, []); <span class="c">// no cleanup → StrictMode makes the clock run 2× fast 👈</span></code></pre>
+</figure>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Resilient — cleanup makes double-mounting a no-op</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; <span class="f">setSeconds</span>(s =&gt; s + <span class="n">1</span>), <span class="n">1000</span>);
+  <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id); <span class="c">// 👈</span>
+}, []);</code></pre>
+</figure>
+
+<p>Notice that the fix for "my effect runs twice" is never "make it run once". It's <strong>make running twice harmless</strong>. That reframe is what interviewers are listening for.</p>
+
+<div class="box wait">
+  <span class="label">Wait — so should I just turn StrictMode off?</span>
+  <p>Please don't. It only double-invokes in development; production runs each effect once, so you're not shipping double fetches either way. Turning it off doesn't fix a bug, it hides one — and the class of bug it hides (unsymmetrical setup/cleanup) is exactly the class that produces memory leaks and zombie subscriptions. If a double fetch in dev is genuinely painful, the honest fix is a data library with request deduplication, which you want anyway.</p>
+</div>
+
+<div class="box hood">
+  <span class="label">Under the hood</span>
+  <p>StrictMode's double-invocation isn't limited to effects. In dev it also calls your component function body twice, and calls <code>useState</code> updater functions, <code>useMemo</code> factories and reducers twice. All of these are supposed to be pure, so calling them twice should produce identical results. If your render function pushes into an array declared outside the component, or mutates a prop, or generates a random id and stores it, StrictMode will make that visible as doubled or inconsistent output. That's not React being flaky — it's React handing you a purity linter that runs at runtime.</p>
+</div>
+
+<hr>
+
+<h2 id="no-effect"><span class="num">Part 3</span>When you do <em>not</em> need an effect</h2>
+
+<p>Here's a claim I want to be blunt about, because it's the highest-leverage thing in this whole guide: <strong>most effects in most codebases shouldn't exist.</strong></p>
+
+<p>Effects are an escape hatch — a door out of React into the messy outside world. Every time you use one you're adding a render pass, a bit of latency, and a dependency array to get wrong. If there's no external system involved, there's probably no effect needed. Let's go through the three big cases.</p>
+
+<h3>Case 1: derived state</h3>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy-ish — an effect to compute a value</figcaption>
+<pre><code><span class="k">const</span> [items, setItems] = <span class="f">useState</span>([]);
+<span class="k">const</span> [total, setTotal] = <span class="f">useState</span>(<span class="n">0</span>);
+
+<span class="f">useEffect</span>(() =&gt; {
+  <span class="f">setTotal</span>(items.<span class="f">reduce</span>((sum, i) =&gt; sum + i.price, <span class="n">0</span>));
+}, [items]);</code></pre>
+</figure>
+
+<p>Walk through what actually happens when <code>items</code> changes. React renders with the new items and the <em>old</em> total. It commits that to the DOM — so for one frame, the user can see the wrong total. Then the effect runs, sets state, and React renders a second time with the correct total. Two renders, a flash of wrong data, an extra piece of state that can fall out of sync, and a dependency array to maintain.</p>
+
+<p>And for what? <code>total</code> isn't really state. It's a <em>fact about</em> state. It can always be computed from <code>items</code>.</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed — just calculate it during render</figcaption>
+<pre><code><span class="k">const</span> [items, setItems] = <span class="f">useState</span>([]);
+<span class="k">const</span> total = items.<span class="f">reduce</span>((sum, i) =&gt; sum + i.price, <span class="n">0</span>); <span class="c">// 👈 that's it</span></code></pre>
+</figure>
+
+<p>One render. Impossible to desync. No dependency array. The test to apply: <strong>can I compute this from existing props and state? Then it isn't state.</strong></p>
+
+<div class="box wait">
+  <span class="label">Wait — isn't recalculating on every render wasteful?</span>
+  <p>Usually no. Summing a hundred numbers is nothing next to the DOM work React is already doing. If you have profiled it and the calculation is genuinely expensive — sorting ten thousand rows, say — wrap it in <code>useMemo(() =&gt; ..., [items])</code>, which caches the result between renders. But <code>useMemo</code> is a performance optimisation, not a correctness tool, and it's still one render rather than the effect's two.</p>
+</div>
+
+<h3>Case 2: responding to an event</h3>
+
+<p>This one's subtler, and it's the one I see most in real code.</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — an effect reacting to a user action</figcaption>
+<pre><code><span class="k">const</span> [submitted, setSubmitted] = <span class="f">useState</span>(<span class="k">false</span>);
+
+<span class="f">useEffect</span>(() =&gt; {
+  <span class="k">if</span> (submitted) {
+    <span class="f">showToast</span>(<span class="s">"Order placed!"</span>);
+    <span class="f">sendAnalytics</span>(<span class="s">"purchase"</span>);
+  }
+}, [submitted]);</code></pre>
+</figure>
+
+<p>Ask the diagnostic question: <em>why</em> should this code run? The answer isn't "because <code>submitted</code> is true" — it's "because the user clicked Submit". The state is just a courier carrying the message from the click to the effect. Cut out the middleman:</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed — it belongs in the handler</figcaption>
+<pre><code><span class="k">function</span> <span class="f">handleSubmit</span>() {
+  <span class="f">placeOrder</span>(cart);
+  <span class="f">showToast</span>(<span class="s">"Order placed!"</span>);
+  <span class="f">sendAnalytics</span>(<span class="s">"purchase"</span>);
+}</code></pre>
+</figure>
+
+<p>Why does the first version actually break, not just look worse? Because effects fire on <em>any</em> reason the value became true. StrictMode remounts → the toast fires again. The component gets remounted by a route change while <code>submitted</code> is still true → toast again. You've made a one-off action into a standing rule.</p>
+
+<div class="box key">
+  <span class="label">The diagnostic that sorts every case</span>
+  <p>Ask: <strong>"is this code running because something <em>happened</em>, or because something <em>is displayed</em>?"</strong></p>
+  <p>Happened (a click, a submit, a keypress) → <strong>event handler</strong>. Is displayed (this chat room is on screen, so a connection should exist) → <strong>effect</strong>.</p>
+</div>
+
+<h3>Case 3: resetting state when a prop changes</h3>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — clearing state via an effect</figcaption>
+<pre><code><span class="k">function</span> <span class="f">ProfileEditor</span>({ userId }) {
+  <span class="k">const</span> [draft, setDraft] = <span class="f">useState</span>(<span class="s">""</span>);
+
+  <span class="f">useEffect</span>(() =&gt; { <span class="f">setDraft</span>(<span class="s">""</span>); }, [userId]); <span class="c">// 👈 clear on user switch</span>
+}</code></pre>
+</figure>
+
+<p>Same problem as before: there's a render where the new user is shown with the old user's draft text in the box, before the effect wipes it. React has a much cleaner tool for "this is conceptually a different thing now" — the <code>key</code> prop.</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed — key it, and React resets everything for you</figcaption>
+<pre><code>&lt;ProfileEditor key={userId} userId={userId} /&gt;</code></pre>
+</figure>
+
+<p>When a <code>key</code> changes, React treats it as a different component instance: it unmounts the old one, throws away all its state, and mounts a fresh one. No intermediate bad frame, no effect, no partial resets where you forget one of the five state variables.</p>
+
+<h3>So when <em>is</em> an effect right?</h3>
+
+<p>When there's a real external system on the other side of the wire:</p>
+
+<ul>
+  <li>Opening/closing a WebSocket or subscription</li>
+  <li>Setting up and tearing down timers</li>
+  <li>Adding <code>window</code> / <code>document</code> event listeners</li>
+  <li>Driving a non-React library that owns a DOM node (a map, a chart, a video player)</li>
+  <li>Syncing to <code>document.title</code>, <code>localStorage</code>, the URL</li>
+  <li>Fetching data — <em>if</em> you're not using a library (see Part 11)</li>
+</ul>
+
+<div class="box itv">
+  <span class="label">In an interview</span>
+  <p>"When do you <em>not</em> need useEffect?" is a seniority filter. A junior answers by listing lifecycle equivalences. A senior answers: "if there's no external system, I probably don't need one — derived values get computed during render, event-response logic goes in the handler, and resetting state on a prop change is usually a <code>key</code>." Being able to say <em>why</em> the effect version is worse — the extra render and the visible intermediate frame — is what turns a decent answer into a strong one.</p>
+</div>
+
+<hr>
+
+<h2 id="deps"><span class="num">Part 4</span>The dependency array and its three failure modes</h2>
+
+<p>Nearly every dependency-array problem is one of three shapes. Once you can name which one you're looking at, the fix is mechanical.</p>
+
+<h3>Failure mode 1: the missing dependency (stale values)</h3>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy</figcaption>
+<pre><code><span class="k">function</span> <span class="f">SearchResults</span>({ query }) {
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="f">fetchResults</span>(query).<span class="f">then</span>(setResults);
+  }, []); <span class="c">// 👈 query is used but not listed</span>
+}</code></pre>
+</figure>
+
+<p>This searches for whatever <code>query</code> was on the first render, and then never again, no matter how much the user types. The effect body reads <code>query</code>, so <code>query</code> belongs in the array. It's not a matter of taste — the array is supposed to be the complete list of reactive values the body uses.</p>
+
+<p>The fix is to be honest: <code>}, [query]);</code>. That's it. Install <code>eslint-plugin-react-hooks</code> and it will tell you every time; it's one of the very few lint rules I'd argue is nearly always right.</p>
+
+<h3>Failure mode 2: the recreated object or function (infinite loop)</h3>
+
+<p>This is the one that hurts.</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — infinite loop</figcaption>
+<pre><code><span class="k">function</span> <span class="f">Dashboard</span>({ userId }) {
+  <span class="k">const</span> options = { userId, limit: <span class="n">20</span> }; <span class="c">// 👈 new object every render</span>
+
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="f">fetchWidgets</span>(options).<span class="f">then</span>(setWidgets);
+  }, [options]);
+}</code></pre>
+</figure>
+
+<p>Trace it. Render 1 creates an object; the effect runs; it sets state; state change causes render 2; render 2 creates a <em>brand new</em> object with identical contents; React compares with <code>Object.is</code>, and two separate objects with the same contents are <strong>not</strong> the same reference, so it counts as changed; the effect runs again; sets state again; render 3... and your fan spins up.</p>
+
+<figure class="dia">
+<svg viewBox="0 0 620 220" role="img" aria-label="A cycle diagram: render creates a new object, dependency looks changed, effect runs, sets state, causing a render.">
+  <defs>
+    <marker id="ar2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+  <g font-family="sans-serif" font-size="12">
+    <rect x="215" y="14" width="190" height="40" rx="8" fill="#fff1f1" stroke="#f3c4c4" stroke-width="1.5"/>
+    <text x="310" y="32" text-anchor="middle" font-weight="700" fill="#b91c1c">Render runs</text>
+    <text x="310" y="47" text-anchor="middle" fill="#7d3b3b">creates a NEW options object</text>
+
+    <rect x="410" y="90" width="190" height="40" rx="8" fill="#fff1f1" stroke="#f3c4c4" stroke-width="1.5"/>
+    <text x="505" y="108" text-anchor="middle" font-weight="700" fill="#b91c1c">Object.is says &#8220;changed&#8221;</text>
+    <text x="505" y="123" text-anchor="middle" fill="#7d3b3b">different reference</text>
+
+    <rect x="215" y="166" width="190" height="40" rx="8" fill="#fff1f1" stroke="#f3c4c4" stroke-width="1.5"/>
+    <text x="310" y="184" text-anchor="middle" font-weight="700" fill="#b91c1c">Effect runs, setState</text>
+    <text x="310" y="199" text-anchor="middle" fill="#7d3b3b">schedules another render</text>
+
+    <rect x="20" y="90" width="170" height="40" rx="8" fill="#fff1f1" stroke="#f3c4c4" stroke-width="1.5"/>
+    <text x="105" y="114" text-anchor="middle" font-weight="700" fill="#b91c1c">&#8230; and around again</text>
+
+    <path d="M405,40 Q470,45 495,86" fill="none" stroke="#b91c1c" stroke-width="1.8" marker-end="url(#ar2)"/>
+    <path d="M495,134 Q470,175 410,186" fill="none" stroke="#b91c1c" stroke-width="1.8" marker-end="url(#ar2)"/>
+    <path d="M212,186 Q140,175 110,134" fill="none" stroke="#b91c1c" stroke-width="1.8" marker-end="url(#ar2)"/>
+    <path d="M110,86 Q140,45 212,38" fill="none" stroke="#b91c1c" stroke-width="1.8" marker-end="url(#ar2)"/>
+  </g>
+</svg>
+<figcaption>The infinite loop: a fresh object identity each render means the dependency <em>always</em> looks different.</figcaption>
+</figure>
+
+<p>The same thing happens with functions, arrays, and inline callbacks passed as props — anything created fresh during render. <code>{} !== {}</code>, <code>[] !== []</code>, <code>(() =&gt; {}) !== (() =&gt; {})</code>. Primitives are fine: <code>"abc" === "abc"</code> and <code>20 === 20</code>, always.</p>
+
+<h4>Fix A — move it inside the effect (best when you can)</h4>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> options = { userId, limit: <span class="n">20</span> }; <span class="c">// 👈 now it's not a dependency</span>
+  <span class="f">fetchWidgets</span>(options).<span class="f">then</span>(setWidgets);
+}, [userId]); <span class="c">// only primitives left</span></code></pre>
+</figure>
+
+<p>If the object is only used by the effect, it belongs inside the effect. Now the dependency list contains only <code>userId</code>, a string, compared by value. The loop is gone. This is the fix you should reach for first, and it solves the majority of real cases.</p>
+
+<h4>Fix B — stabilise it at the source</h4>
+
+<p>Sometimes the object or function is a prop, or is used elsewhere in the component too. Then you stabilise its identity where it's created, with <code>useMemo</code> (for values) or <code>useCallback</code> (for functions):</p>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed</figcaption>
+<pre><code><span class="k">const</span> options = <span class="f">useMemo</span>(() =&gt; ({ userId, limit: <span class="n">20</span> }), [userId]);
+<span class="c">// same object reference until userId changes</span>
+
+<span class="k">const</span> handleSelect = <span class="f">useCallback</span>((id) =&gt; {
+  <span class="f">setSelected</span>(id);
+}, []); <span class="c">// same function reference forever</span></code></pre>
+</figure>
+
+<p>These two are the same tool wearing different hats: <code>useMemo</code> caches a value, <code>useCallback</code> caches a function. (<code>useCallback(fn, deps)</code> is literally <code>useMemo(() =&gt; fn, deps)</code>.) Both give you a stable reference that only changes when the deps change — which is exactly what a dependency array needs.</p>
+
+<h4>Fix C — useReducer, so you don't depend on state at all</h4>
+
+<p>If the effect only needs state in order to compute the next state, a reducer removes the dependency entirely, because <code>dispatch</code> is guaranteed stable across renders:</p>
+
+<figure class="snippet">
+<pre><code><span class="k">const</span> [state, dispatch] = <span class="f">useReducer</span>(reducer, initial);
+
+<span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; <span class="f">dispatch</span>({ type: <span class="s">"tick"</span> }), <span class="n">1000</span>);
+  <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+}, [dispatch]); <span class="c">// dispatch never changes → effect never re-runs 👈</span></code></pre>
+</figure>
+
+<h4>Fix D — a ref, for values you want to read but not react to</h4>
+
+<p>Occasionally you genuinely have a value the effect should <em>read</em> but should <em>not</em> re-synchronise on — an <code>onMessage</code> callback that changes every render, say, where re-subscribing the socket each time would be absurd. Stash it in a ref:</p>
+
+<figure class="snippet">
+<pre><code><span class="k">const</span> onMessageRef = <span class="f">useRef</span>(onMessage);
+<span class="f">useEffect</span>(() =&gt; { onMessageRef.current = onMessage; }); <span class="c">// keep it current</span>
+
+<span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> socket = <span class="f">connect</span>(roomId);
+  socket.<span class="f">on</span>(<span class="s">"message"</span>, (m) =&gt; onMessageRef.<span class="f">current</span>(m)); <span class="c">// 👈 always latest</span>
+  <span class="k">return</span> () =&gt; socket.<span class="f">close</span>();
+}, [roomId]); <span class="c">// only re-connects when the room changes</span></code></pre>
+</figure>
+
+<p>Refs aren't reactive — changing <code>.current</code> doesn't trigger anything — which is precisely why they're allowed to be left out of dependency arrays. Use this sparingly and deliberately; it's a sharp tool. (This pattern is what React's experimental <code>useEffectEvent</code> is designed to replace one day.)</p>
+
+<h3>Failure mode 3: "I removed the dep to stop the loop"</h3>
+
+<p>Which brings us to the antipattern. You hit the infinite loop from failure mode 2. You notice that deleting <code>options</code> from the array makes the loop stop. Problem solved, right?</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ The antipattern</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="f">fetchWidgets</span>(options).<span class="f">then</span>(setWidgets);
+  <span class="c">// eslint-disable-next-line react-hooks/exhaustive-deps 👈 the confession</span>
+}, []);</code></pre>
+</figure>
+
+<p>What you've actually done is trade a loud bug for a quiet one. The loop is gone because the effect now runs once — with the <em>first render's</em> <code>options</code> — and then ignores every subsequent change forever. Your dashboard silently shows the wrong user's widgets. Loops announce themselves in ten seconds; stale data gets discovered by a customer in three weeks.</p>
+
+<div class="box key">
+  <span class="label">The rule</span>
+  <p>The dependency array is <strong>not a control panel</strong>. It's a declaration of what your effect reads. If the effect runs too often, the answer is never to remove a dependency — it's to <strong>change what the effect depends on</strong>: move the value inside, memoise it at the source, use a reducer, or move it to a ref. Fix the cause, not the report.</p>
+</div>
+
+<div class="trap">
+  <span class="label">Trap</span>
+  <p>An <code>// eslint-disable-next-line react-hooks/exhaustive-deps</code> in a code sample is a red flag in an interview, and mentioning that unprompted scores points. If you're ever asked to review code containing one, say what you'd do instead: "I'd rather restructure so the honest dependency list is small, than suppress the rule."</p>
+</div>
+
+<hr>
+
+<h2 id="stale"><span class="num">Part 5</span>Stale closures</h2>
+
+<p>This is the one. If you understand stale closures, you can debug essentially any weird React behaviour, and you will be noticeably ahead of most candidates. It's also genuinely hard, so we're going to build it up slowly — starting with plain JavaScript, no React at all.</p>
+
+<h3>First: what a closure actually is</h3>
+
+<p>When you create a function in JavaScript, it doesn't just remember its own code. It also keeps a live link to the scope it was <em>created in</em>. That link is the closure.</p>
+
+<figure class="snippet">
+<pre><code><span class="k">function</span> <span class="f">makeGreeter</span>(name) {
+  <span class="k">return</span> <span class="k">function</span> <span class="f">greet</span>() {
+    <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Hello, "</span> + name); <span class="c">// 👈 reaches out to makeGreeter's scope</span>
+  };
+}
+
+<span class="k">const</span> greetAda = <span class="f">makeGreeter</span>(<span class="s">"Ada"</span>);
+<span class="k">const</span> greetGrace = <span class="f">makeGreeter</span>(<span class="s">"Grace"</span>);
+
+<span class="f">greetAda</span>();   <span class="c">// → "Hello, Ada"</span>
+<span class="f">greetGrace</span>(); <span class="c">// → "Hello, Grace"</span></code></pre>
+</figure>
+
+<p><code>makeGreeter</code> finished running ages ago, but <code>greetAda</code> still has access to <em>its</em> <code>name</code>. Two calls to <code>makeGreeter</code> produced two separate scopes, and each returned function is permanently attached to its own.</p>
+
+<p><strong>The analogy:</strong> a function is a balloon, and the scope it was created in is the little bag of sand tied to its string. The balloon can drift anywhere in your program — into a timeout, into an event listener, into a promise callback three seconds from now — and it carries that same bag with it. It cannot swap the bag for a newer one.</p>
+
+<h3>Now: a React component is `makeGreeter`</h3>
+
+<p>Here's the connection, and it's the whole thing. Every render is a fresh call to your component function, creating a fresh scope. Every function you define inside — event handlers, effect bodies, timer callbacks — closes over <em>that render's</em> scope.</p>
+
+<p>So a function created during render #1 is tied to render #1's bag of sand. It will see <code>count === 0</code> for the rest of its life, no matter how many renders happen afterwards. That's a <strong>stale closure</strong>: a function that outlives the render it was born in, still reading that render's values.</p>
+
+<p>Usually this is invisible, because React creates fresh handlers each render and the DOM gets the fresh ones. The problem appears when a function <em>sticks around</em> across renders. Which is exactly what an effect with <code>[]</code> deps does.</p>
+
+<h3>The classic broken counter</h3>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — what does this log?</figcaption>
+<pre><code><span class="k">function</span> <span class="f">Counter</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="n">0</span>);
+
+  <span class="f">useEffect</span>(() =&gt; {
+    <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; {
+      <span class="f">console</span>.<span class="f">log</span>(count);      <span class="c">// 👈 what does this print?</span>
+      <span class="f">setCount</span>(count + <span class="n">1</span>);
+    }, <span class="n">1000</span>);
+    <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+  }, []);                       <span class="c">// 👈 empty deps</span>
+
+  <span class="k">return</span> &lt;h1&gt;{count}&lt;/h1&gt;;
+}</code></pre>
+</figure>
+
+<p>Take a guess. It's ticking once a second and calling <code>setCount(count + 1)</code> each time.</p>
+
+<details class="q">
+  <summary>Reveal the answer</summary>
+  <p>It logs <code>0</code>. Then <code>0</code>. Then <code>0</code>. Forever. And the heading on screen goes to <code>1</code> and then stops dead.</p>
+</details>
+
+<p>Let's walk it, slowly, because every piece of this is now something we know.</p>
+
+<ol>
+  <li><strong>Render #1.</strong> <code>count</code> is <code>0</code>. React creates the effect function; the arrow function passed to <code>setInterval</code> closes over render #1's scope, where <code>count</code> is the number 0.</li>
+  <li><strong>The effect runs.</strong> The interval is registered. It is now living in the browser, holding that render-#1 callback.</li>
+  <li><strong>One second later.</strong> The callback fires. It logs <code>0</code> — correct, that's what <code>count</code> is in its bag of sand. Then it calls <code>setCount(0 + 1)</code>, so state becomes 1.</li>
+  <li><strong>Render #2.</strong> A new scope, where <code>count</code> is 1. React looks at the effect's deps — <code>[]</code> — sees nothing changed, and therefore <strong>does not re-run the effect</strong>. So the interval isn't cleared, isn't recreated, and keeps holding the render-#1 callback.</li>
+  <li><strong>Two seconds.</strong> The same old callback fires. It logs <code>0</code>. It calls <code>setCount(0 + 1)</code> — which is <code>setCount(1)</code>. State is already 1, so React bails out. No re-render. Nothing visibly happens.</li>
+  <li>Repeat forever.</li>
+</ol>
+
+<figure class="dia">
+<svg viewBox="0 0 640 260" role="img" aria-label="Diagram showing an interval callback permanently attached to render one's scope while later renders come and go.">
+  <defs>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+  <g font-family="sans-serif" font-size="12">
+    <!-- renders row -->
+    <text x="20" y="30" font-size="12" font-weight="700" fill="#55555f">React renders:</text>
+    <rect x="130" y="14" width="110" height="46" rx="8" fill="#eef0ff" stroke="#ccd0ff" stroke-width="1.5"/>
+    <text x="185" y="32" text-anchor="middle" font-weight="700" fill="#4f46e5">Render #1</text>
+    <text x="185" y="49" text-anchor="middle" fill="#4f46e5" font-family="monospace" font-size="11.5">count = 0</text>
+
+    <rect x="270" y="14" width="110" height="46" rx="8" fill="#f3f2ef" stroke="#ddd9d0" stroke-width="1.5"/>
+    <text x="325" y="32" text-anchor="middle" font-weight="700" fill="#8b8798">Render #2</text>
+    <text x="325" y="49" text-anchor="middle" fill="#8b8798" font-family="monospace" font-size="11.5">count = 1</text>
+
+    <rect x="410" y="14" width="110" height="46" rx="8" fill="#f3f2ef" stroke="#ddd9d0" stroke-width="1.5"/>
+    <text x="465" y="32" text-anchor="middle" font-weight="700" fill="#8b8798">Render #3&#8230;</text>
+    <text x="465" y="49" text-anchor="middle" fill="#8b8798" font-family="monospace" font-size="11.5">count = 1</text>
+
+    <!-- interval box -->
+    <rect x="180" y="160" width="290" height="62" rx="9" fill="#fff1f1" stroke="#f3c4c4" stroke-width="1.8"/>
+    <text x="325" y="182" text-anchor="middle" font-weight="700" fill="#b91c1c">The interval callback (created once)</text>
+    <text x="325" y="200" text-anchor="middle" fill="#7d3b3b" font-family="monospace" font-size="11.5">console.log(count) &#8594; always 0</text>
+    <text x="325" y="215" text-anchor="middle" fill="#7d3b3b" font-family="monospace" font-size="11.5">setCount(0 + 1) &#8594; always 1</text>
+
+    <path d="M185,64 L250,155" fill="none" stroke="#b91c1c" stroke-width="2" marker-end="url(#ar3)"/>
+    <text x="98" y="120" font-size="11.5" fill="#b91c1c" font-weight="700">closes over</text>
+    <text x="98" y="135" font-size="11.5" fill="#b91c1c" font-weight="700">render #1 only</text>
+
+    <line x1="325" y1="64" x2="325" y2="150" stroke="#c9c5bc" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <line x1="465" y1="64" x2="420" y2="150" stroke="#c9c5bc" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text x="500" y="120" font-size="11.5" fill="#8b8798">later renders</text>
+    <text x="500" y="135" font-size="11.5" fill="#8b8798">never reach it</text>
+  </g>
+</svg>
+<figcaption>The callback is frozen against render #1. New renders happen; the interval never hears about them.</figcaption>
+</figure>
+
+<p>Sit with that for a second. Nothing here is mysterious once you accept the snapshot model — it's just a closure doing exactly what closures always do. The illusion that state is a "live" variable is what makes it feel supernatural.</p>
+
+<h3>Three fixes, and when to use each</h3>
+
+<h4>Fix 1 — the updater form (usually the right answer)</h4>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; {
+    <span class="f">setCount</span>(c =&gt; c + <span class="n">1</span>); <span class="c">// 👈 no longer reads `count` at all</span>
+  }, <span class="n">1000</span>);
+  <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+}, []);</code></pre>
+</figure>
+
+<p>Look at what changed: the callback no longer <em>reads</em> <code>count</code>. It sends React a recipe, and React evaluates it against the current value. Since the effect body doesn't use any reactive value, <code>[]</code> is now an honest dependency array, not a lie. The interval is created once and keeps working forever.</p>
+
+<p>Use this whenever your callback only needs the old state to compute the new state. It's clean, it's cheap, and it's the answer to give first in an interview.</p>
+
+<h4>Fix 2 — declare the dependency and let it re-sync</h4>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed (but recreates the interval each second)</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; {
+    <span class="f">console</span>.<span class="f">log</span>(count); <span class="c">// → 0, 1, 2, 3... ✅</span>
+    <span class="f">setCount</span>(count + <span class="n">1</span>);
+  }, <span class="n">1000</span>);
+  <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+}, [count]); <span class="c">// 👈 honest</span></code></pre>
+</figure>
+
+<p>Now every time <code>count</code> changes, React tears down the old interval and sets up a new one, closing over the new value. Correct — and notice it's <em>only</em> correct because the cleanup exists; without it you'd accumulate an interval per second.</p>
+
+<p>The trade-off is that the timer restarts on every change, so your "one second" resets each tick. For a counter, harmless. For anything where the timer's phase matters (a debounce, a genuine clock), it's wrong, which is why fix 1 is usually preferred here.</p>
+
+<h4>Fix 3 — a ref, when you must read the latest value without re-syncing</h4>
+
+<figure class="snippet">
+<figcaption class="cap-good">✅ Fixed (escape hatch)</figcaption>
+<pre><code><span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="n">0</span>);
+<span class="k">const</span> countRef = <span class="f">useRef</span>(count);
+countRef.current = count; <span class="c">// 👈 refreshed on every render</span>
+
+<span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> id = <span class="f">setInterval</span>(() =&gt; {
+    <span class="f">console</span>.<span class="f">log</span>(countRef.current); <span class="c">// → always the latest ✅</span>
+  }, <span class="n">1000</span>);
+  <span class="k">return</span> () =&gt; <span class="f">clearInterval</span>(id);
+}, []);</code></pre>
+</figure>
+
+<p>Why does this dodge the problem? Because <code>useRef</code> returns <strong>the same object</strong> on every render. The closure captures that object, and the object's <code>.current</code> property is mutable — so while the box is frozen in the closure, what's inside the box isn't. It's a mailbox nailed to the wall: the closure knows where the mailbox is, and anyone can drop new mail in.</p>
+
+<p>Use this when you need "the latest value" but re-synchronising would be wrong or expensive — logging, analytics, a socket handler, an animation loop. Don't reach for it first; it's an escape hatch, and it opts you out of React's tracking.</p>
+
+<h3>Stale closures in event handlers and async code</h3>
+
+<p>Intervals are the loudest example, but the same mechanism shows up in two other places you'll hit in real work.</p>
+
+<p><strong>Async functions.</strong> Any code after an <code>await</code> is still in the old render's closure:</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Subtly buggy</figcaption>
+<pre><code><span class="k">async function</span> <span class="f">handleSave</span>() {
+  <span class="k">await</span> <span class="f">saveToServer</span>(draft);       <span class="c">// takes 3 seconds</span>
+  <span class="f">showToast</span>(<span class="s">`Saved as "`</span> + title + <span class="s">`"`</span>); <span class="c">// 👈 the title from 3s ago</span>
+}</code></pre>
+</figure>
+
+<p>The user renamed the document while the request was in flight; the toast announces the old name. Sometimes that's actually what you want (it reflects what was saved!) — but it should be a decision, not an accident.</p>
+
+<p><strong>Handlers registered once.</strong> Same shape as the interval:</p>
+
+<figure class="snippet">
+<figcaption class="cap-bad">❌ Buggy — listener frozen at render #1</figcaption>
+<pre><code><span class="f">useEffect</span>(() =&gt; {
+  <span class="k">const</span> onKey = (e) =&gt; {
+    <span class="k">if</span> (e.key === <span class="s">"Enter"</span>) <span class="f">submit</span>(draft); <span class="c">// 👈 always the first draft</span>
+  };
+  window.<span class="f">addEventListener</span>(<span class="s">"keydown"</span>, onKey);
+  <span class="k">return</span> () =&gt; window.<span class="f">removeEventListener</span>(<span class="s">"keydown"</span>, onKey);
+}, []);</code></pre>
+</figure>
+
+<p>Fix it the same three ways: list <code>draft</code> in the deps (the listener gets swapped each time <code>draft</code> changes — cheap for listeners), or read it from a ref.</p>
+
+<div class="box wait">
+  <span class="label">Wait — why don't my onClick handlers go stale?</span>
+  <p>Great question, and the answer confirms the model rather than contradicting it. On every render, React creates a <em>new</em> handler function closed over that render's values, and when it commits, it attaches the new one to the DOM node. So the handler on screen is always from the most recent render — its closure is fresh because it was <em>just made</em>. Staleness needs a function that survives across renders, and normal JSX handlers don't. That's why intervals, listeners registered in a <code>[]</code> effect, and long-lived promise callbacks are the usual suspects.</p>
+</div>
+
+<div class="box itv">
+  <span class="label">How this gets asked</span>
+  <p>"What's a stale closure?" · "Here's a component with a <code>setInterval</code> — what's wrong with it?" (live coding favourite) · "Why is my state always the initial value inside this callback?" · "How would you fix it without adding <code>count</code> to the deps?"</p>
+  <p>That last one is the depth probe: they want to hear the updater form <em>or</em> the ref pattern, not just "add the dependency".</p>
+</div>
+
+<div class="say">
+  <p class="who">Say something like this</p>
+  <p>"A stale closure is when a function outlives the render it was created in and keeps reading that render's values. Each render is a new function scope, so a callback defined in render one captures render one's <code>count</code> permanently. It bites you with things that persist across renders — intervals, event listeners registered with empty deps, or code after an <code>await</code>. Three fixes: use the updater form so the callback doesn't need to read state at all; or declare the real dependency so the effect tears down and re-subscribes with fresh values; or, if re-subscribing would be wasteful, keep the value in a ref, since a ref object is stable across renders and its <code>.current</code> is always current."</p>
+  <p class="why-lands"><strong>Why it lands:</strong> you named the mechanism (closures + snapshots), the symptom, <em>and</em> gave three fixes with the trade-off between them. That's a conversation, not a definition.</p>
+</div>
+
+<!--PART5-->
+
+</div>
+</body>
+</html>

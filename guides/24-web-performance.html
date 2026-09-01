@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Performance: Core Web Vitals &amp; the Rendering Path</title>
+<style>
+  :root{
+    --ink:#1f2430;
+    --ink-soft:#4a5266;
+    --paper:#fdfcfa;
+    --rule:#e6e2db;
+    --accent:#3b5bdb;
+    --accent-soft:#eef2ff;
+    --green:#1f7a4d;
+    --green-soft:#eaf7f0;
+    --red:#b4232a;
+    --red-soft:#fdeeee;
+    --amber:#8a6100;
+    --amber-soft:#fff6e0;
+    --purple:#6b3fa0;
+    --purple-soft:#f5efff;
+    --code-bg:#282c34;
+    --code-ink:#e6e6e6;
+  }
+  *{box-sizing:border-box}
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:17.5px;
+    line-height:1.7;
+  }
+  .wrap{max-width:750px;margin:0 auto;padding:0 20px 120px}
+  header.hero{
+    max-width:750px;margin:0 auto;padding:64px 20px 24px;
+  }
+  header.hero .kicker{
+    text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;font-weight:700;
+    color:var(--accent);margin:0 0 12px;
+  }
+  h1{
+    font-size:2.4rem;line-height:1.15;margin:0 0 16px;letter-spacing:-.02em;
+  }
+  header.hero .sub{font-size:1.15rem;color:var(--ink-soft);margin:0}
+  h2{
+    font-size:1.65rem;line-height:1.25;margin:64px 0 4px;letter-spacing:-.015em;
+    padding-top:24px;border-top:3px solid var(--ink);
+  }
+  h2 .num{display:block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
+  h3{font-size:1.25rem;margin:40px 0 4px;line-height:1.3}
+  h4{font-size:1.02rem;margin:28px 0 2px;color:var(--ink-soft);letter-spacing:.01em}
+  p{margin:16px 0}
+  a{color:var(--accent)}
+  strong{font-weight:650}
+  code{
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    font-size:.88em;background:#f0ede8;padding:.12em .35em;border-radius:4px;
+    border:1px solid #e2ded6;
+  }
+  pre{
+    background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;
+    overflow-x:auto;font-size:.85rem;line-height:1.6;margin:0 0 20px;
+  }
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:1em}
+  .cm{color:#8b98a8}
+  .kw{color:#c678dd}
+  .str{color:#98c379}
+  .fn{color:#61afef}
+  .num2{color:#d19a66}
+  .tag{color:#e06c75}
+  .out{color:#e5c07b}
+  .codeblock{margin:24px 0}
+  .codeblock .label{
+    font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:7px 14px;border-radius:8px 8px 0 0;display:block;
+  }
+  .codeblock.bad .label{background:var(--red-soft);color:var(--red);border:1px solid #f3d5d5;border-bottom:none}
+  .codeblock.good .label{background:var(--green-soft);color:var(--green);border:1px solid #cfe8dc;border-bottom:none}
+  .codeblock .label + pre{border-radius:0 0 10px 10px;margin-bottom:0}
+  ul,ol{margin:16px 0;padding-left:26px}
+  li{margin:8px 0}
+  .callout{
+    border-radius:10px;padding:16px 20px;margin:28px 0;border:1px solid var(--rule);
+    background:#fff;
+  }
+  .callout .ct{
+    font-size:.76rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    margin:0 0 6px;display:block;
+  }
+  .callout p:first-of-type{margin-top:0}
+  .callout p:last-child{margin-bottom:0}
+  .callout.wait{background:var(--accent-soft);border-color:#d3dcfb}
+  .callout.wait .ct{color:var(--accent)}
+  .callout.myth{background:var(--red-soft);border-color:#f3d5d5}
+  .callout.myth .ct{color:var(--red)}
+  .callout.hood{background:var(--purple-soft);border-color:#e2d5f5}
+  .callout.hood .ct{color:var(--purple)}
+  .callout.iv{background:var(--amber-soft);border-color:#f0e0b8}
+  .callout.iv .ct{color:var(--amber)}
+  .say{
+    background:#fff;border-left:4px solid var(--green);border-radius:0 8px 8px 0;
+    padding:14px 18px;margin:14px 0;font-size:1.02rem;
+  }
+  .say .who{font-size:.74rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--green);display:block;margin-bottom:6px}
+  .toc{
+    background:#fff;border:1px solid var(--rule);border-radius:12px;padding:20px 24px;margin:40px 0 8px;
+  }
+  .toc h2{border:none;margin:0 0 8px;padding:0;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .toc ol{margin:0;padding-left:22px;font-size:.96rem}
+  .toc li{margin:5px 0}
+  .toc a{text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  figure{margin:32px 0;padding:0}
+  figcaption{font-size:.86rem;color:var(--ink-soft);text-align:center;margin-top:10px;font-style:italic}
+  .diagram{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:18px;overflow-x:auto}
+  .diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  table{border-collapse:collapse;width:100%;margin:24px 0;font-size:.92rem}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{background:#f4f1ec;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+  .tblwrap{overflow-x:auto}
+  /* script timeline diagram */
+  .tl{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:18px 18px 8px}
+  .tl-row{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;margin-bottom:14px}
+  .tl-row .nm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;text-align:right;color:var(--ink-soft)}
+  .bar{display:flex;height:26px;border-radius:5px;overflow:hidden;font-size:.68rem;font-weight:700;color:#fff}
+  .bar span{display:flex;align-items:center;justify-content:center;white-space:nowrap;padding:0 4px;overflow:hidden}
+  .b-parse{background:#3b5bdb}
+  .b-wait{background:#c9c4bb;color:#4a5266}
+  .b-fetch{background:#1f9d8f}
+  .b-exec{background:#d9480f}
+  .b-done{background:#2b8a3e}
+  .legend{font-size:.78rem;color:var(--ink-soft);display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  /* virtualization diagram */
+  .vlist{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+  .vcol{flex:1;min-width:200px}
+  .vcol h5{margin:0 0 8px;font-size:.82rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft)}
+  .vbox{border:1px solid var(--rule);border-radius:8px;background:#fff;padding:6px;height:210px;overflow:hidden;position:relative}
+  .vrow{height:16px;background:#e9e6e0;border-radius:3px;margin-bottom:5px}
+  .vrow.live{background:#c3d0f7}
+  .vspacer{background:repeating-linear-gradient(45deg,#f4f1ec,#f4f1ec 6px,#ebe7e0 6px,#ebe7e0 12px);border-radius:3px}
+  .viewport{position:absolute;left:2px;right:2px;border:2px solid var(--accent);border-radius:6px;pointer-events:none}
+  .ladder{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:4px 18px 14px}
+  .rung{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:12px 0;border-bottom:1px dashed var(--rule);align-items:baseline}
+  .rung:last-child{border-bottom:none}
+  .rung .cost{font-weight:800;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase}
+  .c3{color:var(--red)} .c2{color:var(--amber)} .c1{color:var(--green)}
+  details{background:#fff;border:1px solid var(--rule);border-radius:10px;padding:14px 18px;margin:16px 0}
+  details summary{cursor:pointer;font-weight:650}
+  details[open] summary{margin-bottom:10px}
+  details p:last-child{margin-bottom:0}
+  .cheat{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:6px 22px}
+  .cheat dt{font-weight:700;margin-top:16px}
+  .cheat dd{margin:2px 0 0;color:var(--ink-soft)}
+  hr.soft{border:none;border-top:1px solid var(--rule);margin:44px 0}
+  .lead{font-size:1.1rem;color:var(--ink-soft)}
+  @media (max-width:560px){
+    body{font-size:16.5px}
+    h1{font-size:1.9rem}
+    h2{font-size:1.4rem}
+    .tl-row{grid-template-columns:70px 1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="kicker">Frontend Interview Guide · 24</p>
+  <h1>Web Performance: Core Web Vitals &amp; the Rendering Path</h1>
+  <p class="sub">Why your page is slow, how the browser actually decides when to paint, and how to talk about all of it without hand-waving.</p>
+</header>
+
+<div class="wrap">
+
+<p class="lead">Here's a thing that happened to me. I once "optimised" a landing page by lazy-loading every image on it. Every single one. The page had fewer bytes on first load, the Network panel looked gorgeous… and the performance score went <em>down</em>. Not a little. A lot.</p>
+
+<p>That result made no sense to me at the time, and if it makes no sense to you either, good — that's exactly the gap this guide fills. The reason it got worse is a small, specific fact about <em>when</em> the browser learns it needs to download a picture, and it only becomes obvious once you can picture what the browser is doing moment to moment.</p>
+
+<p>So that's where we start. Not with metrics, not with acronyms — with the machinery. Once you can see the machine, every performance rule you've ever half-memorised turns into something you can derive on the spot. And deriving things on the spot is, more or less, the entire skill an interviewer is checking for.</p>
+
+<nav class="toc">
+  <h2>What's in here</h2>
+  <ol>
+    <li><a href="#crp">The critical rendering path</a></li>
+    <li><a href="#blocking">Render-blocking CSS and parser-blocking scripts</a></li>
+    <li><a href="#asyncdefer">async vs defer vs type="module"</a></li>
+    <li><a href="#reflow">Reflow, repaint, composite</a></li>
+    <li><a href="#cwv">Core Web Vitals: LCP, INP, CLS</a></li>
+    <li><a href="#diagnostic">TTFB, FCP, TBT — and lab vs field data</a></li>
+    <li><a href="#lazy">Lazy loading (and the hero image trap)</a></li>
+    <li><a href="#bundle">Bundle size &amp; code splitting</a></li>
+    <li><a href="#images">Image optimisation</a></li>
+    <li><a href="#unblock">Eliminating render-blocking resources</a></li>
+    <li><a href="#debounce">Debouncing, throttling, passive listeners</a></li>
+    <li><a href="#cache">Caching strategies</a></li>
+    <li><a href="#virtual">Virtualization for long lists</a></li>
+    <li><a href="#devtools">Debugging a slow page in DevTools</a></li>
+    <li><a href="#hints">Resource hints</a></li>
+    <li><a href="#mainthread">Reducing main-thread work</a></li>
+    <li><a href="#followups">Interview follow-ups, answered</a></li>
+    <li><a href="#cheatsheet">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="crp"><span class="num">Part 1</span>The critical rendering path</h2>
+
+<p>You type a URL, you hit enter, and some milliseconds later there are pixels. In between, the browser runs a fixed sequence of steps. That sequence has a name — the <strong>critical rendering path</strong> — and essentially every performance technique in existence is "make one of these steps happen sooner, or happen less often."</p>
+
+<p>Let's walk it, slowly, one step at a time. I promise this pays off.</p>
+
+<h3>Step 1: HTML arrives as bytes, and gets parsed into the DOM</h3>
+
+<p>The server doesn't hand you a document. It hands you a <em>stream</em> of bytes, in chunks, over the network. The browser doesn't wait for the last byte before starting work — that would be a waste of good waiting time. It parses <strong>incrementally</strong>: as each chunk lands, it turns characters into tokens (<code>&lt;div&gt;</code>, <code>class="hero"</code>, text) and turns tokens into <strong>nodes</strong>, and links those nodes into a tree.</p>
+
+<p>That tree is the <strong>DOM</strong> — the Document Object Model. It's the browser's in-memory representation of your markup. Not the markup itself; a live object graph you can poke at from JavaScript.</p>
+
+<p>The important word there is <em>incrementally</em>. The browser is building the tree while the rest of the HTML is still in flight. Remember that — it's why a script in the middle of your document is such a problem, which we'll get to shortly.</p>
+
+<h3>Step 2: CSS arrives, and gets parsed into the CSSOM</h3>
+
+<p>While parsing the HTML, the browser hits something like this:</p>
+
+<pre><code><span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"stylesheet"</span> <span class="fn">href</span>=<span class="str">"/styles/main.css"</span><span class="tag">&gt;</span></code></pre>
+
+<p>It fires off a request for that file and — this part matters — <em>keeps parsing the HTML</em>. A stylesheet doesn't stop the HTML parser. But when the CSS does arrive, it gets parsed into its own tree: the <strong>CSSOM</strong>, the CSS Object Model. Every rule, resolved into a tree that mirrors the document structure, so the browser can answer "what are the final computed styles for this node?"</p>
+
+<p>Why a <em>tree</em> and not a flat list? Because CSS cascades and inherits. If <code>body</code> has <code>font-size: 16px</code>, every descendant that doesn't override it needs to know that. The only way to compute a node's real style is to know its ancestors' styles. Tree.</p>
+
+<h3>Step 3: DOM + CSSOM combine into the render tree</h3>
+
+<p>Now the browser walks the DOM, and for each node asks the CSSOM: what does this look like? The result is a third tree, the <strong>render tree</strong> — only the things that will actually be <em>drawn</em>, each one carrying its computed styles.</p>
+
+<p>"Only the things that will actually be drawn" is doing real work in that sentence. Two categories get excluded:</p>
+
+<ul>
+  <li>Nodes that are never visual at all: <code>&lt;head&gt;</code>, <code>&lt;meta&gt;</code>, <code>&lt;script&gt;</code>.</li>
+  <li>Nodes with <code>display: none</code>.</li>
+</ul>
+
+<p>And here's the contrast that shows up in interviews constantly:</p>
+
+<div class="tblwrap">
+<table>
+  <thead><tr><th></th><th><code>display: none</code></th><th><code>visibility: hidden</code></th></tr></thead>
+  <tbody>
+    <tr><td>In the render tree?</td><td>No — excluded entirely</td><td>Yes — it's in there</td></tr>
+    <tr><td>Takes up space?</td><td>No</td><td>Yes, full box, just not painted</td></tr>
+    <tr><td>Toggling it causes…</td><td>Layout (the box appears/disappears)</td><td>Paint only (geometry never changed)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><code>visibility: hidden</code> is like an invisible person still standing in the queue: you can't see them, but you still can't take their spot. <code>display: none</code> is them leaving the building — everyone behind shuffles forward.</p>
+
+<h3>Step 4: Layout (a.k.a. reflow)</h3>
+
+<p>The render tree knows <em>what</em> to draw and <em>how</em> it should look, but not <em>where</em>. Layout is the pass that computes geometry: exact position and exact size of every box, in real pixels, given the viewport size.</p>
+
+<p>This is where percentages become numbers. <code>width: 50%</code> means nothing until you know the parent is 800px wide. Layout resolves the whole cascade of dependencies, top to bottom, and it is expensive — it's the step most likely to show up as a red bar in a performance profile.</p>
+
+<h3>Step 5: Paint</h3>
+
+<p>Now the browser fills in pixels: text glyphs, colours, borders, shadows, gradients, images. It doesn't necessarily paint into one flat image — it paints into one or more <strong>layers</strong>, like sheets of transparent acetate stacked on top of each other.</p>
+
+<h3>Step 6: Composite</h3>
+
+<p>Finally those layers get stacked and drawn to the screen in the right order, respecting things like <code>z-index</code>, <code>opacity</code> and <code>transform</code>. This step can be handed to the GPU, which is extremely good at exactly one thing: taking existing bitmaps and moving, scaling, rotating and fading them. That fact becomes very important in a minute.</p>
+
+<figure>
+  <div class="diagram">
+    <svg viewBox="0 0 700 300" role="img" aria-label="Diagram of the critical rendering path: HTML becomes the DOM, CSS becomes the CSSOM, they combine into the render tree, then layout, paint and composite.">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#4a5266"/>
+        </marker>
+      </defs>
+      <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+        <!-- HTML -->
+        <rect x="10" y="30" width="110" height="46" rx="8" fill="#eef2ff" stroke="#3b5bdb"/>
+        <text x="65" y="52" font-size="13" font-weight="700" text-anchor="middle" fill="#3b5bdb">HTML bytes</text>
+        <text x="65" y="68" font-size="10.5" text-anchor="middle" fill="#4a5266">streamed in</text>
+
+        <rect x="10" y="118" width="110" height="46" rx="8" fill="#f5efff" stroke="#6b3fa0"/>
+        <text x="65" y="140" font-size="13" font-weight="700" text-anchor="middle" fill="#6b3fa0">CSS bytes</text>
+        <text x="65" y="156" font-size="10.5" text-anchor="middle" fill="#4a5266">&lt;link rel=stylesheet&gt;</text>
+
+        <line x1="122" y1="53" x2="168" y2="53" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+        <line x1="122" y1="141" x2="168" y2="141" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+
+        <rect x="172" y="30" width="96" height="46" rx="8" fill="#fff" stroke="#3b5bdb" stroke-width="1.6"/>
+        <text x="220" y="52" font-size="14" font-weight="700" text-anchor="middle" fill="#1f2430">DOM</text>
+        <text x="220" y="68" font-size="10.5" text-anchor="middle" fill="#4a5266">node tree</text>
+
+        <rect x="172" y="118" width="96" height="46" rx="8" fill="#fff" stroke="#6b3fa0" stroke-width="1.6"/>
+        <text x="220" y="140" font-size="14" font-weight="700" text-anchor="middle" fill="#1f2430">CSSOM</text>
+        <text x="220" y="156" font-size="10.5" text-anchor="middle" fill="#4a5266">style tree</text>
+
+        <path d="M270,53 C300,53 300,97 326,97" fill="none" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+        <path d="M270,141 C300,141 300,97 326,97" fill="none" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+
+        <rect x="330" y="70" width="118" height="54" rx="8" fill="#eaf7f0" stroke="#1f7a4d" stroke-width="1.6"/>
+        <text x="389" y="92" font-size="14" font-weight="700" text-anchor="middle" fill="#1f7a4d">Render tree</text>
+        <text x="389" y="108" font-size="10" text-anchor="middle" fill="#4a5266">visible nodes + styles</text>
+
+        <text x="389" y="146" font-size="10.5" text-anchor="middle" fill="#b4232a">display:none excluded ✂</text>
+
+        <line x1="450" y1="97" x2="486" y2="97" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+
+        <rect x="490" y="24" width="120" height="40" rx="8" fill="#fff" stroke="#b4232a" stroke-width="1.6"/>
+        <text x="550" y="43" font-size="13" font-weight="700" text-anchor="middle" fill="#b4232a">Layout</text>
+        <text x="550" y="56" font-size="9.5" text-anchor="middle" fill="#4a5266">where + how big</text>
+
+        <rect x="490" y="77" width="120" height="40" rx="8" fill="#fff" stroke="#8a6100" stroke-width="1.6"/>
+        <text x="550" y="96" font-size="13" font-weight="700" text-anchor="middle" fill="#8a6100">Paint</text>
+        <text x="550" y="109" font-size="9.5" text-anchor="middle" fill="#4a5266">pixels into layers</text>
+
+        <rect x="490" y="130" width="120" height="40" rx="8" fill="#fff" stroke="#1f7a4d" stroke-width="1.6"/>
+        <text x="550" y="149" font-size="13" font-weight="700" text-anchor="middle" fill="#1f7a4d">Composite</text>
+        <text x="550" y="162" font-size="9.5" text-anchor="middle" fill="#4a5266">stack layers (GPU)</text>
+
+        <line x1="550" y1="64" x2="550" y2="73" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+        <line x1="550" y1="117" x2="550" y2="126" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+
+        <rect x="486" y="182" width="128" height="30" rx="15" fill="#1f2430"/>
+        <text x="550" y="201" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">Pixels on screen</text>
+        <line x1="550" y1="170" x2="550" y2="178" stroke="#4a5266" stroke-width="1.6" marker-end="url(#ar)"/>
+
+        <text x="350" y="248" font-size="11.5" text-anchor="middle" fill="#4a5266" font-style="italic">Nothing paints until BOTH the DOM and the CSSOM exist.</text>
+        <text x="350" y="268" font-size="11.5" text-anchor="middle" fill="#4a5266" font-style="italic">That single fact explains most of this guide.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>The critical rendering path, end to end.</figcaption>
+</figure>
+
+<div class="callout hood">
+  <span class="ct">Under the hood</span>
+  <p>Real browser engines subdivide these steps further — style recalculation is technically separate from render-tree construction, and paint splits into "record display lists" and "raster." Chrome's Performance panel labels them Recalculate Style, Layout, Pre-Paint, Paint, Composite Layers. The six-step model is the one everyone reasons with, and it's the one to say out loud in an interview. Just don't be surprised when DevTools shows extra rows.</p>
+</div>
+
+<h2 id="blocking"><span class="num">Part 2</span>Render-blocking CSS, parser-blocking scripts</h2>
+
+<h3>Why CSS is render-blocking</h3>
+
+<p>Look at that diagram again and ask a slightly nasty question: the DOM is being built incrementally, so the browser has partial content almost immediately. Why doesn't it just… paint it? Show something, then restyle when the CSS lands?</p>
+
+<p>Because the result would be horrifying. Imagine the browser paints your unstyled HTML: Times New Roman, blue underlined links, everything stacked in one column, full-bleed images at natural size. Then 300ms later the CSS arrives and the whole page violently rearranges itself into your actual design. That's called a <strong>flash of unstyled content</strong>, and browsers decided decades ago they'd rather show you nothing than show you that.</p>
+
+<p>So the rule is: <strong>the browser will not perform the first paint until the CSSOM is complete.</strong> CSS is <em>render-blocking</em>.</p>
+
+<p>My analogy: CSS is the set-dressing crew for a stage play. The actors (your DOM nodes) can walk on stage and get in position while the crew is still working — but the curtain does not go up until the set is finished. You don't let the audience watch people hang the backdrop.</p>
+
+<div class="callout wait">
+  <span class="ct">Wait — so does CSS block parsing too?</span>
+  <p>No, and this distinction is a great one to land in an interview. A stylesheet blocks <em>rendering</em>, not <em>HTML parsing</em>. The parser happily keeps building the DOM while CSS downloads.</p>
+  <p>There is one sneaky exception. If the parser hits an inline <code>&lt;script&gt;</code> while a stylesheet is still downloading, it must pause that script — because the script might call <code>getComputedStyle()</code> or read <code>offsetHeight</code>, and answering that needs the CSSOM. So the script waits for the CSS, and the parser waits for the script. CSS ends up blocking parsing <em>transitively</em>. That's a genuinely deep answer if you ever get pushed on it.</p>
+</div>
+
+<h3>Why synchronous scripts are parser-blocking</h3>
+
+<p>Now the scripts. Here's a plain one:</p>
+
+<pre><code><span class="tag">&lt;script</span> <span class="fn">src</span>=<span class="str">"/js/analytics.js"</span><span class="tag">&gt;&lt;/script&gt;</span></code></pre>
+
+<p>When the HTML parser hits this, it <strong>stops</strong>. Fully stops. It downloads the file, executes it top to bottom, and only then resumes building the DOM. Everything below that line in your HTML is, for that moment, not in the document at all.</p>
+
+<p>Why so brutal? Because of one ancient API: <code>document.write()</code>. A script is allowed to inject raw HTML into the parse stream at the exact point it appears. The parser genuinely cannot know what the rest of the document looks like until the script has had its say. So it waits.</p>
+
+<pre><code><span class="tag">&lt;p&gt;</span>One<span class="tag">&lt;/p&gt;</span>
+<span class="tag">&lt;script&gt;</span> <span class="fn">document</span>.<span class="fn">write</span>(<span class="str">'&lt;p&gt;Surprise!&lt;/p&gt;'</span>) <span class="tag">&lt;/script&gt;</span> <span class="cm">// 👈 parser must wait</span>
+<span class="tag">&lt;p&gt;</span>Two<span class="tag">&lt;/p&gt;</span>
+<span class="cm">// → One / Surprise! / Two</span></code></pre>
+
+<p>Nobody writes <code>document.write</code> anymore, but the parser can't know that in advance, so the blocking behaviour stays. It's a compatibility scar.</p>
+
+<p>The consequence: <strong>a synchronous script in your <code>&lt;head&gt;</code> delays the DOM, which delays the render tree, which delays your first paint.</strong> A 200KB analytics bundle at the top of the document can cost you a second of blank screen on a mediocre phone.</p>
+
+<div class="callout hood">
+  <span class="ct">Under the hood: the preload scanner</span>
+  <p>Browsers aren't <em>completely</em> helpless here. While the main parser is blocked on a script, a secondary lightweight parser — the <strong>preload scanner</strong> — races ahead through the raw HTML looking for URLs (<code>src</code>, <code>href</code>) and starts downloading them early. It can't build DOM, it just prefetches.</p>
+  <p>This matters practically: resources the preload scanner can <em>see</em> in your HTML get discovered early. Resources hidden inside JavaScript or CSS (a background-image in a stylesheet, an image URL that only exists after React renders) are invisible to it and get discovered late. That's one of the deepest reasons client-side-rendered pages have bad LCP.</p>
+</div>
+
+<h2 id="asyncdefer"><span class="num">Part 3</span>async vs defer vs type="module"</h2>
+
+<p>This is probably the single most-asked question on this entire topic, so let's make it airtight. There are three things that could vary, and understanding the attributes means knowing which of the three each one changes:</p>
+
+<ol>
+  <li><strong>Does downloading block the parser?</strong> (Never, actually — download is always parallel for these.)</li>
+  <li><strong>Does <em>executing</em> block the parser?</strong></li>
+  <li><strong>Is execution order guaranteed?</strong></li>
+</ol>
+
+<figure>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="nm">(plain)</div>
+      <div class="bar">
+        <span class="b-parse" style="flex:2">parse HTML</span>
+        <span class="b-fetch" style="flex:2">fetch JS</span>
+        <span class="b-exec" style="flex:1.4">execute</span>
+        <span class="b-parse" style="flex:3">parse rest</span>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="nm">async</div>
+      <div class="bar">
+        <span class="b-parse" style="flex:2">parse</span>
+        <span class="b-parse" style="flex:2">parse (fetch in bg)</span>
+        <span class="b-exec" style="flex:1.4">execute</span>
+        <span class="b-parse" style="flex:3">parse rest</span>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="nm">defer</div>
+      <div class="bar">
+        <span class="b-parse" style="flex:2">parse</span>
+        <span class="b-parse" style="flex:2">parse (fetch in bg)</span>
+        <span class="b-parse" style="flex:3">parse to end</span>
+        <span class="b-exec" style="flex:1.4">execute</span>
+        <span class="b-done" style="flex:1.2">DOMContentLoaded</span>
+      </div>
+    </div>
+    <p class="legend">
+      <span><i class="b-parse"></i>HTML parsing</span>
+      <span><i class="b-fetch"></i>blocked, downloading</span>
+      <span><i class="b-exec"></i>JS executing</span>
+    </p>
+  </div>
+  <figcaption>The plain script stops the parser dead. <code>async</code> interrupts it whenever the download finishes. <code>defer</code> waits politely until parsing is done.</figcaption>
+</figure>
+
+<p>In words:</p>
+
+<ul>
+  <li><strong>Plain <code>&lt;script src&gt;</code></strong> — parser stops, downloads, executes, resumes. Order guaranteed. Worst for perf.</li>
+  <li><strong><code>async</code></strong> — downloads in parallel with parsing, then executes <em>the instant it's ready</em>, interrupting the parser wherever it happens to be. Order is <strong>not</strong> guaranteed: whichever downloads first runs first. Great for standalone things with no dependencies — analytics, error trackers.</li>
+  <li><strong><code>defer</code></strong> — downloads in parallel, then waits until the HTML is fully parsed, then executes <strong>in document order</strong>, just before <code>DOMContentLoaded</code>. This is the sensible default for your app code.</li>
+</ul>
+
+<div class="callout myth">
+  <span class="ct">The trap</span>
+  <p>The wrong answer that gets candidates dinged: <em>"async loads asynchronously and defer defers loading."</em> That's backwards-ish and says nothing. Both download asynchronously. <strong>The difference is entirely about when they execute and whether order is preserved.</strong> Say it that way and you sound like you've actually debugged this.</p>
+</div>
+
+<h3>What <code>type="module"</code> changes</h3>
+
+<pre><code><span class="tag">&lt;script</span> <span class="fn">type</span>=<span class="str">"module"</span> <span class="fn">src</span>=<span class="str">"/app.js"</span><span class="tag">&gt;&lt;/script&gt;</span></code></pre>
+
+<p>A module script is <strong>deferred by default</strong> — you don't need to write <code>defer</code>, it already behaves that way. Beyond timing, it also brings:</p>
+
+<ul>
+  <li>Its own scope (no accidental globals) and strict mode always on.</li>
+  <li>Real <code>import</code>/<code>export</code>, so the browser recursively fetches the dependency graph before executing anything.</li>
+  <li>Each module URL executes <strong>once</strong>, even if imported by five files.</li>
+  <li>CORS applies — cross-origin modules need proper headers.</li>
+  <li>Adding <code>async</code> to a module overrides the deferred behaviour: it runs as soon as it and its imports are ready.</li>
+</ul>
+
+<div class="callout iv">
+  <span class="ct">How this gets asked</span>
+  <p>"What's the difference between async and defer?" · "Where do you put your script tags and why?" · "What does type=module change about script loading?"</p>
+  <div class="say">
+    <span class="who">Say this out loud</span>
+    <p>"Both download in parallel with HTML parsing, so neither blocks the download. The difference is execution. <code>async</code> executes the moment the file lands, which can interrupt parsing at an arbitrary point, and execution order between multiple async scripts isn't guaranteed — so I use it for independent things like analytics. <code>defer</code> waits until the HTML is fully parsed and then runs scripts in document order, right before DOMContentLoaded, which is what I want for app code that touches the DOM or depends on other scripts. And <code>type="module"</code> is deferred by default, so I don't need to add anything."</p>
+  </div>
+  <p><strong>Why it lands:</strong> you separated <em>download</em> from <em>execute</em>, mentioned ordering, and tied each to a real use case. That's three levels of depth in twenty seconds.</p>
+</div>
+
+<h2 id="reflow"><span class="num">Part 4</span>Reflow, repaint, composite</h2>
+
+<p>Everything so far was about the <em>first</em> render. But pages keep changing — you toggle a class, an animation runs, data arrives. Each change forces the browser to redo some suffix of the pipeline. How much of the pipeline is the whole game.</p>
+
+<figure>
+  <div class="ladder">
+    <div class="rung">
+      <div class="cost c3">Layout</div>
+      <div>Changing anything <strong>geometric</strong> — <code>width</code>, <code>height</code>, <code>padding</code>, <code>margin</code>, <code>top</code>, <code>left</code>, <code>font-size</code>, adding/removing a DOM node. The browser must recompute positions, then repaint, then recomposite. <strong>Full pipeline. Most expensive.</strong> Often called <em>reflow</em>.</div>
+    </div>
+    <div class="rung">
+      <div class="cost c2">Paint</div>
+      <div>Changing something <strong>visual but not geometric</strong> — <code>color</code>, <code>background-color</code>, <code>box-shadow</code>, <code>border-radius</code>, <code>visibility</code>. Geometry is unchanged, so layout is skipped, but pixels must be redrawn. Then composite.</div>
+    </div>
+    <div class="rung">
+      <div class="cost c1">Composite</div>
+      <div>Changing only <code>transform</code> or <code>opacity</code> on an element the browser has promoted to its own layer. No layout, <em>no repaint</em> — the existing bitmap just gets moved or faded by the GPU. <strong>Cheap enough to hit 60fps on a cheap phone.</strong></div>
+    </div>
+  </div>
+  <figcaption>The pipeline is a ladder. The lower you enter it, the less work happens.</figcaption>
+</figure>
+
+<p>Think of it like a printed newspaper. Changing a headline's <em>size</em> means re-flowing every article on the page around it — that's layout. Changing the headline's ink <em>colour</em> means the layout is fine, you just reprint that patch — that's paint. Sliding a transparent sticker across the finished page changes neither — that's composite.</p>
+
+<p>This is why the animation advice you've heard is what it is:</p>
+
+<div class="codeblock bad">
+  <span class="label">❌ Animating layout properties</span>
+<pre><code><span class="fn">.card</span> {
+  <span class="kw">transition</span>: left <span class="num2">300ms</span>;   <span class="cm">/* every frame = full reflow */</span>
+}
+<span class="fn">.card:hover</span> { <span class="kw">left</span>: <span class="num2">20px</span>; }</code></pre>
+</div>
+
+<div class="codeblock good">
+  <span class="label">✅ Animating composited properties</span>
+<pre><code><span class="fn">.card</span> {
+  <span class="kw">transition</span>: transform <span class="num2">300ms</span>; <span class="cm">/* 👈 GPU just moves the bitmap */</span>
+}
+<span class="fn">.card:hover</span> { <span class="kw">transform</span>: <span class="fn">translateX</span>(<span class="num2">20px</span>); }</code></pre>
+</div>
+
+<div class="callout hood">
+  <span class="ct">Under the hood: layout thrashing</span>
+  <p>Here's a subtle killer. Browsers batch style changes and flush layout once, at the end of the frame — <em>unless</em> you ask for a value that requires up-to-date geometry. Reading <code>offsetHeight</code>, <code>getBoundingClientRect()</code>, <code>scrollTop</code> or <code>getComputedStyle()</code> forces a synchronous layout right now.</p>
+  <p>So a loop that writes then reads, writes then reads, forces a layout on <em>every iteration</em>:</p>
+<pre><code><span class="cm">// ❌ forced synchronous layout, N times</span>
+<span class="kw">for</span> (<span class="kw">const</span> row <span class="kw">of</span> rows) {
+  row.<span class="fn">style</span>.height = row.<span class="fn">offsetHeight</span> + <span class="num2">10</span> + <span class="str">'px'</span>;
+}
+
+<span class="cm">// ✅ read everything first, then write everything</span>
+<span class="kw">const</span> heights = rows.<span class="fn">map</span>(r =&gt; r.<span class="fn">offsetHeight</span>);
+rows.<span class="fn">forEach</span>((r, i) =&gt; { r.<span class="fn">style</span>.height = heights[i] + <span class="num2">10</span> + <span class="str">'px'</span>; });</code></pre>
+  <p>Saying the phrase "layout thrashing" and describing the read/write batching fix is one of the highest-signal things you can do in a perf interview.</p>
+</div>
+
+<h2 id="cwv"><span class="num">Part 5</span>Core Web Vitals</h2>
+
+<p>Google needed a small set of numbers that correlate with "does this page feel good to use," that could be measured on real users' devices, and that map to three distinct kinds of pain. They landed on three questions:</p>
+
+<ul>
+  <li><strong>Is it there yet?</strong> → LCP (loading)</li>
+  <li><strong>Does it respond when I touch it?</strong> → INP (interactivity)</li>
+  <li><strong>Does it stop jumping around?</strong> → CLS (visual stability)</li>
+</ul>
+
+<p>A page "passes" when the <strong>75th percentile</strong> of real users hits the good threshold. Not the average — the 75th percentile, so a quarter of your users can still be having a bad time and you pass. Mentioning p75 unprompted is a nice signal that you've looked at real dashboards.</p>
+
+<h3>LCP — Largest Contentful Paint (good: ≤ 2.5s)</h3>
+
+<p><strong>What it measures:</strong> the moment the largest content element visible in the viewport finishes rendering. Usually a hero image, a video poster, or a big block of headline text. The browser keeps re-evaluating as things load — the "largest element" can change several times — and the final one wins.</p>
+
+<p>It's a proxy for the human question "has the main thing loaded yet?" Which is exactly the right thing to measure, because a page that's technically interactive but still shows a grey box feels broken.</p>
+
+<p><strong>What typically causes a bad LCP:</strong></p>
+
+<ol>
+  <li><strong>Slow server response (TTFB).</strong> If the HTML takes 1.2s to arrive, you've spent half your budget before the browser has done anything.</li>
+  <li><strong>Render-blocking resources.</strong> Big stylesheets and synchronous scripts in the head delay first paint, and LCP can't happen before first paint.</li>
+  <li><strong>Slow resource load time.</strong> The LCP image itself is 3MB, or unoptimised, or discovered late.</li>
+  <li><strong>Client-side rendering delay.</strong> The hero doesn't exist in the HTML at all; it appears only after a JS bundle downloads, parses, executes, fetches data, and renders. The preload scanner never had a chance.</li>
+</ol>
+
+<p><strong>How to fix it:</strong></p>
+
+<pre><code><span class="cm">&lt;!-- in &lt;head&gt;: tell the browser about the hero image immediately --&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"preload"</span> <span class="fn">as</span>=<span class="str">"image"</span> <span class="fn">href</span>=<span class="str">"/hero.avif"</span> <span class="fn">fetchpriority</span>=<span class="str">"high"</span><span class="tag">&gt;</span>
+
+<span class="cm">&lt;!-- and on the element itself --&gt;</span>
+<span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/hero.avif"</span> <span class="fn">width</span>=<span class="str">"1200"</span> <span class="fn">height</span>=<span class="str">"600"</span>
+     <span class="fn">fetchpriority</span>=<span class="str">"high"</span>       <span class="cm">&lt;!-- 👈 jump the queue --&gt;</span>
+     <span class="fn">alt</span>=<span class="str">"..."</span><span class="tag">&gt;</span>       <span class="cm">&lt;!-- 👈 note: NO loading="lazy" --&gt;</span></code></pre>
+
+<ul>
+  <li><strong>Preload the LCP image</strong> so it's discovered in the first few bytes of HTML rather than after CSS or JS runs.</li>
+  <li><strong><code>fetchpriority="high"</code></strong> — by default browsers give images low priority until layout proves they're in the viewport. This overrides that guess.</li>
+  <li><strong>Never lazy-load it</strong> (whole section on this below — it's a favourite trick question).</li>
+  <li><strong>Server-render the hero</strong> so it's in the initial HTML.</li>
+  <li><strong>CDN + caching + compression</strong> to attack TTFB.</li>
+  <li><strong>Shrink the image</strong> — modern format, right dimensions. Often this alone fixes it.</li>
+</ul>
+
+<h3>INP — Interaction to Next Paint (good: ≤ 200ms)</h3>
+
+<p>INP <strong>replaced FID (First Input Delay) as a Core Web Vital in March 2024</strong>. Knowing that, and knowing <em>why</em>, is genuinely worth points — it shows you've read something written after 2022.</p>
+
+<p>FID measured only the <em>delay</em> before the browser could start handling your <em>first</em> interaction. That's two enormous limitations. It ignored every interaction after the first, and it ignored the actual work — if your click handler took 900ms to run and re-render, FID cheerfully reported a great score, because it stopped counting the instant the handler <em>began</em>.</p>
+
+<p>So basically every site passed FID while users sat there tapping a button that did nothing. Not a useful metric.</p>
+
+<p><strong>INP measures the full round trip</strong>, for interactions across the entire page visit: from the moment you tap, through input delay (waiting for the main thread to be free), through the event handlers running, through style and layout, all the way to <strong>the next frame actually painted</strong> showing the result. Then it reports roughly the worst interaction of the visit (technically it discards a small number of outliers on pages with many interactions).</p>
+
+<figure>
+  <div class="diagram">
+    <svg viewBox="0 0 660 130" role="img" aria-label="INP breaks into input delay, processing time, and presentation delay.">
+      <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+        <text x="20" y="24" font-size="12" fill="#4a5266">👆 user taps</text>
+        <text x="560" y="24" font-size="12" fill="#4a5266">🖼 frame painted</text>
+        <rect x="20" y="40" width="170" height="34" rx="5" fill="#c9c4bb"/>
+        <text x="105" y="62" font-size="12" font-weight="700" text-anchor="middle" fill="#1f2430">input delay</text>
+        <rect x="192" y="40" width="270" height="34" rx="5" fill="#d9480f"/>
+        <text x="327" y="62" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">event handlers run</text>
+        <rect x="464" y="40" width="176" height="34" rx="5" fill="#3b5bdb"/>
+        <text x="552" y="62" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">style/layout/paint</text>
+        <line x1="20" y1="92" x2="640" y2="92" stroke="#1f2430" stroke-width="1.5"/>
+        <line x1="20" y1="86" x2="20" y2="98" stroke="#1f2430" stroke-width="1.5"/>
+        <line x1="640" y1="86" x2="640" y2="98" stroke="#1f2430" stroke-width="1.5"/>
+        <text x="330" y="114" font-size="12.5" font-weight="700" text-anchor="middle" fill="#1f2430">INP — all of it. FID measured only the grey bar.</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>Why the metric changed: FID stopped counting exactly where the expensive part started.</figcaption>
+</figure>
+
+<p><strong>What causes a bad INP:</strong> long tasks hogging the main thread (a task over 50ms blocks input), enormous synchronous re-renders (a React state change that re-renders 3,000 components), expensive event handlers, heavy work fired on every keystroke, and giant DOM trees that make every style recalculation slow.</p>
+
+<p><strong>How to fix it:</strong></p>
+<ul>
+  <li><strong>Break up long tasks</strong> and <strong>yield to the main thread</strong> between chunks, so pending input can be handled.</li>
+  <li><strong>Debounce/throttle</strong> handlers that fire on input, scroll or resize.</li>
+  <li><strong>Move heavy computation off the main thread</strong> into a Web Worker.</li>
+  <li><strong>Show feedback in the next frame, do the work after.</strong> Paint the "loading" state first, then start the expensive job.</li>
+  <li><strong>Reduce re-render scope</strong> — memoize, split state, virtualize big lists.</li>
+</ul>
+
+<div class="callout wait">
+  <span class="ct">Wait — "yield to the main thread"? What does that mean?</span>
+  <p>JavaScript is single-threaded, and the same thread paints. While your function runs, nothing else can happen: no click can be processed, no pixel can be drawn. "Yielding" means deliberately stopping, handing control back to the browser so it can process input and paint, then resuming your work in a later task. We cover the actual APIs in <a href="#mainthread">Part 16</a>.</p>
+</div>
+
+<h3>CLS — Cumulative Layout Shift (good: ≤ 0.1)</h3>
+
+<p>You're reading an article. You go to tap a link. In that exact instant an ad loads above it, everything jumps down, and you tap "Delete account" instead. That feeling is what CLS measures.</p>
+
+<p>It's a unitless score: for each unexpected shift, <em>impact fraction</em> (how much of the viewport moved) × <em>distance fraction</em> (how far it moved, as a share of viewport size). Those get summed into session windows, and the worst window is your score.</p>
+
+<p>The key word is <strong>unexpected</strong>. Shifts within 500ms of a user interaction are excluded — if you click "show more" and content expands, that's expected, and it isn't penalised.</p>
+
+<p><strong>What causes it:</strong></p>
+
+<ul>
+  <li><strong>Images without dimensions.</strong> The browser reserves zero height, lays out the text, then the image arrives and shoves everything down.</li>
+  <li><strong>Ads, embeds and iframes</strong> that inject themselves at unknown size.</li>
+  <li><strong>Web fonts.</strong> The fallback font renders first, then your webfont swaps in with different metrics, and every line re-flows. That's FOUT — flash of unstyled text. The alternative, FOIT (flash of <em>invisible</em> text), hides the text entirely while the font loads, which avoids the shift but can nuke your LCP if the LCP element is text.</li>
+  <li><strong>Content injected above existing content</strong> — a cookie banner, a "you have 3 new messages" bar, a late-arriving hero.</li>
+  <li><strong>Animating layout properties</strong> like <code>height</code> or <code>top</code> instead of <code>transform</code>.</li>
+</ul>
+
+<p><strong>How to fix it:</strong></p>
+
+<div class="codeblock bad">
+  <span class="label">❌ No reserved space</span>
+<pre><code><span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/product.jpg"</span> <span class="fn">alt</span>=<span class="str">"Blue mug"</span><span class="tag">&gt;</span>
+<span class="cm">&lt;!-- height 0 until it loads, then BOOM, everything moves --&gt;</span></code></pre>
+</div>
+
+<div class="codeblock good">
+  <span class="label">✅ Space reserved from the first paint</span>
+<pre><code><span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/product.jpg"</span> <span class="fn">width</span>=<span class="str">"800"</span> <span class="fn">height</span>=<span class="str">"600"</span> <span class="fn">alt</span>=<span class="str">"Blue mug"</span><span class="tag">&gt;</span>
+
+<span class="cm">/* CSS keeps it responsive; the ratio comes from the attributes */</span>
+<span class="fn">img</span> { <span class="kw">max-width</span>: <span class="num2">100%</span>; <span class="kw">height</span>: auto; }
+
+<span class="cm">/* or, when you don't know the file's real size */</span>
+<span class="fn">.media</span> { <span class="kw">aspect-ratio</span>: <span class="num2">16 / 9</span>; }</code></pre>
+</div>
+
+<p>Modern browsers turn <code>width</code>/<code>height</code> attributes into an implicit <code>aspect-ratio</code>, so they reserve correctly-shaped space <em>before</em> the file arrives, even in a fluid layout. This is the single highest-leverage CLS fix and it's free.</p>
+
+<p>For the rest: give ad slots a fixed min-height container. For fonts, <code>font-display: optional</code> avoids the swap entirely (the font is used only if it arrives almost instantly, otherwise it's skipped for this page load), and <code>size-adjust</code> / <code>ascent-override</code> on a <code>@font-face</code> fallback lets you tune the fallback's metrics to match your webfont so the swap barely moves anything. And animate with <code>transform</code>, which as we established doesn't touch layout at all.</p>
+
+<div class="callout iv">
+  <span class="ct">How this gets asked</span>
+  <p>"What are the Core Web Vitals?" · "What replaced FID and why?" · "A page has CLS of 0.4 — how do you find the cause?"</p>
+  <div class="say">
+    <span class="who">Say this out loud</span>
+    <p>"LCP, INP and CLS — loading, interactivity, visual stability, measured at the 75th percentile of real users. INP replaced FID in early 2024 because FID only measured the delay before the <em>first</em> interaction's handler started, so a page could score perfectly while every button took a second to respond. INP measures the full interaction-to-paint latency across the whole visit, so slow handlers and heavy re-renders finally count."</p>
+  </div>
+</div>
+
+<h2 id="diagnostic"><span class="num">Part 6</span>Diagnostic metrics, and lab vs field</h2>
+
+<p>The three Core Web Vitals tell you <em>that</em> something's wrong. These others tell you <em>where</em>.</p>
+
+<ul>
+  <li><strong>TTFB — Time to First Byte.</strong> Request sent → first byte of the response. This is DNS + connection + TLS + server think-time + redirects. If TTFB is 1.5s, no amount of frontend work saves your LCP. Fix the backend, add a CDN, kill redirect chains, cache at the edge.</li>
+  <li><strong>FCP — First Contentful Paint.</strong> When <em>anything</em> from the DOM first paints. Sits between TTFB and LCP. If FCP is bad, suspect render-blocking CSS/JS. If FCP is fine but LCP is bad, the page started drawing quickly and then the <em>specific big element</em> was slow — usually the hero image or client-side rendering.</li>
+  <li><strong>TBT — Total Blocking Time.</strong> Sum of the "over 50ms" portion of every long task between FCP and interactive. It's the lab-measurable stand-in for INP, since a lab test has no real user clicking things. High TBT almost always means too much JavaScript executing.</li>
+</ul>
+
+<p>Notice how neatly they decompose LCP: <em>LCP ≈ TTFB + render-blocking delay + resource load time + element render delay.</em> When someone hands you a bad LCP, that equation is your entire diagnostic strategy.</p>
+
+<h3>Lab data vs field data</h3>
+
+<p>This distinction separates people who have <em>run</em> Lighthouse from people who have <em>shipped</em> performance work.</p>
+
+<div class="tblwrap">
+<table>
+  <thead><tr><th></th><th>Lab (synthetic)</th><th>Field (real users / RUM)</th></tr></thead>
+  <tbody>
+    <tr><td>Tools</td><td>Lighthouse, WebPageTest, DevTools</td><td>CrUX, Search Console, your own <code>web-vitals</code> reporting</td></tr>
+    <tr><td>Conditions</td><td>One simulated device, one throttled network, cold cache, no extensions</td><td>Every device, every network, warm caches, ad blockers, everything</td></tr>
+    <tr><td>Reproducible?</td><td>Yes — great for A/B-ing a fix</td><td>No — it's a distribution, reported at p75</td></tr>
+    <tr><td>Can measure INP?</td><td>Not really (no real interactions) — uses TBT as a proxy</td><td>Yes, properly</td></tr>
+    <tr><td>Good for</td><td>Debugging, catching regressions in CI</td><td>Knowing whether users are actually suffering</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The failure mode is optimising until Lighthouse says 100 and declaring victory, while real users on three-year-old Android phones over patchy 4G are still waiting six seconds. Lighthouse is a <em>microscope</em>, not a <em>thermometer</em>. Use field data to decide <strong>what</strong> to fix and whether you fixed it; use lab data to figure out <strong>why</strong>.</p>
+
+<div class="callout iv">
+  <span class="ct">In an interview</span>
+  <p>Volunteering "…but I'd want to check field data too, because Lighthouse is one simulated device and CrUX is what our users actually experienced at p75" is one of the cheapest ways to sound senior in this entire topic. It signals that you know a score isn't the goal — the users are.</p>
+</div>
+
+<h2 id="lazy"><span class="num">Part 7</span>Lazy loading — and the hero image trap</h2>
+
+<p>The idea is simple: don't download things nobody is going to look at. A 40-image gallery where the user only ever sees the first three is 37 wasted downloads competing for the same bandwidth as the things that matter.</p>
+
+<p>The browser gives you this for free:</p>
+
+<pre><code><span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/gallery/12.jpg"</span> <span class="fn">loading</span>=<span class="str">"lazy"</span>
+     <span class="fn">width</span>=<span class="str">"600"</span> <span class="fn">height</span>=<span class="str">"400"</span> <span class="fn">alt</span>=<span class="str">"..."</span><span class="tag">&gt;</span>
+
+<span class="tag">&lt;iframe</span> <span class="fn">src</span>=<span class="str">"https://example.com/map"</span> <span class="fn">loading</span>=<span class="str">"lazy"</span><span class="tag">&gt;&lt;/iframe&gt;</span></code></pre>
+
+<p>The browser defers the request until the element is near the viewport. Keep the <code>width</code>/<code>height</code> — lazy-loaded images cause layout shift precisely because they arrive late, so reserving space matters <em>more</em> here, not less.</p>
+
+<p>For anything that isn't an image or iframe — a heavy chart component, an infinite-scroll trigger, a video that should only initialise when visible — use <strong>IntersectionObserver</strong>, which tells you asynchronously when an element enters the viewport, without you writing scroll handlers that run 60 times a second:</p>
+
+<pre><code><span class="kw">const</span> observer = <span class="kw">new</span> <span class="fn">IntersectionObserver</span>((entries) =&gt; {
+  <span class="kw">for</span> (<span class="kw">const</span> entry <span class="kw">of</span> entries) {
+    <span class="kw">if</span> (!entry.isIntersecting) <span class="kw">continue</span>;
+    <span class="fn">loadChartFor</span>(entry.target);
+    observer.<span class="fn">unobserve</span>(entry.target); <span class="cm">// 👈 don't load it twice</span>
+  }
+}, { rootMargin: <span class="str">'200px'</span> });      <span class="cm">// 👈 start early, before it's visible</span>
+
+<span class="fn">document</span>.<span class="fn">querySelectorAll</span>(<span class="str">'.chart'</span>).<span class="fn">forEach</span>(el =&gt; observer.<span class="fn">observe</span>(el));</code></pre>
+
+<p>That <code>rootMargin</code> is the difference between "lazy loading" and "user stares at a blank box." Start the load a few hundred pixels before the element is on screen, so it's ready by the time it's seen.</p>
+
+<p>The third flavour is <strong>route-based code splitting</strong>: don't ship the JavaScript for the settings page to someone reading the homepage. More on that in the next section.</p>
+
+<h3>Why you must never lazy-load the LCP image</h3>
+
+<p>Back to my humiliating story from the opening. Here's what actually happens when you put <code>loading="lazy"</code> on your hero image.</p>
+
+<p>Normally, the preload scanner spots <code>&lt;img src="/hero.jpg"&gt;</code> within milliseconds of the HTML arriving and starts downloading it immediately — in parallel with CSS, before layout even exists.</p>
+
+<p>With <code>loading="lazy"</code>, the browser <em>deliberately does not do that</em>. It has to wait until it knows where the image will be, which means waiting for CSS, waiting for layout, and only then discovering "oh, this one's in the viewport, better fetch it." That's a whole extra round trip, bolted onto the end of the critical path, for the exact element the LCP metric is timing.</p>
+
+<figure>
+  <div class="diagram">
+    <svg viewBox="0 0 660 150" role="img" aria-label="Timeline comparison: eager hero image starts downloading immediately, lazy hero image waits for CSS and layout first.">
+      <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+        <text x="10" y="26" font-size="11.5" font-weight="700" fill="#1f7a4d">✅ eager (default)</text>
+        <rect x="10" y="34" width="120" height="24" rx="4" fill="#3b5bdb"/>
+        <text x="70" y="51" font-size="10.5" text-anchor="middle" fill="#fff">HTML</text>
+        <rect x="132" y="34" width="200" height="24" rx="4" fill="#1f9d8f"/>
+        <text x="232" y="51" font-size="10.5" text-anchor="middle" fill="#fff">hero.jpg downloads</text>
+        <rect x="334" y="34" width="70" height="24" rx="4" fill="#2b8a3e"/>
+        <text x="369" y="51" font-size="10.5" text-anchor="middle" fill="#fff">LCP 🎉</text>
+
+        <text x="10" y="94" font-size="11.5" font-weight="700" fill="#b4232a">❌ loading="lazy"</text>
+        <rect x="10" y="102" width="120" height="24" rx="4" fill="#3b5bdb"/>
+        <text x="70" y="119" font-size="10.5" text-anchor="middle" fill="#fff">HTML</text>
+        <rect x="132" y="102" width="110" height="24" rx="4" fill="#6b3fa0"/>
+        <text x="187" y="119" font-size="10.5" text-anchor="middle" fill="#fff">CSS</text>
+        <rect x="244" y="102" width="80" height="24" rx="4" fill="#c9c4bb"/>
+        <text x="284" y="119" font-size="10.5" text-anchor="middle" fill="#1f2430">layout</text>
+        <rect x="326" y="102" width="200" height="24" rx="4" fill="#1f9d8f"/>
+        <text x="426" y="119" font-size="10.5" text-anchor="middle" fill="#fff">hero.jpg downloads</text>
+        <rect x="528" y="102" width="70" height="24" rx="4" fill="#b4232a"/>
+        <text x="563" y="119" font-size="10.5" text-anchor="middle" fill="#fff">LCP 😞</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>Lazy loading delays discovery. For the LCP element, discovery delay <em>is</em> the score.</figcaption>
+</figure>
+
+<p>So the decision line is <strong>above the fold vs below the fold</strong>. Anything in the initial viewport loads eagerly, ideally with <code>fetchpriority="high"</code> for the biggest one. Everything below the fold gets <code>loading="lazy"</code>. That's the whole rule, and it's a rule you can now derive instead of memorise.</p>
+
+<div class="callout myth">
+  <span class="ct">A common misconception</span>
+  <p><em>"Lazy loading is always a win because fewer bytes is always better."</em> No — lazy loading trades <strong>total bytes</strong> for <strong>discovery latency</strong>. That's a great trade for things the user may never see, and a terrible one for things they're staring at right now.</p>
+</div>
+
+<h2 id="bundle"><span class="num">Part 8</span>Bundle size and code splitting</h2>
+
+<p>JavaScript is the most expensive kilobyte you can ship. A 200KB image and a 200KB JS bundle are not remotely equivalent: the image gets decoded off the main thread and painted; the JS must be downloaded, parsed, compiled and <em>executed</em> on the same thread that handles every tap. On a low-end phone that's the difference between "a bit slower" and "the page is frozen."</p>
+
+<p>Strategies, roughly in the order I'd apply them:</p>
+
+<p><strong>1. Route-based splitting first.</strong> Biggest win for the least risk. Someone landing on <code>/pricing</code> should not download the checkout flow, the admin dashboard, or the rich text editor.</p>
+
+<pre><code><span class="kw">const</span> Dashboard = <span class="fn">lazy</span>(() =&gt; <span class="fn">import</span>(<span class="str">'./routes/Dashboard'</span>)); <span class="cm">// 👈 own chunk</span></code></pre>
+
+<p>That <code>import()</code> — a dynamic import — is the signal your bundler uses to cut the graph into a separate file that's fetched on demand.</p>
+
+<p><strong>2. Component-level splitting for heavy widgets.</strong> A charting library, a video player, a WYSIWYG editor, a date picker with every locale. If it's below the fold or behind an interaction, split it and load it on intersection or on click.</p>
+
+<p><strong>3. Vendor chunking.</strong> Put stable third-party dependencies in their own chunk. Your app code changes every deploy; React doesn't. Separate chunks mean users only re-download the part that actually changed. (This pairs directly with the caching section — the two techniques only pay off together.)</p>
+
+<p><strong>4. Tree shaking.</strong> Bundlers statically analyse ES module <code>import</code>/<code>export</code> to drop code nothing references. It only works with ESM — CommonJS <code>require()</code> is dynamic, so it can't be analysed the same way — and it's defeated by side effects, which is what <code>"sideEffects": false</code> in <code>package.json</code> is for.</p>
+
+<p><strong>5. Audit with a bundle analyser.</strong> Every bundler has one, and they all draw the same treemap of "what is actually in here." Run it before guessing. Nine times out of ten there's one absurd rectangle — a date library with every locale, an icon set imported wholesale, two copies of the same package at different versions.</p>
+
+<p><strong>6. Replace heavy dependencies.</strong> The classics: <code>moment</code> (huge, all locales bundled) → <code>date-fns</code>, <code>day.js</code>, or the native <code>Temporal</code> API where available. Lodash imported as a whole → per-method imports, or just native array methods.</p>
+
+<div class="codeblock bad">
+  <span class="label">❌ Pulls in the whole library</span>
+<pre><code><span class="kw">import</span> _ <span class="kw">from</span> <span class="str">'lodash'</span>;
+_.<span class="fn">debounce</span>(save, <span class="num2">300</span>);</code></pre>
+</div>
+
+<div class="codeblock good">
+  <span class="label">✅ Pulls in one function</span>
+<pre><code><span class="kw">import</span> debounce <span class="kw">from</span> <span class="str">'lodash-es/debounce'</span>;
+<span class="fn">debounce</span>(save, <span class="num2">300</span>);</code></pre>
+</div>
+
+<p><strong>7. Ship modern syntax to modern browsers.</strong> Transpiling to ES5 for browsers that died years ago inflates your bundle noticeably — every arrow function becomes a function expression, every <code>async</code> becomes a state machine, plus polyfills. Setting a realistic browserslist target, or shipping a modern build via <code>type="module"</code> with a legacy <code>nomodule</code> fallback, can cut 10–20% for free.</p>
+
+<p>The <em>how</em> of configuring all this — splitChunks, manualChunks, module federation — belongs in the bundler guide; here, what matters is knowing which strategy solves which problem and in what order you'd reach for them.</p>
+
+<h2 id="images"><span class="num">Part 9</span>Image optimisation</h2>
+
+<p>If you can only do one thing to a typical website, do this one. Images are usually the majority of page weight, and unlike JavaScript, fixing them requires no refactoring at all.</p>
+
+<h3>Pick the right format</h3>
+
+<ul>
+  <li><strong>AVIF</strong> — best compression by a wide margin, ~50% smaller than JPEG at similar quality. Slower to encode; use it as the first choice with fallbacks.</li>
+  <li><strong>WebP</strong> — ~25–35% smaller than JPEG, universally supported now. Great middle ground, supports transparency and animation.</li>
+  <li><strong>JPEG</strong> — the safe fallback for photos.</li>
+  <li><strong>PNG</strong> — only for images that need lossless quality or crisp transparency. Never for photographs; a PNG photo is often 5× the size for no visible gain.</li>
+  <li><strong>SVG</strong> — anything vector: logos, icons, illustrations. Scales infinitely, usually tiny, and you can style it with CSS.</li>
+</ul>
+
+<h3>Serve the right <em>size</em>, not just the right format</h3>
+
+<p>The most common waste in the wild isn't format, it's dimensions. A 4000px-wide photo downscaled by CSS to a 400px thumbnail still downloads all four thousand pixels — and the phone still decodes them, which costs memory and main-thread time. You're paying 100× for something invisible.</p>
+
+<pre><code><span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/photo-800.jpg"</span>
+     <span class="fn">srcset</span>=<span class="str">"/photo-400.jpg 400w, /photo-800.jpg 800w, /photo-1600.jpg 1600w"</span>
+     <span class="fn">sizes</span>=<span class="str">"(max-width: 700px) 100vw, 700px"</span>
+     <span class="fn">width</span>=<span class="str">"800"</span> <span class="fn">height</span>=<span class="str">"600"</span> <span class="fn">alt</span>=<span class="str">"Harbour at dusk"</span><span class="tag">&gt;</span></code></pre>
+
+<p>Two attributes, two different jobs, and interviewers love to check you know which is which:</p>
+
+<ul>
+  <li><strong><code>srcset</code></strong> lists the files you have and how wide each one <em>is</em>.</li>
+  <li><strong><code>sizes</code></strong> tells the browser how wide the image will be <em>displayed</em> at a given viewport width. Without it the browser assumes 100vw and over-downloads.</li>
+</ul>
+
+<p>The browser then picks, factoring in device pixel ratio. It makes this choice from the preload scanner, before CSS — which is why <code>sizes</code> has to be your promise about the layout rather than something read from the stylesheet.</p>
+
+<h3><code>&lt;picture&gt;</code> for format fallback and art direction</h3>
+
+<pre><code><span class="tag">&lt;picture&gt;</span>
+  <span class="tag">&lt;source</span> <span class="fn">srcset</span>=<span class="str">"/hero.avif"</span> <span class="fn">type</span>=<span class="str">"image/avif"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;source</span> <span class="fn">srcset</span>=<span class="str">"/hero.webp"</span> <span class="fn">type</span>=<span class="str">"image/webp"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;img</span> <span class="fn">src</span>=<span class="str">"/hero.jpg"</span> <span class="fn">width</span>=<span class="str">"1200"</span> <span class="fn">height</span>=<span class="str">"600"</span> <span class="fn">alt</span>=<span class="str">"..."</span><span class="tag">&gt;</span>
+<span class="tag">&lt;/picture&gt;</span></code></pre>
+
+<p>The browser takes the <em>first</em> <code>&lt;source&gt;</code> whose type it supports; the <code>&lt;img&gt;</code> is the required last-resort fallback (and it's the element that actually renders, so all your attributes go there).</p>
+
+<p><strong>Art direction</strong> is the other use: with a <code>media</code> attribute on each source you can serve a genuinely different crop on mobile — a tight portrait crop instead of a wide landscape shot squeezed to nothing. That's a job <code>srcset</code> can't do, because <code>srcset</code> assumes all the candidates are the same picture.</p>
+
+<p>Finally: <strong>quality settings</strong> — 75–85 is usually indistinguishable from 100 at a fraction of the size; and <strong>a CDN with on-the-fly transformation</strong> (Cloudinary, imgix, Next/Image, Cloudflare Images) so you upload one original and it generates every format and size on demand, cached at the edge. That's the pragmatic answer to "how do you handle this at scale."</p>
+
+<h2 id="unblock"><span class="num">Part 10</span>Eliminating render-blocking resources</h2>
+
+<p>We established that nothing paints until the CSSOM is ready. So the goal is: make the CSS needed for the top of the page arrive as fast as physically possible, and make everything else not block.</p>
+
+<p><strong>Inline the critical CSS.</strong> Extract the styles needed to render the above-the-fold content and put them directly in a <code>&lt;style&gt;</code> tag in the head. Zero extra requests — it arrives with the HTML. Then load the full stylesheet without blocking:</p>
+
+<pre><code><span class="tag">&lt;style&gt;</span><span class="cm">/* ~10KB of above-the-fold styles, inlined */</span><span class="tag">&lt;/style&gt;</span>
+
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"stylesheet"</span> <span class="fn">href</span>=<span class="str">"/full.css"</span>
+      <span class="fn">media</span>=<span class="str">"print"</span> <span class="fn">onload</span>=<span class="str">"this.media='all'"</span><span class="tag">&gt;</span> <span class="cm">&lt;!-- 👈 the classic trick --&gt;</span>
+<span class="tag">&lt;noscript&gt;&lt;link</span> <span class="fn">rel</span>=<span class="str">"stylesheet"</span> <span class="fn">href</span>=<span class="str">"/full.css"</span><span class="tag">&gt;&lt;/noscript&gt;</span></code></pre>
+
+<p>Why does that work? Because <strong>a stylesheet only blocks rendering if it applies to the current medium.</strong> <code>media="print"</code> means "irrelevant to the screen," so the browser downloads it at low priority without blocking paint; the <code>onload</code> then flips it to <code>all</code> and it applies. Same reason you can legitimately split a genuine print stylesheet out — it'll never block.</p>
+
+<p><strong>Defer your scripts.</strong> Covered above, but it belongs on this checklist: <code>defer</code> (or <code>type="module"</code>) on everything, <code>async</code> for independent third-party tags.</p>
+
+<p><strong>Handle fonts deliberately.</strong> Fonts are sneaky render-blockers because they're discovered <em>late</em> — the browser only knows it needs a font after parsing the CSS that references it, and only if a matching element exists.</p>
+
+<pre><code><span class="kw">@font-face</span> {
+  <span class="kw">font-family</span>: <span class="str">'Inter'</span>;
+  <span class="kw">src</span>: <span class="fn">url</span>(<span class="str">'/fonts/inter.woff2'</span>) <span class="fn">format</span>(<span class="str">'woff2'</span>);
+  <span class="kw">font-display</span>: swap;   <span class="cm">/* 👈 show fallback text immediately */</span>
+}</code></pre>
+
+<p>Self-host rather than using a third-party font host — that removes a whole DNS + TCP + TLS handshake to another origin from the critical path. Then <code>&lt;link rel="preload" as="font" type="font/woff2" crossorigin&gt;</code> the one or two faces you actually need above the fold. (Yes, <code>crossorigin</code> is required even same-origin — fonts are always fetched in CORS mode, and without it you'll download the file twice. That's a lovely detail to drop.)</p>
+
+<p><code>font-display</code> is a real trade-off, not a free win: <code>swap</code> protects LCP but risks CLS, <code>optional</code> protects CLS but may skip your font on slow connections. Say which one you'd pick and <em>why</em>, and you've turned a checklist item into a judgement call.</p>
+
+<p><strong>Remove unused CSS.</strong> Big component libraries and years of accumulated styles mean most pages ship far more CSS than they use. DevTools' Coverage panel shows you exactly how much, colour-coded, live. It's often 70%+ unused, and every unused byte is still render-blocking.</p>
+
+<h2 id="debounce"><span class="num">Part 11</span>Debouncing, throttling, passive listeners</h2>
+
+<p>Some events fire absurdly often. <code>scroll</code>, <code>resize</code>, <code>mousemove</code>, and <code>input</code> on a fast typist can all produce dozens of events per second. If your handler does anything non-trivial, you've just guaranteed a bad INP.</p>
+
+<p>Two shapes of fix, and the distinction matters:</p>
+
+<ul>
+  <li><strong>Debounce</strong> — wait until the events <em>stop</em>, then run once. "Tell me when they've finished typing." Perfect for search-as-you-type, autosave, validation.</li>
+  <li><strong>Throttle</strong> — run at most once every N ms while events continue. "Tell me every 100ms, no matter how much they scroll." Perfect for scroll position, progress indicators, anything that needs continuous-ish updates.</li>
+</ul>
+
+<p>Debouncing a scroll handler that updates a sticky header would mean the header only moves after you <em>stop</em> scrolling — useless. Throttling a search request means firing a request every 200ms while someone types a ten-letter word — wasteful. Picking the wrong one is a classic interview trap; the giveaway is asking yourself whether you need updates <em>during</em> the activity or only <em>after</em> it.</p>
+
+<p>The perf-specific companion is <strong>passive listeners</strong>:</p>
+
+<pre><code>window.<span class="fn">addEventListener</span>(<span class="str">'scroll'</span>, onScroll, { passive: <span class="kw">true</span> }); <span class="cm">// 👈</span></code></pre>
+
+<p>A touch or wheel listener is allowed to call <code>preventDefault()</code> to cancel scrolling. That means the browser can't start scrolling until your handler has run and it knows whether you cancelled — so a slow handler literally delays the scroll itself, producing that horrible sticky feeling. <code>passive: true</code> is a promise: "I will never call preventDefault." The browser can then scroll on the compositor immediately and run your handler whenever. (Browsers now default <code>touchstart</code>/<code>touchmove</code>/<code>wheel</code> on window and document to passive for this reason, but being explicit is still good practice — and knowing <em>why</em> is the interview answer.)</p>
+
+<h2 id="cache"><span class="num">Part 12</span>Caching strategies</h2>
+
+<p>The fastest request is the one that never happens. Caching is how you make the second visit — and often the second <em>page</em> — nearly instant.</p>
+
+<h3>Cache-Control, the one header that matters</h3>
+
+<pre><code>Cache-Control: public, max-age=31536000, immutable</code></pre>
+
+<p>The pieces:</p>
+
+<ul>
+  <li><strong><code>max-age=N</code></strong> — this response is fresh for N seconds. During that window the browser uses the cached copy with <em>no network request at all</em>. Not a fast request. Zero request.</li>
+  <li><strong><code>no-cache</code></strong> — a famously misleading name. It does <em>not</em> mean "don't cache." It means "cache it, but revalidate with the server before every use." You still get the speed benefit when nothing changed (the server replies 304 Not Modified, no body), you just always pay one round trip.</li>
+  <li><strong><code>no-store</code></strong> — <em>this</em> is "don't cache." Never write it to disk. For genuinely sensitive responses.</li>
+  <li><strong><code>immutable</code></strong> — "this URL's content will never change; don't even revalidate on reload." Stops the browser from wasting round trips when a user hits refresh.</li>
+  <li><strong><code>stale-while-revalidate=N</code></strong> — my favourite. After freshness expires, serve the stale copy <em>instantly</em> and refetch in the background for next time. The user gets zero latency; the cache self-heals. Ideal for content that's allowed to be a few minutes old.</li>
+</ul>
+
+<h3>ETag and conditional requests</h3>
+
+<p>An <code>ETag</code> is a fingerprint of the response body. When the cached copy goes stale, the browser asks again but includes <code>If-None-Match: "abc123"</code>. If nothing changed, the server replies <code>304 Not Modified</code> with an empty body. You still pay the round trip, but not the bytes. (<code>Last-Modified</code> + <code>If-Modified-Since</code> is the older, coarser, timestamp-based version of the same idea.)</p>
+
+<h3>The pattern that makes aggressive caching safe</h3>
+
+<p>Here's the tension. You want <code>max-age=31536000</code> (a year!) so returning users download nothing. But if you cache <code>app.js</code> for a year and then deploy a fix, users are stuck on the broken version for a year. That's terrifying, so most people set a timid <code>max-age=3600</code> and lose most of the benefit.</p>
+
+<p>The resolution is beautifully simple: <strong>make the filename depend on the content.</strong></p>
+
+<pre><code><span class="cm">// build output</span>
+app.<span class="num2">8f3a2b1c</span>.js
+vendor.<span class="num2">c4e91d07</span>.css
+
+<span class="cm">// served with</span>
+Cache-Control: public, max-age=31536000, immutable</code></pre>
+
+<p>Change one character of source and the hash changes, so the URL changes, so it's a <em>different resource</em> the browser has never seen and must fetch. Nothing changes, the URL is identical and it's served from cache instantly. You never need to invalidate anything — <strong>you don't bust the cache, you sidestep it.</strong></p>
+
+<p>The one piece that must <em>not</em> be cached aggressively is the <strong>HTML</strong>, because that's what points at the hashed filenames. Give it <code>no-cache</code> (revalidate every time) so a deploy is picked up immediately, and let the HTML hand out the new URLs. This is exactly why vendor chunking pays off: your app hash changes every deploy, React's doesn't, so returning users re-download 30KB instead of 300KB.</p>
+
+<div class="callout iv">
+  <span class="ct">How this gets asked</span>
+  <p>"How do you cache aggressively without shipping stale code?" — this is a favourite because the naive answer ("set a short max-age") shows you've never thought about it.</p>
+  <div class="say">
+    <span class="who">Say this out loud</span>
+    <p>"Content-hashed filenames plus a one-year immutable max-age on the assets, and <code>no-cache</code> on the HTML. The HTML is always revalidated, so a deploy is picked up straight away, and it references new hashed URLs for anything that changed. Since the URL changes whenever the content changes, there's nothing to invalidate — unchanged files keep their URL and stay cached. I'd also split vendor code into its own chunk so a normal deploy doesn't invalidate the framework."</p>
+  </div>
+</div>
+
+<h3>CDN edge caching and service workers</h3>
+
+<p>A <strong>CDN</strong> caches your responses in data centres physically near your users. Two wins: fewer milliseconds of round-trip latency (physics — light in fibre isn't that fast), and your origin server never sees most of the traffic. For static assets this is nearly free; for HTML it's where <code>stale-while-revalidate</code> at the edge shines.</p>
+
+<p>A <strong>service worker</strong> is a script that sits between your page and the network and can answer requests itself, from a cache it controls. That gives you offline support and instant repeat loads, with real strategies — cache-first for hashed static assets, network-first for API data, stale-while-revalidate for things in between. It's powerful and genuinely tricky (update lifecycles, users stuck on old service workers, scope rules), so in an interview: know what it is, know it's the layer <em>below</em> HTTP caching that you fully control, and don't pretend it's a casual afternoon's work.</p>
+
+<h2 id="virtual"><span class="num">Part 13</span>Virtualization for long lists</h2>
+
+<p>You've got a table of 10,000 rows. Each row has a few divs, a bit of text, a button. You render them all. Now:</p>
+
+<ul>
+  <li>Building ~60,000 DOM nodes takes hundreds of milliseconds of main-thread time — a giant long task that tanks INP.</li>
+  <li>Layout has to compute geometry for all of them.</li>
+  <li>Memory balloons; on a mid-range phone the tab may just die.</li>
+  <li>Every subsequent style recalculation has to walk a monstrous tree, so <em>everything</em> gets slower, including things unrelated to the list.</li>
+</ul>
+
+<p>And the user can see about 12 rows.</p>
+
+<p><strong>Virtualization</strong> (or windowing) is the fix: render only the rows in the viewport, plus a few extra above and below (the <em>overscan</em>, so fast scrolling doesn't reveal blank space). Then keep the scrollbar honest by putting a spacer element of the full theoretical height in the container, and translate the rendered window to the right offset.</p>
+
+<figure>
+  <div class="diagram">
+    <div class="vlist">
+      <div class="vcol">
+        <h5>Without virtualization</h5>
+        <div class="vbox">
+          <div class="vrow live"></div><div class="vrow live"></div><div class="vrow live"></div>
+          <div class="vrow live"></div><div class="vrow live"></div><div class="vrow live"></div>
+          <div class="vrow live"></div><div class="vrow live"></div><div class="vrow live"></div>
+          <div class="vrow live"></div>
+          <div class="viewport" style="top:4px;height:110px"></div>
+        </div>
+        <p style="font-size:.82rem;color:#4a5266;margin-top:8px">10,000 rows in the DOM. Only ~12 visible. The rest is pure cost.</p>
+      </div>
+      <div class="vcol">
+        <h5>With virtualization</h5>
+        <div class="vbox">
+          <div class="vspacer" style="height:44px"></div>
+          <div class="vrow live"></div><div class="vrow live"></div><div class="vrow live"></div>
+          <div class="vrow live"></div><div class="vrow live"></div>
+          <div class="vspacer" style="height:64px;margin-top:5px"></div>
+          <div class="viewport" style="top:48px;height:110px"></div>
+        </div>
+        <p style="font-size:.82rem;color:#4a5266;margin-top:8px">~15 real rows. Hatched areas are empty spacers that keep the scrollbar correct.</p>
+      </div>
+    </div>
+  </div>
+  <figcaption>Same scroll experience, 0.15% of the DOM nodes.</figcaption>
+</figure>
+
+<p><strong>Fixed height</strong> is the easy case: row 4,217's offset is just <code>4217 × rowHeight</code>, so you can compute the visible window with arithmetic. <strong>Variable height</strong> is much harder — you don't know an item's height until you render it, so libraries estimate, render, measure, then correct, which can cause visible jitter or scroll jumps. If you can make your rows a fixed height, do; it's not a cop-out, it's a real engineering trade.</p>
+
+<p>And the costs are real, which is the part candidates forget:</p>
+
+<ul>
+  <li><strong>Accessibility.</strong> Screen readers may announce "row 3 of 15" instead of "of 10,000" unless you set <code>aria-setsize</code>/<code>aria-posinset</code> and use the right roles. Keyboard focus can land on an element that gets unmounted mid-scroll.</li>
+  <li><strong>Ctrl+F doesn't work.</strong> Browser find can't find text that isn't in the DOM. If your users search the page, this is a genuine regression and you need your own search UI.</li>
+  <li><strong>SEO.</strong> Content not in the DOM generally isn't indexed. Never virtualize a public content list you want in search results.</li>
+  <li><strong>Scroll anchoring and restoration</strong> get fiddly — restoring the exact position after navigating back is real work.</li>
+  <li><strong>Complexity.</strong> Sticky headers, expandable rows, and drag-to-reorder all get harder.</li>
+</ul>
+
+<p><strong>So when is it worth it?</strong> When the list is genuinely large (hundreds to thousands of complex rows), the content is app-like rather than content-like, and you've <em>measured</em> that the DOM size is the bottleneck. For 200 simple rows, don't — pagination or "load more" is simpler and keeps Ctrl+F working. Also check whether CSS <code>content-visibility: auto</code> gets you most of the win first: it lets the browser skip rendering work for off-screen subtrees while keeping the nodes in the DOM, so search and accessibility survive.</p>
+
+<h2 id="devtools"><span class="num">Part 14</span>Walk me through debugging a slow page</h2>
+
+<p>This is asked constantly, and it's not really testing tool knowledge. It's testing whether you have a <em>process</em> or whether you just start changing things. Here's a narrative you can actually deliver.</p>
+
+<h4>0. Ask what "slow" means</h4>
+<p>Slow to load? Slow to respond after loading? Slow on one route or everywhere? Slow for everyone or only on mobile? Half the time this question alone reframes the problem. And it shows you don't optimise blind.</p>
+
+<h4>1. Get a baseline — field data first, then lab</h4>
+<p>Start with real-user data if it exists: CrUX, Search Console, or your RUM dashboard. Which vital is failing, at p75, on which device class? That tells me whether I'm hunting a loading problem, an interactivity problem, or a stability problem — three completely different investigations.</p>
+<p>Then run Lighthouse on the specific page, mobile preset, throttled, to get a reproducible artefact I can re-run after each change. I write the numbers down. Optimising without a written-down baseline means you can never prove you helped.</p>
+
+<h4>2. Network panel — the waterfall</h4>
+<p>Disable cache, throttle to Slow 4G, reload, and read the waterfall top to bottom:</p>
+<ul>
+  <li><strong>How long is the first bar?</strong> That's TTFB. If the HTML takes 1.5s, stop — this is a backend or CDN problem and no frontend change will save it.</li>
+  <li><strong>What's blocking at the top?</strong> Render-blocking CSS and synchronous scripts show as a wall before anything else starts.</li>
+  <li><strong>What's the biggest file?</strong> Sort by size. It's usually an unoptimised image or one enormous JS chunk.</li>
+  <li><strong>When does the LCP image start downloading?</strong> If it starts late, it was discovered late — that's a preload or lazy-loading problem.</li>
+  <li><strong>Are there redirect chains, or waterfalls of dependent requests?</strong> A request that can't start until another finishes is latency you can often parallelise away.</li>
+</ul>
+
+<h4>3. Performance panel — record and read the flame chart</h4>
+<p>Record a page load (or an interaction, if that's the complaint). Then:</p>
+<ul>
+  <li><strong>Look for long tasks</strong> — the main-thread blocks with the little red triangle. Anything over 50ms blocks input. That's your INP/TBT culprit list, sorted by size.</li>
+  <li><strong>Read the flame chart depth-first.</strong> Width = time. Find the widest bar, then look at what's <em>underneath</em> it — that's what it called. Keep descending until you hit something you recognise from your own code or a specific library.</li>
+  <li><strong>Check the summary breakdown</strong> — Scripting vs Rendering vs Painting vs System. Mostly scripting? Too much JS: split it, defer it, or move it to a worker. Mostly rendering/layout? Layout thrashing or a huge DOM: look for forced synchronous layout warnings, which DevTools flags explicitly. Mostly painting? Large paint areas or expensive effects like big blurs and shadows.</li>
+  <li><strong>Layout Shift markers</strong> on the timeline show exactly what moved and when — click one and it names the element.</li>
+</ul>
+
+<h4>4. Framework-level: the React Profiler (if it's re-render bound)</h4>
+<p>If the scripting time is inside the framework rather than in a library, switch to the React Profiler. Record the slow interaction and look at the commit chart: which components re-rendered, how many, and how long each took. The usual findings are a context value changing on every render, a new object or array literal passed as a prop breaking memoization, or an unvirtualized list re-rendering all its children. The Profiler even tells you <em>why</em> each component re-rendered if you turn that setting on.</p>
+
+<h4>5. Fix one thing. Measure. Confirm.</h4>
+<p>Change one thing at a time and re-run the same lab test. If the number didn't move, revert it — a "fix" that doesn't measurably help is just added complexity and future confusion. Then ship it and watch <em>field</em> data over the following week, because that's the only place you learn whether real users got faster.</p>
+
+<div class="callout iv">
+  <span class="ct">The framing that makes you sound senior</span>
+  <p><strong>Measure first, optimise second.</strong> Say it, and mean it. The most common junior answer is a shopping list — "I'd minify, lazy load images, use a CDN, tree shake…" — which sounds knowledgeable but reveals that you'd start changing things before knowing what's wrong. Every one of those might be irrelevant to <em>this</em> page.</p>
+  <p>The senior answer is: get a measurement, form a hypothesis, test the hypothesis, verify the fix moved the number, confirm in the field. Same knowledge, completely different signal.</p>
+</div>
+
+<h2 id="hints"><span class="num">Part 15</span>Resource hints</h2>
+
+<p>Sometimes you know something the browser doesn't. Resource hints are how you tell it.</p>
+
+<pre><code><span class="cm">&lt;!-- I need this NOW, and you'd discover it too late --&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"preload"</span> <span class="fn">as</span>=<span class="str">"image"</span> <span class="fn">href</span>=<span class="str">"/hero.avif"</span> <span class="fn">fetchpriority</span>=<span class="str">"high"</span><span class="tag">&gt;</span>
+
+<span class="cm">&lt;!-- probably needed on the NEXT navigation, whenever you're idle --&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"prefetch"</span> <span class="fn">href</span>=<span class="str">"/checkout.js"</span><span class="tag">&gt;</span>
+
+<span class="cm">&lt;!-- I'll be talking to this origin soon: do the handshakes now --&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"preconnect"</span> <span class="fn">href</span>=<span class="str">"https://api.example.com"</span> <span class="fn">crossorigin</span><span class="tag">&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"dns-prefetch"</span> <span class="fn">href</span>=<span class="str">"https://api.example.com"</span><span class="tag">&gt;</span>
+
+<span class="cm">&lt;!-- fetch + parse this ES module graph early --&gt;</span>
+<span class="tag">&lt;link</span> <span class="fn">rel</span>=<span class="str">"modulepreload"</span> <span class="fn">href</span>=<span class="str">"/app.js"</span><span class="tag">&gt;</span></code></pre>
+
+<ul>
+  <li><strong><code>preload</code></strong> — "fetch this at high priority, I need it for <em>this</em> page." The killer use case is a late-discovered critical resource: an LCP image referenced from CSS, or a font. The <code>as</code> attribute is mandatory — it sets the priority and the correct request headers, and without it the browser may fetch the file twice.</li>
+  <li><strong><code>prefetch</code></strong> — "fetch this at the <em>lowest</em> priority, when you're idle, because the user will probably need it next." Prefetching the JS for the page behind your main CTA makes that navigation feel instant. It's low priority by design, so it won't compete with the current page.</li>
+  <li><strong><code>preconnect</code></strong> — do DNS + TCP + TLS to an origin ahead of time, without fetching anything. Setting up a fresh HTTPS connection costs multiple round trips; on mobile that can easily be 300ms. Use it for origins you know you'll hit — your API, a font host, a payment provider. Add <code>crossorigin</code> when the eventual request is CORS (fonts always are), otherwise you warm the wrong kind of connection.</li>
+  <li><strong><code>dns-prefetch</code></strong> — just the DNS lookup. Cheaper and more widely supported; a reasonable fallback alongside preconnect.</li>
+  <li><strong><code>modulepreload</code></strong> — like preload but module-aware: it fetches, parses, <em>and</em> follows the import graph, so a deep dependency chain doesn't turn into a serialised waterfall of round trips.</li>
+</ul>
+
+<div class="callout myth">
+  <span class="ct">A common misconception</span>
+  <p><em>"Preloading more things makes the page faster."</em> It doesn't, and this is the follow-up an interviewer will hit you with. Bandwidth is finite. <code>preload</code> means <em>high priority</em>, and priority is relative — if you preload ten things, you've told the browser everything is urgent, which is identical information to telling it nothing is. Worse, those high-priority fetches now compete with your actual critical resources, and can make LCP <em>worse</em> than doing nothing.</p>
+  <p>Rule of thumb: preload should be a short list — typically the LCP image and one or two fonts. If you're preloading more than a handful, you're not prioritising, you're just shouting.</p>
+</div>
+
+<p>The other trap: preconnecting to a dozen origins. Each connection consumes resources and DNS/TLS capacity. Two to four preconnects for origins you'll definitely use, and no more.</p>
+
+<h2 id="mainthread"><span class="num">Part 16</span>Reducing main-thread work</h2>
+
+<p>One thread runs your JavaScript, computes styles, does layout, and paints. If JS occupies it for 300ms, nothing else happens for 300ms: no click is processed, no frame is drawn, no hover state updates. The page is, in every way the user can perceive, frozen.</p>
+
+<p>A <strong>long task</strong> is any task over 50ms. Fifty milliseconds is the threshold because it leaves enough headroom to respond to an interaction within a comfortable budget even if input arrives at the worst possible moment.</p>
+
+<p>Think of the main thread as a single checkout lane in a shop. If someone is paying for a full trolley, everyone behind them waits — even the person holding one banana. You can't add a lane (JS is single-threaded), but you <em>can</em> ask the big shopper to pack a few bags, step aside, and rejoin.</p>
+
+<h3>Yielding: breaking one long task into many short ones</h3>
+
+<div class="codeblock bad">
+  <span class="label">❌ One 400ms task — page is frozen</span>
+<pre><code><span class="kw">function</span> <span class="fn">processOrders</span>(orders) {
+  <span class="kw">for</span> (<span class="kw">const</span> order <span class="kw">of</span> orders) {   <span class="cm">// 5,000 orders</span>
+    <span class="fn">expensiveTransform</span>(order);
+  }
+}</code></pre>
+</div>
+
+<div class="codeblock good">
+  <span class="label">✅ Many short tasks — input can get through</span>
+<pre><code><span class="kw">async function</span> <span class="fn">processOrders</span>(orders) {
+  <span class="kw">let</span> lastYield = <span class="fn">performance</span>.<span class="fn">now</span>();
+  <span class="kw">for</span> (<span class="kw">const</span> order <span class="kw">of</span> orders) {
+    <span class="fn">expensiveTransform</span>(order);
+    <span class="kw">if</span> (<span class="fn">performance</span>.<span class="fn">now</span>() - lastYield &gt; <span class="num2">50</span>) {
+      <span class="kw">await</span> <span class="fn">scheduler</span>.<span class="fn">yield</span>();   <span class="cm">// 👈 let the browser breathe</span>
+      lastYield = <span class="fn">performance</span>.<span class="fn">now</span>();
+    }
+  }
+}</code></pre>
+</div>
+
+<p>The total work is identical. But now the browser gets gaps between chunks in which it can handle a click and paint a frame. Same CPU, dramatically better INP — because INP measures <em>responsiveness</em>, not throughput.</p>
+
+<p>Your options for that yield point:</p>
+
+<ul>
+  <li><strong><code>await scheduler.yield()</code></strong> — the modern, purpose-built one. Crucially it yields at <em>high</em> priority, so your continuation resumes ahead of other pending tasks rather than going to the back of the queue. (Newer API; feature-detect and fall back.)</li>
+  <li><strong><code>await new Promise(r =&gt; setTimeout(r, 0))</code></strong> — the universal fallback. Works everywhere, but your continuation queues behind everything else.</li>
+  <li><strong><code>navigator.scheduling.isInputPending()</code></strong> — ask "is a user input waiting right now?" and only yield if so. Avoids yielding needlessly when nobody's interacting.</li>
+  <li><strong><code>requestIdleCallback(fn)</code></strong> — "run this whenever there's spare time at the end of a frame." Right for genuinely optional background work: prefetching, analytics batching, warming caches. Wrong for anything the user is waiting on, since it might not run for a long time on a busy page.</li>
+</ul>
+
+<h3>Web Workers: actually leaving the main thread</h3>
+
+<p>Yielding shares one lane more politely. A <strong>Web Worker</strong> opens a second lane — a genuine background thread.</p>
+
+<pre><code><span class="cm">// main.js</span>
+<span class="kw">const</span> worker = <span class="kw">new</span> <span class="fn">Worker</span>(<span class="str">'/parser.worker.js'</span>);
+worker.<span class="fn">postMessage</span>({ csv: rawText });
+worker.<span class="fn">onmessage</span> = (e) =&gt; <span class="fn">renderTable</span>(e.data.rows); <span class="cm">// 👈 UI never froze</span></code></pre>
+
+<p>The catch: a worker has <strong>no DOM access</strong>. It can't read or touch elements — it only exchanges messages, and the data gets copied (structured clone) unless you use transferable objects like ArrayBuffers. So workers are for <em>computation</em>, not rendering: parsing a big CSV, image processing, crypto, diffing large datasets, running a search index.</p>
+
+<p>Rule of thumb: if the work takes a meaningful chunk of time and doesn't need the DOM, it belongs in a worker. If it needs the DOM, break it into chunks and yield.</p>
+
+<h2 id="followups"><span class="num">Part 17</span>Interview follow-ups, answered</h2>
+
+<p>Click to reveal each answer — try answering out loud first. That's the whole point.</p>
+
+<details>
+  <summary>"async vs defer?"</summary>
+  <p>Both download in parallel with HTML parsing, so download is never the difference. <code>async</code> executes as soon as the file arrives, interrupting parsing at whatever point it's reached, and multiple async scripts run in whatever order they finish — no guarantees. <code>defer</code> waits until parsing is complete, then runs scripts in document order right before <code>DOMContentLoaded</code>. So: <code>async</code> for independent third-party scripts, <code>defer</code> for app code with dependencies or DOM access. <code>type="module"</code> behaves like <code>defer</code> automatically.</p>
+</details>
+
+<details>
+  <summary>"Why is CSS render-blocking?"</summary>
+  <p>Because the render tree needs both the DOM <em>and</em> the CSSOM, and CSS cascades — a rule at the bottom of the last stylesheet can override everything above it, so no element's final style is known until all the CSS is parsed. If the browser painted early it would show unstyled content and then violently reflow into the real design. It chooses to show nothing rather than show that. Worth adding: CSS blocks <em>rendering</em>, not HTML parsing, though it blocks parsing indirectly when a synchronous script has to wait for the CSSOM.</p>
+</details>
+
+<details>
+  <summary>"What replaced FID, and why?"</summary>
+  <p>INP replaced FID as a Core Web Vital in March 2024. FID only measured the <em>delay</em> before the <em>first</em> interaction's handler started running — so a page where every button took 800ms of work could still score perfectly, because FID stopped counting the moment the handler began. INP measures the full interaction-to-next-paint latency, across all interactions in the visit, and reports roughly the worst one. That means long tasks, expensive handlers and heavy re-renders finally show up in the score.</p>
+</details>
+
+<details>
+  <summary>"How would you improve LCP on a page you've never seen?"</summary>
+  <p>I'd decompose it before touching anything, because LCP is roughly TTFB + render-blocking delay + resource load time + element render delay, and the fix is completely different for each. First: what <em>is</em> the LCP element? DevTools tells me. Then check TTFB — if that's 1.5s it's a server/CDN problem and nothing on the frontend helps. Then look for render-blocking CSS and sync scripts delaying first paint. Then check when the LCP resource starts downloading: late start means a discovery problem (preload it, remove <code>loading="lazy"</code>, add <code>fetchpriority="high"</code>), slow transfer means it's too big (modern format, right dimensions, CDN). If the element only appears after JS runs, the real fix is server-rendering it. Then re-measure to confirm which one actually mattered.</p>
+</details>
+
+<details>
+  <summary>"What causes layout shift, and how do you fix it?"</summary>
+  <p>Anything that changes the size or position of already-painted content without the user asking for it. The big four: media without dimensions, late-injected content like ads and banners above existing content, web fonts swapping in with different metrics, and animating layout properties. Fixes map one to one: always set <code>width</code>/<code>height</code> or <code>aspect-ratio</code> on images, videos and iframes so space is reserved before the file lands; give ad and embed slots a fixed min-height; use <code>font-display: optional</code> or metric-matched fallbacks via <code>size-adjust</code>; and animate <code>transform</code>/<code>opacity</code> instead of <code>top</code>/<code>height</code>. Shifts within 500ms of a user interaction are excluded, so expanding an accordion on click is fine.</p>
+</details>
+
+<details>
+  <summary>"Why shouldn't you lazy-load the hero image?"</summary>
+  <p>Because you delay the very thing the metric measures. Normally the preload scanner finds the hero in the first few bytes of HTML and starts fetching it immediately. With <code>loading="lazy"</code> the browser has to wait for CSS and layout to determine whether the image is in the viewport before it will even request it — so you've added a full round trip to the end of the critical path, for the LCP element specifically. The rule is: above the fold loads eagerly, ideally with <code>fetchpriority="high"</code>; below the fold gets lazy loading.</p>
+</details>
+
+<details>
+  <summary>"How do you cache aggressively without shipping stale code?"</summary>
+  <p>Content-hashed filenames plus <code>Cache-Control: max-age=31536000, immutable</code> on assets, and <code>no-cache</code> on the HTML. The hash means the URL changes exactly when the content changes, so there's nothing to invalidate — unchanged files keep their URL and their cached copy, changed files are new URLs the browser has never seen. The HTML is revalidated every load, so a deploy is picked up immediately and hands out the new URLs. I'd also split vendor code into its own chunk so a normal app deploy doesn't invalidate the framework, and use <code>stale-while-revalidate</code> for content that's allowed to be slightly stale.</p>
+</details>
+
+<details>
+  <summary>"Walk me through debugging a slow page."</summary>
+  <p>First I'd ask what "slow" means and for whom, then get field data to see which vital is failing at p75 and on what devices — that decides whether it's a loading, interactivity or stability problem. Then a Lighthouse run on mobile throttling as a reproducible baseline I write down. Network panel next: TTFB, render-blocking resources at the top of the waterfall, biggest payloads, and when the LCP resource starts. If it's an interactivity problem, a Performance recording: find long tasks over 50ms, read the flame chart down to my own code, and check the scripting-vs-rendering-vs-painting split, because that points at completely different fixes. React Profiler if the time is inside the framework. Then fix one thing, re-run the same test to confirm the number moved, and watch field data after shipping. Measure first, optimise second.</p>
+</details>
+
+<details>
+  <summary>"Reflow vs repaint?"</summary>
+  <p>Reflow (layout) recomputes geometry — position and size of boxes — and is triggered by geometric changes like width, height, padding, font-size, or adding and removing DOM nodes. It's expensive because it can cascade to ancestors and siblings, and it's always followed by repaint and composite. Repaint only redraws pixels without recomputing geometry — triggered by things like colour, background, box-shadow, visibility. Cheaper, but still main-thread work. Below both is composite: changing only <code>transform</code> or <code>opacity</code> on a promoted layer skips layout <em>and</em> paint entirely and runs on the GPU, which is why that's what you animate. The related gotcha is layout thrashing — interleaving DOM writes and geometry reads forces a synchronous layout on every iteration, so you batch all reads and then all writes.</p>
+</details>
+
+<details>
+  <summary>"When is virtualization worth it?"</summary>
+  <p>When the list is genuinely large — hundreds to thousands of non-trivial rows — and I've measured that DOM size or initial render is the bottleneck, not something else. The wins are a much smaller DOM, faster initial render, and cheaper style recalculation everywhere. The costs are real: Ctrl+F stops finding off-screen content, screen readers need explicit <code>aria-setsize</code>/<code>aria-posinset</code>, off-screen content isn't indexed for SEO, and scroll restoration and variable row heights get genuinely fiddly. So I wouldn't virtualize a public content page or a 200-row table — pagination is simpler. I'd also try <code>content-visibility: auto</code> first, since it skips rendering work for off-screen subtrees while keeping the nodes in the DOM, so find-in-page and accessibility survive.</p>
+</details>
+
+<details>
+  <summary>"Why not just put everything in one bundle? Fewer requests is faster, right?"</summary>
+  <p>That was true under HTTP/1.1, where browsers capped parallel connections per origin, so concatenation was a real optimisation. Under HTTP/2 and HTTP/3, requests are multiplexed over one connection and the per-request cost is small, so the tradeoff flipped. One giant bundle means every user downloads, parses and executes code for pages they'll never visit, and one line changed invalidates the whole cached file. Splitting means smaller critical payloads, better caching granularity, and less main-thread parse and execute time. The counterweight is that <em>too</em> many tiny chunks add overhead and can create request waterfalls — so route-level splitting plus a vendor chunk, not a chunk per component.</p>
+</details>
+
+<details>
+  <summary>"Why not just preload everything important?"</summary>
+  <p>Because priority is relative. Preload doesn't create bandwidth; it reorders a queue. If everything is high priority, nothing is — and worse, all those high-priority fetches now compete with the resource that actually determines your LCP, so overusing preload measurably makes things slower. I keep it to a short list: the LCP image and maybe one or two fonts. For things needed on the <em>next</em> navigation I use <code>prefetch</code>, which is deliberately idle-priority so it can't steal bandwidth from the current page.</p>
+</details>
+
+<details>
+  <summary>"Isn't a 100 Lighthouse score the goal?"</summary>
+  <p>No — it's a proxy, and it's a lab measurement on one simulated device with a cold cache and no extensions. Real users have different devices, networks, warm caches and ad blockers, and the vitals that Google actually uses come from field data at p75. Lighthouse is excellent for debugging and for catching regressions in CI, because it's reproducible. But I'd decide <em>what</em> to work on from field data, and verify the fix in the field afterwards. It's also possible to game the score without helping anyone, which is a good sign the number isn't the objective.</p>
+</details>
+
+<details>
+  <summary>"Debounce or throttle for a search input? What about a scroll handler?"</summary>
+  <p>Debounce the search input — I only want to fire a request once the user has stopped typing, otherwise I'm sending a request per keystroke and racing the responses. Throttle the scroll handler — I need updates <em>during</em> the scroll, just not sixty times a second, so capping it at one call every 100ms or so is right. The general test is whether I need feedback while the activity is happening (throttle) or only once it's over (debounce). For scroll specifically I'd also add <code>{ passive: true }</code>, so the browser doesn't have to wait for my handler to find out whether I'm cancelling the scroll.</p>
+</details>
+
+<h2 id="cheatsheet"><span class="num">Part 18</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. One line each.</p>
+
+<dl class="cheat">
+  <dt>Critical rendering path</dt>
+  <dd>HTML → DOM, CSS → CSSOM, combine → render tree → layout → paint → composite.</dd>
+
+  <dt>display:none vs visibility:hidden</dt>
+  <dd><code>display:none</code> is excluded from the render tree and takes no space; <code>visibility:hidden</code> is in the tree, keeps its box, just isn't painted.</dd>
+
+  <dt>CSS is render-blocking</dt>
+  <dd>No first paint until the CSSOM is complete, because the cascade means no final style is known until all CSS is parsed. Blocks rendering, not parsing.</dd>
+
+  <dt>Sync scripts are parser-blocking</dt>
+  <dd>The parser stops, downloads, executes, resumes — because <code>document.write</code> could change the rest of the document.</dd>
+
+  <dt>async vs defer</dt>
+  <dd>Both download in parallel. <code>async</code> = execute on arrival, order not guaranteed. <code>defer</code> = execute after parsing, in document order. Modules are deferred by default.</dd>
+
+  <dt>Reflow vs repaint vs composite</dt>
+  <dd>Geometry → layout (most expensive). Appearance only → paint. <code>transform</code>/<code>opacity</code> on a layer → composite only (GPU, cheapest).</dd>
+
+  <dt>Layout thrashing</dt>
+  <dd>Interleaving DOM writes and geometry reads forces synchronous layout each iteration. Batch reads, then writes.</dd>
+
+  <dt>LCP ≤ 2.5s</dt>
+  <dd>Render time of the largest viewport element. LCP ≈ TTFB + render-blocking delay + resource load + element render delay.</dd>
+
+  <dt>INP ≤ 200ms</dt>
+  <dd>Full interaction-to-next-paint, all interactions. Replaced FID in March 2024 because FID ignored the actual handler work and everything after the first input.</dd>
+
+  <dt>CLS ≤ 0.1</dt>
+  <dd>Unexpected movement. Fix by reserving space: <code>width</code>/<code>height</code>, <code>aspect-ratio</code>, min-height on ad slots, font metric matching.</dd>
+
+  <dt>Diagnostic metrics</dt>
+  <dd>TTFB = server; FCP = first anything painted; TBT = lab proxy for INP. All three are Core-Web-Vital <em>diagnostics</em>, not vitals.</dd>
+
+  <dt>Lab vs field</dt>
+  <dd>Lighthouse = reproducible microscope for debugging. CrUX/RUM at p75 = what users actually felt. Decide from field, debug in lab.</dd>
+
+  <dt>Lazy loading</dt>
+  <dd><code>loading="lazy"</code> below the fold, IntersectionObserver with <code>rootMargin</code> for custom cases. Never the LCP image — you delay its discovery.</dd>
+
+  <dt>Code splitting</dt>
+  <dd>Route-level first, then heavy components, plus a vendor chunk. Tree shaking needs ESM. Audit with a bundle analyser before guessing.</dd>
+
+  <dt>Images</dt>
+  <dd>AVIF/WebP with JPEG fallback, SVG for vector. <code>srcset</code> = the files you have; <code>sizes</code> = how wide it'll be displayed. <code>&lt;picture&gt;</code> for format fallback and art direction.</dd>
+
+  <dt>Unblocking render</dt>
+  <dd>Inline critical CSS, load the rest with <code>media="print"</code> + <code>onload</code>, <code>defer</code> scripts, self-host and preload fonts with <code>font-display</code>, delete unused CSS.</dd>
+
+  <dt>Debounce vs throttle</dt>
+  <dd>Debounce = run after it stops (search, autosave). Throttle = run at most every N ms during (scroll, progress). Add <code>{passive:true}</code> to scroll/touch listeners.</dd>
+
+  <dt>Caching</dt>
+  <dd>Content-hashed filenames + <code>max-age=31536000, immutable</code>; <code>no-cache</code> on HTML. <code>no-cache</code> = revalidate; <code>no-store</code> = never store. <code>stale-while-revalidate</code> = instant + self-healing.</dd>
+
+  <dt>Virtualization</dt>
+  <dd>Render the visible window plus overscan, spacer keeps the scrollbar honest. Costs: Ctrl+F, a11y, SEO, scroll restoration. Try <code>content-visibility: auto</code> first.</dd>
+
+  <dt>Resource hints</dt>
+  <dd><code>preload</code> = need now (keep it to 1–3). <code>prefetch</code> = next navigation, idle. <code>preconnect</code>/<code>dns-prefetch</code> = warm a third-party origin. <code>modulepreload</code> = follow the ESM graph.</dd>
+
+  <dt>Main-thread work</dt>
+  <dd>Long task = &gt;50ms. Yield with <code>scheduler.yield()</code>, gate on <code>isInputPending()</code>, background work via <code>requestIdleCallback</code>, DOM-free computation into a Web Worker.</dd>
+
+  <dt>The framing</dt>
+  <dd>Measure first, optimise second. Baseline → hypothesis → one change → re-measure → confirm in the field.</dd>
+</dl>
+
+<hr class="soft">
+
+<p>That's the whole map. And here's the thing worth carrying into the room with you: almost none of this is memorisation. Every single rule in the cheat sheet falls out of the pipeline diagram at the top. Why is CSS render-blocking? Look at the diagram — the render tree needs both trees. Why is lazy-loading the hero bad? The image can't be discovered until layout runs. Why animate <code>transform</code>? It enters the pipeline at the last step.</p>
+
+<p>When an interviewer asks something you haven't specifically prepared for — and they will — go back to the pipeline and reason forward out loud. Watching a candidate <em>derive</em> the right answer is far more convincing than hearing them recite one. 🚀</p>
+
+</div>
+
+<script>
+  // Optional nicety: open the follow-up matching the URL hash, if any.
+  // Everything works fine with JS disabled — <details> is native.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var el = document.querySelector(a.getAttribute('href'));
+    if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); history.replaceState(null, '', a.getAttribute('href')); }
+  });
+</script>
+
+</body>
+</html>

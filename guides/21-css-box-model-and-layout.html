@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Box Model, Flexbox, Grid &amp; Positioning</title>
+<style>
+/* ============================================================
+   GUIDE CHROME — everything here styles the article itself.
+   Demo styles live further down and are all prefixed .dm-
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --ink: #1c1c21;
+  --ink-soft: #4a4f5c;
+  --muted: #6b7180;
+  --bg: #fbfaf8;
+  --card: #ffffff;
+  --line: #e4e1db;
+  --line-soft: #eeece7;
+  --accent: #0b5fbe;
+  --accent-soft: #e8f1fc;
+  --good: #17794c;
+  --good-soft: #e6f5ed;
+  --bad: #b4232b;
+  --bad-soft: #fdecec;
+  --warn: #8a5a00;
+  --warn-soft: #fdf3e0;
+  --purple: #6a3fb5;
+  --purple-soft: #f0eafc;
+
+  /* devtools-ish box model palette, reused by demos */
+  --c-margin: #f7c59a;
+  --c-border: #f6e18b;
+  --c-padding: #b8dfa4;
+  --c-content: #9fc9ef;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17.5px;
+  line-height: 1.7;
+}
+
+.wrap {
+  max-width: 750px;
+  margin: 0 auto;
+  padding: 0 22px 120px;
+}
+
+/* ---------- header ---------- */
+.masthead {
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff, #fbfaf8);
+  padding: 56px 22px 40px;
+  margin-bottom: 44px;
+}
+.masthead-inner { max-width: 750px; margin: 0 auto; }
+.kicker {
+  font-size: 12.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+h1 {
+  font-size: 2.5rem;
+  line-height: 1.14;
+  margin: 0 0 16px;
+  letter-spacing: -0.022em;
+  font-weight: 800;
+}
+.standfirst {
+  font-size: 1.16rem;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 44em;
+}
+
+/* ---------- headings ---------- */
+h2 {
+  font-size: 1.72rem;
+  line-height: 1.25;
+  margin: 68px 0 6px;
+  letter-spacing: -0.018em;
+  font-weight: 800;
+  padding-top: 20px;
+  border-top: 3px solid var(--ink);
+}
+h2 .num {
+  display: block;
+  font-size: 12.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+h3 {
+  font-size: 1.24rem;
+  margin: 44px 0 4px;
+  font-weight: 750;
+  letter-spacing: -0.012em;
+}
+h4 {
+  font-size: 1.03rem;
+  margin: 30px 0 2px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+p { margin: 1.05em 0; }
+p.lede { font-size: 1.08rem; color: var(--ink-soft); }
+
+a { color: var(--accent); }
+strong { font-weight: 700; }
+em { font-style: italic; }
+
+ul, ol { padding-left: 1.35em; margin: 1.05em 0; }
+li { margin: .5em 0; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 48px 0;
+}
+
+/* ---------- code ---------- */
+code {
+  font-family: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.875em;
+  background: #f0eee9;
+  border: 1px solid #e2dfd8;
+  border-radius: 4px;
+  padding: 0.08em 0.34em;
+  white-space: nowrap;
+}
+pre {
+  background: #1f2129;
+  color: #e8e6e3;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 14.5px;
+  line-height: 1.62;
+  margin: 0;
+  border: 1px solid #14161c;
+}
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: pre;
+}
+.snippet { margin: 22px 0; }
+.snippet-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid;
+  border-bottom: 0;
+  display: block;
+}
+.snippet-label + pre { border-radius: 0 0 10px 10px; }
+.lbl-bad  { background: var(--bad-soft);  color: var(--bad);  border-color: #f3c9c9; }
+.lbl-good { background: var(--good-soft); color: var(--good); border-color: #c4e6d4; }
+.lbl-neutral { background: #efedE8; color: var(--ink-soft); border-color: var(--line); }
+
+/* code token colouring, applied by hand with spans */
+.c { color: #8b93a5; font-style: italic; }   /* comment */
+.k { color: #c792ea; }                        /* keyword / at-rule */
+.s { color: #b9e08a; }                        /* selector */
+.pr { color: #82c8f0; }                       /* property */
+.v { color: #f3c07b; }                        /* value */
+.hl { color: #ffd479; font-weight: 700; }     /* highlight */
+
+/* ---------- callouts ---------- */
+.callout {
+  border-radius: 10px;
+  padding: 18px 20px 4px;
+  margin: 28px 0;
+  border: 1px solid;
+  border-left-width: 5px;
+}
+.callout .ct {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  margin: 0 0 2px;
+  display: block;
+}
+.callout p:first-of-type { margin-top: .35em; }
+.callout p:last-child { margin-bottom: 16px; }
+.callout ul { margin-bottom: 16px; }
+
+.c-wait   { background: var(--accent-soft); border-color: #c3ddf7; }
+.c-wait .ct { color: var(--accent); }
+.c-myth   { background: var(--bad-soft); border-color: #f3c9c9; }
+.c-myth .ct { color: var(--bad); }
+.c-hood   { background: var(--purple-soft); border-color: #d9cdf3; }
+.c-hood .ct { color: var(--purple); }
+.c-iv     { background: var(--warn-soft); border-color: #f0dcb0; }
+.c-iv .ct { color: var(--warn); }
+
+/* ---------- model answer ---------- */
+.say {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--good);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 24px 0;
+}
+.say .ct {
+  font-size: 12.5px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--good); display: block; margin-bottom: 6px;
+}
+.say .quote { font-size: 1.04rem; }
+.say .why {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  font-size: .95rem;
+  color: var(--muted);
+}
+
+/* ---------- follow-ups ---------- */
+details.fu {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0;
+  margin: 12px 0;
+}
+details.fu > summary {
+  cursor: pointer;
+  padding: 14px 18px;
+  font-weight: 650;
+  list-style: none;
+  position: relative;
+  padding-right: 46px;
+}
+details.fu > summary::-webkit-details-marker { display: none; }
+details.fu > summary::after {
+  content: "+";
+  position: absolute;
+  right: 18px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+details.fu[open] > summary::after { content: "\2212"; }
+details.fu[open] > summary { border-bottom: 1px solid var(--line-soft); }
+.fu-body { padding: 4px 18px 8px; }
+.fu-body > :first-child { margin-top: 12px; }
+
+/* ---------- tables ---------- */
+.tablewrap { overflow-x: auto; margin: 26px 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 15.5px;
+  background: var(--card);
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 10px 13px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f4f2ee; font-weight: 700; }
+
+/* ---------- TOC ---------- */
+.toc {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px 26px;
+  margin: 0 0 40px;
+}
+.toc h2 {
+  font-size: 1rem; margin: 0 0 10px; border: 0; padding: 0;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+}
+.toc ol { margin: 0; padding-left: 1.3em; }
+.toc li { margin: .3em 0; }
+.toc a { text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+
+/* ---------- figure / demo shell ---------- */
+figure {
+  margin: 30px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+figure > figcaption {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 16px;
+  background: #f4f2ee;
+  border-bottom: 1px solid var(--line);
+}
+figure > figcaption .tag {
+  color: var(--accent);
+  font-weight: 800;
+}
+.fig-body { padding: 20px 16px; }
+.fig-note {
+  font-size: 14.5px;
+  color: var(--muted);
+  padding: 0 16px 16px;
+  margin: 0;
+  line-height: 1.6;
+}
+svg { max-width: 100%; height: auto; display: block; }
+
+.cheat td code { white-space: normal; }
+
+/* ============================================================
+   DEMO STYLES — all prefixed .dm- so they cannot leak into the
+   article's own layout. Each demo has its own numbered prefix.
+   ============================================================ */
+
+.dm-ruler {
+  font: 12px ui-monospace, Menlo, Consolas, monospace;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.dm-tile {
+  background: var(--c-content);
+  border: 1px solid #6ba7db;
+  border-radius: 4px;
+  font: 600 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  color: #113a5c;
+  padding: 10px 8px;
+  text-align: center;
+}
+.dm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.dm-legend li { display: flex; align-items: center; gap: 7px; margin: 0; }
+.dm-swatch { width: 15px; height: 15px; border-radius: 3px; border: 1px solid rgba(0,0,0,.22); }
+
+/* --- demo 1: live box model layers --- */
+.dm-bm1-outer { background: var(--c-margin); display: inline-block; padding: 0; }
+.dm-bm1-box {
+  margin: 24px;
+  border: 12px solid var(--c-border);
+  padding: 22px;
+  background: var(--c-padding);
+  width: 210px;
+}
+.dm-bm1-inner {
+  background: var(--c-content);
+  text-align: center;
+  font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+  color: #113a5c;
+  padding: 16px 6px;
+  border-radius: 3px;
+}
+
+/* --- demo 2: content-box vs border-box --- */
+.dm-bs2-row { display: flex; gap: 22px; flex-wrap: wrap; }
+.dm-bs2-col { flex: 1 1 220px; min-width: 0; }
+.dm-bs2-col h5 {
+  margin: 0 0 8px; font: 700 13px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-soft);
+}
+.dm-bs2-track {
+  background: repeating-linear-gradient(90deg, #eceae4 0 19px, #ddd9d1 19px 20px);
+  border: 1px dashed #c9c4ba;
+  padding: 0;
+  border-radius: 4px;
+}
+.dm-bs2-el {
+  width: 200px;
+  padding: 20px;
+  border: 5px solid var(--c-border);
+  background: var(--c-padding);
+  font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+  color: #24461a;
+  text-align: center;
+}
+.dm-bs2-content { box-sizing: content-box; }
+.dm-bs2-border  { box-sizing: border-box; }
+.dm-bs2-el span {
+  display: block; background: var(--c-content); color: #113a5c;
+  padding: 8px 4px; border-radius: 3px;
+}
+.dm-bs2-mark {
+  height: 22px; margin-top: 6px; position: relative;
+  font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--muted);
+}
+
+/* --- demo 3: margin collapsing siblings --- */
+.dm-mc3-wrap { display: flex; gap: 22px; flex-wrap: wrap; }
+.dm-mc3-col { flex: 1 1 230px; min-width: 0; }
+.dm-mc3-stage { background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 1px 12px; }
+.dm-mc3-stage p {
+  margin: 30px 0;
+  background: var(--c-content);
+  border: 1px solid #6ba7db;
+  color: #113a5c;
+  font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+  padding: 12px;
+  border-radius: 4px;
+  text-align: center;
+}
+.dm-mc3-flex { display: flex; flex-direction: column; }
+
+/* --- demo 4: parent/child collapse --- */
+.dm-mc4-wrap { display: flex; gap: 22px; flex-wrap: wrap; }
+.dm-mc4-col { flex: 1 1 230px; min-width: 0; }
+.dm-mc4-page { background: #eeebe4; border: 1px dashed #c9c4ba; border-radius: 6px; }
+.dm-mc4-parent { background: var(--c-padding); }
+.dm-mc4-parent-fixed { background: var(--c-padding); padding: 1px 0; }
+.dm-mc4-child {
+  margin: 34px 14px;
+  background: var(--c-content);
+  border: 1px solid #6ba7db;
+  color: #113a5c;
+  font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+  padding: 12px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* --- demo 5: flex axes --- */
+.dm-fx5-wrap { display: flex; gap: 22px; flex-wrap: wrap; }
+.dm-fx5-col { flex: 1 1 250px; min-width: 0; }
+.dm-fx5-box {
+  display: flex;
+  gap: 8px;
+  background: #f2efe9;
+  border: 1px dashed #c9c4ba;
+  border-radius: 6px;
+  padding: 12px;
+  height: 190px;
+  justify-content: flex-start;
+  align-items: center;
+}
+.dm-fx5-box.is-col { flex-direction: column; }
+.dm-fx5-box > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px 14px;
+}
+
+/* --- demo 6: justify-content values --- */
+.dm-fx6-row {
+  display: flex;
+  background: #f2efe9;
+  border: 1px dashed #c9c4ba;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+  gap: 0;
+}
+.dm-fx6-row > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 9px 13px;
+}
+.dm-fx6-start   { justify-content: flex-start; }
+.dm-fx6-center  { justify-content: center; }
+.dm-fx6-between { justify-content: space-between; }
+.dm-fx6-around  { justify-content: space-around; }
+.dm-fx6-evenly  { justify-content: space-evenly; }
+.dm-fx6-name {
+  font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  color: var(--muted); margin: 0 0 3px;
+}
+
+/* --- demo 7: flex-grow --- */
+.dm-fx7-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-fx7-row > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px 6px; text-align: center; overflow: hidden;
+}
+.dm-fx7-grow1 > .g { flex-grow: 1; background: var(--c-padding); border-color: #7bb463; color: #24461a; }
+.dm-fx7-all1 > div { flex: 1; }
+.dm-fx7-auto > div { flex: auto; }
+
+/* --- demo 8: flex-basis / shrink --- */
+.dm-fx8-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-fx8-row > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px 6px; text-align: center; width: 300px; overflow: hidden;
+}
+.dm-fx8-noshrink > .n { flex-shrink: 0; background: var(--c-margin); border-color: #d19a5c; color: #5c3a10; }
+
+/* --- demo 9: wrap + align-self --- */
+.dm-fx9-wrap {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-fx9-wrap > div {
+  flex: 1 1 130px;
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 12px 6px; text-align: center;
+}
+.dm-fx9-self {
+  display: flex; gap: 10px; align-items: flex-start; height: 150px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-fx9-self > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px 12px;
+}
+.dm-fx9-self > .end { align-self: flex-end; background: var(--c-padding); border-color: #7bb463; color: #24461a; }
+.dm-fx9-self > .stretch { align-self: stretch; background: var(--c-margin); border-color: #d19a5c; color: #5c3a10; }
+
+/* --- demo 10: grid basics --- */
+.dm-gr10-a, .dm-gr10-b, .dm-gr10-c, .dm-gr10-d {
+  display: grid; gap: 10px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+  margin-bottom: 14px;
+}
+.dm-gr10-a { grid-template-columns: 100px 100px 100px; }
+.dm-gr10-b { grid-template-columns: 1fr 1fr 1fr; }
+.dm-gr10-c { grid-template-columns: 2fr 1fr 1fr; }
+.dm-gr10-d { grid-template-columns: 200px 1fr; }
+.dm-gr10-a > div, .dm-gr10-b > div, .dm-gr10-c > div, .dm-gr10-d > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 14px 6px; text-align: center; overflow: hidden;
+}
+
+/* --- demo 11: auto-fit vs auto-fill --- */
+.dm-gr11-fit, .dm-gr11-fill {
+  display: grid; gap: 10px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+  margin-bottom: 6px;
+}
+.dm-gr11-fit  { grid-template-columns: repeat(auto-fit,  minmax(120px, 1fr)); }
+.dm-gr11-fill { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.dm-gr11-fit > div, .dm-gr11-fill > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 16px 6px; text-align: center; overflow: hidden;
+}
+
+/* --- demo 12: named areas / holy grail --- */
+.dm-gr12 {
+  display: grid;
+  grid-template-columns: 150px 1fr 130px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "header header header"
+    "nav    main   aside"
+    "footer footer footer";
+  gap: 8px;
+  min-height: 260px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-gr12 > div {
+  border-radius: 4px; padding: 12px 8px; text-align: center;
+  font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  display: flex; align-items: center; justify-content: center;
+}
+.dm-gr12 .h { grid-area: header; background: var(--c-margin); border: 1px solid #d19a5c; color: #5c3a10; }
+.dm-gr12 .n { grid-area: nav;    background: var(--c-padding); border: 1px solid #7bb463; color: #24461a; }
+.dm-gr12 .m { grid-area: main;   background: var(--c-content); border: 1px solid #6ba7db; color: #113a5c; }
+.dm-gr12 .a { grid-area: aside;  background: var(--c-padding); border: 1px solid #7bb463; color: #24461a; }
+.dm-gr12 .f { grid-area: footer; background: var(--c-margin); border: 1px solid #d19a5c; color: #5c3a10; }
+
+/* --- demo 13: implicit grid --- */
+.dm-gr13 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 46px;
+  gap: 8px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-gr13 > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  display: flex; align-items: center; justify-content: center;
+}
+.dm-gr13 > .imp { background: var(--c-margin); border-color: #d19a5c; color: #5c3a10; }
+
+/* --- demo 14: item placement / span --- */
+.dm-gr14 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 52px;
+  gap: 8px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+}
+.dm-gr14 > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.dm-gr14 > .wide { grid-column: span 2; background: var(--c-padding); border-color: #7bb463; color: #24461a; }
+.dm-gr14 > .tall { grid-row: span 2; background: var(--c-margin); border-color: #d19a5c; color: #5c3a10; }
+
+/* --- demo 15: static / relative --- */
+.dm-po15-stage {
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+  padding: 12px 12px 40px; display: flex; gap: 10px; align-items: flex-start;
+}
+.dm-po15-stage > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 14px 10px;
+}
+.dm-po15-stage > .moved {
+  position: relative;
+  top: 22px; left: 22px;
+  background: var(--c-margin); border-color: #d19a5c; color: #5c3a10;
+}
+.dm-po15-ghost {
+  position: relative;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+  padding: 12px; display: flex; gap: 10px; align-items: flex-start;
+}
+.dm-po15-ghost > div {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 14px 10px;
+}
+.dm-po15-ghost > .slot {
+  background: transparent; border: 2px dashed #d19a5c; color: #8a5a00;
+}
+
+/* --- demo 16: absolute + containing block --- */
+.dm-po16-wrap { display: flex; gap: 22px; flex-wrap: wrap; }
+.dm-po16-col { flex: 1 1 230px; min-width: 0; }
+.dm-po16-outer {
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+  padding: 14px; height: 160px;
+}
+.dm-po16-rel {
+  position: relative;
+  height: 100%;
+  background: var(--c-padding); border: 1px solid #7bb463; border-radius: 5px;
+  font: 600 12px ui-monospace, Menlo, Consolas, monospace; color: #24461a;
+  padding: 8px;
+}
+.dm-po16-static {
+  height: 100%;
+  background: var(--c-padding); border: 1px solid #7bb463; border-radius: 5px;
+  font: 600 12px ui-monospace, Menlo, Consolas, monospace; color: #24461a;
+  padding: 8px;
+}
+.dm-po16-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--c-margin); border: 1px solid #d19a5c; border-radius: 4px;
+  color: #5c3a10; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 6px 9px;
+}
+.dm-po16-outer2 {
+  position: relative;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+  padding: 14px; height: 160px;
+}
+
+/* --- demo 17: fixed, in iframes --- */
+.dm-fr-wrap { display: flex; gap: 18px; flex-wrap: wrap; }
+.dm-fr-col { flex: 1 1 250px; min-width: 0; }
+.dm-fr-col h5 { margin: 0 0 6px; font: 700 12.5px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-soft); }
+.dm-frame {
+  width: 100%; height: 190px; border: 1px solid var(--line);
+  border-radius: 6px; background: #fff; display: block;
+}
+
+/* --- demo 19: sticky --- */
+.dm-st19-wrap { display: flex; gap: 18px; flex-wrap: wrap; }
+.dm-st19-col { flex: 1 1 250px; min-width: 0; }
+.dm-st19-col h5 { margin: 0 0 6px; font: 700 12.5px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-soft); }
+.dm-st19-scroll {
+  height: 200px; overflow-y: auto;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+  padding: 0 10px 10px;
+}
+.dm-st19-scroll h6 {
+  position: sticky; top: 0;
+  margin: 0 -10px 8px;
+  background: var(--c-margin);
+  border-bottom: 1px solid #d19a5c;
+  color: #5c3a10;
+  font: 700 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 8px 10px;
+}
+/* still position: sticky, but no threshold -> nothing to stick to */
+.dm-st19-scroll.broken h6 { top: auto; }
+.dm-st19-scroll p {
+  margin: 8px 0;
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 9px;
+}
+.dm-st19-clipper { overflow: hidden; }
+
+/* --- demo 20: centering --- */
+.dm-ce20-wrap { display: flex; gap: 16px; flex-wrap: wrap; }
+.dm-ce20-col { flex: 1 1 200px; min-width: 0; }
+.dm-ce20-col h5 { margin: 0 0 6px; font: 700 12px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-soft); }
+.dm-ce20-stage {
+  height: 140px;
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px;
+}
+.dm-ce20-flex { display: flex; align-items: center; justify-content: center; }
+.dm-ce20-grid { display: grid; place-items: center; }
+.dm-ce20-abs  { position: relative; }
+.dm-ce20-chip {
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 5px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 12px 14px;
+}
+.dm-ce20-abs .dm-ce20-chip {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.dm-ce20-auto { display: flow-root; }
+.dm-ce20-auto .dm-ce20-chip { width: 120px; margin: 46px auto; text-align: center; }
+
+/* --- demo 21: layout algorithm switch --- */
+.dm-al21-wrap { display: flex; gap: 18px; flex-wrap: wrap; }
+.dm-al21-col { flex: 1 1 230px; min-width: 0; }
+.dm-al21-col h5 { margin: 0 0 6px; font: 700 12px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-soft); }
+.dm-al21-stage {
+  background: #f2efe9; border: 1px dashed #c9c4ba; border-radius: 6px; padding: 10px;
+  height: 120px;
+}
+.dm-al21-stage.flexy { display: flex; }
+.dm-al21-stage > span {
+  display: block;
+  margin: auto;                     /* the whole point of the demo */
+  background: var(--c-content); border: 1px solid #6ba7db; border-radius: 4px;
+  color: #113a5c; font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px; width: 60%;
+}
+
+@media (max-width: 620px) {
+  body { font-size: 17px; }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.45rem; }
+  .masthead { padding: 40px 20px 30px; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="kicker">Frontend interview guide &middot; 21</p>
+    <h1>The Box Model, Flexbox, Grid &amp; Positioning</h1>
+    <p class="standfirst">Everything visual on the web comes down to boxes: how big they are, how they line up, and where they sit. Get these four ideas properly in your head and CSS stops feeling like guesswork.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc" aria-label="Table of contents">
+  <h2>What we&rsquo;re covering</h2>
+  <ol>
+    <li><a href="#boxmodel">The box model, and why your width is a lie</a></li>
+    <li><a href="#borderbox">content-box vs border-box</a></li>
+    <li><a href="#collapse">Margin collapsing</a></li>
+    <li><a href="#flex">Flexbox: distributing space along one axis</a></li>
+    <li><a href="#grid">Grid: structure in two dimensions</a></li>
+    <li><a href="#which">Flex or grid? The decision rule</a></li>
+    <li><a href="#position">Positioning: static, relative, absolute, fixed, sticky</a></li>
+    <li><a href="#centering">Centering a div, properly</a></li>
+    <li><a href="#algorithms">CSS has several layout algorithms</a></li>
+    <li><a href="#cheat">Interview cheat sheet</a></li>
+  </ol>
+</nav>
+
+<p class="lede">Let me start with the single most common CSS bug in the world. You write this:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">The setup</span>
+<pre><code><span class="s">.card</span> {
+  <span class="pr">width</span>: <span class="v">100%</span>;
+  <span class="pr">padding</span>: <span class="v">20px</span>;
+  <span class="pr">border</span>: <span class="v">1px solid gray</span>;
+}</code></pre>
+</div>
+
+<p>Reasonable, right? &ldquo;Fill the available space, and give me a bit of breathing room inside.&rdquo; And then the card pokes out past the right edge of its container, a horizontal scrollbar appears at the bottom of the page, and you spend twenty minutes adding <code>overflow: hidden</code> to things until the symptom goes away.</p>
+
+<p>That bug is not a browser quirk. It is the box model working exactly as specified, and once you can see <em>why</em> it happens, an enormous amount of CSS becomes predictable instead of magical. So let&rsquo;s start there, and build up from it.</p>
+
+<p>A quick promise about how this guide works: I&rsquo;m not going to use a term before I&rsquo;ve explained it. If you&rsquo;ve never confidently explained what a &ldquo;containing block&rdquo; is, or why <code>position: sticky</code> sometimes just&hellip; doesn&rsquo;t, you&rsquo;re in the right place. And because this guide is itself an HTML file, almost every idea here comes with a <strong>live demo</strong> &mdash; real boxes, laid out by your real browser, right there in the page. When I say &ldquo;look at what happens,&rdquo; you can actually look.</p>
+
+<!-- ================================================================= -->
+<h2 id="boxmodel"><span class="num">Part 1</span>The box model, and why your width is a lie</h2>
+
+<p>Every single element on a page &mdash; a paragraph, a button, an image, a <code>&lt;div&gt;</code>, even a lone <code>&lt;span&gt;</code> of text &mdash; is drawn by the browser as a rectangle. Not &ldquo;kind of like&rdquo; a rectangle. It <em>is</em> a rectangle, and if you open your browser&rsquo;s devtools and hover over anything, you&rsquo;ll see the browser draw that rectangle in coloured layers.</p>
+
+<p>Those layers are the box model, and there are four of them, nested inside each other like a parcel:</p>
+
+<figure>
+  <figcaption><span class="tag">Diagram</span> &nbsp;The four layers of every element</figcaption>
+  <div class="fig-body">
+  <svg viewBox="0 0 580 320" role="img" aria-label="Concentric rectangles showing margin, border, padding and content areas">
+    <rect x="8" y="8" width="564" height="304" rx="6" fill="#f7c59a" stroke="#d19a5c"/>
+    <rect x="76" y="52" width="428" height="216" rx="4" fill="#f6e18b" stroke="#c9ad3e"/>
+    <rect x="100" y="74" width="380" height="172" rx="3" fill="#b8dfa4" stroke="#7bb463"/>
+    <rect x="152" y="112" width="276" height="96" rx="3" fill="#9fc9ef" stroke="#6ba7db"/>
+
+    <text x="20" y="30" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="700" fill="#5c3a10">margin</text>
+    <text x="88" y="46" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#6b5410">border</text>
+    <text x="110" y="96" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#24461a">padding</text>
+    <text x="290" y="166" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="700" fill="#113a5c">content</text>
+
+    <text x="290" y="188" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" fill="#2b5d85">your text / image lives here</text>
+
+    <line x1="152" y1="286" x2="428" y2="286" stroke="#8a5a00" stroke-width="1.5"/>
+    <line x1="152" y1="281" x2="152" y2="291" stroke="#8a5a00" stroke-width="1.5"/>
+    <line x1="428" y1="281" x2="428" y2="291" stroke="#8a5a00" stroke-width="1.5"/>
+    <text x="290" y="304" text-anchor="middle" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="12" fill="#8a5a00">what content-box calls &quot;width&quot;</text>
+  </svg>
+  </div>
+  <p class="fig-note">Innermost is the <strong>content</strong> box &mdash; where your actual words or pixels go. Around it, <strong>padding</strong> pushes the border away from the content. Then the <strong>border</strong> itself, which is the last layer that&rsquo;s actually visible. Outside that, <strong>margin</strong> is invisible space that pushes <em>other elements</em> away.</p>
+</figure>
+
+<p>The parcel analogy is the one I&rsquo;d use in an interview, because it maps almost perfectly. You&rsquo;re shipping a mug. The mug is the <strong>content</strong>. The bubble wrap you stuff around it is the <strong>padding</strong> &mdash; it&rsquo;s inside the box, it takes up space in the box, and it&rsquo;s there to stop the mug touching the walls. The cardboard is the <strong>border</strong>. And the margin is the space you leave between this parcel and the next parcel on the shelf &mdash; it isn&rsquo;t part of the parcel at all, it just stops them touching.</p>
+
+<p>Where the analogy breaks down: with real parcels, if you put bubble wrap in a box, the mug has to get smaller. In CSS it&rsquo;s the other way round by default &mdash; adding padding makes the <em>box</em> get bigger and leaves the mug alone. That is precisely the bug we opened with, and we&rsquo;ll fix it in a minute.</p>
+
+<p>Here&rsquo;s a real element with all four layers made visible. This is live CSS &mdash; nothing is faked with images:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;One real element, four layers</figcaption>
+  <div class="fig-body">
+    <ul class="dm-legend">
+      <li><span class="dm-swatch" style="background:#f7c59a"></span> margin: 24px</li>
+      <li><span class="dm-swatch" style="background:#f6e18b"></span> border: 12px</li>
+      <li><span class="dm-swatch" style="background:#b8dfa4"></span> padding: 22px</li>
+      <li><span class="dm-swatch" style="background:#9fc9ef"></span> content</li>
+    </ul>
+    <div class="dm-bm1-outer">
+      <div class="dm-bm1-box"><div class="dm-bm1-inner">content box</div></div>
+    </div>
+  </div>
+  <p class="fig-note">The orange region is the element&rsquo;s margin &mdash; notice it&rsquo;s outside the border, and nothing is drawn in it. That&rsquo;s the key property of margin: it is <em>transparent</em>. A background colour fills the content and padding, and stops dead at the outer edge of the border.</p>
+</figure>
+
+<p>That last point trips people up constantly, so let me say it plainly: <strong>backgrounds extend under the padding but never into the margin.</strong> If you want the coloured area of a button to be bigger, you add padding. If you want space <em>between</em> two buttons, you add margin. Choosing the wrong one is the difference between a chunkier button and a button that&rsquo;s the same size but further away.</p>
+
+<div class="callout c-wait">
+  <span class="ct">Wait, what about&hellip; the shorthand order?</span>
+  <p><code>padding: 10px 20px 30px 40px</code> goes <strong>top, right, bottom, left</strong> &mdash; clockwise starting at the top. Two values means <em>vertical, horizontal</em>. Three means <em>top, horizontal, bottom</em>. The mnemonic everyone uses is <strong>TRouBLe</strong>. This applies identically to <code>margin</code>, <code>border-width</code>, and <code>inset</code>.</p>
+</div>
+
+<!-- ================================================================= -->
+<h2 id="borderbox"><span class="num">Part 2</span>content-box vs border-box</h2>
+
+<p>Now the important question. When you write <code>width: 200px</code>, <em>which of those four boxes</em> are you setting to 200px?</p>
+
+<p>Take a guess before you scroll. It genuinely could be either &mdash; the content box, or the whole visible box out to the border.</p>
+
+<p>The answer, by default, is <strong>the content box</strong>. Just the innermost blue rectangle. Padding and border are then added <em>on top of</em> that number. So this element:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">The default: box-sizing: content-box</span>
+<pre><code><span class="s">.box</span> {
+  <span class="pr">width</span>: <span class="v">200px</span>;
+  <span class="pr">padding</span>: <span class="v">20px</span>;
+  <span class="pr">border</span>: <span class="v">5px solid</span>;
+}
+<span class="c">/* actual space taken on screen:
+   200 + 20 + 20 + 5 + 5 = 250px  &lt;-- not 200 */</span></code></pre>
+</div>
+
+<p>You asked for 200. You got 250. And now imagine that <code>width</code> was <code>100%</code> instead. &ldquo;100% of my parent&rdquo; means 100% of the parent&rsquo;s content width &mdash; and then we bolt 50px of padding and border onto the outside of that. The element is now 50px wider than the thing it&rsquo;s sitting inside. It overflows. Horizontal scrollbar. That&rsquo;s the opening bug, fully explained.</p>
+
+<p>So CSS gives us a switch: <code>box-sizing</code>. Set it to <code>border-box</code> and <code>width</code> changes meaning &mdash; it now describes the <strong>whole visible box, out to the outer edge of the border</strong>. Padding and border get subtracted from the inside instead of added to the outside. Here are those exact same declarations, side by side, with the only difference being <code>box-sizing</code>:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Same <code>width: 200px</code>, two different meanings</figcaption>
+  <div class="fig-body">
+    <div class="dm-bs2-row">
+      <div class="dm-bs2-col">
+        <h5>box-sizing: content-box</h5>
+        <div class="dm-bs2-track">
+          <div class="dm-bs2-el dm-bs2-content"><span>200px content</span></div>
+        </div>
+        <p class="dm-ruler">&rarr; renders 250px wide</p>
+      </div>
+      <div class="dm-bs2-col">
+        <h5>box-sizing: border-box</h5>
+        <div class="dm-bs2-track">
+          <div class="dm-bs2-el dm-bs2-border"><span>160px content</span></div>
+        </div>
+        <p class="dm-ruler">&rarr; renders 200px wide</p>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">The striped background is a 20px ruler, so you can count. Both elements declare <code>width: 200px; padding: 20px; border: 5px</code>. The left one spills 50px further right. On the right, the yellow border and green padding eat inwards, and the blue content shrinks to 160px to compensate.</p>
+</figure>
+
+<p>Look at the right-hand one again. With <code>border-box</code>, the number you type is the number you get on screen. Padding and border rearrange the inside of the box rather than inflating it. That is what everyone actually wants, essentially always, which is why almost every stylesheet written in the last decade opens with some version of this:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-good">&#10003; The line at the top of every modern stylesheet</span>
+<pre><code><span class="s">*, *::before, *::after</span> {
+  <span class="pr">box-sizing</span>: <span class="v">border-box</span>; <span class="c">/* &#128072; the whole trick */</span>
+}</code></pre>
+</div>
+
+<p>The <code>*::before, *::after</code> part is there because pseudo-elements aren&rsquo;t matched by <code>*</code> on its own, and they&rsquo;re real boxes too. Get one without the other and you&rsquo;ll eventually chase a mysterious 2px in a tooltip arrow.</p>
+
+<div class="callout c-hood">
+  <span class="ct">Under the hood &mdash; why is content-box the default at all?</span>
+  <p>Because the original CSS spec said so in 1996, and the web is not allowed to break. Ironically, old Internet Explorer implemented it the <em>other</em> way (border-box), which everyone at the time called a bug &mdash; and which we have all now agreed was the better design. The spec couldn&rsquo;t just change the default without re-laying-out every page ever written, so instead we got <code>box-sizing</code> as an opt-in in CSS3. Every single one of us opts in.</p>
+  <p>One nice detail: <code>border-box</code> does <strong>not</strong> include margin. Margin is always outside, always added on, under both modes. So <code>width: 100%; margin: 0 10px</code> still overflows by 20px. If you catch yourself writing that, you probably want padding on the parent instead.</p>
+</div>
+
+<div class="callout c-myth">
+  <span class="ct">A common misconception</span>
+  <p>&ldquo;<code>border-box</code> makes the padding disappear.&rdquo; It absolutely does not. The padding is still there, still 20px, still pushing your text inwards, still filled with the background colour. What changes is <em>who pays for it</em> &mdash; the content area shrinks to make room, instead of the element growing. If you set <code>width: 30px; padding: 20px</code> under border-box, the padding wins: 40px of padding cannot fit in a 30px box, so the element renders 40px wide and your declared width is quietly ignored. Padding and border are never sacrificed.</p>
+</div>
+
+<div class="callout c-iv">
+  <span class="ct">In an interview</span>
+  <p>&ldquo;Why does <code>width: 100%</code> plus padding overflow?&rdquo; is a screening question. It takes ten seconds to answer and it cleanly separates people who have a mental model from people who pattern-match on Stack Overflow answers. Don&rsquo;t just say &ldquo;because of box-sizing&rdquo; &mdash; say what the two values <em>mean</em>.</p>
+</div>
+
+<div class="say">
+  <span class="ct">Say this out loud</span>
+  <p class="quote">&ldquo;By default, <code>width</code> only sets the content box &mdash; padding and border get added on top of it. So <code>width: 100%</code> means &lsquo;as wide as my parent&rsquo;s content area&rsquo;, and then the padding pushes past that, and you overflow. Setting <code>box-sizing: border-box</code> changes what <code>width</code> refers to: now it&rsquo;s the whole box out to the border, and padding eats inwards instead of outwards. That&rsquo;s why nearly every stylesheet starts with a universal <code>border-box</code> reset &mdash; it makes sizing behave the way people intuitively expect.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> you named the mechanism (which box <code>width</code> refers to), not just the fix. That signals you could debug a sizing problem you&rsquo;ve never seen before, rather than reaching for a remedy you memorised.</p>
+</div>
+
+<h3>Follow-ups they&rsquo;ll actually ask</h3>
+
+<details class="fu">
+  <summary>&ldquo;So does <code>border-box</code> fix everything? Why would anyone want <code>content-box</code>?</summary>
+  <div class="fu-body">
+    <p>Rarely, but it exists. If you genuinely need the <em>inner</em> area to be an exact size &mdash; a canvas, an embedded map, an image slot that must be exactly 300&times;200 regardless of how thick a decorative border you add &mdash; then <code>content-box</code> is expressing exactly that intent. Some third-party widgets also ship assuming it. In your own layout code you will basically never want it.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;Is <code>box-sizing</code> inherited?&rdquo;</summary>
+  <div class="fu-body">
+    <p>No, and this is a real gotcha. That&rsquo;s why the reset uses the universal selector <code>*</code> rather than setting it on <code>html</code> and hoping. There <em>is</em> a well-known variant that makes it inheritable on purpose:</p>
+    <div class="snippet">
+    <pre><code><span class="s">html</span> { <span class="pr">box-sizing</span>: <span class="v">border-box</span>; }
+<span class="s">*, *::before, *::after</span> { <span class="pr">box-sizing</span>: <span class="v">inherit</span>; }</code></pre>
+    </div>
+    <p>The advantage is that a third-party component can flip itself and its whole subtree back to <code>content-box</code> with one declaration. It&rsquo;s a nice answer to give because it shows you&rsquo;ve thought about the reset rather than copy-pasted it.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;How would you fix the overflow <em>without</em> box-sizing?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Three ways, and the ranking matters. Best: <strong>don&rsquo;t set a width at all.</strong> A <code>&lt;div&gt;</code> in normal flow already fills its parent&rsquo;s width, and unlike <code>width: 100%</code> it correctly shrinks its content area to accommodate padding. <code>width: 100%</code> on a block element is usually redundant <em>and</em> harmful. Second: <code>width: calc(100% - 40px)</code> &mdash; works, but you now have to keep two numbers in sync forever. Third: move the padding to a wrapper element. Mentioning the first option is the strong answer, because it shows you understand that block elements are already full-width in flow layout.</p>
+  </div>
+</details>
+
+<!-- ================================================================= -->
+<h2 id="collapse"><span class="num">Part 3</span>Margin collapsing</h2>
+
+<p>Right. This one is genuinely weird, and I want to say up front: <strong>margin collapsing confuses everybody.</strong> I&rsquo;ve been writing CSS for years and I still occasionally have to stop and reason it through from first principles. If it feels slippery, that&rsquo;s not you being slow &mdash; it&rsquo;s a genuinely unintuitive rule that exists for historical reasons.</p>
+
+<p>Here&rsquo;s the setup. Two paragraphs, stacked. Each has <code>margin: 30px 0</code>. How much space is between them?</p>
+
+<p>The obvious answer is 60px &mdash; 30 from the bottom of the first, 30 from the top of the second. Let&rsquo;s check.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Two siblings, 30px margins each</figcaption>
+  <div class="fig-body">
+    <div class="dm-mc3-wrap">
+      <div class="dm-mc3-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">normal flow &mdash; collapsed</h5>
+        <div class="dm-mc3-stage">
+          <p>margin: 30px 0</p>
+          <p>margin: 30px 0</p>
+        </div>
+        <p class="dm-ruler">gap between them: <strong>30px</strong></p>
+      </div>
+      <div class="dm-mc3-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">flex column &mdash; not collapsed</h5>
+        <div class="dm-mc3-stage dm-mc3-flex">
+          <p>margin: 30px 0</p>
+          <p>margin: 30px 0</p>
+        </div>
+        <p class="dm-ruler">gap between them: <strong>60px</strong></p>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Identical HTML, identical margins. The only difference is that the right-hand container is <code>display: flex</code>. Look at the height of the two grey boxes &mdash; the right one is visibly taller.</p>
+</figure>
+
+<p>In normal flow, adjacent vertical margins <strong>collapse</strong>: instead of adding, they overlap, and you get the <em>larger</em> of the two. 30 and 30 gives 30. 30 and 50 would give 50, not 80.</p>
+
+<h3>The mental model: margins are minimum clearances, not springs</h3>
+
+<p>The picture that made this click for me is <strong>personal space</strong>. Imagine each element is a person standing in a queue, and each one has a rule: &ldquo;I need at least 30cm of empty space in front of me.&rdquo; The person behind them says the same thing. Do you end up with 60cm between them? No &mdash; you end up with 30cm, and <em>both people&rsquo;s requirements are satisfied simultaneously</em>. The space is shared, not stacked. If one person needed 50cm and the other needed 30cm, you&rsquo;d leave 50cm, which satisfies both.</p>
+
+<p>That&rsquo;s exactly what collapsing is. A margin is a <em>minimum clearance request</em>, not a physical block of matter that gets stacked. Two overlapping requests resolve to whichever is larger.</p>
+
+<p>Where the analogy breaks down: real people don&rsquo;t stand inside each other, but negative margins do genuinely pull elements together and overlap. With negative values the rule is: take the largest positive and the most negative, and add them. <code>margin-bottom: 30px</code> meeting <code>margin-top: -10px</code> gives 20px of space.</p>
+
+<p>And why does this exist? Because the web was built for documents. Imagine a page of headings and paragraphs where each has sensible top and bottom margins. Without collapsing, the gap between a heading and a paragraph would be the sum of both, and every document would be full of inconsistent, doubled-up whitespace. Collapsing makes prose look right by default. It&rsquo;s a typography feature, not a layout feature &mdash; which is exactly why it doesn&rsquo;t apply in the layout-oriented modes.</p>
+
+<h3>The one that surprises people: parent and child</h3>
+
+<p>Collapsing doesn&rsquo;t only happen between siblings. Margins also collapse <em>through</em> a parent. Watch:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">The setup</span>
+<pre><code><span class="s">.parent</span> { <span class="pr">background</span>: <span class="v">green</span>; }   <span class="c">/* no padding, no border */</span>
+<span class="s">.child</span>  { <span class="pr">margin</span>: <span class="v">34px</span>; }</code></pre>
+</div>
+
+<p>What do you expect? Probably: a green box, with the child floating 34px inside it. What you actually get is the child&rsquo;s top margin <em>escaping</em> the parent and pushing the parent down instead. The green box hugs the child with no gap at all on the top and bottom edges.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;A child&rsquo;s margin escaping its parent</figcaption>
+  <div class="fig-body">
+    <div class="dm-mc4-wrap">
+      <div class="dm-mc4-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">parent has nothing on it</h5>
+        <div class="dm-mc4-page">
+          <div class="dm-mc4-parent">
+            <div class="dm-mc4-child">child, margin: 34px</div>
+          </div>
+        </div>
+        <p class="dm-ruler">green parent has <strong>no</strong> vertical gap</p>
+      </div>
+      <div class="dm-mc4-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">parent has 1px of padding</h5>
+        <div class="dm-mc4-page">
+          <div class="dm-mc4-parent-fixed">
+            <div class="dm-mc4-child">child, margin: 34px</div>
+          </div>
+        </div>
+        <p class="dm-ruler">one pixel of padding &rarr; margin stays in</p>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Left: the child&rsquo;s vertical margins pass straight through the parent and act on the parent&rsquo;s outside. Notice the left/right margins still work fine &mdash; only <em>vertical</em> margins collapse. Right: adding a single pixel of padding to the parent blocks the collapse entirely.</p>
+</figure>
+
+<p>Back to the queue analogy: the parent here is a completely transparent, zero-thickness rope around the child. The child says &ldquo;I need 34cm of clearance above me&rdquo;, and since the rope has no thickness of its own, that clearance has to come from outside the rope. There&rsquo;s literally nothing between the child&rsquo;s margin and the world.</p>
+
+<h3>What stops collapsing</h3>
+
+<p>This is the practically useful half, and the half that interviewers push on. Collapsing needs the two margins to be <em>touching</em>, with nothing in between. So anything that puts something in between stops it:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>What stops it</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><code>padding</code> or <code>border</code> on the parent</td><td>Physically separates the child&rsquo;s margin from the parent&rsquo;s outer edge. Even <code>1px</code> works, which is why you sometimes see the <code>padding: 0.05px</code> hack.</td></tr>
+    <tr><td>The parent is a <strong>flex</strong> or <strong>grid</strong> container</td><td>Flex and grid are different layout algorithms. Margin collapsing is a rule of <em>flow layout</em> only, so it simply doesn&rsquo;t exist there.</td></tr>
+    <tr><td><code>overflow</code> not <code>visible</code> (<code>hidden</code>, <code>auto</code>, <code>scroll</code>)</td><td>Creates a <em>block formatting context</em> &mdash; a self-contained layout bubble whose margins can&rsquo;t interact with the outside.</td></tr>
+    <tr><td><code>display: flow-root</code></td><td>The modern, side-effect-free way to make that same bubble. Purpose-built for exactly this.</td></tr>
+    <tr><td><code>position: absolute</code> or <code>fixed</code>, or a float</td><td>The element leaves normal flow entirely, so there&rsquo;s no adjacency to collapse.</td></tr>
+    <tr><td>Anything between the siblings</td><td>Even an empty element with a 1px border will break a sibling collapse.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout c-wait">
+  <span class="ct">Wait, what about horizontal margins?</span>
+  <p>They never collapse. <code>margin-left</code> and <code>margin-right</code> always add up normally. Two side-by-side elements with 20px horizontal margins each will sit 40px apart. This asymmetry is a real thing and it&rsquo;s worth stating in an interview &mdash; collapsing is a <em>vertical-only, flow-layout-only</em> phenomenon. (In a vertical writing mode it&rsquo;s the block axis that collapses, which happens to be horizontal, but nobody will push you on that.)</p>
+</div>
+
+<h3>The modern answer: mostly, stop using margins for spacing</h3>
+
+<p>Here&rsquo;s the thing that makes all of this much less painful in practice. The reason margin collapsing was a daily source of pain is that for twenty years, margin was the <em>only</em> tool for putting space between things. Now it isn&rsquo;t. Flexbox and grid both support <code>gap</code>, which sets space <em>between</em> children directly &mdash; no collapsing, no doubling, no escaping, no negative-margin tricks.</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-bad">&#10007; The old way &mdash; margins that fight you</span>
+<pre><code><span class="s">.list &gt; * + *</span> { <span class="pr">margin-top</span>: <span class="v">16px</span>; } <span class="c">/* the "lobotomised owl" */</span></code></pre>
+</div>
+
+<div class="snippet">
+<span class="snippet-label lbl-good">&#10003; The modern way</span>
+<pre><code><span class="s">.list</span> { <span class="pr">display</span>: <span class="v">flex</span>; <span class="pr">flex-direction</span>: <span class="v">column</span>; <span class="pr">gap</span>: <span class="v">16px</span>; }</code></pre>
+</div>
+
+<p>Margin is still the right tool for one thing: <em>an element expressing its own spacing needs relative to whatever comes next</em>, like a heading that always wants breathing room above it, in a container it doesn&rsquo;t control. But for laying out a set of siblings, <code>gap</code> is better in every way.</p>
+
+<div class="say">
+  <span class="ct">Say this out loud &mdash; &ldquo;what is margin collapsing?&rdquo;</span>
+  <p class="quote">&ldquo;In normal flow, vertical margins that touch each other merge into one, and you get the largest of them rather than the sum. It happens between adjacent siblings, and it also happens between a parent and its first or last child, where the child&rsquo;s margin can escape the parent and push the parent instead. It&rsquo;s a flow-layout rule inherited from CSS&rsquo;s document-typesetting roots, so it stops happening as soon as the parent is flex or grid, or has padding, a border, or a non-visible <code>overflow</code>. In practice I mostly sidestep it now by using <code>gap</code> on a flex or grid container instead of margins.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> most candidates know the sibling case only. Mentioning parent/child collapse, naming <em>why</em> the rule exists, and finishing with what you do about it in modern code takes you from &ldquo;has read the docs&rdquo; to &ldquo;has debugged this at 2am.&rdquo;</p>
+</div>
+
+<details class="fu">
+  <summary>&ldquo;My footer has a huge gap above it that I can&rsquo;t find in devtools. What&rsquo;s happening?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Classic escaped-margin symptom. Some deeply nested last child has a <code>margin-bottom</code>, and because none of its ancestors have padding, a border, or an overflow value, that margin has collapsed all the way up through every ancestor and is now acting on the outermost container. Devtools shows the gap on the outer element, so you look there and find nothing. The fix is to give one of the containers a <code>display: flow-root</code>, or remove the stray margin at the source.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;What&rsquo;s a block formatting context, in one sentence?&rdquo;</summary>
+  <div class="fu-body">
+    <p>A self-contained layout region: floats inside it don&rsquo;t escape it, outside floats don&rsquo;t intrude, and its margins can&rsquo;t collapse with anything outside it. You create one with <code>overflow: hidden/auto</code>, <code>display: flow-root</code>, <code>position: absolute</code>, a float, or by being a flex/grid item. <code>display: flow-root</code> is the one to name, because it does <em>only</em> that, with no clipping or scrollbar side effects.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;Do empty elements collapse?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Yes &mdash; and this is the deepest cut. An empty <code>&lt;div&gt;</code> with <code>margin: 20px 0</code> and no height, no padding, and no border has its <em>own</em> top and bottom margins collapse into each other, producing a single 20px margin. And then <em>that</em> can collapse with its siblings&rsquo; margins too. This is called &ldquo;collapsing through&rdquo;, and it means an empty spacer div often contributes far less space than you&rsquo;d expect.</p>
+  </div>
+</details>
+
+<!-- ================================================================= -->
+<h2 id="flex"><span class="num">Part 4</span>Flexbox: distributing space along one axis</h2>
+
+<p>Everything so far has been about a single box in isolation. Now: how do boxes arrange themselves relative to each other?</p>
+
+<p>By default they use <strong>flow layout</strong> &mdash; block elements stack vertically and fill the width, inline elements sit next to each other and wrap like words in a sentence. That&rsquo;s fine for an article. It is terrible for a navbar, where you want three things spread across a row with the logo left and the buttons right.</p>
+
+<p>So we switch the container into a different layout algorithm:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">One declaration changes everything</span>
+<pre><code><span class="s">.navbar</span> { <span class="pr">display</span>: <span class="v">flex</span>; }</code></pre>
+</div>
+
+<p>The moment you write that, the browser stops using flow layout for that element&rsquo;s children and starts using the flexbox algorithm instead. The children become <strong>flex items</strong>, and a whole new set of properties starts meaning something.</p>
+
+<p>Here&rsquo;s the one-sentence version of what flexbox is for, and I&rsquo;d lead with it in an interview: <strong>flexbox arranges items along a single axis and distributes the leftover space between them.</strong> That&rsquo;s it. That&rsquo;s the whole idea. Everything else is a knob on &ldquo;how should the leftover space be handed out?&rdquo;</p>
+
+<h3>Main axis and cross axis &mdash; the thing everyone gets wrong</h3>
+
+<p>A flex container has two axes, and their names are relative, not absolute. This is the single biggest source of flexbox confusion, so let&rsquo;s nail it properly.</p>
+
+<p>The <strong>main axis</strong> is the direction items flow in. The <strong>cross axis</strong> is perpendicular to it. Which physical direction each of those points in depends entirely on <code>flex-direction</code>:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th><code>flex-direction</code></th><th>Main axis</th><th>Cross axis</th></tr></thead>
+  <tbody>
+    <tr><td><code>row</code> (the default)</td><td>horizontal &rarr;</td><td>vertical &darr;</td></tr>
+    <tr><td><code>column</code></td><td>vertical &darr;</td><td>horizontal &rarr;</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>And here is the rule that unlocks everything:</p>
+
+<ul>
+  <li><code>justify-content</code> always works on the <strong>main</strong> axis.</li>
+  <li><code>align-items</code> always works on the <strong>cross</strong> axis.</li>
+</ul>
+
+<p>So <code>justify-content: center</code> centres horizontally in a <code>row</code>, and <strong>vertically</strong> in a <code>column</code>. Same property, same value, perpendicular result. If you&rsquo;ve ever set <code>justify-content: center</code> and watched nothing happen the way you wanted, this was almost certainly why.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Identical CSS, one is <code>row</code>, one is <code>column</code></figcaption>
+  <div class="fig-body">
+    <div class="dm-fx5-wrap">
+      <div class="dm-fx5-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">flex-direction: row</h5>
+        <div class="dm-fx5-box"><div>A</div><div>B</div><div>C</div></div>
+        <p class="dm-ruler">align-items: center &rarr; vertical centring</p>
+      </div>
+      <div class="dm-fx5-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">flex-direction: column</h5>
+        <div class="dm-fx5-box is-col"><div>A</div><div>B</div><div>C</div></div>
+        <p class="dm-ruler">align-items: center &rarr; horizontal centring</p>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Both containers have <code>justify-content: flex-start; align-items: center</code>. Nothing else differs. In the row, <code>align-items</code> centres the boxes top-to-bottom. In the column, the very same declaration centres them left-to-right &mdash; because &ldquo;cross axis&rdquo; moved.</p>
+</figure>
+
+<div class="callout c-wait">
+  <span class="ct">Wait, why not just call them horizontal and vertical?</span>
+  <p>Because flexbox was designed to work in languages that aren&rsquo;t left-to-right, and in vertical writing modes. <code>flex-start</code> means &ldquo;where the line begins&rdquo;, which in an Arabic or Hebrew interface is the <em>right</em> side. The axis-relative naming is what lets a single stylesheet work correctly in both directions with no changes. Slightly more to learn, considerably less to maintain.</p>
+</div>
+
+<p>Now, <code>justify-content</code> is the &ldquo;how do we hand out leftover space along the main axis&rdquo; knob. Here are the values, live, so you can see the difference between <code>space-around</code> and <code>space-evenly</code> &mdash; which is nearly impossible to remember from prose:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;<code>justify-content</code>, all the useful values</figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">flex-start (default)</p>
+    <div class="dm-fx6-row dm-fx6-start"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">center</p>
+    <div class="dm-fx6-row dm-fx6-center"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">space-between</p>
+    <div class="dm-fx6-row dm-fx6-between"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">space-around</p>
+    <div class="dm-fx6-row dm-fx6-around"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">space-evenly</p>
+    <div class="dm-fx6-row dm-fx6-evenly"><div>A</div><div>B</div><div>C</div></div>
+  </div>
+  <p class="fig-note"><code>space-between</code> puts zero space at the ends. <code>space-around</code> gives each item an equal margin, so the gap in the middle looks <em>twice</em> as big as the ends. <code>space-evenly</code> makes every gap identical, including the outer ones &mdash; that&rsquo;s usually the one you actually meant.</p>
+</figure>
+
+<h3>flex-grow, flex-shrink, flex-basis &mdash; and what <code>flex: 1</code> really is</h3>
+
+<p>So far we&rsquo;ve moved items around within leftover space. The other option is to let the items <em>absorb</em> that space by getting bigger. That&rsquo;s what the three <code>flex-*</code> properties control, and they are three answers to three separate questions:</p>
+
+<ul>
+  <li><strong><code>flex-basis</code></strong> &mdash; &ldquo;before any distribution happens, how big do I want to be?&rdquo; It&rsquo;s the starting size along the main axis. Default is <code>auto</code>, meaning &ldquo;use my <code>width</code>, or if I have none, my content&rsquo;s natural size.&rdquo;</li>
+  <li><strong><code>flex-grow</code></strong> &mdash; &ldquo;if there&rsquo;s space left over, how greedy am I?&rdquo; Default <code>0</code>: don&rsquo;t grow at all.</li>
+  <li><strong><code>flex-shrink</code></strong> &mdash; &ldquo;if we don&rsquo;t all fit, how willing am I to give ground?&rdquo; Default <code>1</code>: shrink proportionally with everyone else.</li>
+</ul>
+
+<p>The key insight about <code>flex-grow</code> is that it&rsquo;s a <strong>ratio applied to the leftover space</strong>, not a ratio applied to the total width. Say the container is 600px and the items naturally take 300px. There&rsquo;s 300px left over. If item A has <code>flex-grow: 2</code> and B and C have <code>1</code>, the leftover 300 is split 150/75/75 &mdash; and each item ends up at its natural size <em>plus</em> its share.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Who eats the leftover space?</figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">no flex-grow anywhere &mdash; leftover space just sits there</p>
+    <div class="dm-fx7-row"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">only B has flex-grow: 1 &mdash; B eats all of it</p>
+    <div class="dm-fx7-row dm-fx7-grow1"><div>A</div><div class="g">B grows</div><div>C</div></div>
+    <p class="dm-fx6-name">every item has flex: 1 &mdash; equal widths, content ignored</p>
+    <div class="dm-fx7-row dm-fx7-all1"><div>A</div><div>B is much longer</div><div>C</div></div>
+    <p class="dm-fx6-name">every item has flex: auto &mdash; content-proportional widths</p>
+    <div class="dm-fx7-row dm-fx7-auto"><div>A</div><div>B is much longer</div><div>C</div></div>
+  </div>
+  <p class="fig-note">Compare the last two rows carefully &mdash; this is the distinction almost nobody can articulate.</p>
+</figure>
+
+<p>Which brings us to the question you will be asked. <strong>What does <code>flex: 1</code> actually mean?</strong> It&rsquo;s a shorthand, and it expands to:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">The expansion that trips people up</span>
+<pre><code><span class="pr">flex</span>: <span class="v">1</span>;
+<span class="c">/* is exactly equivalent to: */</span>
+<span class="pr">flex-grow</span>: <span class="v">1</span>;
+<span class="pr">flex-shrink</span>: <span class="v">1</span>;
+<span class="pr">flex-basis</span>: <span class="hl">0%</span>;   <span class="c">/* &#128072; NOT auto. This is the surprise. */</span></code></pre>
+</div>
+
+<p>That <code>flex-basis: 0</code> is the whole story. It says &ldquo;pretend I have zero width to begin with.&rdquo; So <em>all</em> of the container is leftover space, and it gets divided purely by the grow ratios. Content size becomes irrelevant. That&rsquo;s why <code>flex: 1</code> on three items gives three exactly equal columns even when one contains far more text &mdash; you saw it in the demo above.</p>
+
+<p>Compare with <code>flex: auto</code>, which is <code>1 1 auto</code>. Here each item starts at its natural content width, and only the <em>surplus</em> is shared equally. Items with more content stay wider. And <code>flex: none</code> is <code>0 0 auto</code> &mdash; a rigid item that neither grows nor shrinks, which is exactly what you want for an icon or an avatar that must never be squashed.</p>
+
+<div class="callout c-myth">
+  <span class="ct">A common misconception</span>
+  <p>&ldquo;<code>flex: 1</code> means the item takes up 1 fraction of the space, like <code>1fr</code> in grid.&rdquo; Close, but the analogy leaks. <code>flex: 1</code> only behaves like <code>1fr</code> because its basis is zero. Write <code>flex-grow: 1</code> on its own &mdash; without the shorthand &mdash; and the basis stays <code>auto</code>, so you get <em>content width plus an equal share of the surplus</em>, which is a completely different result. This is the single most common flexbox surprise: <code>flex: 1</code> and <code>flex-grow: 1</code> are not the same thing.</p>
+</div>
+
+<h3>flex-shrink and the item that refuses to squash</h3>
+
+<p>Shrinking is the mirror image. When items don&rsquo;t fit, the overflow is taken back from them in proportion to <code>flex-shrink</code> (weighted by their basis, but you don&rsquo;t need that detail in an interview). The useful move is <code>flex-shrink: 0</code>, which means &ldquo;take it from someone else&rdquo;:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Three items that each want 300px, in a much narrower container</figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">default (flex-shrink: 1) &mdash; everyone squashes equally</p>
+    <div class="dm-fx8-row"><div>A</div><div>B</div><div>C</div></div>
+    <p class="dm-fx6-name">B has flex-shrink: 0 &mdash; B keeps its size, A and C absorb it</p>
+    <div class="dm-fx8-row dm-fx8-noshrink"><div>A</div><div class="n">B</div><div>C</div></div>
+  </div>
+  <p class="fig-note">This is the fix for &ldquo;my icon keeps getting squished into an oval&rdquo;. Give it <code>flex-shrink: 0</code> and it will hold its width no matter how cramped things get.</p>
+</figure>
+
+<div class="callout c-hood">
+  <span class="ct">Under the hood &mdash; the min-width: auto trap</span>
+  <p>Flex items have an implicit <code>min-width: auto</code>, which means <strong>a flex item will refuse to shrink below the size of its content.</strong> The classic symptom: a flex item containing a long unbreakable string or a table blows out the whole layout, and no amount of <code>width</code> or <code>overflow: hidden</code> on it helps. The fix is <code>min-width: 0</code> on the flex item (or <code>overflow: hidden</code>, which implies it). This is a genuinely senior-flavoured answer &mdash; if you can produce it when someone describes a mysterious overflowing flex layout, it lands very well.</p>
+</div>
+
+<h3>Wrapping, gap, and per-item overrides</h3>
+
+<p>By default flexbox will squash everything onto one line forever rather than wrap. <code>flex-wrap: wrap</code> lets items spill onto new lines when they hit their minimum size. Combine it with a <code>flex-basis</code> and you get responsive columns with no media queries at all:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;<code>flex-wrap</code> plus <code>gap</code>, and <code>align-self</code></figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">flex: 1 1 130px; flex-wrap: wrap; gap: 10px &mdash; resize your window</p>
+    <div class="dm-fx9-wrap"><div>one</div><div>two</div><div>three</div><div>four</div><div>five</div></div>
+    <p class="dm-fx6-name" style="margin-top:14px">align-items: flex-start on the container, overridden per item</p>
+    <div class="dm-fx9-self">
+      <div>default</div>
+      <div class="end">align-self: flex-end</div>
+      <div class="stretch">align-self: stretch</div>
+    </div>
+  </div>
+  <p class="fig-note"><code>align-self</code> is the escape hatch: the container sets a default alignment for everyone on the cross axis, and any individual item can opt out. There&rsquo;s no <code>justify-self</code> in flexbox &mdash; the main axis is shared, so it wouldn&rsquo;t make sense. (In grid there is one, because grid items have their own cells.)</p>
+</figure>
+
+<p>One flexbox trick worth knowing because it looks like magic: <code>margin-left: auto</code> on a flex item pushes it, and everything after it, to the end of the main axis. An <code>auto</code> margin in flexbox absorbs all available free space in that direction. It&rsquo;s the cleanest way to do &ldquo;logo on the left, everything else on the right&rdquo; in a navbar.</p>
+
+<div class="say">
+  <span class="ct">Say this out loud &mdash; &ldquo;explain flexbox&rdquo;</span>
+  <p class="quote">&ldquo;Flexbox is a one-dimensional layout algorithm: you put items in a line and it distributes the free space along that line. The container has a main axis, set by <code>flex-direction</code>, and a cross axis perpendicular to it &mdash; <code>justify-content</code> positions along the main axis and <code>align-items</code> along the cross, which is why they swap physical direction when you switch to <code>column</code>. On the items, <code>flex-grow</code> says how greedily you absorb leftover space, <code>flex-shrink</code> how readily you give it up, and <code>flex-basis</code> your starting size. The shorthand <code>flex: 1</code> is <code>1 1 0</code> &mdash; zero basis is what makes items come out equal regardless of content.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> the axis explanation shows you understand <em>why</em> the properties behave differently in a column, and the <code>flex: 1</code> expansion is a small, specific fact that&rsquo;s hard to fake. Both signal real usage rather than tutorial memory.</p>
+</div>
+
+<!-- ================================================================= -->
+<h2 id="grid"><span class="num">Part 5</span>Grid: structure in two dimensions</h2>
+
+<p>Flexbox thinks in terms of a line. Grid thinks in terms of a <em>sheet of graph paper</em>.</p>
+
+<p>That&rsquo;s the fundamental difference and it&rsquo;s worth sitting with for a second. With flexbox, you don&rsquo;t declare a structure &mdash; you drop items in a row and let their content and their flex settings decide how wide each one ends up. With grid, you declare the structure <em>first</em>, on the container, independently of what goes in it. You say &ldquo;there are three columns and the middle one is twice as wide&rdquo;, and then items fall into those cells.</p>
+
+<p>Think of a printed newspaper. The columns are ruled onto the page before a single word is typeset, and articles then flow into them. Grid is that. Flexbox is more like a shelf where you keep sliding books along until they fit.</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">The minimum viable grid</span>
+<pre><code><span class="s">.layout</span> {
+  <span class="pr">display</span>: <span class="v">grid</span>;
+  <span class="pr">grid-template-columns</span>: <span class="v">1fr 1fr 1fr</span>;
+  <span class="pr">gap</span>: <span class="v">16px</span>;
+}</code></pre>
+</div>
+
+<h3>The <code>fr</code> unit, and why it&rsquo;s better than percentages</h3>
+
+<p>The new thing here is <code>fr</code> &mdash; short for <em>fraction</em>. It means &ldquo;one share of whatever space is left after the fixed stuff and the gaps are accounted for.&rdquo; That last clause is what makes it so much nicer than percentages.</p>
+
+<p>Three columns at <code>33.33%</code> plus two 16px gaps overflows, because percentages don&rsquo;t know about gaps. Three columns at <code>1fr</code> fit perfectly, because <code>fr</code> is computed from the leftover space <em>after</em> gaps are subtracted. You never do the arithmetic. Similarly, <code>200px 1fr</code> gives you a fixed sidebar and a main column that takes literally everything else &mdash; try expressing that in percentages.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;<code>grid-template-columns</code>, four ways</figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">100px 100px 100px &mdash; fixed, leaves a remainder</p>
+    <div class="dm-gr10-a"><div>1</div><div>2</div><div>3</div></div>
+    <p class="dm-fx6-name">1fr 1fr 1fr &mdash; equal shares of everything</p>
+    <div class="dm-gr10-b"><div>1</div><div>2</div><div>3</div></div>
+    <p class="dm-fx6-name">2fr 1fr 1fr &mdash; the first column gets a double share</p>
+    <div class="dm-gr10-c"><div>1</div><div>2</div><div>3</div></div>
+    <p class="dm-fx6-name">200px 1fr &mdash; the sidebar layout, in one line of CSS</p>
+    <div class="dm-gr10-d"><div>sidebar</div><div>main content</div></div>
+  </div>
+</figure>
+
+<p>Two helpers make templates readable. <code>repeat()</code> saves you typing: <code>repeat(12, 1fr)</code> is a twelve-column grid. And <code>minmax(min, max)</code> gives a track a floor and a ceiling: <code>minmax(200px, 1fr)</code> means &ldquo;never narrower than 200px, otherwise take a fair share.&rdquo;</p>
+
+<h3>auto-fit vs auto-fill &mdash; the senior follow-up</h3>
+
+<p>Put those together with a keyword instead of a number and you get responsive layout with no media queries at all:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-good">&#10003; A responsive card grid, in one declaration</span>
+<pre><code><span class="s">.cards</span> {
+  <span class="pr">display</span>: <span class="v">grid</span>;
+  <span class="pr">grid-template-columns</span>: <span class="v">repeat(auto-fit, minmax(200px, 1fr))</span>;
+  <span class="pr">gap</span>: <span class="v">16px</span>;
+}</code></pre>
+</div>
+
+<p>That reads as: &ldquo;fit as many 200px-minimum columns as you can, and share out any extra.&rdquo; At 900px wide you get four columns; at 500px you get two; at 300px you get one. No breakpoints.</p>
+
+<p>Now &mdash; there are two keywords, <code>auto-fit</code> and <code>auto-fill</code>, and the difference only shows up when you have <strong>more room than items</strong>. Both create as many tracks as will fit. The difference is what happens to the tracks that ended up empty:</p>
+
+<ul>
+  <li><strong><code>auto-fill</code></strong> keeps the empty tracks. They stay in the grid as real, invisible columns, taking up their share of space.</li>
+  <li><strong><code>auto-fit</code></strong> collapses the empty tracks to zero width. With <code>1fr</code> as the max, the remaining items then expand to soak up the freed space.</li>
+</ul>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Three items, plenty of room &mdash; the only difference is the keyword</figcaption>
+  <div class="fig-body">
+    <p class="dm-fx6-name">repeat(auto-fit, minmax(120px, 1fr)) &mdash; items stretch to fill</p>
+    <div class="dm-gr11-fit"><div>one</div><div>two</div><div>three</div></div>
+    <p class="dm-fx6-name">repeat(auto-fill, minmax(120px, 1fr)) &mdash; items stay put, empty tracks hold space</p>
+    <div class="dm-gr11-fill"><div>one</div><div>two</div><div>three</div></div>
+  </div>
+  <p class="fig-note">If your window is wide enough to fit more than three 120px columns, the two rows will look different. The <code>auto-fill</code> items stop growing once the phantom fourth (and fifth) columns claim their share; the <code>auto-fit</code> items keep expanding because those columns collapsed away.</p>
+</figure>
+
+<p>Which do you want? Almost always <code>auto-fit</code> &mdash; you want a lone card to fill the row, not huddle in the corner. <code>auto-fill</code> is right when you want a stable grid rhythm regardless of how many items you have, like a calendar or a seat-map where a half-empty row should still line up with the full ones.</p>
+
+<h3>Named areas &mdash; layout you can read</h3>
+
+<p>Here&rsquo;s grid&rsquo;s party trick, and my favourite feature in all of CSS. You can name regions and then <em>draw</em> the layout in your stylesheet:</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-good">&#10003; The holy grail layout, drawn out in ASCII</span>
+<pre><code><span class="s">.page</span> {
+  <span class="pr">display</span>: <span class="v">grid</span>;
+  <span class="pr">grid-template-columns</span>: <span class="v">150px 1fr 130px</span>;
+  <span class="pr">grid-template-rows</span>: <span class="v">auto 1fr auto</span>;
+  <span class="pr">grid-template-areas</span>:
+    <span class="v">"header header header"</span>
+    <span class="v">"nav    main   aside"</span>
+    <span class="v">"footer footer footer"</span>;
+}
+<span class="s">.page &gt; header</span> { <span class="pr">grid-area</span>: <span class="v">header</span>; }
+<span class="s">.page &gt; nav</span>    { <span class="pr">grid-area</span>: <span class="v">nav</span>; }
+<span class="s">.page &gt; main</span>   { <span class="pr">grid-area</span>: <span class="v">main</span>; }</code></pre>
+</div>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;That exact CSS, running</figcaption>
+  <div class="fig-body">
+    <div class="dm-gr12">
+      <div class="h">header</div>
+      <div class="n">nav</div>
+      <div class="m">main</div>
+      <div class="a">aside</div>
+      <div class="f">footer</div>
+    </div>
+  </div>
+  <p class="fig-note">The footer sits at the bottom even though <code>main</code> has hardly any content, because the middle row is <code>1fr</code> &mdash; it absorbs all the leftover height. The three columns are equal-height automatically. Neither of those was free before grid.</p>
+</figure>
+
+<p>It&rsquo;s worth pausing on how hard that layout used to be. This is the &ldquo;holy grail&rdquo; layout &mdash; header, footer, three equal-height columns, fixed side rails, fluid centre, and the source order sensible for screen readers. In the float era this required negative margins, a wrapper per column, and a technique with a name (&ldquo;faux columns&rdquo;) for the equal-height problem. It was fragile enough that people wrote blog posts about it. With grid it is nine lines and you can see the shape by squinting at the stylesheet.</p>
+
+<h3>Explicit vs implicit grid</h3>
+
+<p>The tracks you define in <code>grid-template-columns</code> and <code>grid-template-rows</code> are the <strong>explicit grid</strong>. But what if you put in more items than you defined cells for? Grid doesn&rsquo;t overflow or complain &mdash; it quietly creates new tracks. Those are the <strong>implicit grid</strong>.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Three explicit columns, seven items</figcaption>
+  <div class="fig-body">
+    <div class="dm-gr13">
+      <div>1</div><div>2</div><div>3</div>
+      <div class="imp">4</div><div class="imp">5</div><div class="imp">6</div>
+      <div class="imp">7</div>
+    </div>
+  </div>
+  <p class="fig-note">Blue items sit in the explicit grid. Orange ones are in implicit rows the browser generated on demand. Their height comes from <code>grid-auto-rows</code>, which is set to 46px here &mdash; without it they&rsquo;d size to content.</p>
+</figure>
+
+<p>The practical consequence: <code>grid-template-rows</code> styles the rows you declared, and <code>grid-auto-rows</code> styles the ones that get invented. For a list of unknown length, you usually only declare columns and let rows be implicit. If your grid rows are mysteriously the wrong height, it&rsquo;s often because you styled the wrong one of those two.</p>
+
+<h3>Placing items explicitly</h3>
+
+<p>By default items flow into cells in order, one per cell. But any item can claim a specific patch of the grid with <code>grid-column</code> and <code>grid-row</code>. The values are <strong>line numbers</strong>, not cell numbers &mdash; a three-column grid has four vertical lines, numbered 1 to 4. So <code>grid-column: 1 / 3</code> means &ldquo;from line 1 to line 3&rdquo;, spanning two columns. The <code>span</code> keyword saves you counting: <code>grid-column: span 2</code>.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Spanning cells in a four-column grid</figcaption>
+  <div class="fig-body">
+    <div class="dm-gr14">
+      <div>1</div>
+      <div class="wide">span 2 cols</div>
+      <div>4</div>
+      <div class="tall">span 2 rows</div>
+      <div>b</div><div>c</div><div>d</div>
+      <div>e</div><div>f</div><div>g</div>
+    </div>
+  </div>
+  <p class="fig-note">Notice that grid <em>reflows the other items around</em> the spanning ones automatically. There is no equivalent in flexbox &mdash; a flex item can&rsquo;t occupy two rows, because flexbox has no concept of a row it isn&rsquo;t already on.</p>
+</figure>
+
+<div class="callout c-wait">
+  <span class="ct">Wait, what about aligning things <em>inside</em> grid cells?</span>
+  <p>Grid uses the same alignment vocabulary as flexbox, with one extra dimension. <code>justify-*</code> works on the inline (column) axis, <code>align-*</code> on the block (row) axis. <code>justify-items</code> and <code>align-items</code> set the default for every item within its cell; <code>justify-self</code> and <code>align-self</code> override per item. And <code>place-items: center</code> is shorthand for both at once, which is the tidiest centring technique in CSS. Unlike flexbox, grid <em>does</em> have <code>justify-self</code>, because each item owns its own cell.</p>
+</div>
+
+<div class="say">
+  <span class="ct">Say this out loud &mdash; &ldquo;explain grid&rdquo;</span>
+  <p class="quote">&ldquo;Grid is two-dimensional: you define the container&rsquo;s row and column structure up front, and items are placed into that structure &mdash; so you control both axes at once, and items can span multiple rows and columns. The <code>fr</code> unit distributes leftover space after fixed tracks and gaps are subtracted, which makes things like <code>200px 1fr</code> trivial. And <code>repeat(auto-fit, minmax(200px, 1fr))</code> gives you a fully responsive card grid with no media queries. Tracks you declare are the explicit grid; if you add more items than cells, grid generates implicit tracks sized by <code>grid-auto-rows</code>.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> &ldquo;structure defined on the container, items placed into it&rdquo; is the conceptual core, and mentioning the explicit/implicit distinction unprompted marks you as someone who&rsquo;s built real grids rather than copied a snippet.</p>
+</div>
+
+<!-- ================================================================= -->
+<h2 id="which"><span class="num">Part 6</span>Flex or grid? The decision rule</h2>
+
+<p>&ldquo;Would you use flexbox or grid for this?&rdquo; is a near-guaranteed question, and the trap is answering with a preference. Interviewers aren&rsquo;t checking which one you like; they&rsquo;re checking whether you have a <em>rule</em>. Here it is:</p>
+
+<div class="callout c-iv">
+  <span class="ct">The rule, in one line</span>
+  <p><strong>If the content should decide the sizes, and you only care about one direction &mdash; flexbox. If you want to impose a structure, and you care about both directions &mdash; grid.</strong></p>
+  <p>Or, more memorably: flexbox is <em>content-out</em>, grid is <em>layout-in</em>.</p>
+</div>
+
+<p>Let&rsquo;s make that concrete, because &ldquo;one-dimensional vs two-dimensional&rdquo; is a slogan people repeat without being able to apply it.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>You&rsquo;re building&hellip;</th><th>Use</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td>A navbar: logo, links, a button</td><td>flex</td><td>One row. Sizes come from the content. You just need to distribute leftover space.</td></tr>
+    <tr><td>The whole page: header, sidebar, main, footer</td><td>grid</td><td>You have a shape in mind, in two dimensions, and it shouldn&rsquo;t change based on how much text is in the sidebar.</td></tr>
+    <tr><td>A row of tags of varying length that wraps</td><td>flex</td><td>Each tag is as wide as its word. Grid would force them into columns of equal width.</td></tr>
+    <tr><td>A photo gallery of uniform cards</td><td>grid</td><td>You want tidy columns and aligned rows. <code>auto-fit</code> + <code>minmax</code> and you&rsquo;re done.</td></tr>
+    <tr><td>An icon next to a label, vertically centred</td><td>flex</td><td>Two items, one axis, sizes from content. Grid is overkill.</td></tr>
+    <tr><td>A form where all labels line up in a column</td><td>grid</td><td>Alignment <em>across</em> rows is a two-dimensional requirement. Flex rows can&rsquo;t see each other.</td></tr>
+    <tr><td>A dashboard where one widget is double-width</td><td>grid</td><td>Spanning cells. Flexbox has no way to express it.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That form row is worth dwelling on, because it&rsquo;s the crispest demonstration of the difference. If you build a form as a stack of flex rows, each row is an independent flex container &mdash; row two has no idea how wide row one&rsquo;s label was, so the inputs won&rsquo;t line up. In a grid, every row shares the same column tracks, so the label column is one width for the whole form, automatically. <strong>Flex lines can&rsquo;t see each other; grid tracks are shared.</strong> That&rsquo;s the real meaning of &ldquo;two-dimensional.&rdquo;</p>
+
+<h3>And they compose</h3>
+
+<p>Critically, this isn&rsquo;t a choice you make once. Real applications use both, at different scales: <strong>grid for the page skeleton, flex inside each component.</strong> A card grid where each card is a flex column with the button pushed to the bottom by <code>margin-top: auto</code>. A grid-based page whose header is a flex row. A grid item is itself a perfectly ordinary box, so it can be <code>display: flex</code> for its own children.</p>
+
+<p>If you say &ldquo;grid for the macro layout, flex within components, and they nest happily&rdquo;, you have answered the question better than the person asking probably expected.</p>
+
+<div class="callout c-myth">
+  <span class="ct">A common misconception</span>
+  <p>&ldquo;Grid replaced flexbox &mdash; it&rsquo;s newer, so it&rsquo;s better.&rdquo; They solve different problems and neither is a superset. Grid genuinely cannot do what flexbox does with content-sized items on a wrapping line: a tag list in grid gives you rigid equal columns, and every tag looks wrong. Flexbox genuinely cannot align across lines. Saying &ldquo;I just use grid for everything now&rdquo; reads as inexperience, not modernity.</p>
+</div>
+
+<details class="fu">
+  <summary>&ldquo;Can you centre something with grid more easily than flex?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Yes, marginally: <code>display: grid; place-items: center</code> is two declarations, versus flexbox&rsquo;s <code>display: flex; align-items: center; justify-content: center</code>. There&rsquo;s a <code>place-content</code> in flexbox too but it doesn&rsquo;t cover <code>align-items</code>, so grid genuinely wins on brevity here. It&rsquo;s the single case where &ldquo;use grid, it&rsquo;s shorter&rdquo; is a legitimate answer.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;Is there a performance difference?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Not meaningfully, and reaching for performance as the reason to pick one is a small red flag. Both are highly optimised native layout algorithms. Grid does slightly more work because it has to resolve two axes and can require multiple passes for <code>auto</code> and content-based tracks, and deeply nested flex containers can be expensive because sizing an item may depend on its children which depend on the container. But the number of DOM nodes and how often you trigger layout dwarf the choice of algorithm. Pick based on what you&rsquo;re expressing, not on speed.</p>
+  </div>
+</details>
+
+<!-- ================================================================= -->
+<h2 id="position"><span class="num">Part 7</span>Positioning: static, relative, absolute, fixed, sticky</h2>
+
+<p>Everything up to now has been about elements living in <em>flow</em> &mdash; taking up space, pushing their neighbours around, being arranged by flex or grid. Positioning is the set of tools for taking an element and moving it somewhere else, sometimes without disturbing anything around it.</p>
+
+<p>There are five values and it&rsquo;s worth understanding them as a progression from &ldquo;fully in flow&rdquo; to &ldquo;fully out of it.&rdquo;</p>
+
+<h3><code>static</code> &mdash; the default</h3>
+
+<p>Every element starts as <code>position: static</code>. It sits where flow, flex, or grid puts it. Crucially, <code>top</code>, <code>right</code>, <code>bottom</code>, <code>left</code>, and <code>z-index</code> <strong>do nothing at all</strong> on a static element. If you&rsquo;ve ever set <code>top: 20px</code> and had absolutely nothing happen, this is why &mdash; you forgot to set a <code>position</code> first. It&rsquo;s the most common CSS false start there is.</p>
+
+<h3><code>relative</code> &mdash; nudged, but still occupying its space</h3>
+
+<p><code>position: relative</code> does two things, and one of them is much more important than the other.</p>
+
+<p>The obvious thing: <code>top</code>/<code>left</code>/etc. now work, and shift the element <em>relative to where it would otherwise have been</em>. But here&rsquo;s the part that matters &mdash; <strong>the space it originally occupied is still reserved.</strong> Nothing reflows. The element is visually moved but the layout still believes it&rsquo;s in the old place.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;<code>relative</code> leaves a hole behind</figcaption>
+  <div class="fig-body">
+    <div class="dm-po15-stage">
+      <div>A</div>
+      <div class="moved">B (relative, top/left 22px)</div>
+      <div>C</div>
+    </div>
+    <p class="dm-ruler" style="margin-top:10px">C did not slide left to fill the gap &mdash; B&rsquo;s original slot is still reserved:</p>
+    <div class="dm-po15-ghost">
+      <div>A</div>
+      <div class="slot">B&rsquo;s reserved space</div>
+      <div>C</div>
+    </div>
+  </div>
+  <p class="fig-note">A relatively positioned element is like a sticker peeled halfway off a page: it&rsquo;s hovering above the surface now, but the outline of where it was is still there, and nothing else moves into it. It can also overlap its neighbours, since it&rsquo;s no longer confined to its slot.</p>
+</figure>
+
+<p>The <em>other</em> thing <code>relative</code> does &mdash; and honestly this is what it&rsquo;s used for 90% of the time, usually with no offsets at all &mdash; is establish a <strong>containing block</strong> for absolutely positioned descendants. Which we need to define properly, right now, because it&rsquo;s the concept the next three sections all depend on.</p>
+
+<h3>What is a containing block?</h3>
+
+<p>When you set <code>position: absolute</code> and then say <code>top: 0; left: 0</code>, the obvious question is: <em>zero from what?</em> The top-left of the page? Of the parent? Of the screen?</p>
+
+<p>The answer is: from the element&rsquo;s <strong>containing block</strong>. That&rsquo;s the rectangle that all its percentage sizes and offsets are measured against. Every positioned element has exactly one, and finding it is a simple search.</p>
+
+<p>For an element with <code>position: absolute</code>, the browser walks up the ancestor chain and picks <strong>the first ancestor that is itself &ldquo;positioned&rdquo;</strong> &mdash; meaning it has a <code>position</code> value other than <code>static</code>. If it walks all the way to the top without finding one, it uses the initial containing block, which is essentially the page.</p>
+
+<p>The analogy I like: an absolutely positioned element is a note stuck to a noticeboard, and it&rsquo;s looking for the <strong>nearest noticeboard above it</strong>. Ordinary <code>static</code> elements are just wall &mdash; you can&rsquo;t pin to them. Setting <code>position: relative</code> on an ancestor is the act of hanging a noticeboard there. The note pins itself to the closest one it can find, and if there are none in the whole building, it pins to the outside wall of the building itself.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;The same badge, two different containing blocks</figcaption>
+  <div class="fig-body">
+    <div class="dm-po16-wrap">
+      <div class="dm-po16-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">green box is <code>position: relative</code></h5>
+        <div class="dm-po16-outer2">
+          <div class="dm-po16-rel">
+            green card
+            <div class="dm-po16-badge">badge</div>
+          </div>
+        </div>
+      </div>
+      <div class="dm-po16-col">
+        <h5 style="margin:0 0 6px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft)">green box is <code>static</code></h5>
+        <div class="dm-po16-outer2">
+          <div class="dm-po16-static">
+            green card
+            <div class="dm-po16-badge">badge</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Identical badge CSS (<code>position: absolute; top: 8px; right: 8px</code>) in both. On the left it pins to the green card. On the right, the green card is <code>static</code>, so the badge skips past it and pins to the grey outer box instead. Nothing in the badge&rsquo;s own CSS changed &mdash; only which ancestor was offering a noticeboard.</p>
+</figure>
+
+<p>This is why <code>position: relative</code> with no offsets is one of the most-written declarations in CSS. You&rsquo;re not moving anything; you&rsquo;re saying &ldquo;absolute children, measure yourselves against <em>me</em>.&rdquo;</p>
+
+<div class="callout c-hood">
+  <span class="ct">Under the hood &mdash; <code>position</code> isn&rsquo;t the only thing that creates a containing block</span>
+  <p>This is the follow-up that separates the confident answers from the memorised ones. A non-<code>static</code> <code>position</code> is the <em>usual</em> way, but several other properties also make an element into a containing block for <code>absolute</code> <strong>and</strong> <code>fixed</code> descendants:</p>
+  <ul>
+    <li><code>transform</code> with any value other than <code>none</code> &mdash; including <code>translateZ(0)</code> or <code>scale(1)</code></li>
+    <li><code>filter</code>, <code>backdrop-filter</code></li>
+    <li><code>will-change</code> naming any of the above</li>
+    <li><code>perspective</code></li>
+    <li><code>contain: paint</code> / <code>contain: layout</code>, and <code>content-visibility</code></li>
+  </ul>
+  <p>The reason is coherent: all of these change the coordinate system or the paint boundary of the subtree. If an element is rendered scaled or blurred, its descendants have to be positioned inside that transformed space, or they&rsquo;d visually detach from it.</p>
+</div>
+
+<h3><code>absolute</code> &mdash; out of flow entirely</h3>
+
+<p>Where <code>relative</code> keeps its seat, <code>absolute</code> gets up and leaves. The element is <strong>removed from normal flow</strong>: it no longer takes up space, siblings close up as though it were deleted, and it positions itself against its containing block.</p>
+
+<p>Two consequences worth knowing. First, an absolutely positioned block element <strong>shrinks to fit its content</strong> instead of filling its parent &mdash; it&rsquo;s no longer in flow, so &ldquo;fill the width&rdquo; doesn&rsquo;t apply. Second, if you set <em>no</em> offsets at all, it stays exactly where it would have been in flow (its &ldquo;static position&rdquo;) but stops taking up space. That&rsquo;s occasionally useful and frequently the cause of a mysterious overlap.</p>
+
+<p>Absolute positioning is for things that genuinely sit on a layer above the layout: a badge on an avatar, a close button in a modal corner, a dropdown panel under a menu button, a custom checkbox graphic over a hidden input. If you find yourself absolutely positioning things to build a <em>page layout</em>, stop &mdash; that&rsquo;s what grid is for, and absolute layouts can&rsquo;t respond to content size.</p>
+
+<h3><code>fixed</code> &mdash; pinned to the viewport</h3>
+
+<p><code>position: fixed</code> is like absolute in that it&rsquo;s out of flow, but its containing block is normally the <strong>viewport</strong> &mdash; the visible window. So it doesn&rsquo;t move when you scroll. Sticky headers, cookie banners, chat bubbles in the corner, modal backdrops.</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;<code>fixed</code>, and the thing that breaks it</figcaption>
+  <div class="fig-body">
+    <div class="dm-fr-wrap">
+      <div class="dm-fr-col">
+        <h5>normal ancestors &mdash; scroll me</h5>
+        <iframe class="dm-frame" title="position fixed working normally" srcdoc='<style>body{margin:0;font:13px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#fbfaf8;color:#1c1c21}.bar{position:fixed;top:0;left:0;right:0;background:#f7c59a;border-bottom:1px solid #d19a5c;color:#5c3a10;padding:9px 12px;font-weight:700}.body{padding:44px 12px 20px}p{margin:0 0 12px;line-height:1.55;background:#9fc9ef;border:1px solid #6ba7db;color:#113a5c;padding:8px;border-radius:4px}</style><div class="bar">position: fixed</div><div class="body"><p>Scroll this frame.</p><p>The orange bar stays pinned.</p><p>It is measured against the frame viewport.</p><p>Filler.</p><p>Filler.</p><p>Filler.</p><p>Still pinned up there.</p></div>'></iframe>
+      </div>
+      <div class="dm-fr-col">
+        <h5>ancestor has a <code>transform</code></h5>
+        <iframe class="dm-frame" title="position fixed broken by a transformed ancestor" srcdoc='<style>body{margin:0;font:13px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#fbfaf8;color:#1c1c21}.tr{transform:translateZ(0)}.bar{position:fixed;top:0;left:0;right:0;background:#f7c59a;border-bottom:1px solid #d19a5c;color:#5c3a10;padding:9px 12px;font-weight:700}.body{padding:44px 12px 20px}p{margin:0 0 12px;line-height:1.55;background:#9fc9ef;border:1px solid #6ba7db;color:#113a5c;padding:8px;border-radius:4px}</style><div class="tr"><div class="bar">position: fixed</div><div class="body"><p>Scroll this frame too.</p><p>Same CSS on the bar.</p><p>But an ancestor has transform: translateZ(0).</p><p>Filler.</p><p>Filler.</p><p>Filler.</p><p>The bar scrolled away.</p></div></div>'></iframe>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Scroll both frames. The bars have byte-for-byte identical CSS. In the right frame, a wrapper has <code>transform: translateZ(0)</code>, which creates a containing block &mdash; so the &ldquo;fixed&rdquo; bar is now fixed relative to <em>that wrapper</em>, which scrolls. In effect it behaves like <code>position: absolute</code>.</p>
+</figure>
+
+<p>This is one of the great CSS mysteries when you hit it in the wild, because the broken element&rsquo;s CSS is perfect. The culprit is always an ancestor, often several levels up, and often something you didn&rsquo;t write &mdash; an animation library adding <code>will-change: transform</code>, a <code>filter: blur()</code> on a backdrop, a <code>translateZ(0)</code> someone added years ago to &ldquo;force GPU acceleration.&rdquo;</p>
+
+<div class="callout c-iv">
+  <span class="ct">In an interview</span>
+  <p>&ldquo;Why did my <code>position: fixed</code> element stop being fixed?&rdquo; is a debugging question, and they want to see your <em>process</em>, not just the fact. The answer to give: &ldquo;Something in the ancestor chain created a containing block &mdash; almost always a <code>transform</code>, <code>filter</code>, or <code>will-change</code>. I&rsquo;d walk up the tree in devtools looking for one, and fix it either by moving the fixed element out of that subtree entirely, usually to a portal at the body level, or by removing the property if it isn&rsquo;t needed.&rdquo; Naming the portal fix is a nice touch if the codebase is React &mdash; it&rsquo;s exactly why modals are usually portalled.</p>
+</div>
+
+<h3><code>sticky</code> &mdash; the hybrid</h3>
+
+<p><code>position: sticky</code> is the newest and the strangest. It behaves like <code>relative</code> &mdash; in flow, taking up its space &mdash; until the user scrolls it to a threshold you define, at which point it behaves like <code>fixed</code>, but only <em>within its parent</em>. When the parent scrolls out of view, the sticky element goes with it.</p>
+
+<p>The analogy: a sticky element is a passenger on a train with an assigned seat. It sits in its seat normally. When the train reaches a certain point, it gets up and stands by the door &mdash; but it can never leave the carriage. When the carriage leaves the station, so does it.</p>
+
+<div class="snippet">
+<span class="snippet-label lbl-neutral">A sticky section header</span>
+<pre><code><span class="s">.section-header</span> {
+  <span class="pr">position</span>: <span class="v">sticky</span>;
+  <span class="pr">top</span>: <span class="v">0</span>;   <span class="c">/* &#128072; the threshold. Without this, nothing sticks. */</span>
+}</code></pre>
+</div>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Sticky working, and the two ways it silently fails</figcaption>
+  <div class="fig-body">
+    <div class="dm-st19-wrap">
+      <div class="dm-st19-col">
+        <h5>&#10003; sticky, top: 0</h5>
+        <div class="dm-st19-scroll">
+          <h6>section one</h6>
+          <p>scroll me</p><p>filler</p><p>filler</p><p>filler</p><p>filler</p>
+        </div>
+      </div>
+      <div class="dm-st19-col">
+        <h5>&#10007; no threshold set</h5>
+        <div class="dm-st19-scroll broken">
+          <h6>section one</h6>
+          <p>scroll me</p><p>filler</p><p>filler</p><p>filler</p><p>filler</p>
+        </div>
+      </div>
+      <div class="dm-st19-col">
+        <h5>&#10007; <code>overflow: hidden</code> ancestor</h5>
+        <div class="dm-st19-scroll">
+          <div class="dm-st19-clipper">
+            <h6>section one</h6>
+            <p>scroll me</p><p>filler</p><p>filler</p><p>filler</p><p>filler</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Scroll each box. The first header sticks. The second has <code>position: sticky</code> but no <code>top</code>, so there&rsquo;s no threshold to trigger on and it just scrolls away. The third is wrapped in an <code>overflow: hidden</code> div, which quietly kills it.</p>
+</figure>
+
+<p>Sticky fails silently &mdash; no error, no warning, it simply doesn&rsquo;t stick &mdash; so knowing the three causes by heart is genuinely useful:</p>
+
+<ol>
+  <li><strong>No threshold.</strong> You must set at least one of <code>top</code>, <code>right</code>, <code>bottom</code>, or <code>left</code>. Unlike absolute, sticky with no offsets does nothing at all. This is the most common cause by a mile.</li>
+  <li><strong>An ancestor with <code>overflow</code> set to <code>hidden</code>, <code>auto</code>, or <code>scroll</code>.</strong> Sticky positions itself against the nearest scrolling ancestor. If some wrapper has <code>overflow: hidden</code>, that becomes the scroll container &mdash; and it doesn&rsquo;t scroll, so nothing ever sticks. This one is brutal because <code>overflow: hidden</code> is often added far away for an unrelated reason, like clipping a rounded corner.</li>
+  <li><strong>The parent is too short.</strong> Sticky can only travel within its parent&rsquo;s box. If the parent is exactly as tall as the sticky element &mdash; which is what happens when you make a sticky sidebar the direct child of a flex or grid container that stretches it to full height &mdash; there is no room to move, so it never appears to stick. The fix is usually <code>align-self: start</code> on the sticky item so it doesn&rsquo;t get stretched.</li>
+</ol>
+
+<div class="callout c-wait">
+  <span class="ct">Wait, what about <code>height: 100%</code> on a parent?</span>
+  <p>Same family of problem. A common one: <code>html, body { height: 100% }</code> combined with <code>overflow: auto</code> somewhere makes the scroll container something other than the document, and every sticky thing on the page breaks at once. If <em>nothing</em> sticky works anywhere, look at your root element styles before you look at the component.</p>
+</div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Value</th><th>In flow?</th><th>Positioned against</th><th>Offsets do anything?</th></tr></thead>
+  <tbody>
+    <tr><td><code>static</code></td><td>Yes</td><td>&mdash;</td><td>No</td></tr>
+    <tr><td><code>relative</code></td><td>Yes (keeps its space)</td><td>Its own normal position</td><td>Yes</td></tr>
+    <tr><td><code>absolute</code></td><td>No</td><td>Nearest positioned ancestor</td><td>Yes</td></tr>
+    <tr><td><code>fixed</code></td><td>No</td><td>The viewport (unless a transformed ancestor steals it)</td><td>Yes</td></tr>
+    <tr><td><code>sticky</code></td><td>Yes (keeps its space)</td><td>Nearest scroll container, clamped to its parent</td><td>Required &mdash; they set the threshold</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="say">
+  <span class="ct">Say this out loud &mdash; &ldquo;what&rsquo;s a containing block?&rdquo;</span>
+  <p class="quote">&ldquo;It&rsquo;s the rectangle an element&rsquo;s percentages and offsets are resolved against. For an absolutely positioned element it&rsquo;s the padding box of the nearest ancestor that&rsquo;s positioned &mdash; anything other than <code>position: static</code> &mdash; and if there isn&rsquo;t one it falls back to the initial containing block, effectively the viewport. That&rsquo;s why you so often see <code>position: relative</code> with no offsets: it&rsquo;s just there to become the containing block for a child. And it&rsquo;s not only <code>position</code> &mdash; <code>transform</code>, <code>filter</code>, and <code>will-change</code> also create a containing block, which is the usual reason a <code>position: fixed</code> element mysteriously stops being fixed.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> you connected a definition to two things the interviewer cares about &mdash; the <code>position: relative</code> idiom they see in every codebase, and a real debugging scenario. That&rsquo;s the difference between recall and understanding, and it&rsquo;s usually the thing they&rsquo;re grading.</p>
+</div>
+
+<h3>Follow-ups on positioning</h3>
+
+<details class="fu">
+  <summary>&ldquo;What&rsquo;s the difference between <code>top: 0</code> on relative and on absolute?&rdquo;</summary>
+  <div class="fu-body">
+    <p>On <code>relative</code>, offsets are measured from the element&rsquo;s <em>own normal position</em>, so <code>top: 0</code> is a no-op and <code>top: 20px</code> means &ldquo;20px lower than you would have been.&rdquo; On <code>absolute</code>, they&rsquo;re measured from the edges of the containing block, so <code>top: 0</code> means &ldquo;flush with the top of my containing block.&rdquo; Same property, two different reference frames.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;If I set both <code>top: 0</code> and <code>bottom: 0</code> on an absolute element, what happens?&rdquo;</summary>
+  <div class="fu-body">
+    <p>It stretches to fill that whole dimension, as long as <code>height</code> is <code>auto</code>. Setting all four of <code>top/right/bottom/left</code> to <code>0</code> (or the shorthand <code>inset: 0</code>) makes an element exactly cover its containing block &mdash; the standard way to build a modal backdrop or an overlay on an image. If you also set an explicit <code>height</code>, the conflict is resolved by ignoring <code>bottom</code>.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;Does <code>position: absolute</code> take an element out of the accessibility tree or the tab order?&rdquo;</summary>
+  <div class="fu-body">
+    <p>No &mdash; and this catches people out. It only removes the element from <em>layout</em> flow. It&rsquo;s still in the DOM, still focusable, still read by screen readers, still tabbable, in <strong>source order</strong>, not visual order. That&rsquo;s a real accessibility hazard: if you visually reorder things with positioning (or with flexbox&rsquo;s <code>order</code>, or grid placement), keyboard users will tab through them in an order that doesn&rsquo;t match what they see. The rule is to keep DOM order matching the meaningful reading order, and only use layout to make small visual adjustments.</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;Why is my sticky header jumping or flickering?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Usually one of two things. Either the sticky element has a margin that collapses differently once it sticks, or you have two sticky elements at the same <code>top</code> value overlapping each other. Also check that you haven&rsquo;t got a <code>transform</code> on the sticky element itself &mdash; sticky and transforms interact badly, since sticky is repositioning the same box the transform is offsetting.</p>
+  </div>
+</details>
+
+<!-- ================================================================= -->
+<h2 id="centering"><span class="num">Part 8</span>Centering a div, properly</h2>
+
+<p>&ldquo;How do you centre a div?&rdquo; is a joke question now, which is exactly why it still gets asked &mdash; it&rsquo;s a fast way to find out whether someone reasons about layout or reaches for a memorised snippet. The good answer is never a single technique. It&rsquo;s &ldquo;it depends, and here&rsquo;s what it depends on.&rdquo;</p>
+
+<p>First, a bit of history, because it explains why this was ever hard. Before flexbox, CSS had no concept of &ldquo;distribute this space around my child.&rdquo; Horizontal centring worked, sort of &mdash; <code>margin: 0 auto</code> on an element with a declared width does exactly that, because <code>auto</code> horizontal margins split the leftover space evenly. But there was no vertical equivalent, because in flow layout a block element&rsquo;s height comes from its content, so there is no &ldquo;leftover&rdquo; vertical space to split. <code>margin: auto 0</code> computes to zero. Vertical centring therefore needed hacks: table cells with <code>vertical-align: middle</code>, an invisible full-height pseudo-element with <code>display: inline-block</code>, or absolute positioning plus a negative margin equal to half the element&rsquo;s height &mdash; which required you to know the height in advance.</p>
+
+<p>Flexbox and grid fixed this by introducing algorithms that <em>do</em> have a notion of free space on both axes. Here are the modern options, live:</p>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;Four ways to centre, all working</figcaption>
+  <div class="fig-body">
+    <div class="dm-ce20-wrap">
+      <div class="dm-ce20-col">
+        <h5>flex</h5>
+        <div class="dm-ce20-stage dm-ce20-flex"><div class="dm-ce20-chip">centred</div></div>
+      </div>
+      <div class="dm-ce20-col">
+        <h5>grid place-items</h5>
+        <div class="dm-ce20-stage dm-ce20-grid"><div class="dm-ce20-chip">centred</div></div>
+      </div>
+      <div class="dm-ce20-col">
+        <h5>absolute + transform</h5>
+        <div class="dm-ce20-stage dm-ce20-abs"><div class="dm-ce20-chip">centred</div></div>
+      </div>
+      <div class="dm-ce20-col">
+        <h5>margin: auto (h only)</h5>
+        <div class="dm-ce20-stage dm-ce20-auto"><div class="dm-ce20-chip">centred</div></div>
+      </div>
+    </div>
+  </div>
+</figure>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Technique</th><th>Use it when</th><th>Watch out for</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>display: grid; place-items: center</code></td>
+      <td><strong>The default answer.</strong> Two declarations, both axes, works on any content size.</td>
+      <td>Makes the parent a grid, which affects <em>all</em> its children. Fine when it has one child.</td>
+    </tr>
+    <tr>
+      <td><code>display: flex; align-items: center; justify-content: center</code></td>
+      <td>When the parent is already flex, or you have several children to lay out as well as centre.</td>
+      <td>Three declarations. Remember the axes swap in <code>column</code>.</td>
+    </tr>
+    <tr>
+      <td><code>position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)</code></td>
+      <td>When the element must sit <em>on top of</em> other content without affecting layout &mdash; a modal, a loading spinner over a panel.</td>
+      <td>Needs a positioned ancestor. The <code>-50%</code> translate is relative to the <em>element&rsquo;s own</em> size, which is what makes it work without knowing the height.</td>
+    </tr>
+    <tr>
+      <td><code>margin-inline: auto</code> (or <code>margin: 0 auto</code>)</td>
+      <td>Horizontal only: centring a fixed-width content column on a page. Still the right tool for this.</td>
+      <td>Requires a constrained width &mdash; a full-width block has no leftover space to split. Does nothing vertically in flow layout.</td>
+    </tr>
+    <tr>
+      <td><code>margin: auto</code> on a <em>flex item</em></td>
+      <td>Genuinely centres on both axes, because in flexbox <code>auto</code> margins absorb free space in <em>both</em> directions.</td>
+      <td>Only works inside a flex or grid container. Surprising but very elegant.</td>
+    </tr>
+    <tr>
+      <td><code>text-align: center</code></td>
+      <td>Centring <em>inline</em> content &mdash; text, inline images, inline-block buttons &mdash; inside a block.</td>
+      <td>It centres the element&rsquo;s inline children, not the element itself. It also inherits, which surprises people three components down.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="say">
+  <span class="ct">Say this out loud &mdash; &ldquo;how many ways can you centre a div?&rdquo;</span>
+  <p class="quote">&ldquo;My default is <code>display: grid; place-items: center</code> on the parent &mdash; two declarations, both axes, works regardless of the child&rsquo;s size. If the parent&rsquo;s already a flex container I&rsquo;ll use <code>align-items</code> and <code>justify-content</code> instead. If the thing needs to sit on top of other content without affecting layout, like a modal, that&rsquo;s <code>position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)</code> &mdash; the translate is a percentage of the element itself, so it works without knowing its height. And for the plain case of centring a fixed-width content column on a page, <code>margin-inline: auto</code> is still the right tool. The reason there are so many options is that before flexbox there was no way to talk about free space on the vertical axis at all.&rdquo;</p>
+  <p class="why"><strong>Why it lands:</strong> you gave a default plus the conditions under which you&rsquo;d deviate, and the closing sentence shows you know <em>why</em> the question is a meme. That reads as someone who&rsquo;s made a lot of layout decisions, not someone reciting a listicle.</p>
+</div>
+
+<div class="callout c-myth">
+  <span class="ct">A common misconception</span>
+  <p>&ldquo;<code>margin: auto</code> doesn&rsquo;t work vertically.&rdquo; Not quite &mdash; it doesn&rsquo;t work vertically <em>in flow layout</em>, because there's no free vertical space to distribute. Inside a flex or grid container there is, and <code>margin: auto</code> on a flex item centres it on both axes perfectly. Being precise about &ldquo;in flow layout&rdquo; is exactly the kind of qualification that makes an answer sound senior, and it sets up the last section of this guide nicely.</p>
+</div>
+
+<!-- ================================================================= -->
+<h2 id="algorithms"><span class="num">Part 9</span>CSS has several layout algorithms</h2>
+
+<p>Let me finish with the idea that ties everything together, because once you see it, a lot of previously random-feeling CSS behaviour snaps into place.</p>
+
+<p>Here&rsquo;s the framing. CSS is not one layout system with a big pile of properties. It&rsquo;s <strong>several distinct layout algorithms</strong>, and at any given moment, one of them is responsible for arranging a particular set of boxes. The main ones:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Algorithm</th><th>Turned on by</th><th>Its job</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Flow</strong> (block &amp; inline)</td><td>The default</td><td>Stack blocks vertically, flow inline content like words in a sentence. Built for documents.</td></tr>
+    <tr><td><strong>Flexbox</strong></td><td><code>display: flex</code></td><td>Distribute space along one axis.</td></tr>
+    <tr><td><strong>Grid</strong></td><td><code>display: grid</code></td><td>Place items into a two-dimensional structure.</td></tr>
+    <tr><td><strong>Table</strong></td><td><code>&lt;table&gt;</code> or <code>display: table</code></td><td>Size columns so every row agrees. Older, but genuinely good at that one thing.</td></tr>
+    <tr><td><strong>Positioned</strong></td><td><code>absolute</code> / <code>fixed</code></td><td>Take an element out of flow and place it against a containing block.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>And the crucial consequence: <strong>a property&rsquo;s meaning depends on which algorithm is running.</strong> Not whether it works &mdash; what it <em>means</em>. We&rsquo;ve already seen this several times without naming it:</p>
+
+<ul>
+  <li><code>margin: auto</code> centres horizontally in flow, and on <em>both</em> axes in flexbox.</li>
+  <li>Vertical margins collapse in flow, and never in flex or grid.</li>
+  <li><code>width: 100%</code> fills the parent in flow; on a flex item, <code>flex-basis</code> takes precedence over it.</li>
+  <li><code>z-index</code> does nothing on a static element in flow, but works on flex and grid items even when they&rsquo;re static.</li>
+  <li>A block element fills its parent&rsquo;s width in flow, but shrinks to fit its content the instant it becomes absolutely positioned.</li>
+</ul>
+
+<figure>
+  <figcaption><span class="tag">Live demo</span> &nbsp;The same child, two algorithms</figcaption>
+  <div class="fig-body">
+    <div class="dm-al21-wrap">
+      <div class="dm-al21-col">
+        <h5>parent in flow layout</h5>
+        <div class="dm-al21-stage"><span>margin: auto</span></div>
+        <p class="dm-ruler">centred horizontally only</p>
+      </div>
+      <div class="dm-al21-col">
+        <h5>parent is display: flex</h5>
+        <div class="dm-al21-stage flexy"><span>margin: auto</span></div>
+        <p class="dm-ruler">centred on both axes</p>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">Identical child CSS. The only change is one declaration on the parent. If you ever find yourself thinking &ldquo;this property just doesn&rsquo;t work here,&rdquo; the real question is almost always <em>which algorithm is laying this box out?</em></p>
+</figure>
+
+<p>This is why the honest answer to &ldquo;why isn&rsquo;t this CSS doing anything?&rdquo; is so often &ldquo;because you&rsquo;re in the wrong layout mode.&rdquo; <code>vertical-align</code> does nothing on a flex item. <code>float</code> does nothing on a grid item. <code>gap</code> does nothing in flow layout. None of these are bugs &mdash; the properties simply aren&rsquo;t part of the algorithm that&rsquo;s running.</p>
+
+<div class="callout c-hood">
+  <span class="ct">Under the hood &mdash; why the holy grail was so hard before grid</span>
+  <p>Flow layout has no concept of &ldquo;these three boxes are peers in a row that should be the same height.&rdquo; Blocks stack; that&rsquo;s the whole algorithm. So to get columns, we co-opted <code>float</code>, which was designed for wrapping text around an image, and made it do something it was never meant to do. Floats are removed from flow for sizing purposes, so parents collapsed to zero height and we invented clearfix. Floated columns don&rsquo;t know about each other&rsquo;s heights, so backgrounds didn&rsquo;t reach the bottom and we invented faux columns. Source order was tied to visual order, so the main content had to come after the sidebar in the HTML, which was bad for accessibility, so we invented negative-margin reordering tricks.</p>
+  <p>Every one of those hacks exists because we were using an algorithm designed for magazine text-wrap to build a page skeleton. Grid is an algorithm that was actually designed for page skeletons &mdash; equal-height tracks, source order independent of visual placement, and space distribution on both axes are all built into the model rather than emergent from a hack. That&rsquo;s why the answer collapses from forty lines of fragile CSS to nine.</p>
+</div>
+
+<details class="fu">
+  <summary>&ldquo;Should you ever use tables for layout?&rdquo;</summary>
+  <div class="fu-body">
+    <p>For <em>page</em> layout, no &mdash; it&rsquo;s semantically wrong, it&rsquo;s bad for screen readers, and grid does the job better. But two nuances make this a better answer than a flat no. First, <code>&lt;table&gt;</code> is absolutely correct for actual tabular data, and reaching for divs and grid there is the real mistake. Second, HTML email is still a genuine exception &mdash; many email clients strip modern CSS, so table-based layout remains standard practice there. Knowing that boundary is worth more than the reflexive &ldquo;tables are bad.&rdquo;</p>
+  </div>
+</details>
+
+<details class="fu">
+  <summary>&ldquo;What does <code>display: flex</code> actually change &mdash; the element, or its children?&rdquo;</summary>
+  <div class="fu-body">
+    <p>Both, and the distinction matters. <code>display</code> is really two values: an <em>outer</em> display type, which controls how the element behaves in its <em>parent&rsquo;s</em> layout, and an <em>inner</em> one, which controls how it lays out its <em>children</em>. <code>display: flex</code> means &ldquo;outer: block, inner: flex&rdquo; &mdash; the element itself is still a block in its parent&rsquo;s flow, but its children are laid out by the flex algorithm. The modern two-value syntax spells this out: <code>display: block flex</code>. It also explains <code>inline-flex</code>: outer inline, inner flex. Bringing this up is a strong signal that you understand the layout-algorithm model rather than just the property names.</p>
+  </div>
+</details>
+
+<!-- ================================================================= -->
+<h2 id="cheat"><span class="num">Part 10</span>Interview cheat sheet</h2>
+
+<p>The morning-of version. If you can say each of these in your own words, you&rsquo;re in good shape.</p>
+
+<div class="tablewrap cheat">
+<table>
+  <thead><tr><th>Question</th><th>The crisp answer</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Why does <code>width: 100%</code> plus padding overflow?</td>
+      <td>Because by default <code>width</code> sets only the <em>content</em> box; padding and border are added outside it. So you get 100% of the parent, plus the padding, which is more than 100%.</td>
+    </tr>
+    <tr>
+      <td>What is <code>border-box</code> and why does everyone set it?</td>
+      <td><code>width</code> now means the whole visible box out to the border; padding and border eat inwards. The number you type is the number on screen. Reset it on <code>*, *::before, *::after</code>.</td>
+    </tr>
+    <tr>
+      <td>What is margin collapsing?</td>
+      <td>Touching vertical margins in flow layout merge into one, and you get the larger, not the sum. Happens between siblings and between parent and first/last child. Stopped by padding, border, non-visible overflow, <code>flow-root</code>, or a flex/grid parent. Horizontal margins never collapse.</td>
+    </tr>
+    <tr>
+      <td>Flexbox in one sentence?</td>
+      <td>One-dimensional: distribute free space along a single axis. <code>justify-content</code> = main axis, <code>align-items</code> = cross axis, and <code>flex-direction</code> decides which is which.</td>
+    </tr>
+    <tr>
+      <td>What does <code>flex: 1</code> mean exactly?</td>
+      <td><code>flex-grow: 1; flex-shrink: 1; flex-basis: 0</code>. The zero basis is why items come out equal-width regardless of content &mdash; unlike bare <code>flex-grow: 1</code>, which keeps <code>basis: auto</code>.</td>
+    </tr>
+    <tr>
+      <td>Grid in one sentence?</td>
+      <td>Two-dimensional: define row and column structure on the container, then place items into it. Tracks are shared across rows, so things line up across the whole grid.</td>
+    </tr>
+    <tr>
+      <td><code>auto-fit</code> vs <code>auto-fill</code>?</td>
+      <td>Both create as many tracks as fit. <code>auto-fill</code> keeps empty tracks (items stay small); <code>auto-fit</code> collapses them (items stretch to fill). You usually want <code>auto-fit</code>.</td>
+    </tr>
+    <tr>
+      <td>Flexbox or grid for X?</td>
+      <td>Content-driven distribution along one axis &rarr; flex. Layout-driven structure in two axes &rarr; grid. They compose: grid for the page, flex inside components.</td>
+    </tr>
+    <tr>
+      <td>What is a containing block?</td>
+      <td>The rectangle an element&rsquo;s offsets and percentages resolve against. For <code>absolute</code>: the nearest non-<code>static</code> ancestor, else the viewport. Also created by <code>transform</code>, <code>filter</code>, <code>will-change</code>, <code>contain</code>.</td>
+    </tr>
+    <tr>
+      <td><code>relative</code> vs <code>absolute</code>?</td>
+      <td><code>relative</code> nudges from its own position and <em>keeps its space</em>. <code>absolute</code> leaves flow entirely, takes no space, shrinks to fit, and positions against its containing block.</td>
+    </tr>
+    <tr>
+      <td>Why did my <code>fixed</code> element stop being fixed?</td>
+      <td>An ancestor has <code>transform</code>, <code>filter</code>, or <code>will-change</code>, which creates a containing block &mdash; so it&rsquo;s now fixed to that ancestor and scrolls with it. Fix: portal it out, or remove the property.</td>
+    </tr>
+    <tr>
+      <td>Why isn&rsquo;t my <code>sticky</code> working?</td>
+      <td>Three causes: no threshold (<code>top</code>/<code>bottom</code>/etc. not set), an ancestor with <code>overflow: hidden/auto/scroll</code>, or a parent no taller than the element so there&rsquo;s nowhere to travel.</td>
+    </tr>
+    <tr>
+      <td>How do you centre a div?</td>
+      <td><code>display: grid; place-items: center</code> by default. Flex if the parent is already flex. <code>absolute</code> + <code>translate(-50%, -50%)</code> if it must float above the layout. <code>margin-inline: auto</code> for a fixed-width column.</td>
+    </tr>
+    <tr>
+      <td>Why does the same property behave differently in different places?</td>
+      <td>CSS has multiple layout algorithms &mdash; flow, flex, grid, table, positioned &mdash; and a property&rsquo;s meaning depends on which one is laying out that box.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Traps to avoid saying</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>&#10007; Don&rsquo;t say</th><th>&#10003; Say instead</th></tr></thead>
+  <tbody>
+    <tr><td>&ldquo;<code>border-box</code> removes the padding.&rdquo;</td><td>&ldquo;The padding is still there &mdash; the content area shrinks to make room instead of the element growing.&rdquo;</td></tr>
+    <tr><td>&ldquo;<code>flex: 1</code> is the same as <code>flex-grow: 1</code>.&rdquo;</td><td>&ldquo;The shorthand also sets <code>flex-basis: 0</code>, which is what makes the items come out equal.&rdquo;</td></tr>
+    <tr><td>&ldquo;Grid replaced flexbox.&rdquo;</td><td>&ldquo;They solve different problems, and I nest them &mdash; grid for the page, flex inside components.&rdquo;</td></tr>
+    <tr><td>&ldquo;<code>position: absolute</code> positions relative to the parent.&rdquo;</td><td>&ldquo;Relative to the nearest <em>positioned</em> ancestor &mdash; which is often not the direct parent.&rdquo;</td></tr>
+    <tr><td>&ldquo;Margins add up.&rdquo;</td><td>&ldquo;Horizontal margins add up. Vertical ones collapse in flow layout.&rdquo;</td></tr>
+    <tr><td>&ldquo;I always use flexbox, it&rsquo;s easier.&rdquo;</td><td>&ldquo;I pick based on whether I&rsquo;m distributing along one axis or imposing a two-axis structure.&rdquo;</td></tr>
+    <tr><td>&ldquo;I&rsquo;d absolutely position the sidebar.&rdquo;</td><td>&ldquo;Positioning is for things that sit on a layer above the layout. Page structure is grid&rsquo;s job.&rdquo;</td></tr>
+  </tbody>
+</table>
+</div>
+
+<hr>
+
+<p>If you take one thing from this guide, make it the last section. Almost every &ldquo;CSS is weird&rdquo; moment &mdash; the margin that vanished, the <code>auto</code> that only centred one way, the property that did nothing, the fixed element that scrolled &mdash; is the same underlying story: you had a mental model of one layout algorithm, and a different one was actually running.</p>
+
+<p>Once you start asking <em>&ldquo;which algorithm is laying out this box, and what does this property mean to that algorithm?&rdquo;</em>, CSS stops being a bag of tricks and becomes something you can reason about from first principles. Which is, conveniently, exactly what an interviewer is trying to find out. Good luck. &#127881;</p>
+
+</div>
+</body>
+</html>
