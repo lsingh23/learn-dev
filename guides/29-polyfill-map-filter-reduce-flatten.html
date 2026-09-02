@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polyfilling map, filter, reduce &amp; flatten</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Polyfilling <code>map</code>, <code>filter</code>, <code>reduce</code> &amp; flatten</h1>
+<p class="lede">Four small implementations. The loops are easy — what's actually being tested is
+whether you know why the method goes on the prototype and why <code>this</code> is the array.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#proto">The one bit of background you need</a></li>
+    <li><a href="#map">map</a></li>
+    <li><a href="#filter">filter</a></li>
+    <li><a href="#reduce">reduce</a></li>
+    <li><a href="#flatten">flatten</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="proto">The one bit of background you need</h2>
+
+<p>You never defined <code>map</code>, and it isn't stored inside your array. So when JavaScript
+evaluates <code>scores.map</code>, it looks in <code>scores</code>, doesn't find it, and follows a
+hidden link up to <code>Array.prototype</code> — one shared object where <code>map</code>,
+<code>filter</code>, <code>push</code> and friends actually live.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 560 200" role="img" aria-label="An array links up to Array.prototype, which holds the shared methods">
+  <rect x="30" y="15" width="210" height="72" rx="10" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+  <text x="45" y="40" font-size="13" font-family="ui-monospace, monospace" fill="currentColor">scores</text>
+  <text x="45" y="62" font-size="12" font-family="ui-monospace, monospace" fill="currentColor" opacity=".8">0:10  1:20  2:30  length:3</text>
+  <text x="252" y="57" font-size="12" fill="currentColor" opacity=".6" font-family="-apple-system, sans-serif">no `map` here</text>
+  <line x1="130" y1="87" x2="130" y2="122" stroke="#2f5fd8" stroke-width="1.8" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2f5fd8"/></marker></defs>
+  <text x="142" y="110" font-size="11.5" fill="#2f5fd8" font-family="ui-monospace, monospace">[[Prototype]]</text>
+  <rect x="30" y="124" width="300" height="62" rx="10" fill="none" stroke="#2f5fd8" stroke-width="1.8"/>
+  <text x="45" y="147" font-size="13" font-family="ui-monospace, monospace" fill="#2f5fd8">Array.prototype</text>
+  <text x="45" y="169" font-size="12" font-family="ui-monospace, monospace" fill="currentColor" opacity=".85">map  filter  reduce  push  …</text>
+  <text x="345" y="160" font-size="12" fill="currentColor" opacity=".65" font-family="-apple-system, sans-serif">one copy, every array</text>
+</svg>
+<figcaption>Lookup walks up the chain. Add to the prototype and every array gets it.</figcaption>
+</figure>
+
+<p>So a polyfill is just: put a function on <code>Array.prototype</code>. And since one shared
+function serves every array, the array can't be baked in — it arrives at call time as
+<code>this</code>, which is whatever was to the left of the dot:</p>
+
+<pre><code>Array.prototype.last = function () {
+  return this[this.length - 1];   <span class="cmt">// 👈 `this` is the array you called it on</span>
+};
+
+[1, 2, 3].last();   <span class="cmt">// → 3</span></code></pre>
+
+<div class="box misc">
+  <span class="t">A common misconception</span>
+  <p>"An arrow function is just shorter syntax." Not here. Arrows don't get their own
+  <code>this</code> — they inherit it from where they were written, and nothing can change that.
+  <strong>Every prototype method in this guide must be a regular <code>function</code>.</strong>
+  This is the single most common way people fail this question.</p>
+</div>
+
+<p>We'll name ours <code>myMap</code> etc. so we don't clobber the real ones.</p>
+
+<h2 id="map">map</h2>
+
+<p>In words: <em>build a new array of the same length, holding what the callback returned for each
+element. Never touch the original.</em></p>
+
+<div class="lbl good">✅ map</div>
+<pre><code>Array.prototype.myMap = function (callback) {
+  const result = [];
+
+  for (let i = 0; i &lt; this.length; i++) {
+    result.push(callback(this[i], i, this));   <span class="cmt">// 👈 value, index, array</span>
+  }
+
+  return result;
+};
+
+[1, 2, 3].myMap(n =&gt; n * 2);   <span class="cmt">// → [2, 4, 6]</span></code></pre>
+
+<p>That's it. The only detail people miss is the callback signature — the real <code>map</code>
+passes three arguments, and someone writing <code>.map((x, i) =&gt; ...)</code> will break if you
+only pass one.</p>
+
+<div class="box wait">
+  <span class="t">Wait — what about <code>thisArg</code> and sparse arrays?</span>
+  <p><code>map</code> also takes an optional second argument that sets <code>this</code> inside the
+  callback (use <code>callback.call(thisArg, ...)</code>), and the spec version <em>skips holes</em>
+  in sparse arrays like <code>[1, , 3]</code>. Neither matters in real code. But saying <em>"the
+  spec version also handles thisArg and skips sparse holes — want me to add those?"</em> is a cheap,
+  strong signal. Don't write them unprompted.</p>
+</div>
+
+<h2 id="filter">filter</h2>
+
+<p>Same loop. The difference: the callback's return value is a <em>yes/no decision</em>, and what
+you keep is the original item.</p>
+
+<div class="lbl good">✅ filter</div>
+<pre><code>Array.prototype.myFilter = function (callback) {
+  const result = [];
+
+  for (let i = 0; i &lt; this.length; i++) {
+    if (callback(this[i], i, this)) {   <span class="cmt">// 👈 truthy, not === true</span>
+      result.push(this[i]);             <span class="cmt">// 👈 the ORIGINAL item</span>
+    }
+  }
+
+  return result;
+};
+
+[1, 2, 3, 4].myFilter(n =&gt; n % 2 === 0);   <span class="cmt">// → [2, 4]</span></code></pre>
+
+<p>Two things get fumbled here. Pushing <code>callback(...)</code> instead of <code>this[i]</code>
+gives you an array of booleans. And testing <code>=== true</code> silently breaks
+<code>users.filter(u =&gt; u.name)</code>, which relies on truthiness.</p>
+
+<h2 id="reduce">reduce</h2>
+
+<p>Forget the API. You're adding up a shopping basket: you keep a running total, and each item
+updates it. That running total is the <strong>accumulator</strong>.</p>
+
+<pre><code>[10, 20, 30].reduce((total, price) =&gt; total + price, 0);   <span class="cmt">// → 60</span>
+<span class="cmt">//            accumulator  current              initial</span></code></pre>
+
+<table>
+  <thead><tr><th>Step</th><th><code>total</code> in</th><th><code>price</code></th><th>returns</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>0</td><td>10</td><td>10</td></tr>
+    <tr><td>2</td><td>10</td><td>20</td><td>30</td></tr>
+    <tr><td>3</td><td>30</td><td>30</td><td><strong>60</strong></td></tr>
+  </tbody>
+</table>
+
+<p>The click: <strong>whatever your callback returns becomes the accumulator next time round.</strong>
+Forget to return it and everything after step one is <code>undefined</code> — the most common
+<code>reduce</code> bug there is.</p>
+
+<div class="lbl step">Step 1 — assume an initial value was given</div>
+<pre><code>Array.prototype.myReduce = function (callback, initialValue) {
+  let acc = initialValue;
+
+  for (let i = 0; i &lt; this.length; i++) {
+    acc = callback(acc, this[i], i, this);
+  }
+
+  return acc;
+};</code></pre>
+
+<p>Now the one wrinkle. The initial value is optional — and if it's omitted, <code>reduce</code>
+uses <strong>the first element as the accumulator and starts looping from index 1</strong>.</p>
+
+<div class="lbl good">✅ reduce, complete</div>
+<pre><code>Array.prototype.myReduce = function (callback, initialValue) {
+  const hasInitial = arguments.length &gt;= 2;   <span class="cmt">// 👈 not `initialValue === undefined`</span>
+
+  if (this.length === 0 &amp;&amp; !hasInitial) {
+    throw new TypeError('Reduce of empty array with no initial value');
+  }
+
+  let acc = hasInitial ? initialValue : this[0];
+
+  for (let i = hasInitial ? 0 : 1; i &lt; this.length; i++) {
+    acc = callback(acc, this[i], i, this);
+  }
+
+  return acc;
+};</code></pre>
+
+<p>Why <code>arguments.length</code> and not a check against <code>undefined</code>? Because
+<code>reduce(fn, undefined)</code> is a caller who <em>did</em> pass one. Only
+<code>arguments.length</code> tells "omitted" apart from "explicitly undefined". Small, but it's
+exactly the kind of precision interviewers notice.</p>
+
+<p>And the <code>TypeError</code> is real behaviour: <code>[].reduce((a,b) =&gt; a+b)</code> throws.
+That's a genuine production bug — works all through development, crashes on an empty cart.</p>
+
+<h3>map and filter, written with reduce</h3>
+
+<p>Common follow-up. Both are just "reduce into an array":</p>
+
+<pre><code>const myMap = (arr, cb) =&gt;
+  arr.reduce((acc, item, i) =&gt; { acc.push(cb(item, i, arr)); return acc; }, []);
+
+const myFilter = (arr, cb) =&gt;
+  arr.reduce((acc, item, i) =&gt; { if (cb(item, i, arr)) acc.push(item); return acc; }, []);</code></pre>
+
+<p>Answer yes, write it, then add the honest note: in real code <code>map</code> reads better.
+Cleverness isn't the goal.</p>
+
+<h2 id="flatten">flatten</h2>
+
+<pre><code>flatten([1, [2, 3], [4, [5, [6]]]]);   <span class="cmt">// want → [1, 2, 3, 4, 5, 6]</span></code></pre>
+
+<p>Start with one level: loop the array, and if an item is itself an array, spread its contents in
+rather than pushing the array whole.</p>
+
+<pre><code>function flattenOnce(arr) {
+  const result = [];
+  for (const item of arr) {
+    if (Array.isArray(item)) result.push(...item);
+    else result.push(item);
+  }
+  return result;
+}
+
+flattenOnce([1, [2, 3], [4, [5]]]);   <span class="cmt">// → [1, 2, 3, 4, [5]]</span></code></pre>
+
+<p><code>[5]</code> survived — one level of unwrapping is one level. To go all the way down we need
+the nested array <em>fully flattened</em> before we spread it… which is the exact job we're already
+doing. So we call ourselves.</p>
+
+<div class="lbl good">✅ flatten</div>
+<pre><code>function flatten(arr) {
+  const result = [];
+
+  for (const item of arr) {
+    if (Array.isArray(item)) {
+      result.push(...flatten(item));   <span class="cmt">// 👈 flatten first, then spread</span>
+    } else {
+      result.push(item);
+    }
+  }
+
+  return result;
+}</code></pre>
+
+<p>The base case is implicit: when an item isn't an array, we just push it and stop. Every call
+handles one level shallower, so it always terminates.</p>
+
+<h3>With a depth, like the real <code>flat</code></h3>
+
+<p><code>[].flat()</code> defaults to depth 1; <code>flat(Infinity)</code> goes all the way. Pass a
+decremented depth down and stop at zero:</p>
+
+<pre><code>Array.prototype.myFlat = function (depth = 1) {
+  const result = [];
+
+  for (const item of this) {
+    if (Array.isArray(item) &amp;&amp; depth &gt; 0) result.push(...item.myFlat(depth - 1));
+    else result.push(item);
+  }
+
+  return result;
+};</code></pre>
+
+<p><code>Infinity - 1</code> is still <code>Infinity</code>, which is why
+<code>flat(Infinity)</code> just works. Nice detail to say out loud.</p>
+
+<div class="box wait">
+  <span class="t">Wait — what if they ask for it without recursion?</span>
+  <p>Replace the call stack with your own array. No depth limit:</p>
+  <pre><code>function flatten(arr) {
+  const stack = [...arr], out = [];
+  while (stack.length) {
+    const item = stack.pop();
+    if (Array.isArray(item)) stack.push(...item);
+    else out.push(item);
+  }
+  return out.reverse();   <span class="cmt">// 👈 popping from the end reversed it</span>
+}</code></pre>
+</div>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Implement <code>Array.prototype.map</code> from scratch."</li>
+  <li>"Write a polyfill for <code>reduce</code>."</li>
+  <li>"Flatten a deeply nested array without <code>flat</code>."</li>
+  <li>"Implement <code>map</code> using <code>reduce</code>."</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer — "walk me through your map polyfill"</span>
+  <p>"I'm putting it on <code>Array.prototype</code> so every array gets it, and using a regular
+  function rather than an arrow because I need <code>this</code> to be the array it was called on —
+  that's how one shared method serves every array. Then it's a loop: call the callback with value,
+  index and array, collect the results in a new array, return it. The original is never mutated.
+  The spec version also skips sparse holes and accepts a <code>thisArg</code> — I can add those if
+  you want."</p>
+</div>
+
+<p>That lands because you led with <em>why the prototype</em> and <em>why not an arrow</em> — the
+two things actually being tested — and then named where your version diverges from the spec.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why not just <code>function myMap(array, callback)</code>?"</h4>
+<p>Functionally fine, but that's a helper, not a polyfill. A polyfill has to make
+<code>arr.map(...)</code> work, so it must be reachable through the array — prototype, and
+<code>this</code>.</p>
+
+<h4>"Is patching <code>Array.prototype</code> a good idea?"</h4>
+<p>For a real polyfill of a standard method, yes — guarded by <code>if
+(!Array.prototype.x)</code>. For inventing your own methods, no. A future spec method could collide
+with your name — this actually happened: <code>flatten</code> was renamed to <code>flat</code>
+because a popular library had already defined <code>flatten</code> and shipping the spec version
+broke real sites. Also, a plain assignment is enumerable, so it shows up in <code>for...in</code>;
+real polyfills use <code>Object.defineProperty</code> with <code>enumerable: false</code>.</p>
+
+<h4>"<code>map</code> vs <code>forEach</code>?"</h4>
+<p><code>map</code> returns a new array of return values; <code>forEach</code> returns
+<code>undefined</code> and exists for side effects. A <code>map</code> whose result you discard, or
+a <code>forEach</code> pushing into an array declared just above it, are both smells.</p>
+
+<h4>"Can you break out of a <code>map</code> early?"</h4>
+<p>No — <code>return</code> inside the callback exits that one call, not the loop. Use a
+<code>for</code> loop, or <code>some</code>/<code>find</code>, which do stop early.</p>
+
+<h4>"What does <code>reduce</code> do on an empty array?"</h4>
+<p>With an initial value, it returns it without calling the callback. Without one, it throws a
+<code>TypeError</code>.</p>
+
+<h4>"How would you flatten without recursion?"</h4>
+<p>Explicit stack: pop items, push array contents back onto the stack, collect non-arrays, reverse
+at the end. Same algorithm with the call stack replaced by one you control, so it can't overflow.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Arrow function for the prototype method.</strong> <code>this</code> won't be the
+      array. The number one failure.</li>
+  <li><strong>Mutating the input.</strong> <code>map</code>/<code>filter</code>/<code>flat</code>
+      all return new arrays.</li>
+  <li><strong>Pushing the callback's result in <code>filter</code>.</strong> You get booleans.</li>
+  <li><strong>Forgetting to return the accumulator</strong> in reduce.</li>
+  <li><strong>Only passing the value to the callback.</strong> Breaks any caller using the index.</li>
+  <li><strong>"I'd just use the built-in."</strong> They know. Answer the question first.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Why the prototype</strong> — one shared copy; every array reaches it via the chain.</li>
+  <li><strong>Why not an arrow</strong> — you need <code>this</code> to be the array.</li>
+  <li><strong>Signatures</strong> — <code>(value, index, array)</code>; reduce adds the accumulator
+      in front.</li>
+  <li><strong>filter</strong> — push the original item, test for truthy.</li>
+  <li><strong>reduce</strong> — no initial value ⇒ start from element 0, loop from index 1; empty +
+      no initial ⇒ <code>TypeError</code>; use <code>arguments.length</code> to detect it.</li>
+  <li><strong>flatten</strong> — recurse, base case = not an array; <code>Infinity - 1 ===
+      Infinity</code>; iterative version uses an explicit stack.</li>
+</ul>
+
+<pre><code>Array.prototype.myMap = function (cb) {
+  const out = [];
+  for (let i = 0; i &lt; this.length; i++) out.push(cb(this[i], i, this));
+  return out;
+};
+
+Array.prototype.myFilter = function (cb) {
+  const out = [];
+  for (let i = 0; i &lt; this.length; i++) if (cb(this[i], i, this)) out.push(this[i]);
+  return out;
+};
+
+Array.prototype.myReduce = function (cb, init) {
+  const has = arguments.length &gt;= 2;
+  if (!this.length &amp;&amp; !has) throw new TypeError('Reduce of empty array with no initial value');
+  let acc = has ? init : this[0];
+  for (let i = has ? 0 : 1; i &lt; this.length; i++) acc = cb(acc, this[i], i, this);
+  return acc;
+};
+
+function flatten(arr) {
+  const out = [];
+  for (const item of arr) {
+    if (Array.isArray(item)) out.push(...flatten(item));
+    else out.push(item);
+  }
+  return out;
+}</code></pre>
+</div>
+
+<footer>Next: <code>call</code>, <code>apply</code> and <code>bind</code> — choosing
+<code>this</code> by hand.</footer>
+
+</div>
+</body>
+</html>

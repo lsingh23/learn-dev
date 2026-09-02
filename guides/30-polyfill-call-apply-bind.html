@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polyfilling call, apply &amp; bind</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Polyfilling <code>call</code>, <code>apply</code> and <code>bind</code></h1>
+<p class="lede">Three methods that exist for one reason: to let you choose what <code>this</code>
+means. Writing them yourself is a five-line trick — and a sneaky test of whether you actually
+understand <code>this</code>.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#problem">The problem: a method that falls off its object</a></li>
+    <li><a href="#three">What the three of them do</a></li>
+    <li><a href="#mycall">Polyfilling <code>myCall</code></a></li>
+    <li><a href="#myapply">Polyfilling <code>myApply</code></a></li>
+    <li><a href="#mybind">Polyfilling <code>myBind</code></a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">The problem: a method that falls off its object</h2>
+
+<p>Here's a perfectly normal object with a perfectly normal method:</p>
+
+<pre><code>const user = {
+  name: 'Priya',
+  greet() {
+    console.log('Hi, ' + this.name);
+  }
+};
+
+user.greet();   <span class="cmt">// → Hi, Priya</span></code></pre>
+
+<p>Now pull that method out into a variable — something you do all the time when passing a
+callback:</p>
+
+<div class="lbl bad">❌ It breaks</div>
+<pre><code>const log = user.greet;
+log();          <span class="cmt">// → Hi, undefined  (or a TypeError in strict mode)</span></code></pre>
+
+<p>Nothing about the function changed. We copied a reference; the body is identical. So why is
+<code>this.name</code> gone?</p>
+
+<p>Because <strong><code>this</code> isn't decided when a function is written — it's decided at the
+moment it's called, by what sits to the left of the dot.</strong> In <code>user.greet()</code> the
+thing to the left is <code>user</code>, so <code>this</code> is <code>user</code>. In
+<code>log()</code> there's nothing to the left of a dot at all, so <code>this</code> falls back to
+<code>globalThis</code> (sloppy mode) or <code>undefined</code> (strict mode / modules).</p>
+
+<p>Think of <code>this</code> like the word "here" in a sentence. The word never changes; its
+meaning depends entirely on where you're standing when you say it. Move the function, and "here"
+means somewhere else. <em>(Where the analogy breaks: you can't force "here" to mean a different
+room. With functions, you can — that's exactly what <code>call</code>, <code>apply</code> and
+<code>bind</code> are for.)</em></p>
+
+<figure class="fig">
+<svg viewBox="0 0 620 168" role="img" aria-label="The same function called three ways, producing three different values of this">
+  <g font-family="ui-monospace, monospace" font-size="13" fill="currentColor">
+    <text x="14" y="34">user.greet()</text>
+    <text x="14" y="86">greet()</text>
+    <text x="14" y="138">greet.call(admin)</text>
+  </g>
+  <g stroke="#2f5fd8" stroke-width="1.5" fill="none" marker-end="">
+    <line x1="200" y1="29" x2="330" y2="29"/><path d="M330 29 l-8 -4 v8 z" fill="#2f5fd8"/>
+    <line x1="200" y1="81" x2="330" y2="81"/><path d="M330 81 l-8 -4 v8 z" fill="#2f5fd8"/>
+    <line x1="200" y1="133" x2="330" y2="133"/><path d="M330 133 l-8 -4 v8 z" fill="#2f5fd8"/>
+  </g>
+  <g font-family="-apple-system, sans-serif" font-size="11.5" fill="#2f5fd8">
+    <text x="212" y="22">left of the dot</text>
+    <text x="212" y="74">nothing there</text>
+    <text x="212" y="126">forced</text>
+  </g>
+  <g font-family="ui-monospace, monospace" font-size="13" fill="currentColor">
+    <text x="344" y="34">this === user</text>
+    <text x="344" y="86">this === undefined</text>
+    <text x="344" y="138">this === admin</text>
+  </g>
+  <rect x="6" y="12" width="600" height="144" rx="10" fill="none" stroke="currentColor" opacity=".18"/>
+</svg>
+<figcaption>Same function body, three call sites, three different <code>this</code>.</figcaption>
+</figure>
+
+<h2 id="three">What the three of them do</h2>
+
+<p>All three answer "run <code>greet</code>, but pretend it was called on <em>this</em> object."
+They differ only in how you hand over the arguments, and whether it runs now.</p>
+
+<pre><code>function greet(greeting, punctuation) {
+  console.log(greeting + ', ' + this.name + punctuation);
+}
+
+const user = { name: 'Priya' };
+
+greet.call(user, 'Hi', '!');          <span class="cmt">// → Hi, Priya!   args listed out</span>
+greet.apply(user, ['Hi', '!']);       <span class="cmt">// → Hi, Priya!   args in an array</span>
+
+const greetPriya = greet.bind(user);  <span class="cmt">// doesn't run — returns a new function</span>
+greetPriya('Hi', '!');                <span class="cmt">// → Hi, Priya!</span></code></pre>
+
+<p><code>call</code> and <code>apply</code> are the same thing with different plumbing —
+<strong>a</strong>pply takes an <strong>a</strong>rray, that's the whole mnemonic.
+<code>bind</code> is the odd one out: it doesn't call anything. It hands you back a <em>new</em>
+function with the context permanently glued on, to call whenever you like.</p>
+
+<h2 id="mycall">Polyfilling <code>myCall</code></h2>
+
+<p>We want <code>greet.myCall(user, 'Hi', '!')</code> to work. Since it's called on a function,
+it lives on <code>Function.prototype</code>, which means inside it <code>this</code> is
+<em>the function we're operating on</em> — <code>greet</code> itself.</p>
+
+<div class="lbl step">Step 1 — the shape</div>
+<pre><code>Function.prototype.myCall = function (thisArg, ...args) {
+  <span class="cmt">// `this` in here is the function being called (greet)</span>
+};</code></pre>
+
+<p>Now the interesting bit. We need <code>greet</code>'s body to see <code>this === user</code>.
+But we just said the <em>only</em> way <code>this</code> gets set is by what's left of the dot at
+the call site. So… let's just build that call site. Put the function <strong>on</strong> the object,
+call it as a method, then clean up after ourselves.</p>
+
+<div class="lbl step">Step 2 — attach, call, delete</div>
+<pre><code>Function.prototype.myCall = function (thisArg, ...args) {
+  thisArg.fn = this;              <span class="cmt">// 👈 now it's a method of thisArg</span>
+  const result = thisArg.fn(...args);   <span class="cmt">// left of the dot = thisArg ✅</span>
+  delete thisArg.fn;              <span class="cmt">// tidy up — don't leave litter</span>
+  return result;
+};</code></pre>
+
+<p>That's the whole trick, and it's worth saying out loud in an interview: <em>we're not
+overriding <code>this</code>, we're staging a normal method call so the engine binds it for
+us.</em></p>
+
+<p>One thing to patch. <code>greet.myCall(null)</code> would explode on <code>null.fn = ...</code>,
+and the real <code>call</code> treats <code>null</code>/<code>undefined</code> as "use the global
+object" (in sloppy mode). One line:</p>
+
+<div class="lbl good">✅ The version to write</div>
+<pre><code>Function.prototype.myCall = function (thisArg, ...args) {
+  const context = thisArg ?? globalThis;
+  const key = Symbol('fn');            <span class="cmt">// 👈 can't collide with a real property</span>
+
+  context[key] = this;
+  const result = context[key](...args);
+  delete context[key];
+  return result;
+};</code></pre>
+
+<p>The <code>Symbol</code> is a nicety, not a requirement: a plain string key like
+<code>'fn'</code> would silently clobber an existing <code>fn</code> property on the object and
+then delete it. Mentioning that trade-off is free points.</p>
+
+<div class="box hood">
+  <span class="t">Under the hood</span>
+  <p>The real <code>Function.prototype.call</code> doesn't touch your object at all — the engine
+  sets the <code>this</code> binding directly when it builds the call frame. Our version simulates
+  that from userland, which is why we need the attach-and-delete dance.</p>
+</div>
+
+<h2 id="myapply">Polyfilling <code>myApply</code></h2>
+
+<p>Identical, except the arguments arrive as one array instead of a list. So we spread that array
+instead of a rest parameter:</p>
+
+<div class="lbl good">✅ myApply</div>
+<pre><code>Function.prototype.myApply = function (thisArg, argsArray = []) {
+  const context = thisArg ?? globalThis;
+  const key = Symbol('fn');
+
+  context[key] = this;
+  const result = context[key](...argsArray);   <span class="cmt">// 👈 the only difference</span>
+  delete context[key];
+  return result;
+};</code></pre>
+
+<p>The <code>= []</code> default matters: <code>greet.apply(user)</code> with no second argument is
+legal, and without the default you'd spread <code>undefined</code> and throw. Small, and
+interviewers notice it.</p>
+
+<h2 id="mybind">Polyfilling <code>myBind</code></h2>
+
+<p><code>bind</code> doesn't call — it returns. So the shape is a function that returns a
+function, and the returned one remembers two things: the context, and any arguments supplied at
+bind time.</p>
+
+<p>That second part is <strong>partial application</strong>. You can pre-fill some arguments now
+and supply the rest later:</p>
+
+<pre><code>const sayHi = greet.bind(user, 'Hi');   <span class="cmt">// 'Hi' locked in</span>
+sayHi('!');                             <span class="cmt">// → Hi, Priya!   '!' supplied later</span></code></pre>
+
+<p>So the returned function has to <em>concatenate</em> the bind-time args with the call-time
+args, in that order. Everything else we already have — we can lean on <code>apply</code>:</p>
+
+<div class="lbl good">✅ myBind</div>
+<pre><code>Function.prototype.myBind = function (thisArg, ...boundArgs) {
+  const fn = this;                     <span class="cmt">// 👈 capture it now — inside the</span>
+                                       <span class="cmt">//    returned fn, `this` is different</span>
+  return function (...callArgs) {
+    return fn.apply(thisArg, [...boundArgs, ...callArgs]);
+  };
+};</code></pre>
+
+<p>Read the return line slowly, because it's the whole answer: call the original function, with
+the context we saved, passing the bind-time arguments followed by the call-time ones.</p>
+
+<div class="box wait">
+  <span class="t">Wait — why <code>const fn = this</code>?</span>
+  <p>Because the inner <code>function</code> gets its own <code>this</code> when it's called, which
+  will be whatever the call site says — not our original function. We grab it in the outer scope
+  while it still means what we want, and the closure keeps it alive. (You could use an arrow for
+  the inner function and skip the capture, but you'd lose the ability to handle <code>new</code>
+  later, and the explicit version reads better.)</p>
+</div>
+
+<div class="box misc">
+  <span class="t">If they push: <code>new</code></span>
+  <p>Real <code>bind</code> has one exotic rule — if you call the bound function with
+  <code>new</code>, the bound <code>this</code> is <em>ignored</em> and the fresh instance wins.
+  Handling it means detecting <code>this instanceof</code> the bound function and switching
+  behaviour. Say that you know it exists and that you'd add it if they want; don't write it
+  unprompted. It's noise in a whiteboard answer.</p>
+</div>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Implement <code>Function.prototype.myCall</code> / <code>myBind</code> from scratch."</li>
+  <li>"What's the difference between <code>call</code>, <code>apply</code> and <code>bind</code>?"</li>
+  <li>"This method logs <code>undefined</code> when I pass it as a callback — why, and how do you
+      fix it?" (the same question in scenario form)</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer — "how would you implement <code>call</code>?"</span>
+  <p>"The key insight is that <code>this</code> is set by the call site — specifically by whatever
+  is to the left of the dot. So instead of trying to override <code>this</code>, I stage a call
+  site that produces the binding I want. I temporarily attach the function as a property of the
+  context object, invoke it as a method so the engine binds <code>this</code> naturally, then
+  delete the property and return the result. I'd use a <code>Symbol</code> as the key so I can't
+  clobber an existing property, and default a null context to <code>globalThis</code>."</p>
+</div>
+
+<p>That lands because you led with the <em>reason</em> the trick works rather than reciting the
+code. Anyone can memorise four lines; explaining that you're manufacturing a call site is the
+signal they're after.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why does <code>myCall</code> attach the function to the object?"</h4>
+<p>Because from inside JavaScript there's no other lever. The engine decides <code>this</code> when
+it evaluates the call expression, based on the reference used to make the call. A method call is
+the only form that sets <code>this</code> to an object we choose — so we create one temporarily.</p>
+
+<h4>"<code>call</code> vs <code>apply</code> — does it matter for performance?"</h4>
+<p>Not meaningfully in modern engines; both are heavily optimised. Pick whichever fits the data
+you're holding — <code>apply</code> when you already have an array, <code>call</code> when you have
+loose values. In new code, spread (<code>fn(...args)</code>) usually replaces <code>apply</code>
+anyway, unless you also need to set <code>this</code>.</p>
+
+<h4>"What does <code>bind</code> return, and can you re-bind a bound function?"</h4>
+<p>It returns a brand new function — the original is untouched, so <code>bind</code> is not a
+mutation. And no: <strong>the first bind wins.</strong>
+<code>greet.bind(a).bind(b)</code> still uses <code>a</code>, because the second bind sets
+<code>this</code> for the <em>wrapper</em>, and the wrapper ignores its own <code>this</code> and
+calls the original with <code>a</code>. You can see it in our polyfill — <code>thisArg</code> is
+baked into the closure.</p>
+
+<h4>"How is <code>bind</code> different from an arrow function?"</h4>
+<p>Both fix <code>this</code>, but at different times and from different sources. An arrow captures
+<code>this</code> <em>lexically</em>, from where it's written, at definition time — you don't
+choose the value. <code>bind</code> lets you pass any object you like, at runtime, and also
+supports partial application. Arrows cover the common case; <code>bind</code> is what you need when
+the context is a value, not a scope.</p>
+
+<h4>"Why did we need <code>bind</code> before arrow functions?"</h4>
+<p>React class components are the classic example. <code>&lt;button onClick={this.handleClick}&gt;</code>
+passes the method as a bare function reference — exactly our first broken snippet — so
+<code>this.setState</code> would be <code>undefined</code>. Everyone wrote
+<code>this.handleClick = this.handleClick.bind(this)</code> in the constructor. Class fields with
+arrows, and later hooks, made that boilerplate disappear.</p>
+
+<h4>"Why <code>delete</code> the property afterwards?"</h4>
+<p>Otherwise we've permanently mutated the caller's object as a side effect of calling a function
+on it. It would show up in <code>Object.keys</code>, in <code>JSON.stringify</code>, in a React
+diff. A polyfill has to be invisible.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Using an arrow function for the polyfill itself.</strong>
+      <code>Function.prototype.myCall = (thisArg) =&gt; {...}</code> has no <code>this</code> of
+      its own, so you lose the very function you're trying to call. Instant fail.</li>
+  <li><strong>Forgetting to return the result.</strong> <code>call</code> and <code>apply</code>
+      return whatever the function returns.</li>
+  <li><strong>Forgetting to <code>delete</code>.</strong> Silent mutation of the caller's object.</li>
+  <li><strong>Saying "<code>bind</code> calls the function with a different <code>this</code>."</strong>
+      It doesn't call anything. That one word tells them you've mixed it up with <code>call</code>.</li>
+  <li><strong>Ignoring bind-time arguments.</strong> A <code>myBind</code> that drops partial
+      application is only half the implementation, and it's the half they're checking.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong><code>this</code></strong> — decided at the call site, by what's left of the dot.
+      Detach a method and it's lost.</li>
+  <li><strong><code>call(ctx, a, b)</code></strong> — run now, args listed.</li>
+  <li><strong><code>apply(ctx, [a, b])</code></strong> — run now, args in an <strong>a</strong>rray.</li>
+  <li><strong><code>bind(ctx, a)</code></strong> — returns a <em>new</em> function; supports partial
+      application; first bind wins.</li>
+  <li><strong>The trick</strong> — attach the function to the context, call it as a method, delete it.</li>
+  <li><strong>Symbol key</strong> — so you can't clobber an existing property.</li>
+  <li><strong>Arrow vs bind</strong> — lexical &amp; automatic vs. explicit &amp; chooseable.</li>
+</ul>
+
+<pre><code>Function.prototype.myCall = function (thisArg, ...args) {
+  const ctx = thisArg ?? globalThis;
+  const key = Symbol('fn');
+  ctx[key] = this;
+  const result = ctx[key](...args);
+  delete ctx[key];
+  return result;
+};
+
+Function.prototype.myApply = function (thisArg, argsArray = []) {
+  const ctx = thisArg ?? globalThis;
+  const key = Symbol('fn');
+  ctx[key] = this;
+  const result = ctx[key](...argsArray);
+  delete ctx[key];
+  return result;
+};
+
+Function.prototype.myBind = function (thisArg, ...boundArgs) {
+  const fn = this;
+  return function (...callArgs) {
+    return fn.apply(thisArg, [...boundArgs, ...callArgs]);
+  };
+};</code></pre>
+</div>
+
+<footer>Next: currying and <code>memoize</code>.</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promise.all &amp; EventEmitter</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Polyfilling <code>Promise.all</code> &amp; building an <code>EventEmitter</code></h1>
+<p class="lede">Two classic machine-coding rounds. Both are short. Both are really testing whether
+you can pick the right data structure and then not get the bookkeeping wrong.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#problem">The problem <code>Promise.all</code> solves</a></li>
+    <li><a href="#build-all">Building <code>Promise.all</code></a></li>
+    <li><a href="#family">all vs allSettled vs race vs any</a></li>
+    <li><a href="#pubsub">The problem an EventEmitter solves</a></li>
+    <li><a href="#build-emitter">Building the EventEmitter</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">The problem <code>Promise.all</code> solves</h2>
+
+<p>You need a user, their orders, and their saved cards to render a dashboard. So you write this:</p>
+
+<div class="lbl bad">❌ Three seconds for three one-second requests</div>
+<pre><code>const user   = await fetchUser();     <span class="cmt">// 1s</span>
+const orders = await fetchOrders();   <span class="cmt">// 1s — starts only after user lands</span>
+const cards  = await fetchCards();    <span class="cmt">// 1s</span>
+<span class="cmt">// → 3 seconds</span></code></pre>
+
+<p>Each <code>await</code> parks the function until that request finishes. But none of these three
+depend on each other! They could all be in flight at once. That's what <code>Promise.all</code> is
+for:</p>
+
+<div class="lbl good">✅ One second</div>
+<pre><code>const [user, orders, cards] = await Promise.all([
+  fetchUser(), fetchOrders(), fetchCards(),
+]);
+<span class="cmt">// → ~1 second, the slowest one</span></code></pre>
+
+<figure class="fig">
+<svg viewBox="0 0 620 168" role="img" aria-label="Sequential requests take three seconds stacked end to end; parallel requests overlap and take one">
+  <g font-family="-apple-system, sans-serif" font-size="11.5" fill="currentColor">
+    <text x="10" y="20" opacity=".75">sequential await</text>
+    <text x="10" y="104" fill="#2f5fd8">Promise.all</text>
+  </g>
+  <g stroke="currentColor" stroke-width="12" opacity=".3" stroke-linecap="round">
+    <line x1="130" y1="36" x2="270" y2="36"/>
+    <line x1="280" y1="56" x2="420" y2="56"/>
+    <line x1="430" y1="76" x2="570" y2="76"/>
+  </g>
+  <g stroke="#2f5fd8" stroke-width="12" opacity=".85" stroke-linecap="round">
+    <line x1="130" y1="120" x2="270" y2="120"/>
+    <line x1="130" y1="140" x2="262" y2="140"/>
+    <line x1="130" y1="160" x2="268" y2="160"/>
+  </g>
+  <line x1="122" y1="10" x2="122" y2="168" stroke="currentColor" stroke-width="1" opacity=".3"/>
+  <g font-family="ui-monospace, monospace" font-size="11" fill="currentColor" opacity=".7">
+    <text x="576" y="80">3s</text><text x="276" y="124" fill="#2f5fd8" opacity="1">1s</text>
+  </g>
+</svg>
+<figcaption>Same three requests. The only difference is when they start.</figcaption>
+</figure>
+
+<p>Two rules you should be able to state cold, because the interviewer will ask:</p>
+
+<ul>
+  <li><strong>It resolves with an array of results in <em>input</em> order</strong> — not completion
+      order. If <code>fetchCards</code> comes back first, it still lands at index 2.</li>
+  <li><strong>It rejects the instant <em>any</em> input rejects</strong>, with that first error. It
+      does not wait for the others.</li>
+</ul>
+
+<h2 id="build-all">Building <code>Promise.all</code></h2>
+
+<p>We're writing a function that takes an array and returns a promise. So the outer shape is forced
+on us — we need a promise we control, which means the constructor:</p>
+
+<div class="lbl step">Step 1 — the shape</div>
+<pre><code>function promiseAll(promises) {
+  return new Promise((resolve, reject) =&gt; {
+    <span class="cmt">// ...decide when to call resolve / reject</span>
+  });
+}</code></pre>
+
+<p>Everything left is bookkeeping: run all of them, collect the values, and figure out when we're
+done.</p>
+
+<div class="lbl step">Step 2 — collect, in order</div>
+<pre><code>const results = [];
+let completed = 0;
+
+promises.forEach((item, i) =&gt; {
+  item.then((value) =&gt; {
+    results[i] = value;        <span class="cmt">// 👈 by index, not push</span>
+    completed++;
+    if (completed === promises.length) resolve(results);
+  });
+});</code></pre>
+
+<p>Two lines there carry the whole answer.</p>
+
+<p><strong><code>results[i] = value</code>, not <code>results.push(value)</code>.</strong> The
+callbacks fire in <em>completion</em> order, which is whatever the network decides. Push would give
+you the fastest response at index 0. Writing to the loop index puts each value exactly where its
+promise sat in the input, no matter when it lands. That's rule one, implemented in one character.</p>
+
+<p><strong>Count completions; don't check <code>results.length</code>.</strong> Tempting, but
+broken: if index 2 finishes first, <code>results</code> is <code>[&lt;2 empty&gt;, value]</code> —
+length is already 3, and we'd resolve with holes. The <code>completed</code> counter only goes up
+when a value has actually arrived.</p>
+
+<div class="lbl step">Step 3 — rejection</div>
+<pre><code>item.then(
+  (value) =&gt; { <span class="cmt">/* as above */</span> },
+  reject                       <span class="cmt">// 👈 that's the whole error path</span>
+);</code></pre>
+
+<p>Just hand <code>reject</code> over. No flag tracking "have we already failed?" — a promise
+<strong>ignores every settle call after the first</strong>. Once one input rejects, our promise is
+rejected forever; later resolves and rejects are silently dropped. Say that out loud in the
+interview, it's the bit people add unnecessary guards for.</p>
+
+<h3>Two loose ends</h3>
+
+<p><code>Promise.all([fetchUser(), 42])</code> is legal — non-promise values just come through as
+themselves. Our version would crash on <code>42.then</code>. Fix: wrap every item in
+<code>Promise.resolve(item)</code>, which passes promises through untouched and boxes plain values.</p>
+
+<p>And <code>Promise.all([])</code> resolves immediately with <code>[]</code>. Our counter never
+gets incremented, so the loop body never runs and we'd hang forever. One early return.</p>
+
+<div class="lbl good">✅ The answer</div>
+<pre><code>function promiseAll(promises) {
+  return new Promise((resolve, reject) =&gt; {
+    if (promises.length === 0) return resolve([]);
+
+    const results = [];
+    let completed = 0;
+
+    promises.forEach((item, i) =&gt; {
+      Promise.resolve(item).then((value) =&gt; {
+        results[i] = value;                       <span class="cmt">// keeps input order</span>
+        completed++;
+        if (completed === promises.length) {      <span class="cmt">// all in? done</span>
+          resolve(results);
+        }
+      }, reject);                                 <span class="cmt">// first failure wins</span>
+    });
+  });
+}</code></pre>
+
+<p>Fifteen lines, no cleverness. That's the version to write.</p>
+
+<h2 id="family">all vs allSettled vs race vs any</h2>
+
+<table>
+  <thead><tr><th>Method</th><th>Resolves when</th><th>Rejects when</th></tr></thead>
+  <tbody>
+    <tr><td><code>all</code></td><td>All fulfil → array of values</td><td>Any rejects (immediately)</td></tr>
+    <tr><td><code>allSettled</code></td><td>All settle → array of <code>{status, value|reason}</code></td><td>Never</td></tr>
+    <tr><td><code>race</code></td><td>First to <em>settle</em> fulfils</td><td>First to settle rejects</td></tr>
+    <tr><td><code>any</code></td><td>First to <em>fulfil</em></td><td>All reject → <code>AggregateError</code></td></tr>
+  </tbody>
+</table>
+
+<p>Picking between them: <code>all</code> when you need every piece to render anything.
+<code>allSettled</code> when the page degrades gracefully and you want partial data plus a list of
+what broke. <code>race</code> for timeouts — race the real request against a promise that rejects
+after 5s. <code>any</code> for redundant sources, where the first working mirror wins.</p>
+
+<h2 id="pubsub">The problem an EventEmitter solves</h2>
+
+<p>The cart badge in your header needs to update when someone adds an item from a product page. The
+obvious move is to have the product page import the header and call a method on it. Do that a dozen
+times and you've knitted every module to every other module.</p>
+
+<p>What you want instead: the product page announces <em>"item-added"</em> and doesn't know or care
+who's listening. The header listens for <em>"item-added"</em> and doesn't know who announced it.
+That's pub/sub, and an EventEmitter is the object in the middle.</p>
+
+<p>Think of a radio station. It broadcasts on a frequency; anyone tuned to that frequency hears it.
+The station doesn't keep a list of who's listening, and the listeners don't know each other. Where
+the analogy breaks: our emitter <em>does</em> keep an exact list — that's literally its only state —
+and listeners who tune in late hear nothing at all, because there's no recording of past broadcasts.</p>
+
+<h2 id="build-emitter">Building the EventEmitter</h2>
+
+<p>Before any code: <strong>what's the data structure?</strong> Get this right and the methods write
+themselves. We need, per event name, an ordered collection of functions. So: an object from event
+name → array of listeners.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 560 150" role="img" aria-label="An object mapping event names to arrays of listener functions">
+  <rect x="8" y="14" width="150" height="122" rx="8" fill="none" stroke="currentColor" opacity=".35"/>
+  <g font-family="ui-monospace, monospace" font-size="12.5" fill="currentColor">
+    <text x="22" y="42">'item-added'</text>
+    <text x="22" y="86">'checkout'</text>
+    <text x="22" y="122">'error'</text>
+  </g>
+  <g stroke="#2f5fd8" stroke-width="1.4" opacity=".8">
+    <line x1="160" y1="38" x2="196" y2="38"/><line x1="160" y1="82" x2="196" y2="82"/>
+    <line x1="160" y1="118" x2="196" y2="118"/>
+  </g>
+  <g font-family="ui-monospace, monospace" font-size="11.5" fill="#2f5fd8">
+    <rect x="200" y="24" width="112" height="26" rx="5" fill="none" stroke="#2f5fd8" opacity=".55"/>
+    <text x="212" y="41">updateBadge</text>
+    <rect x="322" y="24" width="96" height="26" rx="5" fill="none" stroke="#2f5fd8" opacity=".55"/>
+    <text x="334" y="41">logAnalytics</text>
+    <rect x="200" y="68" width="102" height="26" rx="5" fill="none" stroke="#2f5fd8" opacity=".55"/>
+    <text x="212" y="85">clearCart</text>
+    <rect x="200" y="104" width="112" height="26" rx="5" fill="none" stroke="#2f5fd8" opacity=".55"/>
+    <text x="212" y="121">showToast</text>
+  </g>
+  <text x="200" y="14" font-family="-apple-system, sans-serif" font-size="11" fill="currentColor" opacity=".6">arrays of listeners, in registration order</text>
+</svg>
+<figcaption>The entire state of an EventEmitter. Everything else is array manipulation.</figcaption>
+</figure>
+
+<h3><code>on</code> — subscribe</h3>
+
+<pre><code>on(event, listener) {
+  if (!this.events[event]) this.events[event] = [];   <span class="cmt">// first listener for this name</span>
+  this.events[event].push(listener);
+}</code></pre>
+
+<h3><code>emit</code> — broadcast</h3>
+
+<p>Look up the array, loop it, call each one with whatever arguments came in. Return whether anyone
+was listening — that's what Node's emitter does, and it's a nice touch to add unprompted.</p>
+
+<pre><code>emit(event, ...args) {
+  const listeners = this.events[event];
+  if (!listeners || listeners.length === 0) return false;
+  listeners.forEach((fn) =&gt; fn(...args));
+  return true;
+}</code></pre>
+
+<h3><code>off</code> — unsubscribe</h3>
+
+<pre><code>off(event, listener) {
+  if (!this.events[event]) return;
+  this.events[event] = this.events[event].filter((fn) =&gt; fn !== listener);
+}</code></pre>
+
+<p>Note what <code>fn !== listener</code> requires: the <em>exact same function reference</em> you
+passed to <code>on</code>. Two identical-looking arrow functions are two different objects, so this
+silently does nothing:</p>
+
+<pre><code>emitter.on('checkout', () =&gt; clearCart());
+emitter.off('checkout', () =&gt; clearCart());   <span class="cmt">// 👈 different function. Still subscribed.</span></code></pre>
+
+<p>Exactly the same gotcha as <code>removeEventListener</code>. Keep a named reference.</p>
+
+<h3><code>once</code> — subscribe for one broadcast</h3>
+
+<p>Wrap the listener in a function that calls it and then removes itself. The subtlety: what's
+actually stored in the array is the <em>wrapper</em>, so that's what <code>off</code> has to be
+given.</p>
+
+<pre><code>once(event, listener) {
+  const wrapper = (...args) =&gt; {
+    this.off(event, wrapper);   <span class="cmt">// 👈 remove the wrapper, not `listener`</span>
+    listener(...args);
+  };
+  wrapper.original = listener;  <span class="cmt">// so off(event, listener) can find it too</span>
+  this.on(event, wrapper);
+}</code></pre>
+
+<p><code>wrapper.original</code> lets someone cancel a <code>once</code> before it ever fires, by
+passing the function they actually wrote. Then <code>off</code> matches either one:</p>
+
+<pre><code>this.events[event].filter((fn) =&gt; fn !== listener &amp;&amp; fn.original !== listener);</code></pre>
+
+<div class="lbl good">✅ The whole class</div>
+<pre><code>class EventEmitter {
+  constructor() {
+    this.events = {};                <span class="cmt">// name → array of listeners</span>
+  }
+
+  on(event, listener) {
+    if (!this.events[event]) this.events[event] = [];
+    this.events[event].push(listener);
+    return this;                     <span class="cmt">// chainable, like Node's</span>
+  }
+
+  off(event, listener) {
+    if (!this.events[event]) return this;
+    this.events[event] = this.events[event].filter(
+      (fn) =&gt; fn !== listener &amp;&amp; fn.original !== listener
+    );
+    return this;
+  }
+
+  once(event, listener) {
+    const wrapper = (...args) =&gt; {
+      this.off(event, wrapper);
+      listener(...args);
+    };
+    wrapper.original = listener;
+    return this.on(event, wrapper);
+  }
+
+  emit(event, ...args) {
+    const listeners = this.events[event];
+    if (!listeners || listeners.length === 0) return false;
+    [...listeners].forEach((fn) =&gt; fn(...args));   <span class="cmt">// copy — see below</span>
+    return true;
+  }
+}</code></pre>
+
+<pre><code>const bus = new EventEmitter();
+const updateBadge = (count) =&gt; console.log('badge:', count);
+
+bus.on('item-added', updateBadge);
+bus.once('item-added', (c) =&gt; console.log('first add!', c));
+
+bus.emit('item-added', 1);   <span class="cmt">// → badge: 1   /   first add! 1</span>
+bus.emit('item-added', 2);   <span class="cmt">// → badge: 2</span>
+bus.off('item-added', updateBadge);
+bus.emit('item-added', 3);   <span class="cmt">// → (nothing)  returns false</span></code></pre>
+
+<div class="box hood">
+  <span class="t">Why <code>[...listeners]</code> in emit</span>
+  <p>If a listener calls <code>off</code> while <code>emit</code> is running — and
+  <code>once</code> does exactly that — you're mutating the array you're iterating. The index
+  advances past a listener that shifted down, and it gets skipped for that emit. Iterating a shallow
+  copy means the current broadcast reaches everyone who was subscribed when it started, and removals
+  take effect next time. Mentioning this unprompted is a strong senior signal.</p>
+</div>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Implement <code>Promise.all</code> from scratch." / "Write your own <code>myPromiseAll</code>."</li>
+  <li>"These three requests don't depend on each other — make this faster."</li>
+  <li>"Build a pub/sub class with <code>on</code>, <code>off</code>, <code>emit</code>." (then
+      <em>"now add <code>once</code>"</em> — it's always the follow-on)</li>
+  <li>"How would two components talk without importing each other?"</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer — "walk me through your Promise.all"</span>
+  <p>"I return a new promise, and inside it I loop the inputs. Each one gets a <code>.then</code>
+  that writes its value to <code>results</code> at the loop index — that's what preserves input
+  order, since they finish in whatever order the network gives me. I keep a separate
+  <code>completed</code> counter rather than checking <code>results.length</code>, because a sparse
+  array reports a misleading length. When the counter hits the input length I resolve. For failure I
+  pass <code>reject</code> straight in as the rejection handler — no guard flag needed, since a
+  promise ignores any settle after the first."</p>
+</div>
+
+<p>That lands because you named the two decisions that are actually load-bearing and justified each
+one. A candidate who just types the code and says "and that's it" gets a much shorter conversation.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why does <code>results[i] = value</code> matter?"</h4>
+<p>Because completion order isn't input order. <code>push</code> would order results by whoever
+responded fastest, so destructuring <code>[user, orders, cards]</code> would hand you the wrong
+things under the right names — a bug that only shows up when latency shifts. The index is the
+promise's identity.</p>
+
+<h4>"When one promise rejects, what happens to the others?"</h4>
+<p>Nothing. They keep running to completion, and their results get thrown away.
+<code>Promise.all</code> just stops caring — it's already settled. There's no cancellation in JS
+promises; if you genuinely need to stop the work you need something like
+<code>AbortController</code> on each fetch.</p>
+
+<h4>"Now write <code>allSettled</code> instead."</h4>
+<p>Same skeleton, two changes: never call <code>reject</code>, and record an object rather than a raw
+value. Fulfilment stores <code>{ status: 'fulfilled', value }</code>, rejection stores
+<code>{ status: 'rejected', reason }</code>, and both bump <code>completed</code>. You resolve once
+everything has <em>settled</em>, whichever way.</p>
+
+<h4>"How would you limit it to 3 requests at a time?"</h4>
+<p><code>Promise.all</code> fires everything at once, which will happily melt an API with 500 URLs.
+The standard fix is a worker pool: keep a shared cursor into the task list, start N workers, and
+each worker loops — take the next index, await it, write the result at that index, repeat until the
+list is exhausted. Then <code>Promise.all</code> the N workers. Roughly fifteen lines, and the
+result array stays in input order for the same reason as before.</p>
+
+<h4>"Why an object of arrays, not one array of <code>{event, fn}</code>?"</h4>
+<p>Lookup cost. <code>emit</code> is the hot path, and with the object it's a single key access to
+the exact listeners for that name. A flat array means scanning every subscription in the app on
+every emit. The object also makes "remove all listeners for this event" a single
+<code>delete</code>.</p>
+
+<h4>"How does this relate to <code>addEventListener</code> or Node's <code>EventEmitter</code>?"</h4>
+<p>It's the same pattern, and largely the same API — <code>on</code>/<code>off</code> versus
+<code>addEventListener</code>/<code>removeEventListener</code>, both keyed by string, both requiring
+the identical function reference to unsubscribe. The DOM adds things ours doesn't: bubbling through
+a tree, <code>{ once: true }</code> and <code>{ signal }</code> options, and
+<code>preventDefault</code>. Node's adds <code>prependListener</code>, a max-listeners warning to
+catch leaks, and the special <code>'error'</code> event that throws if nothing is listening.</p>
+
+<h4>"What if a listener throws during <code>emit</code>?"</h4>
+<p>In our version the exception propagates out of <code>emit</code> and every listener after it is
+skipped — one bad subscriber breaks the rest, which is nasty for a shared bus. If you want isolation,
+wrap each call in <code>try/catch</code> and report the error rather than rethrowing. Worth naming
+the tradeoff: swallowing errors hides real bugs, so log loudly.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Using <code>results.length</code> as the done check.</strong> The single most common
+      failure in this question.</li>
+  <li><strong>Forgetting <code>Promise.resolve(item)</code>.</strong> Non-promise inputs are legal
+      and your version crashes on them.</li>
+  <li><strong>Forgetting the empty array.</strong> It hangs forever instead of resolving.</li>
+  <li><strong>Calling <code>off(event, listener)</code> inside <code>once</code>.</strong> The array
+      holds the wrapper, so that removes nothing and it fires every time.</li>
+  <li><strong>Saying "Promise.all runs them in parallel."</strong> It doesn't run anything — the
+      promises were already started when you built the array. <code>Promise.all</code> only
+      <em>waits</em>. This distinction gets probed a lot.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong><code>Promise.all</code></strong> — array of results in <em>input</em> order; rejects
+      on the first rejection.</li>
+  <li><strong><code>results[i]</code></strong> — index write is what preserves order.</li>
+  <li><strong><code>completed</code> counter</strong> — sparse arrays lie about <code>length</code>.</li>
+  <li><strong>No guard flag</strong> — a promise ignores every settle after the first.</li>
+  <li><strong>Edge cases</strong> — <code>Promise.resolve(item)</code>, and empty array → <code>[]</code>.</li>
+  <li><strong>allSettled / race / any</strong> — never rejects / first to settle / first to fulfil.</li>
+  <li><strong>EventEmitter</strong> — one object: event name → array of listeners.</li>
+  <li><strong><code>off</code></strong> — needs the exact same function reference.</li>
+  <li><strong><code>once</code></strong> — a wrapper that removes itself; store
+      <code>wrapper.original</code>.</li>
+  <li><strong><code>emit</code></strong> — iterate a copy, or removals mid-emit skip listeners.</li>
+</ul>
+
+<pre><code>function promiseAll(promises) {
+  return new Promise((resolve, reject) =&gt; {
+    if (promises.length === 0) return resolve([]);
+    const results = [];
+    let completed = 0;
+    promises.forEach((item, i) =&gt; {
+      Promise.resolve(item).then((value) =&gt; {
+        results[i] = value;
+        if (++completed === promises.length) resolve(results);
+      }, reject);
+    });
+  });
+}
+
+class EventEmitter {
+  constructor() { this.events = {}; }
+  on(event, fn) {
+    (this.events[event] ||= []).push(fn);
+    return this;
+  }
+  off(event, fn) {
+    this.events[event] = (this.events[event] || [])
+      .filter((l) =&gt; l !== fn &amp;&amp; l.original !== fn);
+    return this;
+  }
+  once(event, fn) {
+    const wrapper = (...args) =&gt; { this.off(event, wrapper); fn(...args); };
+    wrapper.original = fn;
+    return this.on(event, wrapper);
+  }
+  emit(event, ...args) {
+    const listeners = this.events[event];
+    if (!listeners || !listeners.length) return false;
+    [...listeners].forEach((fn) =&gt; fn(...args));
+    return true;
+  }
+}</code></pre>
+</div>
+
+<footer>That's the machine-coding set. Go build something and break it on purpose.</footer>
+
+</div>
+</body>
+</html>

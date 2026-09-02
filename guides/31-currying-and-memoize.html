@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Currying and memoize</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Currying and <code>memoize</code></h1>
+<p class="lede">Two classic closure puzzles. One asks you to split a function's arguments across
+several calls; the other asks you to remember answers you've already computed. Both are under a
+dozen lines — the interview is about whether you can explain them.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#add">Making <code>add(1)(2)(3)</code> work</a></li>
+    <li><a href="#curry">A generic <code>curry(fn)</code></a></li>
+    <li><a href="#partial">Currying vs partial application</a></li>
+    <li><a href="#memoize">The problem <code>memoize</code> solves</a></li>
+    <li><a href="#caveats">The caveats that matter</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="add">Making <code>add(1)(2)(3)</code> work</h2>
+
+<p>Here's the exact thing you'll be asked. Write an <code>add</code> such that this works:</p>
+
+<pre><code>add(1)(2)(3);  <span class="cmt">// → 6</span></code></pre>
+
+<p>Read the syntax literally and it tells you the answer. <code>add(1)</code> is called, and the
+result of that is immediately called with <code>2</code>. So <code>add(1)</code> <em>must return a
+function</em>. And that function's result gets called with <code>3</code>, so it returns a function
+too. Only the last one returns a number.</p>
+
+<div class="lbl good">✅ Three lines</div>
+<pre><code>function add(a) {
+  return (b) =&gt; (c) =&gt; a + b + c;
+}
+
+add(1)(2)(3);   <span class="cmt">// → 6</span>
+add(10)(20)(5); <span class="cmt">// → 35</span></code></pre>
+
+<p>The only thing making this work is that a function returned from another function remembers the
+variables it was born with. When we call <code>add(1)</code>, that <code>a = 1</code> doesn't
+evaporate when <code>add</code> returns — the inner function is still holding a reference to it. Same
+for <code>b</code>. By the time we reach <code>a + b + c</code>, all three are in scope, collected
+across three separate calls at three separate moments.</p>
+
+<p>Think of it like filling in a form one field at a time. Each call hands back a
+partially-filled form; nothing is submitted until the last field is in.</p>
+
+<div class="box wait">
+  <span class="t">Wait — can I just write it as nested <code>function</code>s?</span>
+  <p>Yes, identical behaviour: <code>function add(a) { return function (b) { return function (c) {
+  return a + b + c; }; }; }</code>. The arrow version is shorter and reads as a chain, which is why
+  I'd write it on a whiteboard. Nothing deeper than that.</p>
+</div>
+
+<h2 id="curry">A generic <code>curry(fn)</code></h2>
+
+<p>Hardcoding three levels is fine for one function. The real question is the general one: take
+<em>any</em> function and let its arguments arrive in any number of calls.</p>
+
+<pre><code>const sum = (a, b, c) =&gt; a + b + c;
+const curried = curry(sum);
+
+curried(1)(2)(3);   <span class="cmt">// → 6</span>
+curried(1, 2)(3);   <span class="cmt">// → 6</span>
+curried(1)(2, 3);   <span class="cmt">// → 6</span>
+curried(1, 2, 3);   <span class="cmt">// → 6</span></code></pre>
+
+<p>To write this we need to answer one question: <strong>how do we know when we have enough
+arguments?</strong> And JavaScript hands us the answer for free — every function has a
+<code>.length</code> property holding its declared parameter count.</p>
+
+<pre><code>sum.length;                <span class="cmt">// → 3</span>
+((a, b) =&gt; a).length;      <span class="cmt">// → 2</span></code></pre>
+
+<p>That's the whole trick. Collect arguments as they come in; compare the pile against
+<code>fn.length</code>; call the original once the pile is big enough.</p>
+
+<div class="lbl good">✅ The version to write in an interview</div>
+<pre><code>function curry(fn) {
+  return function curried(...args) {
+    if (args.length &gt;= fn.length) {     <span class="cmt">// 👈 enough? run it</span>
+      return fn.apply(this, args);
+    }
+    return (...more) =&gt; curried.apply(this, [...args, ...more]);
+  };
+}</code></pre>
+
+<p>Six lines. Walk <code>curried(1)(2)(3)</code> through it. First call: <code>args</code> is
+<code>[1]</code>, one is less than three, so we return a function that's waiting. Call that with
+<code>2</code> and it re-enters <code>curried</code> with <code>[1, 2]</code> — still short, so
+another waiting function. Call <em>that</em> with <code>3</code> and we re-enter with
+<code>[1, 2, 3]</code>. Now the check passes and <code>sum</code> actually runs.</p>
+
+<p>And <code>curried(1, 2)(3)</code> works with no extra code, because we never assumed one argument
+per call — we only ever compare the total. The named function expression (<code>function
+curried</code>) is what lets us recurse back into ourselves by name.</p>
+
+<div class="box intv">
+  <span class="t">If they push: the infinite chain</span>
+  <p>A nastier variant asks for <code>add(1)(2)(3)(4)…</code> with no fixed arity, ending in either
+  <code>add(1)(2)(3)()</code> or a bare <code>add(1)(2)(3)</code> that prints <code>6</code>. The
+  trick is that you can't return a number and a function at the same time — so you return a
+  <em>function</em> and give it a <code>valueOf</code> (or <code>toString</code>) that returns the
+  running total. When JavaScript coerces it, via <code>+chain</code> or a template string, that
+  method fires and yields the sum. Name that trick out loud; you rarely need to finish writing it.</p>
+</div>
+
+<h2 id="partial">Currying vs partial application</h2>
+
+<p>These get conflated constantly, and the distinction is small. <strong>Currying</strong> transforms
+an n-argument function into a chain of single-argument functions — it's driven by arity, and strictly
+speaking one argument at a time. <strong>Partial application</strong> just pre-fills some arguments
+and hands back a function wanting the rest, in one step, with no chain.</p>
+
+<p>You already use partial application: <code>fn.bind(null, 1)</code> returns a function with the
+first argument locked in. Most "curry" implementations you'll see in the wild — including the one
+above, which happily takes <code>curried(1, 2)</code> — are really doing partial application with a
+chain on top. Say that; it reads as precision, not pedantry.</p>
+
+<h3>Where you'd actually use it</h3>
+
+<p>The honest answer: pre-configured helpers. You have <code>createLogger(level, message)</code> and
+you don't want to pass <code>'error'</code> at forty call sites, so you make
+<code>const logError = createLogger('error')</code> once and call <code>logError('Payment
+failed')</code> everywhere. Same for an API client bound to a base URL, or a formatter bound to a
+locale. That pattern is genuinely useful — but you'll reach for an arrow function or
+<code>bind</code> for it far more often than a generic <code>curry</code>. Full currying is common in
+FP-heavy codebases (Ramda, point-free pipelines) and rare in everyday React work. Interviewers ask
+it because it tests closures and <code>fn.length</code>, not because you'll ship it.</p>
+
+<h2 id="memoize">The problem <code>memoize</code> solves</h2>
+
+<p>Here's the classic naive fibonacci:</p>
+
+<pre><code>function fib(n) {
+  return n &lt; 2 ? n : fib(n - 1) + fib(n - 2);
+}
+
+fib(40);   <span class="cmt">// → 102334155, and it takes about a second</span></code></pre>
+
+<p>A second, to add up some small integers. The reason is that it recomputes everything, constantly:
+<code>fib(40)</code> calls <code>fib(38)</code> twice, <code>fib(37)</code> three times,
+<code>fib(30)</code> hundreds of thousands of times — always with the same input, always producing
+the same answer. It's a student re-deriving the same equation on every page instead of writing it on
+the inside cover once.</p>
+
+<p>So: keep a notepad. Before computing, check if we've seen this input; if we have, hand back the
+saved answer.</p>
+
+<div class="lbl good">✅ memoize</div>
+<pre><code>function memoize(fn) {
+  const cache = new Map();               <span class="cmt">// 👈 private, survives between calls</span>
+
+  return function (...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+}</code></pre>
+
+<p>Same closure move as currying: <code>cache</code> lives in <code>memoize</code>'s scope, so it's
+private and it persists across every call to the returned function. <code>JSON.stringify(args)</code>
+turns the argument list into a string we can use as a key, so <code>(2, 3)</code> and
+<code>(3, 2)</code> land in different slots.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 620 130" role="img" aria-label="A call checks the cache; a hit returns immediately, a miss runs the function and stores the result">
+  <rect x="12" y="48" width="96" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+  <text x="60" y="70" text-anchor="middle" font-size="12.5" fill="currentColor" font-family="ui-monospace, monospace">fn(2, 3)</text>
+  <line x1="108" y1="65" x2="160" y2="65" stroke="currentColor" stroke-width="1.5" opacity=".45"/>
+  <rect x="160" y="44" width="120" height="42" rx="8" fill="none" stroke="#2f5fd8" stroke-width="1.5"/>
+  <text x="220" y="60" text-anchor="middle" font-size="11.5" fill="#2f5fd8">cache.has(key)?</text>
+  <text x="220" y="76" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6" font-family="ui-monospace, monospace">key = "[2,3]"</text>
+  <path d="M280 56 L 330 26" stroke="#2f5fd8" stroke-width="1.5" fill="none"/>
+  <text x="300" y="18" font-size="11" fill="#2f5fd8">hit</text>
+  <rect x="332" y="8" width="150" height="32" rx="8" fill="none" stroke="#2f5fd8" stroke-width="1.5"/>
+  <text x="407" y="29" text-anchor="middle" font-size="11.5" fill="#2f5fd8">return saved value</text>
+  <path d="M280 76 L 330 104" stroke="currentColor" stroke-width="1.5" fill="none" opacity=".5"/>
+  <text x="298" y="103" font-size="11" fill="currentColor" opacity=".6">miss</text>
+  <rect x="332" y="88" width="150" height="32" rx="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+  <text x="407" y="109" text-anchor="middle" font-size="11.5" fill="currentColor" opacity=".75">run fn, then store</text>
+  <path d="M482 104 L 545 104 L 545 24 L 482 24" stroke="currentColor" stroke-width="1.5" fill="none" opacity=".35" stroke-dasharray="3 3"/>
+</svg>
+<figcaption>Every call takes one of two paths. The miss path is the only one that does real work.</figcaption>
+</figure>
+
+<p>Now wire it into fibonacci. The subtle bit: recurse through the <em>memoized</em> version, not the
+original, or the inner calls skip the cache entirely.</p>
+
+<pre><code>const fib = memoize(function (n) {
+  return n &lt; 2 ? n : fib(n - 1) + fib(n - 2);   <span class="cmt">// 👈 calls the memoized fib</span>
+});
+
+fib(40);   <span class="cmt">// → 102334155, now instant</span></code></pre>
+
+<p>From roughly a billion calls to 41. Every value is computed exactly once.</p>
+
+<h2 id="caveats">The caveats that matter</h2>
+
+<p><strong><code>JSON.stringify</code> is a rough key.</strong> It's perfect for primitives, which
+covers most real use. But it drops functions and <code>undefined</code>, it treats
+<code>{a:1, b:2}</code> and <code>{b:2, a:1}</code> as different keys because key order is preserved,
+and on a large object it's slow enough to cost more than the function you're caching. For a
+single-primitive-argument function, just use <code>args[0]</code> as the key and skip stringify
+entirely.</p>
+
+<p><strong>Only memoize pure functions.</strong> Same input must always mean same output, with no
+side effects. Memoize something that reads the clock, hits the network, or mutates state, and you've
+frozen the first answer forever — and silently deleted the side effect on every call after the
+first.</p>
+
+<p><strong>The cache grows forever.</strong> Nothing ever evicts, so a memoized function called with
+many distinct inputs is a memory leak with good intentions. Bound it — cap the size and drop the
+oldest entry (an LRU), or, when the argument is a single object, use a <code>WeakMap</code> keyed on
+that object so entries disappear when the object is garbage-collected.</p>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Write an <code>add</code> function so that <code>add(1)(2)(3)</code> returns 6."</li>
+  <li>"Implement a generic <code>curry</code>." Then: "make it handle <code>curried(1, 2)(3)</code>."</li>
+  <li>"What's the difference between currying and partial application?"</li>
+  <li>"Implement <code>memoize</code>." Often paired with "…now speed up this fibonacci."</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer — "implement memoize"</span>
+  <p>"I'd return a wrapper that closes over a Map. On each call I build a key from the arguments —
+  <code>JSON.stringify(args)</code> is the quick version — and if that key's in the cache I return
+  the stored value, otherwise I run the real function, store the result, and return it. The closure
+  is what makes it work: the cache is private to that wrapper and survives between calls. Two things
+  I'd flag: it's only safe for pure functions, since anything time- or network-dependent gets frozen
+  at the first answer, and the cache never evicts, so for unbounded inputs I'd cap it with an LRU or
+  key it on an object with a WeakMap."</p>
+</div>
+
+<p>That lands because you named the mechanism, the key strategy, <em>and</em> the two failure modes
+without being asked. Reciting the eight lines gets you a pass; volunteering the caveats is what
+signals you've actually shipped one.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why does <code>curry</code> use <code>fn.length</code>?"</h4>
+<p>It's the function's declared parameter count — the only built-in way to know how many arguments
+the original expects. That's the stopping condition: keep returning collectors until the pile reaches
+that number, then call through.</p>
+
+<h4>"What breaks if the function has default params or rest args?"</h4>
+<p><code>fn.length</code> stops counting at the first parameter with a default, and doesn't count a
+rest parameter at all. So <code>(a, b = 2, c) =&gt; …</code> reports <code>1</code> and
+<code>(...args) =&gt; …</code> reports <code>0</code> — currying fires after the first call, or
+immediately, with arguments missing. Fix it by taking the arity explicitly:
+<code>curry(fn, arity = fn.length)</code>. Mentioning this unprompted is a strong signal.</p>
+
+<h4>"How would you key the memo cache for object arguments?"</h4>
+<p>If it's a single object argument, a <code>WeakMap</code> keyed on the object itself — no
+serialisation, and it doesn't leak. Downside: it's identity-based, so two structurally identical
+objects are two cache entries. If you need value equality, you need a stable serializer that sorts
+keys, and at that point you should check the key is cheaper than the computation.</p>
+
+<h4>"When is memoizing a bad idea?"</h4>
+<p>When the function is cheap (the key-building costs more than the work), when inputs rarely repeat
+(you're paying memory for a cache that never hits), or when the function isn't pure. The default
+should be "don't", until a profile says otherwise.</p>
+
+<h4>"How does this relate to <code>useMemo</code> and <code>React.memo</code>?"</h4>
+<p>Same core idea — cache a result keyed on inputs — with two big differences. React's caches hold
+<strong>one</strong> entry, not a map: change the dependency array and the previous value is gone, so
+alternating between two inputs misses every time. And they're tied to a component instance's render
+lifecycle, so the cache dies on unmount. Our <code>memoize</code> is a module-level cache with
+unlimited entries and no lifecycle.</p>
+
+<h4>"Is <code>memoize</code> safe for a function that fetches?"</h4>
+<p>Not with this implementation. It caches the returned <em>promise</em>, which is actually a nice
+request-deduplication trick while it's in flight — but the promise is stored forever, so you keep
+serving stale data, and a rejected promise gets cached as a permanent failure. Real request caching
+needs a TTL and eviction on error, which is what libraries like React Query exist for.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Recursing into the original function</strong> instead of the memoized one — the cache
+      gets exactly one entry and the speedup vanishes.</li>
+  <li><strong>Using <code>args.length === fn.length</code></strong> in curry. Use <code>&gt;=</code>,
+      or extra arguments hang the chain forever.</li>
+  <li><strong>Saying "currying is the same as <code>bind</code>."</strong> Close, but
+      <code>bind</code> is partial application — one step, no chain, and it also sets
+      <code>this</code>.</li>
+  <li><strong>Claiming memoization is a general speedup.</strong> It trades memory for time, and only
+      for pure functions with repeating inputs.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Currying</strong> — one argument at a time; each call returns a function holding the
+      arguments so far.</li>
+  <li><strong><code>fn.length</code></strong> — declared parameter count. The stopping condition.
+      Broken by defaults and rest params → take arity explicitly.</li>
+  <li><strong>Partial application</strong> — pre-fill some args in one step. That's
+      <code>bind</code>.</li>
+  <li><strong>Memoize</strong> — closure over a Map; key from the args; return the cached value on a
+      hit.</li>
+  <li><strong>Pure only</strong> — no clock, no network, no mutation.</li>
+  <li><strong>Unbounded cache = leak</strong> — cap it (LRU) or use a <code>WeakMap</code> on an
+      object arg.</li>
+  <li><strong>React</strong> — <code>useMemo</code>/<code>React.memo</code> are the same idea with a
+      one-entry cache tied to render.</li>
+</ul>
+
+<pre><code>const add = (a) =&gt; (b) =&gt; (c) =&gt; a + b + c;   <span class="cmt">// add(1)(2)(3) → 6</span>
+
+function curry(fn) {
+  return function curried(...args) {
+    if (args.length &gt;= fn.length) return fn.apply(this, args);
+    return (...more) =&gt; curried.apply(this, [...args, ...more]);
+  };
+}
+
+function memoize(fn) {
+  const cache = new Map();
+  return function (...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+}</code></pre>
+</div>
+
+<footer>Next: implementing a deep clone.</footer>
+
+</div>
+</body>
+</html>

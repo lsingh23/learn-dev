@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implementing deepClone</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Implementing <code>deepClone</code></h1>
+<p class="lede">You spread an object, feel safe, and then mutate the copy — and the original changes
+too. Here's why, and the ten lines that fix it.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#problem">The problem</a></li>
+    <li><a href="#cheap">The two cheap answers</a></li>
+    <li><a href="#build">Building it recursively</a></li>
+    <li><a href="#circular">Circular references</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">The problem</h2>
+
+<p>Here's a user object with something nested inside it. We spread it into a copy, change the copy,
+and check the original:</p>
+
+<div class="lbl bad">❌ Looks like a copy. Isn't.</div>
+<pre><code>const original = {
+  name: 'Ada',
+  address: { city: 'London' },
+};
+
+const copy = { ...original };
+copy.address.city = 'Paris';
+
+console.log(original.address.city);  <span class="cmt">// → 'Paris'  😱</span></code></pre>
+
+<p>We never touched <code>original</code>. But it changed.</p>
+
+<p>Here's the whole reason. A variable holding an object doesn't hold the object — it holds an
+<em>address</em> pointing at it, somewhere in memory. Spreading copies each property's value across,
+and for <code>address</code> that value <em>is</em> the address, not the nested object. So both
+objects now point at the same inner object. Primitives (numbers, strings, booleans) don't have this
+problem, because the value <em>is</em> the whole thing:</p>
+
+<pre><code>copy.name = 'Grace';
+console.log(original.name);  <span class="cmt">// → 'Ada'  ✅ strings copy by value</span></code></pre>
+
+<p>That's a <strong>shallow copy</strong>: one level deep, everything below shared. A
+<strong>deep copy</strong> walks all the way down and rebuilds every nested object, so the two trees
+share nothing.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 640 210" role="img" aria-label="Shallow copy: two variables pointing at one shared nested object. Deep copy: each variable owns its own nested object.">
+  <g font-family="-apple-system, sans-serif" font-size="11.5" fill="currentColor">
+    <text x="12" y="16" font-weight="700">Shallow copy</text>
+    <text x="340" y="16" font-weight="700">Deep copy</text>
+  </g>
+  <g stroke="currentColor" fill="none" stroke-width="1.4">
+    <rect x="12" y="30" width="92" height="30" rx="6"/>
+    <rect x="12" y="76" width="92" height="30" rx="6"/>
+    <rect x="180" y="52" width="104" height="30" rx="6"/>
+    <rect x="340" y="30" width="92" height="30" rx="6"/>
+    <rect x="340" y="76" width="92" height="30" rx="6"/>
+  </g>
+  <g stroke="#2f5fd8" fill="none" stroke-width="1.4">
+    <rect x="500" y="30" width="104" height="30" rx="6"/>
+    <rect x="500" y="76" width="104" height="30" rx="6"/>
+  </g>
+  <g font-family="ui-monospace, monospace" font-size="12" fill="currentColor">
+    <text x="24" y="50">original</text><text x="30" y="96">copy</text>
+    <text x="190" y="72">{ city }</text>
+    <text x="352" y="50">original</text><text x="358" y="96">copy</text>
+  </g>
+  <g font-family="ui-monospace, monospace" font-size="12" fill="#2f5fd8">
+    <text x="512" y="50">{ city }</text><text x="512" y="96">{ city }</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4" marker-end="url(#a)">
+    <line x1="106" y1="45" x2="176" y2="63"/>
+    <line x1="106" y1="91" x2="176" y2="73"/>
+  </g>
+  <g stroke="#2f5fd8" stroke-width="1.4" marker-end="url(#b)">
+    <line x1="434" y1="45" x2="496" y2="45"/>
+    <line x1="434" y1="91" x2="496" y2="91"/>
+  </g>
+  <defs>
+    <marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="currentColor"/>
+    </marker>
+    <marker id="b" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#2f5fd8"/>
+    </marker>
+  </defs>
+  <g font-family="-apple-system, sans-serif" font-size="11.5">
+    <text x="24" y="140" fill="currentColor" opacity=".75">one nested object, two owners →</text>
+    <text x="24" y="158" fill="currentColor" opacity=".75">mutating through either is visible in both</text>
+    <text x="352" y="140" fill="#2f5fd8">every level rebuilt →</text>
+    <text x="352" y="158" fill="#2f5fd8">the two trees share nothing</text>
+  </g>
+</svg>
+<figcaption>Spread copies the arrow, not what it points at.</figcaption>
+</figure>
+
+<h2 id="cheap">The two cheap answers</h2>
+
+<p>Before writing anything by hand, know these two — an interviewer will ask about both, and in real
+code you'll usually reach for one of them.</p>
+
+<h3>1. <code>JSON.parse(JSON.stringify(obj))</code></h3>
+
+<p>Serialize to a string, parse it back. A brand new tree, one line, no dependencies. For plain data
+that came out of an API — objects, arrays, strings, numbers, booleans, <code>null</code> — this is
+genuinely fine, and pretending otherwise is posturing.</p>
+
+<p>But JSON only knows about JSON. Everything else gets quietly mangled:</p>
+
+<div class="lbl bad">❌ What JSON round-tripping destroys</div>
+<pre><code>const data = {
+  createdAt: new Date(),
+  onSave: () =&gt; {},
+  tags: new Set(['a']),
+  nickname: undefined,
+  score: NaN,
+};
+
+JSON.parse(JSON.stringify(data));
+<span class="cmt">// → {</span>
+<span class="cmt">//     createdAt: '2025-09-02T10:00:00.000Z',  // a string now</span>
+<span class="cmt">//     tags: {},                                // Set emptied out</span>
+<span class="cmt">//     score: null                              // NaN → null</span>
+<span class="cmt">//   }</span>
+<span class="cmt">// onSave and nickname just... aren't there.</span></code></pre>
+
+<p>The short list: functions and <code>undefined</code> vanish, <code>Date</code> becomes a string,
+<code>Map</code>/<code>Set</code>/<code>RegExp</code> become <code>{}</code>, <code>NaN</code> and
+<code>Infinity</code> become <code>null</code>, and a circular reference throws outright. Notice that
+almost all of those fail <em>silently</em> — you find out in production.</p>
+
+<h3>2. <code>structuredClone(obj)</code></h3>
+
+<p>The built-in, available in every modern browser and Node 17+. It handles Dates, Maps, Sets,
+RegExps, typed arrays, and — the good bit — circular references, correctly.</p>
+
+<pre><code>const deep = structuredClone(original);</code></pre>
+
+<p>Two things it won't do: it <strong>throws</strong> on functions (a <code>DataCloneError</code>),
+and it drops class prototypes — clone a <code>User</code> instance and you get a plain object with
+the right fields and none of the methods.</p>
+
+<div class="box intv">
+  <span class="t">In an interview</span>
+  <p>Say this out loud <em>before</em> you start coding: <em>"In real code I'd use
+  <code>structuredClone</code> — it's built in and handles Dates, Maps and cycles. But let me write
+  one by hand."</em> It costs you five seconds and shows you know the platform. Then write it
+  anyway — that's the actual question.</p>
+</div>
+
+<h2 id="build">Building it recursively</h2>
+
+<p>The shape of the problem is recursive, so the function is too. Two questions: when do we stop,
+and what do we do when we don't?</p>
+
+<p><strong>Stop</strong> when the value isn't an object. Primitives copy by value already, so we just
+hand them back. And <code>typeof null === 'object'</code> — a famous JS wart — so <code>null</code>
+has to be excluded explicitly or we'd try to iterate it.</p>
+
+<div class="lbl step">Step 1 — the base case</div>
+<pre><code>function deepClone(value) {
+  if (value === null || typeof value !== 'object') {
+    return value;                    <span class="cmt">// 👈 primitives, null, functions: as-is</span>
+  }
+  <span class="cmt">// ...it's an object. Rebuild it.</span>
+}</code></pre>
+
+<p>Now the recursive case. Arrays and plain objects need different empty containers, and
+<code>Array.isArray</code> is how you tell them apart (<code>typeof []</code> is
+<code>'object'</code>, so that's no help). Then we copy each key across — but instead of assigning
+the value, we assign <code>deepClone</code> of the value.</p>
+
+<div class="lbl good">✅ Step 2 — the version to write in an interview</div>
+<pre><code>function deepClone(value) {
+  if (value === null || typeof value !== 'object') return value;
+
+  const result = Array.isArray(value) ? [] : {};   <span class="cmt">// 👈 right container</span>
+
+  for (const key of Object.keys(value)) {
+    result[key] = deepClone(value[key]);           <span class="cmt">// 👈 the whole idea</span>
+  }
+
+  return result;
+}</code></pre>
+
+<p>That's it. Ten lines, and it correctly handles arbitrarily nested objects and arrays. Trace the
+user object: <code>name</code> is a string so it returns immediately; <code>address</code> is an
+object, so we recurse, build a fresh <code>{}</code>, and copy <code>city</code> into it. Two
+separate trees.</p>
+
+<p>Say the recursion out loud as you write it — <em>"if it's a primitive I'm done, otherwise make an
+empty one of the same kind and deep-clone every value into it"</em> — because that sentence is what's
+being graded.</p>
+
+<h3>Dates and regexes</h3>
+
+<p>Both are objects, so our function currently turns <code>new Date()</code> into <code>{}</code> —
+they have no enumerable own keys. Two lines, above the container:</p>
+
+<pre><code>if (value instanceof Date) return new Date(value);
+if (value instanceof RegExp) return new RegExp(value.source, value.flags);</code></pre>
+
+<h2 id="circular">Circular references</h2>
+
+<p>Now the follow-up that separates candidates. An object can point at itself:</p>
+
+<pre><code>const user = { name: 'Ada' };
+user.self = user;         <span class="cmt">// 👈 perfectly legal</span>
+
+deepClone(user);          <span class="cmt">// → RangeError: Maximum call stack size exceeded</span></code></pre>
+
+<p>We clone <code>user</code>, hit <code>self</code>, recurse into <code>user</code> again, hit
+<code>self</code>... forever. The fix: keep a map of <em>original → its clone</em>. At the top of
+every call, check whether we've already cloned this exact object; if so, return the clone we made
+before instead of building another one.</p>
+
+<p>The subtle part is the <em>order</em>. You have to register the clone in the map
+<strong>before</strong> recursing into the children — otherwise the recursion reaches
+<code>self</code> before the entry exists and loops anyway.</p>
+
+<div class="lbl good">✅ The full version</div>
+<pre><code>function deepClone(value, seen = new WeakMap()) {
+  if (value === null || typeof value !== 'object') return value;
+  if (value instanceof Date) return new Date(value);
+  if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+
+  if (seen.has(value)) return seen.get(value);      <span class="cmt">// 👈 been here before</span>
+
+  const result = Array.isArray(value) ? [] : {};
+  seen.set(value, result);                          <span class="cmt">// 👈 register BEFORE recursing</span>
+
+  for (const key of Object.keys(value)) {
+    result[key] = deepClone(value[key], seen);      <span class="cmt">// 👈 pass the map down</span>
+  }
+
+  return result;
+}</code></pre>
+
+<p>As a bonus this also preserves <em>shared</em> references. If two properties point at the same
+object, the clone's two properties point at the same clone — the shape of the graph survives, not
+just the data.</p>
+
+<div class="box wait">
+  <span class="t">Wait — what about Maps, Sets, and symbol keys?</span>
+  <p>Each is a small addition: <code>new Map([...value].map(([k, v]) =&gt; [deepClone(k), deepClone(v)]))</code>
+  and similar for Set; <code>Reflect.ownKeys</code> instead of <code>Object.keys</code> picks up
+  symbols. Mention them as "I'd add branches for those"; don't write them unprompted. Getters,
+  non-enumerable properties and property descriptors are the same story — name them, move on.
+  Interviewers read a candidate who tries to handle every type as someone who can't scope.</p>
+</div>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Implement a deep clone function."</li>
+  <li>"What's the difference between a shallow and a deep copy?"</li>
+  <li>"This code mutates state it shouldn't — why?" (the same question, in bug form)</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer</span>
+  <p>"Objects are held by reference, so spreading only copies the top level — nested objects are
+  still shared, and mutating one shows up in both. A deep clone rebuilds every level. In production
+  I'd use <code>structuredClone</code>, which handles Dates, Maps and circular refs; I'd avoid the
+  JSON round-trip because it silently drops functions and turns Dates into strings. By hand it's a
+  recursion: return primitives as-is, otherwise make an empty array or object and deep-clone each
+  value into it. Then I'd add a <code>WeakMap</code> of already-cloned objects so circular
+  references don't blow the stack."</p>
+</div>
+
+<p>That lands because it's ordered by what matters: the <em>why</em>, then the real-world tool, then
+the implementation, then the edge case — instead of diving straight into a for-loop.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why not just <code>JSON.parse(JSON.stringify())</code>?"</h4>
+<p>For plain API data, honestly, you can. But it drops functions and <code>undefined</code>, turns
+Dates into strings, flattens Maps and Sets to <code>{}</code>, converts <code>NaN</code> to
+<code>null</code>, and throws on cycles. All of that except the throw is silent, so bugs surface far
+from the cause. It's also slow on big objects — you're building an entire string in memory.</p>
+
+<h4>"How do you handle circular references?"</h4>
+<p>A <code>seen</code> map from original object to its clone, threaded through the recursion. Check
+it first thing; if the object's in there, return the existing clone. Crucially, add the entry before
+recursing into children, or you never break the loop.</p>
+
+<h4>"Why a <code>WeakMap</code> and not a <code>Map</code>?"</h4>
+<p>A <code>WeakMap</code> holds its keys weakly, so entries don't keep the source objects alive —
+with a regular <code>Map</code> you'd pin every object you visited in memory for as long as the map
+lived. Here the map is created per top-level call and dies with it, so it's not dramatic, but it's
+the right default and the interviewer is checking whether you know the difference at all.</p>
+
+<h4>"Does your clone preserve the prototype? Class instances?"</h4>
+<p>No. <code>{}</code> gives you a plain object, so a <code>User</code> instance comes back with the
+right fields and no methods, and <code>instanceof User</code> is false. The fix is one line:
+<code>Object.create(Object.getPrototypeOf(value))</code> instead of <code>{}</code> — though that
+still skips the constructor, which matters if it does real work.</p>
+
+<h4>"Do you actually need a deep clone here?"</h4>
+<p>Usually no, and this is the senior answer. Cloning an entire state tree to change one field is
+wasteful. Prefer an immutable update that copies only the path you're touching:
+<code>{ ...state, user: { ...state.user, city: 'Paris' } }</code> — everything else is shared, which
+is safe because nothing mutates it. That's exactly what Redux reducers do by hand and what Immer
+does for you behind a mutable-looking API. Reach for a deep clone when you're handed an object from
+outside your control and genuinely need to own it.</p>
+
+<h4>"Is deep cloning expensive?"</h4>
+<p>It's O(n) in the total number of nodes, plus an allocation per object, plus recursion depth on the
+call stack — a deeply nested structure can overflow it. On a large tree in a hot path (a render, a
+scroll handler) it's very noticeable. Structural sharing avoids the cost entirely.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Forgetting <code>null</code>.</strong> <code>typeof null === 'object'</code>, so it
+      falls into the object branch and you return <code>{}</code>.</li>
+  <li><strong>Using <code>for...in</code> without a guard.</strong> It walks inherited enumerable
+      properties too. <code>Object.keys</code> avoids the question.</li>
+  <li><strong>Registering the clone after the loop.</strong> The circular-ref code compiles and still
+      overflows.</li>
+  <li><strong>Calling the spread operator a deep copy.</strong> Instant ding.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Shallow</strong> — <code>{ ...obj }</code>, <code>Object.assign</code>,
+      <code>slice</code>: one level; nested objects still shared.</li>
+  <li><strong>Why</strong> — objects are held by reference; copying the property copies the arrow.</li>
+  <li><strong>JSON round-trip</strong> — fine for plain data; kills functions, <code>undefined</code>,
+      Dates, Map/Set, <code>NaN</code>; throws on cycles.</li>
+  <li><strong><code>structuredClone</code></strong> — the real-world answer; handles Dates, Maps,
+      Sets, cycles. Throws on functions, loses prototypes.</li>
+  <li><strong>By hand</strong> — primitive → return it; else new container + recurse per key.</li>
+  <li><strong>Cycles</strong> — <code>WeakMap</code> of original → clone, registered <em>before</em>
+      recursing.</li>
+  <li><strong>Senior move</strong> — you usually want an immutable update of one path, not a clone
+      of everything.</li>
+</ul>
+
+<pre><code>function deepClone(value, seen = new WeakMap()) {
+  if (value === null || typeof value !== 'object') return value;
+  if (value instanceof Date) return new Date(value);
+  if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+  if (seen.has(value)) return seen.get(value);
+
+  const result = Array.isArray(value) ? [] : {};
+  seen.set(value, result);
+
+  for (const key of Object.keys(value)) {
+    result[key] = deepClone(value[key], seen);
+  }
+  return result;
+}</code></pre>
+</div>
+
+<footer>Next: implementing <code>Promise.all</code> and a tiny <code>EventEmitter</code>.</footer>
+
+</div>
+</body>
+</html>

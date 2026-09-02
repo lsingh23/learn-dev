@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implementing debounce &amp; throttle</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Implementing <code>debounce</code> and <code>throttle</code></h1>
+<p class="lede">Two tiny functions that get asked constantly. Both are about six lines. The
+interview is really about whether you know <em>why</em> those six lines work.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#problem">The problem</a></li>
+    <li><a href="#debounce">Building debounce</a></li>
+    <li><a href="#args">Forwarding arguments and <code>this</code></a></li>
+    <li><a href="#throttle">Building throttle</a></li>
+    <li><a href="#which">Which one, when</a></li>
+    <li><a href="#interview">The interview layer</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">The problem</h2>
+
+<p>You've got a search box that fetches on every keystroke:</p>
+
+<pre><code>input.addEventListener('input', (e) =&gt; {
+  fetch('/api/search?q=' + e.target.value).then(showResults);
+});</code></pre>
+
+<p>Type <code>laptop</code> and you fire six requests. Five are garbage, and they can come back
+out of order and overwrite the good one. What you actually want is: <strong>wait until the user
+stops typing, then fire once.</strong> That's debounce.</p>
+
+<p>Different problem — a scroll progress bar. Scroll fires ~60 times a second. Waiting for the
+user to stop is useless here; the bar needs to move <em>during</em> the scroll. What you want is:
+<strong>run it, but at most once every 100ms.</strong> That's throttle.</p>
+
+<ul>
+  <li><strong>Debounce</strong> — wait for quiet.</li>
+  <li><strong>Throttle</strong> — enforce a rhythm.</li>
+</ul>
+
+<h2 id="debounce">Building debounce</h2>
+
+<p>The one thing you need to know: <code>setTimeout</code> returns an ID, and
+<code>clearTimeout(id)</code> cancels the pending timer before it fires. Debounce is just
+cancel-and-restart, over and over.</p>
+
+<p>In words: <em>every call cancels the previous timer and starts a fresh one. Only a full quiet
+period lets the timer survive to fire.</em></p>
+
+<div class="lbl step">Step 1 — the shape</div>
+<pre><code>function debounce(callback, delay) {
+  return function () {
+    <span class="cmt">// ...</span>
+  };
+}</code></pre>
+
+<p>A function that takes a function and returns a function. That gap between the two — the body of
+<code>debounce</code> — is where we stash the timer ID. It's private (nobody outside can touch it)
+and it persists between calls, because the returned function closes over it.</p>
+
+<div class="lbl step">Step 2 — cancel and restart</div>
+<pre><code>function debounce(callback, delay) {
+  let timerId;                       <span class="cmt">// 👈 survives between calls</span>
+
+  return function () {
+    clearTimeout(timerId);           <span class="cmt">// kill whatever was pending</span>
+    timerId = setTimeout(callback, delay);
+  };
+}</code></pre>
+
+<p>That's a working debounce. Trace it at 300ms: keystroke at 0ms schedules a timer for 300ms.
+Keystroke at 90ms kills it and schedules 390ms. And so on. Stop typing at 500ms, nothing kills the
+timer, it fires at 800ms. <strong>One call.</strong></p>
+
+<figure class="fig">
+<svg viewBox="0 0 640 150" role="img" aria-label="Timeline: keystrokes repeatedly reset the timer until a quiet gap lets it fire">
+  <line x1="30" y1="55" x2="610" y2="55" stroke="currentColor" stroke-width="1.5" opacity=".35"/>
+  <g fill="currentColor" font-size="12" font-family="ui-monospace, monospace">
+    <circle cx="60" cy="55" r="5"/><text x="52" y="40">l</text>
+    <circle cx="120" cy="55" r="5"/><text x="112" y="40">a</text>
+    <circle cx="180" cy="55" r="5"/><text x="172" y="40">p</text>
+    <circle cx="240" cy="55" r="5"/><text x="232" y="40">t</text>
+    <circle cx="300" cy="55" r="5"/><text x="292" y="40">o</text>
+    <circle cx="360" cy="55" r="5"/><text x="352" y="40">p</text>
+  </g>
+  <g stroke="currentColor" stroke-width="7" opacity=".22" stroke-linecap="round">
+    <line x1="60" y1="88" x2="118" y2="88"/><line x1="120" y1="88" x2="178" y2="88"/>
+    <line x1="180" y1="88" x2="238" y2="88"/><line x1="240" y1="88" x2="298" y2="88"/>
+    <line x1="300" y1="88" x2="358" y2="88"/>
+  </g>
+  <line x1="360" y1="88" x2="545" y2="88" stroke="#2f5fd8" stroke-width="7" opacity=".8" stroke-linecap="round"/>
+  <circle cx="545" cy="55" r="7" fill="#2f5fd8"/>
+  <line x1="545" y1="55" x2="545" y2="88" stroke="#2f5fd8" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <g font-family="-apple-system, sans-serif" font-size="11.5">
+    <text x="120" y="118" fill="currentColor" opacity=".7">timers started, then killed</text>
+    <text x="395" y="118" fill="#2f5fd8">300ms of quiet → fires</text>
+  </g>
+</svg>
+<figcaption>Every call resets the clock. Only the last one in a burst survives.</figcaption>
+</figure>
+
+<h2 id="args">Forwarding arguments and <code>this</code></h2>
+
+<p>Attach that to the search box and it breaks: the callback gets no <code>event</code>. Our
+wrapper is a middleman, and right now it's swallowing the message. Forward it:</p>
+
+<pre><code>return function (...args) {                     <span class="cmt">// gather whatever we were called with</span>
+  clearTimeout(timerId);
+  timerId = setTimeout(() =&gt; callback(...args), delay);   <span class="cmt">// hand it through</span>
+};</code></pre>
+
+<p>One more leak. If someone attaches the debounced function as an object method,
+<code>this</code> is lost by the time the timeout runs — <code>callback(...)</code> is a bare call.
+So capture and restore it:</p>
+
+<div class="lbl good">✅ The version to write in an interview</div>
+<pre><code>function debounce(callback, delay) {
+  let timerId;
+
+  return function (...args) {
+    const context = this;                        <span class="cmt">// 👈 whoever called us</span>
+    clearTimeout(timerId);
+    timerId = setTimeout(() =&gt; {
+      callback.apply(context, args);             <span class="cmt">// 👈 restore it</span>
+    }, delay);
+  };
+}</code></pre>
+
+<p>Two deliberate choices there. The <em>outer</em> function is a normal <code>function</code>, not
+an arrow — arrows have no <code>this</code> of their own, so there'd be nothing to capture. The
+<em>inner</em> one is an arrow, precisely because it inherits <code>this</code> from around it.
+And <code>apply</code> (rather than <code>call</code>) because we're already holding an array.</p>
+
+<div class="box wait">
+  <span class="t">Wait — does the <code>this</code> part actually matter?</span>
+  <p>In modern arrow-heavy code, rarely. But the interviewer is asking a <code>this</code> question
+  in disguise. Write it, and say so: <em>"I'm forwarding <code>this</code> so it still works as an
+  object method — rarely matters in practice, but a shared utility shouldn't assume."</em></p>
+</div>
+
+<h3>Cancelling</h3>
+
+<p>A pending timer that fires after your component unmounts is a real bug. Hang a
+<code>cancel</code> on the returned function — it closes over the same <code>timerId</code>:</p>
+
+<pre><code>function debounce(callback, delay) {
+  let timerId;
+
+  function debounced(...args) {
+    const context = this;
+    clearTimeout(timerId);
+    timerId = setTimeout(() =&gt; callback.apply(context, args), delay);
+  }
+
+  debounced.cancel = () =&gt; clearTimeout(timerId);   <span class="cmt">// 👈 functions are objects</span>
+  return debounced;
+}</code></pre>
+
+<h2 id="throttle">Building throttle</h2>
+
+<p>Run immediately, then ignore everything for the next <code>interval</code> ms. A turnstile: it
+lets one person through, then locks for a beat, regardless of how many are pushing.</p>
+
+<div class="lbl good">✅ Throttle, simplest version</div>
+<pre><code>function throttle(callback, interval) {
+  let cooling = false;
+
+  return function (...args) {
+    if (cooling) return;                <span class="cmt">// 👈 inside the window? drop it</span>
+
+    callback.apply(this, args);         <span class="cmt">// fire straight away</span>
+    cooling = true;
+    setTimeout(() =&gt; { cooling = false; }, interval);
+  };
+}</code></pre>
+
+<p>At 100ms with scroll events every 16ms: fires at 0ms, drops the next six, opens again at 100ms.
+Sixty calls a second becomes ten.</p>
+
+<p>There's a second common way to write it, with a timestamp instead of a timer. Same behaviour,
+nothing to leak — either is fine:</p>
+
+<pre><code>function throttle(callback, interval) {
+  let lastRun = 0;
+
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastRun &lt; interval) return;
+    lastRun = now;
+    callback.apply(this, args);
+  };
+}</code></pre>
+
+<div class="box misc">
+  <span class="t">A common misconception</span>
+  <p>"Throttle guarantees a call every <code>interval</code> ms." No — it only runs when an event
+  actually arrives. If events stop mid-window, the last one is <strong>dropped entirely</strong>.
+  For a progress bar that means it can settle slightly short. Fixing it means storing the last
+  args and firing them when the window closes (a "trailing call") — worth mentioning, not worth
+  writing unless asked.</p>
+</div>
+
+<h2 id="which">Which one, when</h2>
+
+<p>Ask: do I care about the <em>final value</em>, or about a <em>steady stream</em>?</p>
+
+<table>
+  <thead><tr><th>Situation</th><th>Pick</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Search-as-you-type</td><td>Debounce</td><td>Only the finished query matters.</td></tr>
+    <tr><td>Autosave a draft</td><td>Debounce</td><td>Save on pause, not mid-word.</td></tr>
+    <tr><td>Scroll / resize handler</td><td>Throttle</td><td>Must update <em>during</em> the action.</td></tr>
+    <tr><td>Mousemove drag preview</td><td>Throttle</td><td>Continuous feedback, capped cost.</td></tr>
+    <tr><td>Double-click on Submit</td><td>Throttle</td><td>First click counts, rest don't.</td></tr>
+  </tbody>
+</table>
+
+<p>For scroll-linked <em>animation</em> specifically, <code>requestAnimationFrame</code> beats a
+time-based throttle — it runs once per frame, exactly when the browser is about to paint. Good
+thing to mention.</p>
+
+<h2 id="interview">The interview layer</h2>
+
+<h3>How it gets asked</h3>
+<ul>
+  <li>"Implement <code>debounce</code>." / "Implement <code>throttle</code>."</li>
+  <li>"Difference between debounce and throttle? When would you use each?"</li>
+  <li>"Our search box fires a request per keystroke — how would you fix it?" (same question, in
+      scenario form — the most common shape)</li>
+</ul>
+
+<div class="box say">
+  <span class="t">🗣 Model answer — "what's the difference?"</span>
+  <p>"Both limit how often a function runs, but they answer different questions. Debounce waits for
+  a pause — every call resets a timer, so it fires once the events stop. That's search-as-you-type,
+  where only the final query matters. Throttle enforces a rate — it runs immediately, then ignores
+  calls for a fixed window. That's scroll or mousemove, where you need updates during the
+  interaction, just not sixty a second. The code reflects that: debounce holds a timer ID it keeps
+  clearing, throttle holds a flag or a timestamp."</p>
+</div>
+
+<p>That lands because you gave the mechanism <em>and</em> a concrete use case for each. "Debounce
+delays, throttle limits" sounds memorised.</p>
+
+<h3>Follow-ups</h3>
+
+<h4>"Why not just <code>setTimeout</code> in the handler?"</h4>
+<p>A bare <code>setTimeout</code> only delays — six keystrokes still schedule six calls, just later.
+The <em>cancellation</em> is the whole idea.</p>
+
+<h4>"Why does the timer ID need to be in a closure?"</h4>
+<p>It has to survive between calls, so it can't be local to the returned function. A global would
+work for exactly one debounced function — the second would fight over the same slot. The closure
+gives each one its own private timer, which is what makes <code>debounce</code> reusable.</p>
+
+<h4>"Why <code>apply</code> instead of <code>callback(...args)</code>?"</h4>
+<p>Only to forward <code>this</code>. Arguments would forward fine either way.</p>
+
+<h4>"What does a debounced function return?"</h4>
+<p>Nothing useful — at call time the real function hasn't run yet. If you need the result, have the
+callback resolve a promise or set state. Good one to raise unprompted.</p>
+
+<h4>"How do you use debounce in React?"</h4>
+<p>The trap: <code>const search = debounce(fn, 300)</code> in the component body creates a brand new
+debouncer with a fresh empty timer on every render, so nothing is ever debounced. Create it once —
+<code>useMemo(() =&gt; debounce(fn, 300), [])</code> or a ref — and call <code>.cancel()</code> in the
+effect cleanup.</p>
+
+<h4>"Your throttle drops the last event — bug?"</h4>
+<p>A tradeoff. For a progress bar you want a trailing call so the UI settles correctly. For an
+analytics ping, dropping it is right. I'd default to the simple version and add trailing only when
+the UI visibly ends up wrong.</p>
+
+<h3>Traps</h3>
+<ul>
+  <li><strong>Not forwarding arguments.</strong> Works in a toy test, breaks on any real handler.</li>
+  <li><strong>Returning an arrow from <code>debounce</code>.</strong> Kills <code>this</code>
+      forwarding silently.</li>
+  <li><strong>Calling <code>debounce()</code> inside the handler.</strong> New debouncer per event
+      → every call fires. It must be called once, and the <em>result</em> is what you attach.</li>
+  <li><strong>Saying "throttle delays the call."</strong> It doesn't — it fires immediately, then
+      blocks. Saying otherwise reads as having them mixed up.</li>
+</ul>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Debounce</strong> — every call resets the timer; only the last in a burst runs.</li>
+  <li><strong>Throttle</strong> — run now, ignore calls for a fixed window.</li>
+  <li><strong>Closure</strong> — private, persistent storage for the timer/flag, per instance.</li>
+  <li><strong><code>...args</code> + <code>apply</code></strong> — forward arguments and
+      <code>this</code>; the wrapper is a middleman.</li>
+  <li><strong>Cancel</strong> — <code>debounced.cancel = () =&gt; clearTimeout(timerId)</code>; call
+      it on unmount.</li>
+  <li><strong>React</strong> — create the debounced fn once (<code>useMemo</code>/ref), never inline.</li>
+  <li><strong>Scroll animation</strong> — prefer <code>requestAnimationFrame</code>.</li>
+</ul>
+
+<pre><code>function debounce(fn, delay) {
+  let timerId;
+  return function (...args) {
+    const ctx = this;
+    clearTimeout(timerId);
+    timerId = setTimeout(() =&gt; fn.apply(ctx, args), delay);
+  };
+}
+
+function throttle(fn, interval) {
+  let cooling = false;
+  return function (...args) {
+    if (cooling) return;
+    fn.apply(this, args);
+    cooling = true;
+    setTimeout(() =&gt; { cooling = false; }, interval);
+  };
+}</code></pre>
+</div>
+
+<footer>Next: polyfilling <code>map</code>, <code>filter</code>, <code>reduce</code> and flatten.</footer>
+
+</div>
+</body>
+</html>
