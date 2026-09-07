@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carousel &amp; OTP input: the pointer-plus-refs pair</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Carousel &amp; OTP input</h1>
+<p class="lede">Two components, one state shape: a <strong>pointer</strong> — a single index —
+plus something the pointer alone can't do. Because scroll position and keyboard focus don't live
+in React state. They live in the DOM, and that's why these are the two components where reaching
+for <code>useRef</code> is the correct answer rather than a smell.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#why">Why these two are a pair</a></li>
+    <li><a href="#carousel">Carousel: one number</a></li>
+    <li><a href="#track">The real decision: how you render slides</a></li>
+    <li><a href="#cup">Carousel upgrades</a></li>
+    <li><a href="#otp">OTP input: index + an array of refs</a></li>
+    <li><a href="#four">The four behaviours you're graded on</a></li>
+    <li><a href="#refs">About that ref array</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="why">Why these two are a pair</h2>
+
+<p>Both are pointers, in the sense of <a href="34-ui-the-interview-framework.html">the framework
+guide</a>: one of N is active, so you store which one. For the carousel that's the visible slide.
+For the OTP input it's the box you're typing in.</p>
+
+<p>The twist is that in both cases the pointer has a physical consequence that React state
+can't express. "Slide 3 is active" has to become "the track is shifted 300% to the left." "Box 4
+is active" has to become "box 4 is actually focused" — and focus is a property of the document,
+not of your component tree. You can't return focus from a render function. So you keep the
+pointer in state, and you keep a handle on the DOM in a ref, and you push the one into the other.</p>
+
+<h2 id="carousel">Carousel: one number</h2>
+
+<p>Write the state comment first, as always:</p>
+
+<pre><code><span class="cmt">// state:
+//   index → number, which slide is showing (0..n-1)
+// derived:
+//   everything else. the transform, the active dot, the alt text.
+// props:
+//   slides → [{ id, src, alt }]</span></code></pre>
+
+<p>That's genuinely the whole model. Now the handlers — and this is where a very ordinary bug
+lives:</p>
+
+<div class="lbl bad">❌ Looks right, breaks on the first click</div>
+<pre><code>const prev = () =&gt; setIndex(i =&gt; (i - 1) % slides.length);</code></pre>
+
+<p>Quick question before you scroll: with five slides, sitting at index 0, what does
+<code>(0 - 1) % 5</code> give you?</p>
+
+<p>Not 4. It's <code>-1</code>. JavaScript's <code>%</code> is a <em>remainder</em>, not a
+modulo — it keeps the sign of the left operand. So the very first "previous" click from the start
+sends your track to <code>translateX(100%)</code> and the carousel slides cheerfully off screen
+into the void. Fix it by pushing the number positive before you wrap:</p>
+
+<div class="lbl good">✅ The <code>+ n</code> that everyone forgets</div>
+<pre><code>const n = slides.length;
+const next = () =&gt; setIndex(i =&gt; (i + 1) % n);
+const prev = () =&gt; setIndex(i =&gt; (i - 1 + n) % n); <span class="cmt">// 👈 + n keeps it non-negative</span></code></pre>
+
+<p>And ask the clarifying question out loud, because it's a real product decision:
+<strong>wrap or clamp?</strong> Wrapping is the modulo above. Clamping is
+<code>Math.min(i + 1, n - 1)</code> and <code>Math.max(i - 1, 0)</code>, and it means you must
+also disable the arrow buttons at the ends — <code>disabled={index === 0}</code> — otherwise
+you've built a button that does nothing, which is worse than not having it.</p>
+
+<h2 id="track">The real decision: how you render slides</h2>
+
+<p>Here are the two approaches, and picking deliberately between them is most of the signal in
+this question.</p>
+
+<p><strong>(a) Render only the active slide.</strong> <code>&lt;img src={slides[index].src}
+/&gt;</code>. Four lines, works immediately, and it's a perfectly good first pass in an
+interview. The cost is that there's nothing to animate — the old slide is gone from the DOM
+before the new one exists, so you can cross-fade at best, never slide.</p>
+
+<p><strong>(b) Render all slides in a row and move the row.</strong> This is the standard answer.
+You put every slide side by side in a flex track, hide the overflow, and translate the track.</p>
+
+<div class="fig">
+<svg viewBox="0 0 620 220" role="img" aria-label="A track of four slides sliding behind a fixed viewport window, offset by translateX of minus index times one hundred percent">
+  <g font-family="system-ui, sans-serif" font-size="12.5">
+    <text x="14" y="20" fill="#5c6478">track (all slides, flex row) — shifted by translateX(-index * 100%)</text>
+    <g opacity="0.55">
+      <rect x="-46" y="34" width="150" height="86" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+      <text x="29" y="82" text-anchor="middle" fill="#98a0b3">slide 0</text>
+      <rect x="416" y="34" width="150" height="86" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+      <text x="491" y="82" text-anchor="middle" fill="#98a0b3">slide 2</text>
+      <rect x="570" y="34" width="150" height="86" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+      <text x="620" y="82" text-anchor="middle" fill="#98a0b3">slide 3</text>
+    </g>
+    <rect x="108" y="34" width="304" height="86" rx="7" fill="#eef3ff" stroke="#c9d8f7"/>
+    <text x="260" y="82" text-anchor="middle" fill="#2f5fd8" font-weight="700">slide 1 (index = 1)</text>
+
+    <rect x="100" y="26" width="320" height="102" rx="10" fill="none" stroke="#2f5fd8" stroke-width="2.5"/>
+    <text x="260" y="148" text-anchor="middle" fill="#2f5fd8" font-weight="600">viewport · overflow: hidden</text>
+
+    <path d="M300 176 L120 176" stroke="#a3312a" stroke-width="1.6" marker-end="url(#ar)"/>
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#a3312a"/></marker></defs>
+    <text x="312" y="181" fill="#a3312a" font-size="12.5">track slides left by one viewport width per index</text>
+
+    <text x="14" y="209" fill="#5c6478">index 0 → 0% · index 1 → −100% · index 2 → −200%</text>
+  </g>
+</svg>
+<figcaption>The window stays still; the track moves behind it.</figcaption>
+</div>
+
+<pre><code>&lt;div style={{ overflow: 'hidden', width: '100%' }}&gt;
+  &lt;div style={{
+    display: 'flex',
+    transform: `translateX(${-index * 100}%)`,
+    transition: 'transform 300ms ease',
+  }}&gt;
+    {slides.map(s =&gt; (
+      &lt;img key={s.id} src={s.src} alt={s.alt}
+           style={{ flex: '0 0 100%' }} loading="lazy" /&gt;
+    ))}
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+<p>Six lines of style and you get the animation for free, because the browser is already
+interpolating <code>transform</code> for you. Note <code>flex: '0 0 100%'</code> — without the
+<code>0</code> shrink factor flexbox squashes all the slides in to fit, and you'll spend five
+confused minutes wondering why every image is 25% wide.</p>
+
+<div class="box hood">
+  <span class="t">Under the hood — why <code>transform</code>, not <code>left</code></span>
+  <p>Animating <code>left</code> changes the element's geometry, so every frame the browser has
+  to re-run layout and repaint. <code>transform</code> doesn't touch layout at all: the element
+  gets promoted to its own compositor layer and the GPU just draws the same pixels at a different
+  offset. Same visual result, wildly different frame budget. Say this in the interview — it's a
+  one-sentence answer that reads as someone who has actually shipped animation.</p>
+</div>
+
+<h2 id="cup">Carousel upgrades, in the order I'd add them</h2>
+
+<p>All of these are derived from that one <code>index</code>, which is the point.</p>
+
+<ul>
+  <li><strong>Dots.</strong> <code>slides.map((s, i) =&gt; &lt;button key={s.id}
+  className={i === index ? 'dot active' : 'dot'} onClick={() =&gt; setIndex(i)} /&gt;)</code>.
+  Real <code>&lt;button&gt;</code>s, not divs — you get focus, Enter and Space for free.</li>
+  <li><strong>Keyboard arrows.</strong> An <code>onKeyDown</code> on the viewport mapping
+  <code>ArrowLeft</code>/<code>ArrowRight</code> to <code>prev</code>/<code>next</code>.</li>
+  <li><strong>Autoplay.</strong> A <code>setInterval</code> in an effect calling <code>next</code>,
+  cleaned up in the return, and skipped entirely while <code>paused</code> is true — set by
+  <code>onMouseEnter</code>/<code>onMouseLeave</code> <em>and</em> <code>onFocus</code>/<code>onBlur</code>,
+  because keyboard users need the pause too. See guide 39 for the interval-in-an-effect mechanics;
+  the trap there (a stale closure over <code>index</code>) is why <code>next</code> uses the
+  updater form.</li>
+  <li><strong>Lazy images.</strong> <code>loading="lazy"</code> on every <code>&lt;img&gt;</code>,
+  since approach (b) renders all of them.</li>
+  <li><strong>Infinite loop.</strong> Clone the last slide before the first and the first after the
+  last, then after the transition ends jump the index silently with the transition disabled — one
+  sentence is plenty in an interview.</li>
+</ul>
+
+<div class="box intv">
+  <span class="t">The honest a11y answer</span>
+  <p>Put <code>aria-live="polite"</code> on the viewport so slide changes are announced, label the
+  arrows (<code>aria-label="Next slide"</code>), and use real buttons throughout. Then say the true
+  thing: a fully accessible carousel is genuinely hard — autoplay fights screen readers, offscreen
+  slides stay focusable unless you manage <code>inert</code>. Interviewers know this. Naming the
+  difficulty scores better than pretending it isn't there.</p>
+</div>
+
+<h2 id="otp">OTP input: index + an array of refs</h2>
+
+<p>This one is more fun, because almost all of the work is in four tiny handlers and each one is a
+behaviour the interviewer is specifically checking for.</p>
+
+<pre><code><span class="cmt">// state:
+//   digits → string[6], e.g. ['1','2','','','','']  one char per box
+// refs:
+//   inputsRef → the six DOM nodes, so we can .focus() them
+// derived:
+//   code       → digits.join('')
+//   isComplete → digits.every(Boolean)</span>
+
+const [digits, setDigits] = useState(Array(6).fill(''));
+const inputsRef = useRef([]);
+const focus = (i) =&gt; inputsRef.current[i]?.focus();</code></pre>
+
+<p>Note what's <em>not</em> state: there's no <code>activeIndex</code>. The browser already tracks
+which box has focus, and duplicating that into React means keeping two things in sync forever. The
+pointer here is implicit — each handler receives its own <code>i</code> and moves focus relative
+to it.</p>
+
+<h2 id="four">The four behaviours you're graded on</h2>
+
+<h3>1. Type a digit → fill and advance</h3>
+
+<pre><code>function handleChange(e, i) {
+  const char = e.target.value.replace(/\D/g, '').slice(-1); <span class="cmt">// digits only, last one</span>
+  if (!char) return;
+  setDigits(d =&gt; d.map((v, j) =&gt; (j === i ? char : v)));
+  focus(i + 1);
+}</code></pre>
+
+<p>That <code>.slice(-1)</code> is doing quiet, useful work. If the box already contains
+<code>3</code> and the user types <code>7</code> without selecting first, the raw value is
+<code>"37"</code> — taking the last character means the new digit wins, which is what a person
+expects. <code>focus(i + 1)</code> on the last box is a no-op thanks to the <code>?.</code>.</p>
+
+<h3>2. Backspace → the two-case rule</h3>
+
+<p>This is the detail candidates miss. Backspace does two different things depending on whether
+the current box is empty:</p>
+
+<pre><code>function handleKeyDown(e, i) {
+  if (e.key !== 'Backspace') return;
+  if (digits[i]) {
+    setDigits(d =&gt; d.map((v, j) =&gt; (j === i ? '' : v)));   <span class="cmt">// full → clear in place</span>
+  } else {
+    setDigits(d =&gt; d.map((v, j) =&gt; (j === i - 1 ? '' : v))); <span class="cmt">// empty → clear the one before</span>
+    focus(i - 1);
+  }
+}</code></pre>
+
+<p>Handle only the second case and holding backspace deletes every other digit. Handle only the
+first and you get stuck on an empty box forever.</p>
+
+<h3>3. Paste → the differentiator</h3>
+
+<p>Everyone gets the code by SMS and pastes all six at once. If your component drops five of
+them, it's broken in the most common real usage.</p>
+
+<pre><code>function handlePaste(e, i) {
+  e.preventDefault();
+  const chars = e.clipboardData.getData('text').replace(/\D/g, '').split('');
+  if (!chars.length) return;
+  setDigits(d =&gt; {
+    const next = [...d];
+    chars.forEach((c, k) =&gt; { if (i + k &lt; next.length) next[i + k] = c; });
+    return next;
+  });
+  focus(Math.min(i + chars.length, digits.length - 1)); <span class="cmt">// last filled box</span>
+}</code></pre>
+
+<p>Spreading from the paste position rather than always from 0 is what makes "paste 4 digits into
+box 3" behave sanely: boxes 3–6 fill, the overflow is dropped, focus lands on the last one
+written.</p>
+
+<h3>4. Arrows and select-on-focus</h3>
+
+<p>Add <code>ArrowLeft</code>/<code>ArrowRight</code> to the same <code>keydown</code> handler
+(<code>focus(i - 1)</code> / <code>focus(i + 1)</code>), and put
+<code>onFocus={e =&gt; e.target.select()}</code> on each input so clicking a filled box selects its
+contents and typing replaces rather than appends.</p>
+
+<h3>Auto-submit and the attributes that matter</h3>
+
+<pre><code>useEffect(() =&gt; {
+  if (digits.every(Boolean)) onComplete(digits.join(''));
+}, [digits]);
+
+&lt;input value={digits[i]} maxLength={1} inputMode="numeric"
+       autoComplete="one-time-code" aria-label={`Digit ${i + 1} of 6`} /&gt;</code></pre>
+
+<p><code>inputMode="numeric"</code> brings up the number pad on mobile.
+<code>autoComplete="one-time-code"</code> is the one to name out loud: it's what lets iOS offer
+the code straight from the SMS notification. It's a small attribute that says you've built this
+for real.</p>
+
+<h2 id="refs">About that ref array</h2>
+
+<p>You collect the nodes with a callback ref in the map:
+<code>ref={el =&gt; { inputsRef.current[i] = el; }}</code>. Six named refs would work for exactly six
+boxes and then die the moment the length becomes a prop — and OTP lengths are 4, 6, or 8 depending
+on the vendor. One <code>useRef([])</code> holding an array scales to any <code>n</code>, keeps the
+focus helper a one-liner, and mutating <code>.current</code> doesn't trigger a render, which is
+precisely what you want: focus is a side effect, not a visual state.</p>
+
+<h2 id="followups">Follow-ups, with answers you can say</h2>
+
+<div class="box say">
+  <span class="t">"Why does previous break at index 0?"</span>
+  <p>Because <code>%</code> in JavaScript is remainder, not modulo — it keeps the sign of the left
+  side, so <code>-1 % 5</code> is <code>-1</code>, not <code>4</code>. Adding <code>n</code> first
+  makes it non-negative before the wrap.</p>
+</div>
+
+<div class="box say">
+  <span class="t">"Why <code>transform</code> instead of <code>left</code>?"</span>
+  <p>Transform is composited — it skips layout and paint, so it animates on the GPU. Animating
+  <code>left</code> re-runs layout every frame and drops frames on cheap devices.</p>
+</div>
+
+<div class="box say">
+  <span class="t">"What happens if the user pastes 4 digits into box 3?"</span>
+  <p>They spread forward from box 3, so boxes 3 to 6 fill and anything past the end is dropped.
+  Then focus moves to the last box I actually wrote to.</p>
+</div>
+
+<div class="box say">
+  <span class="t">"How do you handle backspace on an empty box?"</span>
+  <p>Two cases. If the box has a value, I clear it in place and stay. If it's already empty, I move
+  focus back one box and clear <em>that</em> one — otherwise holding backspace skips every other
+  digit.</p>
+</div>
+
+<div class="box say">
+  <span class="t">"How would you make the carousel swipeable?"</span>
+  <p>Pointer events: record <code>clientX</code> on <code>pointerdown</code>, track a live drag
+  offset on <code>pointermove</code> and add it to the transform with the transition off, then on
+  <code>pointerup</code> either commit to the next index or snap back depending on whether the drag
+  passed a threshold.</p>
+</div>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Both are pointers + refs.</strong> State holds the index; the ref pushes it into the
+  DOM, because scroll and focus aren't renderable.</li>
+  <li><strong><code>(i - 1 + n) % n</code></strong> — the <code>+ n</code> is not optional.
+  <code>-1 % 5 === -1</code>.</li>
+  <li><strong>Ask wrap or clamp.</strong> If clamp, disable the end buttons.</li>
+  <li><strong>Flex track in <code>overflow:hidden</code>, moved with
+  <code>translateX(-index * 100%)</code></strong>, slides at <code>flex: 0 0 100%</code>. Free CSS
+  transition, composited.</li>
+  <li><strong>Dots, active class, alt text — all derived from <code>index</code>.</strong></li>
+  <li><strong>Autoplay pauses on hover <em>and</em> focus</strong>, with cleanup.</li>
+  <li><strong>OTP state is <code>Array(6).fill('')</code></strong>; the value is
+  <code>digits.join('')</code>. Don't store the active index — the DOM has it.</li>
+  <li><strong>Type:</strong> <code>value.replace(/\D/g,'').slice(-1)</code>, write, focus
+  <code>i+1</code>.</li>
+  <li><strong>Backspace is two cases</strong>: full → clear in place; empty → clear
+  <code>i-1</code> and go there.</li>
+  <li><strong>Paste:</strong> <code>preventDefault</code>, strip non-digits, spread from the paste
+  index, focus the last filled box.</li>
+  <li><strong><code>inputMode="numeric"</code> + <code>autoComplete="one-time-code"</code></strong>
+  + a per-box <code>aria-label</code>.</li>
+  <li><strong>One <code>useRef([])</code> of nodes</strong>, not six named refs — the length is
+  usually a prop.</li>
+</ul>
+</div>
+
+<footer>Next: drag-and-drop and the swipeable variants — where pointer events do the work.</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recursive trees &amp; nested checkboxes</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Recursive trees &amp; nested checkboxes</h1>
+<p class="lede">File explorers, comment threads, permission pickers. The prompt says "nested",
+and that word is the entire hint: the data calls itself, so your component has to call itself
+too.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#reveal">The word "nested" and what it means</a></li>
+    <li><a href="#data">Data shape first, before state</a></li>
+    <li><a href="#node">The component that renders itself</a></li>
+    <li><a href="#expand">Expand/collapse: where does that state live?</a></li>
+    <li><a href="#comments">Nested comments — same thing, different chrome</a></li>
+    <li><a href="#checkboxes">Nested checkboxes, the hard one</a></li>
+    <li><a href="#perf">Performance, briefly</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="reveal">The word "nested" and what it means</h2>
+
+<p>Here's the failure mode I've watched more than once. Candidate gets "build a file explorer",
+looks at the sample JSON, sees folders inside folders, and writes a <code>.map()</code>. Then
+inside it, another <code>.map()</code>. Then a third, with a sad little
+<code>{child.children &amp;&amp; ...}</code>. Around the fourth level they realise the data can
+go deeper than their code can, and there's no fix that isn't a rewrite.</p>
+
+<p>So what's the shape of a thing that can be arbitrarily deep, where you don't know the depth
+in advance?</p>
+
+<p><strong>A component that renders itself.</strong> That's it. That's the whole trick. The data
+is recursive — a node contains nodes — so the render is recursive too. <code>Node</code> renders
+a row, then renders a <code>Node</code> for each child, and the structure of your code stops
+caring how deep the tree goes.</p>
+
+<p>I'll admit it feels strange the first few times. Recursion in a function returning a number is
+fine; recursion in JSX looks like you've done something illegal. You haven't. A component is
+just a function, and functions can call themselves. Once that clicks, this whole family of
+questions collapses into one small component and a couple of state decisions.</p>
+
+<div class="box say">
+  <span class="t">Say this in the first thirty seconds</span>
+  <p>"The data's recursive, so I'll write one <code>Node</code> component that renders itself for
+  each child. Let me pin down the data shape first."</p>
+</div>
+
+<h2 id="data">Data shape first, before state</h2>
+
+<p>Guide 34 says state shape comes before JSX. Trees are the one family where something comes
+before <em>that</em>: the data shape. Get it wrong and every function you write afterwards is
+wrong with it.</p>
+
+<pre><code><span class="cmt">// the shape everything below assumes</span>
+type Node = {
+  id: string;
+  name: string;
+  children?: Node[];   <span class="cmt">// absent or [] → it's a leaf</span>
+};</code></pre>
+
+<p>Now the clarifying question, and it's a genuinely good one: <strong>"Am I given a nested tree
+already, or a flat list with <code>parentId</code> that I need to build into one?"</strong>
+Real APIs return the flat version constantly, and interviewers hand it to you as a curveball
+about fifteen minutes in.</p>
+
+<p>Have this in your fingers. Two passes, one Map:</p>
+
+<div class="lbl good">✅ flat list → tree, O(n)</div>
+<pre><code>function buildTree(rows) {
+  const byId = new Map();
+  for (const row of rows) byId.set(row.id, { ...row, children: [] });
+
+  const roots = [];
+  for (const row of rows) {
+    const node = byId.get(row.id);
+    if (row.parentId == null) roots.push(node);
+    else byId.get(row.parentId)?.children.push(node); <span class="cmt">// 👈 ?. survives orphans</span>
+  }
+  return roots;
+}</code></pre>
+
+<p>Two passes, not one, because a child can appear in the array before its parent does. First
+pass creates every node so the second pass can always find the parent. Say that out loud —
+it's the only interesting line of reasoning in the function.</p>
+
+<h2 id="node">The component that renders itself</h2>
+
+<p>Static render, no handlers yet, exactly as the method says:</p>
+
+<pre><code>function Node({ node, depth = 0 }) {
+  const isFolder = node.children?.length &gt; 0;
+
+  return (
+    &lt;li style={{ paddingLeft: depth * 16 }}&gt;
+      &lt;span&gt;{isFolder ? '📁' : '📄'} {node.name}&lt;/span&gt;
+      {isFolder &amp;&amp; (
+        &lt;ul&gt;
+          {node.children.map(c =&gt; (
+            &lt;Node key={c.id} node={c} depth={depth + 1} /&gt;  <span class="cmt">// 👈 itself</span>
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/li&gt;
+  );
+}</code></pre>
+
+<p>The base case is <code>isFolder === false</code>. A leaf renders its row and returns — nothing
+recurses, and the recursion terminates. This matters more than it looks: <strong>if there's no
+base case, or the data has a cycle (a node that's its own ancestor), you get an infinite render
+loop</strong> and the tab dies. If the data comes from a server you don't control, that's a real
+answer to give.</p>
+
+<p><code>depth</code> as a prop is the simplest indentation. The alternative is pure CSS —
+nested <code>&lt;ul&gt;</code> with <code>padding-left: 16px</code> — which is arguably nicer
+because the DOM nesting already encodes the depth. Either is fine; having a reason for the one
+you picked is the point.</p>
+
+<h2 id="expand">Expand/collapse: where does that state live?</h2>
+
+<p>This is the real decision in the file-explorer version, and it's worth a beat because there
+are two defensible answers.</p>
+
+<div class="lbl good">✅ Version 1: local state, inside each node</div>
+<pre><code>function Node({ node, depth = 0 }) {
+  const [open, setOpen] = useState(false);   <span class="cmt">// each node owns its own</span>
+  ...
+  &lt;button onClick={() =&gt; setOpen(o =&gt; !o)}&gt;{open ? '▾' : '▸'}&lt;/button&gt;
+  {open &amp;&amp; isFolder &amp;&amp; ( ...children... )}
+}</code></pre>
+
+<p>Dead simple. Every node manages itself, there's no bookkeeping, and it's about four lines. It
+also has a genuinely nice property: collapsed subtrees aren't rendered at all, so a huge tree
+costs you nothing until you open it.</p>
+
+<p>The limit: the root has no idea what's open, so "collapse all" is impossible. Same for
+persisting the open folders to <code>localStorage</code> or a URL, or expanding to reveal a
+search hit.</p>
+
+<div class="lbl good">✅ Version 2: one lifted Set at the root</div>
+<pre><code>const [expanded, setExpanded] = useState(new Set());  <span class="cmt">// the "set" shape from <a href="34-ui-the-interview-framework.html">guide 34</a></span>
+
+const toggle = (id) =&gt; setExpanded(prev =&gt; {
+  const next = new Set(prev);
+  next.has(id) ? next.delete(id) : next.add(id);
+  return next;                                 <span class="cmt">// 👈 new Set, or React won't re-render</span>
+});</code></pre>
+
+<p>Now <code>collapseAll</code> is <code>setExpanded(new Set())</code> and <code>expandAll</code>
+is a walk that collects every folder id. You pass <code>expanded</code> and <code>toggle</code>
+down through <code>Node</code> (or via context if the prop drilling annoys you).</p>
+
+<p>Build version 1. Then say the sentence: <em>"I'd lift this into a Set of expanded ids at the
+root if we needed collapse-all or persisted state."</em> That one line tells them you know both
+options and chose deliberately, which is the difference between "wrote a tree" and "reasoned
+about a tree".</p>
+
+<h2 id="comments">Nested comments — same thing, different chrome</h2>
+
+<p>Structurally identical: <code>{id, author, text, replies: Comment[]}</code>, one
+<code>Comment</code> component rendering itself over <code>replies</code>. The only new things
+are UI concerns.</p>
+
+<p>A reply box is local state (<code>const [replying, setReplying] = useState(false)</code>) and
+an <code>onReply(parentId, text)</code> callback threaded down to the root, which owns the
+comment list. Collapsing a thread is exactly the expand/collapse above. And real products cap
+the indentation, because level 12 is a two-character-wide column:</p>
+
+<pre><code>const MAX_INDENT = 4;
+const pad = Math.min(depth, MAX_INDENT) * 20;  <span class="cmt">// nest forever, indent up to 4</span></code></pre>
+
+<p>Mention that cap unprompted. It's a two-second remark that says you've shipped a comment
+thread and not just implemented one.</p>
+
+<h2 id="checkboxes">Nested checkboxes, the hard one</h2>
+
+<p>This is where the interesting question lives, and the crux is one sentence:</p>
+
+<div class="box misc">
+  <span class="t">The whole question</span>
+  <p><strong>A parent's checkbox isn't state. It's derived from its descendants.</strong> All
+  checked → checked. None checked → unchecked. Some → <em>indeterminate</em>.</p>
+</div>
+
+<p>Which is just "if you can compute it, don't store it" wearing a hat. The tempting shape — a
+<code>checked</code> boolean on every node — means every single click starts a sync job: walk
+down setting descendants, walk up recomputing ancestors, and hope you didn't miss a branch. You
+will miss a branch.</p>
+
+<div class="lbl good">✅ Store leaves only, derive everything else</div>
+<pre><code>const [checkedLeaves, setCheckedLeaves] = useState(new Set()); <span class="cmt">// leaf ids only</span>
+
+function statusOf(node) {                       <span class="cmt">// → 'all' | 'none' | 'some'</span>
+  if (!node.children?.length)
+    return checkedLeaves.has(node.id) ? 'all' : 'none';
+  const kids = node.children.map(statusOf);
+  if (kids.every(s =&gt; s === 'all'))  return 'all';
+  if (kids.every(s =&gt; s === 'none')) return 'none';
+  return 'some';
+}</code></pre>
+
+<p>Every parent's appearance now falls out of one recursive read, and it cannot ever disagree
+with the leaves, because there's nothing to disagree with. Checking the last unchecked sibling
+flips the parent <em>for free</em> — you didn't write code for that, it's just what
+<code>every</code> returns.</p>
+
+<div class="fig">
+<svg viewBox="0 0 520 240" role="img" aria-label="A tree where parent checkbox states are derived upward from leaves">
+  <g font-family="system-ui, sans-serif" font-size="12.5">
+    <path d="M260 56 L150 106 M260 56 L370 106 M150 122 L96 172 M150 122 L204 172 M370 122 L316 172 M370 122 L424 172"
+          stroke="#98a0b3" stroke-width="1.5" fill="none"/>
+
+    <rect x="200" y="24" width="120" height="32" rx="7" fill="#fff6e5" stroke="#f0dcb4"/>
+    <rect x="210" y="33" width="14" height="14" rx="3" fill="#8a5a00" stroke="#8a5a00"/>
+    <rect x="213" y="39" width="8" height="2.5" fill="#fff"/>
+    <text x="232" y="44" fill="#1f2430">src (some)</text>
+
+    <rect x="92" y="90" width="116" height="32" rx="7" fill="#eefaf1" stroke="#bfe3ca"/>
+    <rect x="102" y="99" width="14" height="14" rx="3" fill="#1d6b39" stroke="#1d6b39"/>
+    <path d="M105 106 l3 3 l6 -6" stroke="#fff" stroke-width="2" fill="none"/>
+    <text x="124" y="110" fill="#1f2430">ui (all)</text>
+
+    <rect x="312" y="90" width="116" height="32" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+    <rect x="322" y="99" width="14" height="14" rx="3" fill="#fff" stroke="#98a0b3"/>
+    <text x="344" y="110" fill="#1f2430">lib (none)</text>
+
+    <rect x="40" y="156" width="112" height="30" rx="7" fill="#eefaf1" stroke="#bfe3ca"/>
+    <rect x="50" y="164" width="13" height="13" rx="3" fill="#1d6b39" stroke="#1d6b39"/>
+    <path d="M53 170.5 l3 3 l5.5 -5.5" stroke="#fff" stroke-width="2" fill="none"/>
+    <text x="70" y="175" fill="#1f2430">Btn.tsx</text>
+
+    <rect x="164" y="156" width="112" height="30" rx="7" fill="#eefaf1" stroke="#bfe3ca"/>
+    <rect x="174" y="164" width="13" height="13" rx="3" fill="#1d6b39" stroke="#1d6b39"/>
+    <path d="M177 170.5 l3 3 l5.5 -5.5" stroke="#fff" stroke-width="2" fill="none"/>
+    <text x="194" y="175" fill="#1f2430">Card.tsx</text>
+
+    <rect x="260" y="156" width="112" height="30" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+    <rect x="270" y="164" width="13" height="13" rx="3" fill="#fff" stroke="#98a0b3"/>
+    <text x="290" y="175" fill="#1f2430">fmt.ts</text>
+
+    <rect x="384" y="156" width="112" height="30" rx="7" fill="#f4f2ef" stroke="#e0dcd4"/>
+    <rect x="394" y="164" width="13" height="13" rx="3" fill="#fff" stroke="#98a0b3"/>
+    <text x="414" y="175" fill="#1f2430">api.ts</text>
+
+    <path d="M480 150 C 500 120, 500 80, 340 46" stroke="#2f5fd8" stroke-width="1.6"
+          fill="none" stroke-dasharray="4 3" marker-end="url(#up)"/>
+    <defs><marker id="up" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0 0 L7 3.5 L0 7 z" fill="#2f5fd8"/></marker></defs>
+    <text x="260" y="216" text-anchor="middle" fill="#5c6478" font-size="12">
+      Only the four leaves are stored. Every folder above is computed.</text>
+  </g>
+</svg>
+<figcaption>Two of four leaves checked, so <code>src</code> is indeterminate — nobody wrote that
+rule, it's just what <code>every()</code> says.</figcaption>
+</div>
+
+<h3>The trivia they're fishing for</h3>
+
+<p>There is no <code>indeterminate</code> HTML attribute. It's a DOM property only — you cannot
+write <code>&lt;input indeterminate&gt;</code> in JSX and have anything happen. So it has to be
+set imperatively, through a ref, after render:</p>
+
+<pre><code>const ref = useRef(null);
+useEffect(() =&gt; {
+  ref.current.indeterminate = status === 'some';
+}, [status]);
+
+&lt;input type="checkbox" ref={ref}
+       checked={status === 'all'} onChange={toggle} /&gt;</code></pre>
+
+<p>Note that <code>checked</code> stays a normal controlled prop; <code>indeterminate</code> is
+purely visual and rides on top. Knowing this cold is a small, specific, very gradeable win.</p>
+
+<h3>Checking a parent</h3>
+
+<p>The only write path: toggling a node sets <em>all its leaf descendants</em> at once.</p>
+
+<pre><code>function leafIds(node, out = []) {
+  if (!node.children?.length) out.push(node.id);
+  else node.children.forEach(c =&gt; leafIds(c, out));
+  return out;                                  <span class="cmt">// same base case as the render</span>
+}
+
+function toggle(node) {
+  const ids = leafIds(node);
+  const turningOn = statusOf(node) !== 'all';  <span class="cmt">// 'some' also means turn on</span>
+  setCheckedLeaves(prev =&gt; {
+    const next = new Set(prev);
+    ids.forEach(id =&gt; turningOn ? next.add(id) : next.delete(id));
+    return next;
+  });
+}</code></pre>
+
+<p>That's the entire interaction model. One downward walk to write, one upward derivation to
+read, and no synchronisation anywhere. Decide the <code>'some'</code> case out loud — I turn
+everything on, which is what Gmail and every file picker does — because it's the one behaviour
+question the interviewer actually cares about.</p>
+
+<h2 id="perf">Performance, briefly</h2>
+
+<p>Every toggle re-renders the whole tree, and at interview scale — dozens or hundreds of nodes —
+that is completely fine, so don't pre-optimise it. If they push to thousands, the answer is:
+memoise <code>Node</code> with <code>React.memo</code> so untouched subtrees skip re-render,
+memoise the status computation, and past that stop rendering the tree as a tree — flatten the
+visible (expanded) nodes into a single array and virtualise it, which is what VS Code's explorer
+does.</p>
+
+<h2 id="followups">Follow-ups, with answers</h2>
+
+<details>
+<summary>"How deep can this go before it breaks?"</summary>
+<p>Recursion depth is bounded by the JS call stack, so a few thousand levels — far beyond any
+real tree. The realistic failures are a cycle in the data, which loops forever, and rendering
+too many nodes at once. I'd guard with a depth cap and a <code>visited</code> Set if the data
+came from an untrusted source.</p>
+</details>
+
+<details>
+<summary>"How would you add collapse-all?"</summary>
+<p>That's the trigger to lift the expand state. Local <code>useState</code> per node can't be
+reached from the root, so I'd move to <code>expanded: Set&lt;id&gt;</code> at the top and pass a
+toggle down. Then collapse-all is <code>setExpanded(new Set())</code> and expand-all is one walk
+collecting folder ids.</p>
+</details>
+
+<details>
+<summary>"Why is indeterminate special?"</summary>
+<p>Because it's a DOM property with no HTML attribute — React can't set it declaratively. You
+need a ref plus an effect. It's also purely cosmetic: the checkbox's actual value is still just
+checked or unchecked.</p>
+</details>
+
+<details>
+<summary>"How do you build a tree from a flat list?"</summary>
+<p>Two passes. First, put every row into a Map by id with an empty <code>children</code> array.
+Second, walk again and push each node into its parent's children, collecting the ones with no
+parent as roots. Two passes because a child can appear before its parent. O(n).</p>
+</details>
+
+<details>
+<summary>"Where should the checked state live?"</summary>
+<p>One Set of leaf ids at the root. Parent states are derived — all/none/some — so they can never
+drift. Storing a boolean on every node means syncing up and down on every click, which is where
+the bugs come from.</p>
+</details>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>"Nested" → a component that renders itself.</strong> Recursive data, recursive
+  component. Never nested <code>.map()</code>s.</li>
+  <li><strong>Data shape before state shape:</strong> <code>{id, name, children?}</code>.</li>
+  <li><strong>Ask:</strong> nested tree already, or flat list with <code>parentId</code>? Know
+  the two-pass Map build.</li>
+  <li><strong>Base case = no children.</strong> No base case, or a cycle, is an infinite render.</li>
+  <li><strong>Expand state: local <code>useState</code> per node first</strong>, lift to a
+  <code>Set</code> of ids the moment you need collapse-all or persistence — and say so.</li>
+  <li><strong>Nested comments are the same component</strong> plus a reply box and an indent cap
+  around level 4.</li>
+  <li><strong>Checkboxes: store leaf ids in a Set, derive every parent.</strong> all / none /
+  some.</li>
+  <li><strong><code>indeterminate</code> is a DOM property, not an attribute</strong> — set it in
+  an effect via a ref.</li>
+  <li><strong>Toggling a node writes all its leaf descendants;</strong> <code>'some'</code>
+  toggles on.</li>
+  <li><strong>Don't optimise.</strong> At thousands of nodes: memo, then flatten + virtualise.</li>
+</ul>
+</div>
+
+<footer>Next: drag and drop, and the list-reordering family.</footer>
+
+</div>
+</body>
+</html>

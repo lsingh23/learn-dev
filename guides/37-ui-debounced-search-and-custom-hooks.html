@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debounced search &amp; custom hooks</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Debounced search, and the two hooks you'll write on the way</h1>
+<p class="lede">This is the most-asked React machine-coding question there is. It looks like
+"type, wait, show results." It's actually a state-shape question with a race condition hiding
+inside it, and the race condition is what they're really watching for.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#shape">The state shape is the whole answer</a></li>
+    <li><a href="#order">Build order: input → hook → effect → list</a></li>
+    <li><a href="#race">The race condition</a></li>
+    <li><a href="#hook">useDebounce, eight lines</a></li>
+    <li><a href="#upgrades">Named upgrades: real autocomplete</a></li>
+    <li><a href="#storage">useLocalStorage and recent searches</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="shape">The state shape is the whole answer</h2>
+
+<p>Same method as always — clarify, state shape, static, wire, polish. I'll spend almost all of
+my thirty seconds of clarifying on one question: <em>"is the API mine to fake, and can it
+fail?"</em> Because the answer decides whether I need error handling, and error handling is
+where the shape gets interesting.</p>
+
+<p>Then, before any JSX, the comment block:</p>
+
+<pre><code><span class="cmt">// state:
+//   query          → string, what's in the input right now (controlled)
+//   debouncedQuery → string, query as of 300ms ago
+//   results        → array of records, [] when there's nothing
+//   status         → 'idle' | 'loading' | 'error' | 'success'
+// derived:
+//   showDropdown   → status !== 'idle' && query.length >= 2</span></code></pre>
+
+<p>Four pieces. Let me defend two of them, because those are the two an interviewer pokes at.</p>
+
+<p><strong><code>debouncedQuery</code> is state, even though it looks derived.</strong> Guide 34
+says if you can compute it, don't store it — and this is the exception that proves the rule.
+<code>debouncedQuery</code> is a function of <code>query</code> <em>and time</em>, and you can't
+read time during render. Anything downstream of a timer or an async result has to be state.
+Say that sentence out loud and you've just answered a follow-up before they asked it.</p>
+
+<p><strong><code>status</code> is one string, not three booleans.</strong> The version everyone
+writes first is <code>isLoading</code>, <code>isError</code>, <code>hasSearched</code>. That's
+eight combinations for four real situations, and half of them are nonsense — loading <em>and</em>
+error at the same time, error <em>and</em> success at the same time. Then you're writing
+<code>setIsLoading(false); setIsError(true);</code> in every branch and forgetting one, and your
+spinner never goes away.</p>
+
+<div class="box misc">
+  <span class="t">Make illegal states unrepresentable</span>
+  <p>One <code>status</code> string can only ever hold one value, so "loading and errored"
+  is structurally impossible rather than a promise you keep making and breaking. This is the
+  exact accordion argument from <a href="34-ui-the-interview-framework.html">guide 34</a>, wearing a different hat. Name the principle when you
+  make the choice — it's free points.</p>
+</div>
+
+<h2 id="order">Build order: input → hook → effect → list</h2>
+
+<p>Four steps, in this order, and each one is visibly working before the next starts.</p>
+
+<p>First the controlled input, with the results list hardcoded so you can see pixels. Then swap
+the hardcoded array for the real fetch. Here's the whole component as it exists after step
+three — deliberately naive, we're about to break it:</p>
+
+<div class="lbl bad">❌ Works in the demo, broken in real life</div>
+<pre><code>const [query, setQuery] = useState('');
+const debouncedQuery = useDebounce(query, 300);
+const [results, setResults] = useState([]);
+const [status, setStatus] = useState('idle');
+
+useEffect(() =&gt; {
+  if (debouncedQuery.length &lt; 2) { setStatus('idle'); return; }
+  setStatus('loading');
+  search(debouncedQuery)
+    .then(r =&gt; { setResults(r); setStatus('success'); })
+    .catch(() =&gt; setStatus('error'));
+}, [debouncedQuery]);</code></pre>
+
+<p>The important structural bit: the effect is keyed on <code>debouncedQuery</code>, never on
+<code>query</code>. The input updates on every keystroke and stays instant; the network only
+hears about it when you pause. Those are two separate values on purpose. If you find yourself
+debouncing the <em>setState</em> instead, you've made the input laggy — that's the classic
+wrong turn.</p>
+
+<p>I'm not going to re-derive how debounce works here; that's
+<a href="28-implement-debounce-and-throttle.html">guide 28</a>. What matters in this question is
+where it sits in the data flow.</p>
+
+<h2 id="race">The race condition</h2>
+
+<p>So. You type <code>rea</code>, pause a beat, keep typing <code>react</code>. Two requests go
+out. The network being the network, the first one takes 800ms and the second takes 100ms.</p>
+
+<p><strong>What do you think happens here?</strong></p>
+
+<div class="fig">
+<svg viewBox="0 0 640 230" role="img" aria-label="Timeline showing two overlapping requests where the older, slower one resolves last and overwrites the newer results">
+  <g font-family="system-ui, sans-serif" font-size="12.5">
+    <line x1="60" y1="200" x2="620" y2="200" stroke="#98a0b3" stroke-width="1.5"/>
+    <text x="60" y="220" fill="#5c6478">0ms</text>
+    <text x="330" y="220" fill="#5c6478">400ms</text>
+    <text x="590" y="220" fill="#5c6478">900ms</text>
+
+    <text x="8" y="52" fill="#5c6478" font-size="11.5">req A</text>
+    <text x="8" y="66" fill="#5c6478" font-size="11.5">"rea"</text>
+    <rect x="60" y="34" width="450" height="26" rx="6" fill="#fdf0ef" stroke="#f0c5c1"/>
+    <text x="285" y="52" text-anchor="middle" fill="#a3312a">slow — 800ms in flight</text>
+    <circle cx="510" cy="47" r="6" fill="#a3312a"/>
+    <text x="524" y="52" fill="#a3312a" font-weight="700">resolves 2nd</text>
+
+    <text x="8" y="122" fill="#5c6478" font-size="11.5">req B</text>
+    <text x="8" y="136" fill="#5c6478" font-size="11.5">"react"</text>
+    <rect x="180" y="104" width="70" height="26" rx="6" fill="#eefaf1" stroke="#bfe3ca"/>
+    <text x="215" y="122" text-anchor="middle" fill="#1d6b39">100ms</text>
+    <circle cx="250" cy="117" r="6" fill="#1d6b39"/>
+    <text x="264" y="122" fill="#1d6b39" font-weight="700">resolves 1st</text>
+
+    <line x1="250" y1="130" x2="250" y2="196" stroke="#1d6b39" stroke-width="1.2" stroke-dasharray="3 3"/>
+    <line x1="510" y1="60" x2="510" y2="196" stroke="#a3312a" stroke-width="1.2" stroke-dasharray="3 3"/>
+
+    <text x="250" y="172" text-anchor="middle" fill="#1d6b39" font-size="11.5">results = React docs ✓</text>
+    <text x="510" y="172" text-anchor="middle" fill="#a3312a" font-size="11.5">results = "rea" junk ✗</text>
+
+    <text x="320" y="16" text-anchor="middle" fill="#5c6478" font-size="11.5">
+      the input says "react" the whole time</text>
+  </g>
+</svg>
+<figcaption>Requests resolve out of order, so the stale response wins by arriving last.</figcaption>
+</div>
+
+<p>The input says <code>react</code>. The list shows results for <code>rea</code>. Nothing threw,
+nothing logged, the code looks right, and the UI is lying. This is genuinely confusing the first
+few times you meet it — I still have to draw the timeline to convince myself. The reason it's
+hard is that the bug lives in the <em>gap</em> between two correct-looking lines, and you can't
+see a gap.</p>
+
+<p>The fix that always works, and the one I'd write first in an interview, is a flag that the
+effect's cleanup flips:</p>
+
+<div class="lbl good">✅ The ignore flag — five lines of change</div>
+<pre><code>useEffect(() =&gt; {
+  let ignore = false;                     <span class="cmt">// 👈 fresh per run</span>
+  setStatus('loading');
+  search(debouncedQuery)
+    .then(r =&gt; { if (ignore) return; setResults(r); setStatus('success'); })
+    .catch(() =&gt; { if (!ignore) setStatus('error'); });
+  return () =&gt; { ignore = true; };        <span class="cmt">// 👈 runs before the next effect</span>
+}, [debouncedQuery]);</code></pre>
+
+<p>Why this works: every effect run gets its own <code>ignore</code> variable in its own closure.
+When <code>debouncedQuery</code> changes, React runs the previous run's cleanup <em>before</em>
+starting the new one, which sets that old closure's flag to true. Request A still comes back
+800ms later — you can't un-send it — but its <code>.then</code> now returns immediately instead
+of writing. Only the newest effect's flag is still false, so only the newest response can touch
+state. Same trick covers unmount for free.</p>
+
+<p>The better fix, and the one to <em>mention</em> right after: <code>AbortController</code>.</p>
+
+<pre><code>useEffect(() =&gt; {
+  const ctrl = new AbortController();
+  fetch(url, { signal: ctrl.signal })
+    .then(r =&gt; r.json()).then(setResults)
+    .catch(e =&gt; { if (e.name !== 'AbortError') setStatus('error'); });
+  return () =&gt; ctrl.abort();
+}, [debouncedQuery]);</code></pre>
+
+<p>Same shape — the cleanup is still what saves you — but this actually cancels the in-flight
+request instead of ignoring its answer, so you stop wasting the user's bandwidth and free up a
+connection slot. The one wrinkle is that aborting rejects the promise, so you have to filter out
+<code>AbortError</code> or you'll flash an error state on every keystroke. I'd say: "ignore flag
+first because it works with any async source, AbortController when it's <code>fetch</code>."</p>
+
+<h2 id="hook">useDebounce, eight lines</h2>
+
+<p>Now extract it. Interviewers ask for this by name almost as often as they ask for the search
+box itself.</p>
+
+<pre><code>function useDebounce(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() =&gt; {
+    const id = setTimeout(() =&gt; setDebounced(value), delay);
+    return () =&gt; clearTimeout(id);   <span class="cmt">// 👈 this line IS the debounce</span>
+  }, [value, delay]);
+  return debounced;
+}</code></pre>
+
+<p>That cleanup line is the entire mechanism, and it's worth saying so out loud. Every keystroke
+changes <code>value</code>, which tears down the previous effect — cancelling its pending
+timeout — and schedules a fresh one. Type ten characters fast and you create ten timers and
+cancel nine. Only a pause longer than <code>delay</code> lets a timer survive to fire. Delete
+<code>clearTimeout</code> and you don't get a slower search, you get <em>every</em> search,
+just late.</p>
+
+<h2 id="upgrades">Named upgrades: real autocomplete</h2>
+
+<p>Ship the basic version, then offer these by name. Announcing "I'd add keyboard nav next" is
+worth nearly as much as writing it.</p>
+
+<p><strong>Keyboard navigation.</strong> Straight out of the four shapes: this is a
+<em>pointer</em>. <code>activeIndex</code>, a number, starting at <code>-1</code> for "nothing
+highlighted." ArrowDown is <code>i =&gt; Math.min(i + 1, results.length - 1)</code>, ArrowUp is
+the <code>Math.max(i - 1, -1)</code> mirror, Enter selects <code>results[activeIndex]</code> if
+it exists, Escape closes and clears the index. Reset it to <code>-1</code> whenever
+<code>results</code> changes, or the highlight lands on a random new row. Do
+<code>e.preventDefault()</code> on the arrows so the caret doesn't jump around the input.</p>
+
+<p><strong>Click-outside to dismiss.</strong> A <code>ref</code> on the wrapper, a
+<code>mousedown</code> listener on <code>document</code> in an effect, close if
+<code>!ref.current.contains(e.target)</code>, and remove the listener in the cleanup. Use
+<code>mousedown</code> rather than <code>click</code> so the dropdown doesn't vanish out from
+under a selection.</p>
+
+<p><strong>Caching.</strong> <code>const cache = useRef(new Map())</code>. Before fetching, check
+<code>cache.current.get(q)</code> and set results synchronously if it's there — that's what
+makes backspacing feel instant. A ref, not state, because writing to the cache should never
+trigger a render.</p>
+
+<p><strong>Minimum query length</strong> — two characters, already in the effect above — and
+<strong>ARIA</strong>: the input gets <code>role="combobox"</code>,
+<code>aria-expanded</code>, <code>aria-controls</code> and
+<code>aria-activedescendant</code> pointing at the highlighted option's id; the list is
+<code>role="listbox"</code> with <code>role="option"</code> rows. Naming those four attributes
+takes ten seconds and reads as senior.</p>
+
+<h2 id="storage">useLocalStorage and recent searches</h2>
+
+<p>Nice way to close out the exercise: when a user picks a result, remember it, and show recent
+searches when the input is empty. That's <code>useLocalStorage</code>, the other hook they ask
+for by name.</p>
+
+<pre><code>function useLocalStorage(key, initial) {
+  const [value, setValue] = useState(() =&gt; {          <span class="cmt">// 👈 lazy: runs once</span>
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : initial;
+    } catch { return initial; }
+  });
+  useEffect(() =&gt; {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }, [key, value]);
+  return [value, setValue];
+}</code></pre>
+
+<p>Three things to point at while you write it. <strong>The lazy initialiser</strong> — passing a
+function to <code>useState</code> instead of a value means React calls it only on mount. Write
+<code>useState(JSON.parse(localStorage.getItem(key)))</code> and you hit the disk and parse JSON
+on every single render, and throw away the result every time but the first.</p>
+
+<p><strong>The try/catch, twice.</strong> Reading throws on malformed JSON and in browsers with
+site data blocked; writing throws on quota exceeded and in Safari private mode. Neither is
+exotic. A search box should not white-screen because someone's storage is full.</p>
+
+<p><strong>And the honest caveat:</strong> this doesn't sync across tabs. Two tabs open, one
+writes, the other has no idea — its React state is stale. The fix is a
+<code>window.addEventListener('storage', ...)</code> in the hook, which fires in <em>other</em>
+tabs on write. I'd mention it, and only build it if asked. Same for SSR: <code>localStorage</code>
+doesn't exist on the server, so under Next.js you'd read it in an effect instead.</p>
+
+<p>Wiring it in is two lines — <code>const [recent, setRecent] = useLocalStorage('recent', [])</code>,
+and on select, prepend the query, dedupe, slice to five. Render <code>recent</code> in the
+dropdown when <code>query</code> is empty. Now the hook is part of the component instead of a
+party trick.</p>
+
+<h2 id="followups">Follow-ups</h2>
+
+<div class="box intv">
+  <span class="t">"Why debounce and not throttle?"</span>
+  <p>Throttle guarantees a call every N ms while the input is active — for search that means
+  firing on <code>r</code>, <code>rea</code>, <code>react</code>, and I only care about the last
+  one. Debounce waits for the user to stop, which matches the intent: search when they're done
+  typing. Throttle's for things where the intermediate values matter, like scroll position or
+  drag.</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"Why is the debounced value state? Isn't it derived from query?"</span>
+  <p>It's derived from query <em>and the clock</em>, and render can't read the clock. Deriving
+  during render has to be synchronous and pure, so anything time- or async-dependent has to be
+  stored. That's also why the fetch results are state and not a computed value.</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"What if the user clears the input while a request is in flight?"</span>
+  <p>The effect re-runs with an empty <code>debouncedQuery</code>, so the cleanup fires and the
+  old response gets ignored or aborted — same machinery as the race fix. Then I early-return
+  before fetching and set status back to <code>idle</code>. The bug to avoid is letting the
+  in-flight response land and repopulate a dropdown over an empty input.</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"Where would you put the cache?"</span>
+  <p>A <code>useRef(new Map())</code> for the interview — it survives re-renders and mutating it
+  doesn't cause one, which is exactly right for a cache. If it needed to be shared between
+  components I'd lift it to a module-level Map or context, and in a real app I'd just use React
+  Query, which is this whole guide plus cache invalidation.</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"Why the lazy initialiser in useLocalStorage?"</span>
+  <p><code>useState(expensiveThing())</code> evaluates on every render and discards the value
+  after the first; <code>useState(() =&gt; expensiveThing())</code> runs once on mount. Reading
+  and parsing localStorage sixty times a second during typing is a real cost, and it's a
+  one-character fix.</p>
+</div>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Shape:</strong> <code>query</code>, <code>debouncedQuery</code>,
+  <code>results</code>, <code>status</code>. Write it as a comment first.</li>
+  <li><strong>One <code>status</code> string</strong>, never <code>isLoading</code> +
+  <code>isError</code> + <code>hasSearched</code>.</li>
+  <li><strong>Debounced value is state</strong> because it depends on time — the one legitimate
+  exception to "don't store what you can compute."</li>
+  <li><strong>Effect keys on <code>debouncedQuery</code></strong>, input stays instant on
+  <code>query</code>.</li>
+  <li><strong>Race condition is the point of the question.</strong> Bring it up before they do.</li>
+  <li><strong><code>let ignore = false</code> + <code>return () =&gt; { ignore = true }</code></strong>
+  — five lines, always works. AbortController when it's fetch.</li>
+  <li><strong><code>clearTimeout</code> in the cleanup <em>is</em> the debounce.</strong></li>
+  <li><strong>Upgrades, by name:</strong> <code>activeIndex</code> pointer for keyboard nav ·
+  click-outside via ref + mousedown · Map in a ref for cache · min length · combobox roles.</li>
+  <li><strong>useLocalStorage:</strong> lazy init, try/catch both ways, write in an effect,
+  doesn't sync across tabs unless you listen to <code>storage</code>.</li>
+</ul>
+</div>
+
+<footer>Next: infinite scroll and virtualised lists — the other half of "render a list from an
+API."</footer>
+
+</div>
+</body>
+</html>

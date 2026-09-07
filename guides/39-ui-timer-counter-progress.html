@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter, timer, countdown, progress bar</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Counter, timer, countdown, progress bar</h1>
+<p class="lede">Four prompts that all have the same shape: something changes because
+<em>time passed</em>. They're easy to half-build and easy to get wrong in exactly two
+places — cleanup and stale closures. Here's the build order, and the two bugs.</p>
+
+<p style="font-size:.94rem;color:var(--muted);margin-top:-1.2rem;">The method behind all of this lives in <a href="34-ui-the-interview-framework.html">guide 34</a> — read that first.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#counter">Counter: the one real lesson</a></li>
+    <li><a href="#stopwatch">Stopwatch: cleanup is what makes pause work</a></li>
+    <li><a href="#drift">The drift problem (this is the senior signal)</a></li>
+    <li><a href="#countdown">Countdown: the same machine, inverted</a></li>
+    <li><a href="#format">Formatting is derived, always</a></li>
+    <li><a href="#progress">Progress bar: no state at all</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="counter">Counter: the one real lesson</h2>
+
+<p>A counter is a flag's simpler cousin — one number, two buttons. You can write it in forty
+seconds, and the interviewer knows that. They're asking it as a warm-up, or as a trapdoor.</p>
+
+<p>Here's the trapdoor. What do you think this logs when you click once?</p>
+
+<div class="lbl bad">❌ Looks fine, isn't</div>
+<pre><code>const [count, setCount] = useState(0);
+
+function handleClick() {
+  setCount(count + 1);
+  setCount(count + 1);   <span class="cmt">// 👈 surely this makes it 2?</span>
+}</code></pre>
+
+<p>It goes to 1. Both calls read the same <code>count</code> — the number 0, baked into this
+render's <code>handleClick</code> when the function was created. So both calls say "set it
+to 1", and React obliges, twice.</p>
+
+<p>That's the whole idea, in one sentence: <strong>the handler closed over the value from the
+render it was created in.</strong> The fix is to stop reading the variable and ask React for
+the latest value instead:</p>
+
+<div class="lbl good">✅ Functional updater</div>
+<pre><code>setCount(c =&gt; c + 1);
+setCount(c =&gt; c + 1);   <span class="cmt">// → 2. React feeds each one the result of the last.</span></code></pre>
+
+<p>The rule, and say it out loud when you write it: <strong>if the next value depends on the
+previous one, use the function form.</strong> It costs three characters and it's never wrong.</p>
+
+<p>The double-click case is contrived. The one that actually bites you is next, and it's the
+reason we're covering the counter at all: an increment inside a <code>setInterval</code>.</p>
+
+<div class="lbl bad">❌ Increments once, then stops forever</div>
+<pre><code>useEffect(() =&gt; {
+  const id = setInterval(() =&gt; setCount(count + 1), 1000);
+  return () =&gt; clearInterval(id);
+}, []);   <span class="cmt">// 👈 empty deps: the callback sees count === 0 forever</span></code></pre>
+
+<p>The effect runs once. The interval callback it created captured <code>count</code> as 0, and
+nothing ever replaces that callback, so every second it dutifully sets the count to 1. Swap in
+<code>setCount(c =&gt; c + 1)</code> and it just works — no dependency array gymnastics, no
+re-creating the interval every second.</p>
+
+<div class="box wait">
+  <span class="t">Stale closures confuse everyone</span>
+  <p>Genuinely. This trips up people who've shipped React for years, because the mental model
+  "the variable updates" is so much more natural than "each render gets its own frozen copy of
+  every variable." You don't need to internalise the whole thing today. You need the reflex:
+  <em>a value read inside a long-lived callback is probably stale — reach for the function
+  form, or a ref.</em></p>
+</div>
+
+<h2 id="stopwatch">Stopwatch: cleanup is what makes pause work</h2>
+
+<p>Now the real prompt: start, pause, reset, and a running display. State shape first, as a
+comment, before any JSX:</p>
+
+<pre><code><span class="cmt">// state:
+//   elapsed    → number, milliseconds accumulated
+//   isRunning  → flag
+// derived:
+//   display    → format(elapsed)   ← never state
+// laps (upgrade) → list of records: [{ id, at }]</span></code></pre>
+
+<p>Two pieces of state. That's it — and notice <code>isRunning</code> is one of our four shapes
+(a flag) and <code>elapsed</code> is just a number. The display is derived; storing a formatted
+string would be storing what you can compute.</p>
+
+<div class="lbl good">✅ Simplest working version</div>
+<pre><code>const [elapsed, setElapsed] = useState(0);
+const [isRunning, setIsRunning] = useState(false);
+
+useEffect(() =&gt; {
+  if (!isRunning) return;                      <span class="cmt">// not running? no interval.</span>
+  const id = setInterval(() =&gt; setElapsed(e =&gt; e + 100), 100);
+  return () =&gt; clearInterval(id);              <span class="cmt">// 👈 this line is the pause button</span>
+}, [isRunning]);</code></pre>
+
+<p>Say that last part plainly in the interview, because it's the insight: <strong>I don't write
+a pause function. Pausing is just <code>isRunning</code> going false, which re-runs the effect,
+which runs the cleanup, which clears the interval.</strong> The three buttons are now
+one-liners:</p>
+
+<pre><code>&lt;button onClick={() =&gt; setIsRunning(true)}&gt;Start&lt;/button&gt;
+&lt;button onClick={() =&gt; setIsRunning(false)}&gt;Pause&lt;/button&gt;
+&lt;button onClick={() =&gt; { setIsRunning(false); setElapsed(0); }}&gt;Reset&lt;/button&gt;</code></pre>
+
+<p>Laps are a free upgrade if you have time: a list of records,
+<code>setLaps(l =&gt; [...l, { id: crypto.randomUUID(), at: elapsed }])</code>, rendered as a
+list. Same functional-updater rule, same reason.</p>
+
+<h2 id="drift">The drift problem (this is the senior signal)</h2>
+
+<p>The version above is wrong, and confidently pointing that out yourself is worth more than
+anything else in this guide.</p>
+
+<p><code>setInterval(fn, 100)</code> does not run every 100ms. It runs <em>no sooner than</em>
+every 100ms — the callback queues behind whatever else is on the main thread, so each tick is a
+little late, and you're adding a hardcoded 100 for a gap that was actually 104. The error
+accumulates. Leave it running for five minutes and it's visibly behind the wall clock. And in a
+background tab, browsers throttle timers to roughly once per second, so a stopwatch that counts
+<code>+100</code> per tick runs at about a tenth speed.</p>
+
+<div class="fig">
+<svg viewBox="0 0 620 240" role="img" aria-label="Accumulated interval error drifts away from real time; timestamp-based stays on it">
+  <g font-family="system-ui, sans-serif" font-size="12.5">
+    <line x1="60" y1="200" x2="580" y2="200" stroke="#98a0b3" stroke-width="1.5"/>
+    <text x="320" y="226" text-anchor="middle" fill="#5c6478">real time →</text>
+    <text x="52" y="46" text-anchor="end" fill="#5c6478">reported</text>
+    <text x="52" y="62" text-anchor="end" fill="#5c6478">time</text>
+    <line x1="60" y1="30" x2="60" y2="200" stroke="#98a0b3" stroke-width="1.5"/>
+
+    <path d="M60 200 L580 40" stroke="#1d6b39" stroke-width="2.5"/>
+    <text x="470" y="72" fill="#1d6b39" font-weight="700">Date.now() − startedAt</text>
+    <text x="470" y="90" fill="#5c6478">always correct</text>
+
+    <path d="M60 200 L164 178 L268 158 L372 142 L476 130 L580 122" stroke="#a3312a"
+          stroke-width="2.5" fill="none" stroke-dasharray="6 4"/>
+    <text x="360" y="172" fill="#a3312a" font-weight="700">elapsed += 100 each tick</text>
+
+    <line x1="580" y1="40" x2="580" y2="122" stroke="#a3312a" stroke-width="1.2"/>
+    <text x="566" y="86" text-anchor="end" fill="#a3312a" font-weight="600">drift</text>
+
+    <g fill="#a3312a">
+      <circle cx="164" cy="178" r="3"/><circle cx="268" cy="158" r="3"/>
+      <circle cx="372" cy="142" r="3"/><circle cx="476" cy="130" r="3"/>
+    </g>
+    <text x="320" y="20" text-anchor="middle" fill="#5c6478">
+      every tick is a little late, and the lateness adds up</text>
+  </g>
+</svg>
+<figcaption>Counting ticks measures how often your callback ran. Only a timestamp measures time.</figcaption>
+</div>
+
+<p>The fix is a one-word change to your state shape: <strong>store a timestamp, not a
+count.</strong> Keep the moment you pressed start, and compute elapsed from the clock on every
+tick. The interval stops being the source of truth and becomes a dumb "re-render me now"
+trigger — which means its inaccuracy no longer matters at all.</p>
+
+<div class="lbl good">✅ Timestamp-based, drift-free</div>
+<pre><code>const [elapsed, setElapsed] = useState(0);   <span class="cmt">// for display only</span>
+const startedAt = useRef(0);                 <span class="cmt">// when this run began</span>
+const accumulated = useRef(0);               <span class="cmt">// ms banked from earlier runs</span>
+
+useEffect(() =&gt; {
+  if (!isRunning) return;
+  startedAt.current = Date.now();
+  const id = setInterval(() =&gt; {
+    setElapsed(accumulated.current + (Date.now() - startedAt.current));
+  }, 50);                                    <span class="cmt">// tick rate ≠ accuracy now</span>
+  return () =&gt; {
+    clearInterval(id);
+    accumulated.current += Date.now() - startedAt.current;  <span class="cmt">// bank it on pause</span>
+  };
+}, [isRunning]);</code></pre>
+
+<p>Resume works because the cleanup banks the finished run into <code>accumulated</code>, and the
+next start measures a fresh <code>Date.now()</code> on top of it. Reset zeroes both refs and
+<code>elapsed</code>. The refs are deliberate: these values change without needing a re-render,
+and putting them in state would restart the effect every tick.</p>
+
+<div class="box intv">
+  <span class="t">What they're scoring here</span>
+  <p>Almost nobody reaches for timestamps unprompted. If you build the naive version first and
+  then say "this drifts, and it'll be worse in a background tab — let me base it on
+  <code>Date.now()</code> instead," you have demonstrated that you know the browser is a real
+  machine with a real event loop. That's the difference between mid and senior on this question.</p>
+</div>
+
+<h2 id="countdown">Countdown: the same machine, inverted</h2>
+
+<p>A countdown is the stopwatch with the subtraction flipped and one extra job: stop at zero and
+tell someone. Same timestamp trick, same cleanup.</p>
+
+<pre><code><span class="cmt">// props: durationMs, onComplete
+// state: remaining → number (derived from a deadline timestamp)</span>
+
+useEffect(() =&gt; {
+  if (!isRunning) return;
+  const deadline = Date.now() + remainingRef.current;
+  const id = setInterval(() =&gt; {
+    const left = Math.max(0, deadline - Date.now());   <span class="cmt">// clamp, never negative</span>
+    setRemaining(left);
+    if (left === 0) { clearInterval(id); setIsRunning(false); onComplete?.(); }
+  }, 100);
+  return () =&gt; clearInterval(id);
+}, [isRunning]);</code></pre>
+
+<p>Two things to call out while you type them. <code>Math.max(0, …)</code> because a late tick
+can overshoot the deadline and you don't want <code>-40ms</code> on screen. And
+<code>clearInterval(id)</code> <em>inside</em> the callback as well as in the cleanup, so the
+completion fires exactly once even if the state update hasn't landed yet.</p>
+
+<div class="box hood">
+  <span class="t">The unmount case</span>
+  <p>If the component unmounts mid-countdown — user navigates away, parent closes the modal —
+  the effect's cleanup runs and clears the interval, so no callback survives to call
+  <code>setState</code> on a dead component. That's the whole protection, and it's why "always
+  return a cleanup" is non-negotiable rather than tidiness. If you've been told to guard with an
+  <code>isMounted</code> flag: don't. Clean up the thing that would have fired instead.</p>
+</div>
+
+<h2 id="format">Formatting is derived, always</h2>
+
+<p>Do not put <code>minutes</code> and <code>seconds</code> in state. That's two more things to
+keep in sync with the one thing that's true.</p>
+
+<pre><code>function format(ms) {
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, '0');
+  const ss = String(total % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}</code></pre>
+
+<p>If they want centiseconds, add
+<code>Math.floor((ms % 1000) / 10)</code> padded the same way. Still derived, still one line.</p>
+
+<h2 id="progress">Progress bar: no state at all</h2>
+
+<p>The nice surprise: a controlled progress bar holds <em>zero</em> state. It takes
+<code>value</code> and <code>max</code>, and everything else is arithmetic.</p>
+
+<pre><code>const pct = Math.min(100, Math.max(0, (value / max) * 100));   <span class="cmt">// clamp both ends</span>
+
+&lt;div className="track" role="progressbar"
+     aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}&gt;
+  &lt;div className="fill" style={{ transform: `scaleX(${pct / 100})` }} /&gt;
+&lt;/div&gt;</code></pre>
+
+<p>Clamp on both ends and mention why: a parent will eventually pass you 101, or a negative, or
+a <code>max</code> of 0. Divide-by-zero gives you <code>NaN</code>, which renders as a broken
+bar rather than an error, so it hides.</p>
+
+<p><strong>Why <code>scaleX</code> and not <code>width</code>?</strong> Animating
+<code>width</code> changes layout, so the browser re-runs layout and paint on every frame.
+<code>transform</code> is compositor-only — no layout, no paint, it runs on the GPU and stays
+smooth under load. Set <code>transform-origin: left</code> and add
+<code>transition: transform 200ms</code>. (The trade: a scaled fill would distort text or a
+border inside it, so keep the fill a plain block of colour.)</p>
+
+<table>
+<thead><tr><th></th><th>Determinate</th><th>Indeterminate</th></tr></thead>
+<tbody>
+<tr><td>You know the total</td><td>Yes — show the %</td><td>No — CSS animation loop</td></tr>
+<tr><td>ARIA</td><td><code>aria-valuenow={value}</code></td><td>omit <code>aria-valuenow</code></td></tr>
+<tr><td>Use for</td><td>Upload, countdown, wizard step</td><td>"Fetching…" of unknown length</td></tr>
+</tbody>
+</table>
+
+<p>Also worth ten seconds of narration: <code>&lt;progress value max&gt;</code> is a real
+element that gives you all of this for free, including the indeterminate state when you omit
+<code>value</code>. It's hard to style consistently, which is why people hand-roll it — but
+saying "I'd use <code>&lt;progress&gt;</code> if the design allows" is exactly the kind of
+answer that reads as experienced.</p>
+
+<h3>Tying it together</h3>
+
+<p>The natural follow-up is "now wire it to the countdown," and it should take you fifteen
+seconds, because there's nothing to add:</p>
+
+<pre><code>&lt;ProgressBar value={durationMs - remaining} max={durationMs} /&gt;</code></pre>
+
+<p>One source of truth (<code>remaining</code>), one derived percentage, no new state. That's
+the whole method paying off.</p>
+
+<h2 id="followups">Follow-ups</h2>
+
+<details>
+<summary>"Why does your timer slow down in a background tab?"</summary>
+<p>Browsers throttle background timers to save battery — roughly one tick per second, sometimes
+less. If you count ticks, you lose time. If you compute from <code>Date.now()</code>, the
+display just updates less often while hidden and is instantly correct when you come back.</p>
+</details>
+
+<details>
+<summary>"Why <code>setCount(c =&gt; c + 1)</code> instead of <code>setCount(count + 1)</code>?"</summary>
+<p>Because <code>count</code> is the value from the render that created this callback. Inside an
+interval or two updates in one handler, that value is stale. The function form gets handed the
+latest value by React, so it's correct regardless of which render it came from.</p>
+</details>
+
+<details>
+<summary>"How would you make it accurate to the millisecond?"</summary>
+<p>Drop <code>setInterval</code> and drive the display with
+<code>requestAnimationFrame</code> — it fires once per repaint, which is the fastest the user can
+actually perceive, and it pauses in background tabs instead of fighting the throttle. Still read
+the time from a timestamp: <code>performance.now() - startedAt</code>, which is monotonic and
+immune to the system clock changing under you.</p>
+</details>
+
+<details>
+<summary>"Why does your pause work?"</summary>
+<p>Because <code>isRunning</code> is in the dependency array. Setting it false re-runs the
+effect, React runs the previous cleanup first, and the cleanup clears the interval. I never
+wrote a pause function — pause is a state change, and the cleanup does the work.</p>
+</details>
+
+<details>
+<summary>"How would you test this?"</summary>
+<p>Fake timers. <code>vi.useFakeTimers()</code> (or Jest's), then
+<code>act(() =&gt; vi.advanceTimersByTime(3000))</code> and assert the display reads
+<code>00:03</code>. If the implementation is timestamp-based, also mock the clock —
+<code>vi.setSystemTime()</code> — since advancing timers alone doesn't move
+<code>Date.now()</code>. Then assert the interval is cleared on unmount.</p>
+</details>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Next value depends on the previous?</strong> Use <code>setX(x =&gt; …)</code>.
+  Always, but especially inside intervals and timeouts.</li>
+  <li><strong>A value read inside a long-lived callback is probably stale.</strong> Function
+  form, or a ref.</li>
+  <li><strong>Stopwatch state:</strong> <code>elapsed</code> (number) + <code>isRunning</code>
+  (flag). Two pieces, nothing more.</li>
+  <li><strong>Cleanup is the pause button.</strong> <code>if (!isRunning) return</code> plus
+  <code>return () =&gt; clearInterval(id)</code>, with <code>isRunning</code> in the deps.</li>
+  <li><strong>Never count ticks — subtract timestamps.</strong>
+  <code>Date.now() - startedAt</code>, plus accumulated ms for resume.</li>
+  <li><strong>Keep the timestamps in refs</strong>, not state — they change without needing a
+  render.</li>
+  <li><strong>Clamp everything:</strong> <code>Math.max(0, remaining)</code>,
+  <code>pct</code> to 0–100, and guard <code>max === 0</code>.</li>
+  <li><strong>mm:ss is derived.</strong> <code>Math.floor(ms / 60000)</code> +
+  <code>padStart(2, '0')</code>. Never state.</li>
+  <li><strong>Progress bar is pure props</strong> when controlled. <code>scaleX</code> over
+  <code>width</code> — compositor-only, no layout thrash.</li>
+  <li><strong>A11y:</strong> <code>role="progressbar"</code> with
+  <code>aria-valuenow/min/max</code>, or just <code>&lt;progress&gt;</code>. Drop
+  <code>aria-valuenow</code> when indeterminate.</li>
+  <li><strong>Test with fake timers</strong>, and mock the system clock too if you're
+  timestamp-based.</li>
+</ul>
+</div>
+
+<footer>Next: drag and drop, and the other prompts where the browser fights you.</footer>
+
+</div>
+</body>
+</html>

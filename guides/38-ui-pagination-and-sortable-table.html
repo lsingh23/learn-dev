@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagination and sortable tables</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Pagination and sortable tables</h1>
+<p class="lede">The data table is the most common "real product" prompt there is, and it's the
+one where people write the most state for the least reason. The whole family — paging, sorting,
+filtering — is four scalars and a pipeline.</p>
+
+<p style="font-size:.94rem;color:var(--muted);margin-top:-1.2rem;">The method behind all of this lives in <a href="34-ui-the-interview-framework.html">guide 34</a> — read that first.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#pipeline">The pipeline is the mental model</a></li>
+    <li><a href="#clarify">The one clarifying question</a></li>
+    <li><a href="#page">Pagination, simplest version</a></li>
+    <li><a href="#seven">Page 7 of 2</a></li>
+    <li><a href="#sort">Sortable headers</a></li>
+    <li><a href="#columns">Columns as data</a></li>
+    <li><a href="#server">Server-side, when it comes up</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="pipeline">The pipeline is the mental model</h2>
+
+<p>A table looks like four features stapled together. It isn't. It's one array going through one
+chain of pure transformations, recomputed on every render:</p>
+
+<div class="fig">
+<svg viewBox="0 0 660 150" role="img" aria-label="Pipeline: raw rows to filter to sort to slice to render">
+  <g font-family="system-ui, sans-serif" font-size="12.5">
+    <rect x="6" y="26" width="106" height="56" rx="9" fill="#f4f2ef" stroke="#e0dcd4"/>
+    <text x="59" y="49" text-anchor="middle" font-weight="700" fill="#5c6478">raw rows</text>
+    <text x="59" y="67" text-anchor="middle" fill="#5c6478">props / fetch</text>
+
+    <rect x="144" y="26" width="106" height="56" rx="9" fill="#eef3ff" stroke="#c9d8f7"/>
+    <text x="197" y="49" text-anchor="middle" font-weight="700" fill="#2f5fd8">filter</text>
+    <text x="197" y="67" text-anchor="middle" fill="#5c6478">query</text>
+
+    <rect x="282" y="26" width="106" height="56" rx="9" fill="#f6effb" stroke="#dcc9ec"/>
+    <text x="335" y="49" text-anchor="middle" font-weight="700" fill="#6b3fa0">sort</text>
+    <text x="335" y="67" text-anchor="middle" fill="#5c6478">{key, dir}</text>
+
+    <rect x="420" y="26" width="106" height="56" rx="9" fill="#fff6e5" stroke="#f0dcb4"/>
+    <text x="473" y="49" text-anchor="middle" font-weight="700" fill="#8a5a00">slice</text>
+    <text x="473" y="67" text-anchor="middle" fill="#5c6478">page, pageSize</text>
+
+    <rect x="558" y="26" width="96" height="56" rx="9" fill="#eefaf1" stroke="#bfe3ca"/>
+    <text x="606" y="49" text-anchor="middle" font-weight="700" fill="#1d6b39">render</text>
+    <text x="606" y="67" text-anchor="middle" fill="#5c6478">&lt;tbody&gt;</text>
+
+    <path d="M112 54 L144 54 M250 54 L282 54 M388 54 L420 54 M526 54 L558 54"
+          stroke="#98a0b3" stroke-width="1.5" marker-end="url(#ar)"/>
+    <defs><marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0 0 L7 3.5 L0 7 z" fill="#98a0b3"/></marker></defs>
+
+    <text x="330" y="112" text-anchor="middle" fill="#5c6478">
+      Nothing in the middle is state. Only the knobs are.</text>
+    <text x="330" y="134" text-anchor="middle" fill="#a3312a" font-weight="600">
+      Order matters: filter before sort, sort before slice.</text>
+  </g>
+</svg>
+</div>
+
+<p>The order isn't arbitrary. Filter first so sorting only touches rows you'll show. Sort before
+slicing, because slicing first and then sorting sorts <em>page 3</em>, which is a real bug I've
+watched people ship. And the whole chain runs top to bottom on every render, from raw data plus
+four small values.</p>
+
+<p>Which gives us the state, and this comment block goes into the file before any JSX:</p>
+
+<pre><code><span class="cmt">// state (all of it):
+//   query    → string, the filter box
+//   sort     → { key: 'name', dir: 'asc' } | null   ← ONE object
+//   page     → number, 1-based (saying this out loud now)
+//   pageSize → number, 10
+//
+// derived every render — never stored:
+//   filtered → rows matching query
+//   sorted   → [...filtered].sort(comparator)
+//   total    → sorted.length
+//   pages    → Math.ceil(total / pageSize)
+//   visible  → sorted.slice((page - 1) * pageSize, page * pageSize)</span></code></pre>
+
+<p>Four numbers and strings. Everything a user actually looks at is on the second half of that
+list, and none of it lives in <code>useState</code>. That's the whole guide, honestly — the rest
+is the details you'll get dinged on.</p>
+
+<h2 id="clarify">The one clarifying question</h2>
+
+<p>Ask this before you type anything, because it changes the architecture rather than the code:
+<strong>"do I have the whole dataset in memory, or am I fetching a page at a time?"</strong></p>
+
+<p>Client-side means the pipeline above, all local, instant. Server-side means <code>page</code>
+and <code>sort</code> become request parameters and the response hands you back both the rows and
+a <code>total</code> you can't compute yourself. Same state shape either way — that's the nice
+part — but a different data flow. Assume client-side unless told otherwise, say that you're
+assuming it, and mention you'd move it server-side past a few thousand rows.</p>
+
+<h2 id="page">Pagination, simplest version</h2>
+
+<p>Pick 1-based or 0-based <em>once</em>, and announce it. I use 1-based because it matches what
+the button says, and the only place it costs me is the <code>- 1</code> in the slice. What you
+must not do is drift — 0-based state with a 1-based label is where off-by-ones breed.</p>
+
+<pre><code>const [page, setPage] = useState(1);          <span class="cmt">// 1-based</span>
+const pageSize = 10;
+
+const total = rows.length;
+const pages = Math.max(1, Math.ceil(total / pageSize));
+const visible = rows.slice((page - 1) * pageSize, page * pageSize);</code></pre>
+
+<p>The <code>Math.max(1, …)</code> is there so an empty table reports "page 1 of 1" instead of
+"1 of 0". Small thing; interviewers notice it.</p>
+
+<p>Then the controls. Disable at the ends rather than silently clamping:</p>
+
+<pre><code>&lt;button disabled={page === 1} onClick={() =&gt; setPage(p =&gt; p - 1)}&gt;Prev&lt;/button&gt;
+&lt;span&gt;Page {page} of {pages}&lt;/span&gt;
+&lt;button disabled={page === pages} onClick={() =&gt; setPage(p =&gt; p + 1)}&gt;Next&lt;/button&gt;</code></pre>
+
+<p>Clamping inside the handler (<code>Math.min(p + 1, pages)</code>) makes a live button that
+does nothing, which feels broken. A disabled button tells the truth about the state. Do both if
+you like — belt and braces — but the <code>disabled</code> is the one that's user-facing.</p>
+
+<h2 id="seven">Page 7 of 2</h2>
+
+<p>So you've got paging working, sorting working, a filter box working. You're on page 7. You
+type into the filter and the result set drops to eleven rows. What does the table show?</p>
+
+<p>Nothing. Empty tbody, "Page 7 of 2", and a candidate quietly wondering if they broke React.
+The slice indices are past the end of the array, so <code>.slice()</code> cheerfully returns
+<code>[]</code>.</p>
+
+<div class="box misc">
+  <span class="t">The rule</span>
+  <p><strong>Anything that changes the size or order of the result set resets <code>page</code>
+  to 1.</strong> Filter changed → page 1. Sort changed → page 1. Page size changed → page 1.
+  Do it in the same handler that sets the other thing, not in a <code>useEffect</code> watching
+  the filter.</p>
+</div>
+
+<pre><code>function onQueryChange(next) {
+  setQuery(next);
+  setPage(1);        <span class="cmt">// 👈 same event, same handler</span>
+}</code></pre>
+
+<p>Why not an effect? Because an effect renders once with the bad combination — page 7, eleven
+rows — and then renders again to fix it. You get a flash of empty table, and you've introduced
+a second source of truth for "what page are we on". Two state values that change together
+should change in the same event.</p>
+
+<h2 id="sort">Sortable headers</h2>
+
+<p>Sort state is <strong>one object</strong>: <code>{ key, dir }</code>. Not
+<code>sortKey</code> plus <code>sortDir</code> as separate states (they always change together,
+and split state lets you render with a stale pair), and definitely not a boolean per column,
+which is the accordion mistake wearing a different hat — it lets you represent "sorted by three
+columns at once", which is illegal.</p>
+
+<p>The click handler is the three-state cycle, if they ask for one: ascending, descending, off.</p>
+
+<pre><code>function toggleSort(key) {
+  setSort(s =&gt; {
+    if (s?.key !== key) return { key, dir: 'asc' };   <span class="cmt">// new column</span>
+    if (s.dir === 'asc') return { key, dir: 'desc' };
+    return null;                                      <span class="cmt">// third click → unsorted</span>
+  });
+  setPage(1);
+}</code></pre>
+
+<p>Now the sort itself, and here's the bug that costs people the round:</p>
+
+<div class="lbl bad">❌ Mutates the source array</div>
+<pre><code>const sorted = rows.sort(cmp);   <span class="cmt">// .sort() sorts IN PLACE and returns the same ref</span></code></pre>
+
+<p>You've just reordered the caller's array. If <code>rows</code> came from props you've mutated
+your parent's data; if it came from state you've mutated state directly, and since the reference
+never changed React has no reason to re-render. The symptom is maddening: the first click does
+nothing visible, the second click "works", and the original order is gone forever.</p>
+
+<div class="lbl good">✅ Copy first</div>
+<pre><code>const sorted = sort
+  ? [...filtered].sort((a, b) =&gt; cmp(a[sort.key], b[sort.key]) * (sort.dir === 'asc' ? 1 : -1))
+  : filtered;</code></pre>
+
+<p>Note the direction trick: write the comparator for ascending only, then multiply by
+<code>-1</code> for descending. One comparator, not two.</p>
+
+<p>And the comparator needs to handle the types you actually have:</p>
+
+<pre><code>function cmp(a, b) {
+  if (a == null) return 1;                       <span class="cmt">// nulls sink to the bottom, always</span>
+  if (b == null) return -1;
+  if (typeof a === 'string') return a.localeCompare(b);  <span class="cmt">// "Ä" vs "z", case</span>
+  return a - b;                                  <span class="cmt">// numbers and Dates both work</span>
+}</code></pre>
+
+<p><code>localeCompare</code> rather than <code>&lt;</code> because <code>'apple' &lt; 'Banana'</code>
+is false in code-point order and true to a human. Dates subtract fine via coercion; if you're
+holding ISO strings, they sort correctly as strings anyway.</p>
+
+<div class="box hood">
+  <span class="t">Under the hood — stability</span>
+  <p><code>Array.prototype.sort</code> is required to be stable in every modern engine. That's
+  why sorting by <em>Department</em> and then by <em>Name</em> gives you names grouped inside
+  departments rather than a shuffle — equal elements keep their previous relative order. Worth
+  saying out loud when they ask about multi-column sort; it's a one-line answer instead of a
+  feature.</p>
+</div>
+
+<h4>The header markup</h4>
+
+<p>Free points, and most candidates drop them. A clickable header is a <strong>real
+<code>&lt;button&gt;</code></strong> inside the <code>&lt;th&gt;</code> — keyboard focus and
+Enter/Space come for nothing — and the <code>&lt;th&gt;</code> carries <code>aria-sort</code>:</p>
+
+<pre><code>&lt;th aria-sort={sort?.key === col.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}&gt;
+  &lt;button onClick={() =&gt; toggleSort(col.key)}&gt;
+    {col.label} {sort?.key === col.key &amp;&amp; (sort.dir === 'asc' ? '↑' : '↓')}
+  &lt;/button&gt;
+&lt;/th&gt;</code></pre>
+
+<h2 id="columns">Columns as data</h2>
+
+<p>When they ask "how would you make this reusable?", the answer is four lines and you should
+have it ready. Describe the columns as an array instead of hand-writing cells:</p>
+
+<pre><code>const COLUMNS = [
+  { key: 'name',  label: 'Name',   sortable: true },
+  { key: 'age',   label: 'Age',    sortable: true },
+  { key: 'email', label: 'Email',  sortable: false, render: r =&gt; &lt;a href={`mailto:${r.email}`}&gt;{r.email}&lt;/a&gt; },
+];</code></pre>
+
+<p>The body is then two nested maps — rows outside, columns inside — and adding a column is a
+data change, not a code change. The optional <code>render</code> hook covers formatting and
+links without special-casing anything in the table itself.</p>
+
+<h2 id="server">Server-side, when it comes up</h2>
+
+<p>Same state, different pipeline. <code>page</code> and <code>sort</code> go into the request;
+<code>rows</code> and <code>total</code> come out of the response. You lose the local
+<code>slice</code> and gain loading and error states — the flag-plus-data shape you'd use for any
+fetch. Keep the previous page's rows on screen while the next loads rather than blanking the
+table; it reads as much faster.</p>
+
+<p>One sentence that lands well: <strong>offset pagination</strong> (<code>?page=3&amp;size=20</code>)
+is simple and lets you jump to any page, but it drifts when rows are inserted or deleted
+mid-browse — you'll see a row twice or miss one — and gets slow on deep offsets because the
+database still counts past everything it skipped. <strong>Cursor pagination</strong>
+(<code>?after=abc123</code>) is stable and fast at any depth, but only gives you next/previous,
+no page numbers. Feeds use cursors; admin tables use offsets.</p>
+
+<h2 id="followups">Follow-ups</h2>
+
+<div class="box intv">
+  <span class="t">"It's 10,000 rows now. What changes?"</span>
+  <p>"Three steps, in order. First <code>useMemo</code> the filter and sort so they don't rerun
+  when unrelated state changes — one line, no structural change. Then virtualise the body so
+  I'm only mounting the ~20 visible rows instead of all of them. If it's still slow, or the data
+  doesn't fit in memory, that's the signal to move filtering, sorting and paging to the server."</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"Why not just store the sorted array in state?"</span>
+  <p>"Because then I've got two sources of truth. Every time a row is added, edited, or the
+  filter changes, I have to remember to re-sort — and one day I won't, and the table shows stale
+  order with no error. Sorting is a pure function of the rows and <code>{key, dir}</code>, so I
+  compute it. If it ever gets expensive, <code>useMemo</code> gives me the caching without the
+  syncing."</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"How do you sort a column with missing values?"</span>
+  <p>"I decide once and apply it consistently: nulls go to the bottom in both directions. That
+  means the null check happens <em>before</em> the direction multiplier, otherwise flipping to
+  descending floats all the blanks to the top, which nobody wants. Same rule for empty strings
+  if the product treats them as missing."</p>
+</div>
+
+<div class="box intv">
+  <span class="t">"How do you keep the page and sort in the URL?"</span>
+  <p>"Move that state into query params — <code>?page=3&amp;sort=name&amp;dir=asc</code> — and
+  read it with <code>useSearchParams</code> instead of <code>useState</code>. The URL becomes the
+  source of truth, so the view is shareable, survives a refresh, and the back button steps
+  through it. I'd keep <code>pageSize</code> there too, but the transient stuff like an open
+  row menu stays in local state."</p>
+</div>
+
+<div class="box say">
+  <span class="t">Say this when you start</span>
+  <p>"The state here is tiny — a page number, a sort object, a filter string. The visible rows
+  are derived: filter, then sort, then slice, recomputed each render. So I'll write those four
+  pieces of state down first and then the pipeline."</p>
+</div>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>raw → filter → sort → slice → render.</strong> One direction, recomputed each
+  render. Only the knobs are state.</li>
+  <li><strong>State:</strong> <code>query</code>, <code>sort {key, dir}</code>, <code>page</code>,
+  <code>pageSize</code>. Nothing else.</li>
+  <li><strong>Ask first:</strong> whole dataset in memory, or a page at a time?</li>
+  <li><strong>1-based or 0-based — pick once, say it out loud.</strong></li>
+  <li><strong>Filter or sort changes → reset page to 1</strong>, in the same handler. Otherwise:
+  page 7 of 2.</li>
+  <li><strong>Disable prev/next at the ends</strong> instead of silently clamping.</li>
+  <li><strong>Sort is one object</strong>, not two states and not a boolean per column.</li>
+  <li><strong><code>[...rows].sort()</code></strong> — bare <code>.sort()</code> mutates props or
+  state and may not re-render.</li>
+  <li><strong>One ascending comparator × ±1</strong> for direction. <code>localeCompare</code>
+  for strings, nulls last, null check before the multiplier.</li>
+  <li><strong>Columns as data</strong> — <code>{key, label, sortable, render}</code> — and the
+  body is two nested maps.</li>
+  <li><strong>Real <code>&lt;button&gt;</code> in the <code>&lt;th&gt;</code>,
+  <code>aria-sort</code> on the <code>&lt;th&gt;</code>.</strong></li>
+  <li><strong>Scale answer:</strong> memoize → virtualise → move to the server. In that order.</li>
+</ul>
+</div>
+
+<footer>Next: the same derived-data thinking applied to search — debounced input, async results,
+and the race condition hiding inside them.</footer>
+
+</div>
+</body>
+</html>

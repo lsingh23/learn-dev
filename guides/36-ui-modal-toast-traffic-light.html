@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modal, toasts, and a traffic light</title>
+<style>
+  :root {
+    --bg:#fbfaf8; --card:#ffffff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --code-bg:#1e222b; --code-ink:#e8ebf1; --code-dim:#8b93a5;
+    --ok-bg:#eefaf1; --ok-line:#bfe3ca; --ok-ink:#1d6b39;
+    --bad-bg:#fdf0ef; --bad-line:#f0c5c1; --bad-ink:#a3312a;
+    --warn-bg:#fff6e5; --warn-line:#f0dcb4;
+    --info-bg:#eef3ff; --info-line:#c9d8f7;
+    --hood-bg:#f4f2ef; --hood-line:#e0dcd4;
+    --int-bg:#f6effb; --int-line:#dcc9ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161b; --card:#1c1f26; --ink:#e7e9ee; --muted:#98a0b3; --line:#2c3038;
+      --accent:#7fa4ff; --code-bg:#0f1116; --code-ink:#e8ebf1;
+      --ok-bg:#13241a; --ok-line:#28513a; --ok-ink:#7ed6a0;
+      --bad-bg:#291716; --bad-line:#5b2f2c; --bad-ink:#f0968f;
+      --warn-bg:#2a2314; --warn-line:#4a3d1e;
+      --info-bg:#161d2c; --info-line:#2b3b5c;
+      --hood-bg:#1a1c21; --hood-line:#2c3038;
+      --int-bg:#211a2b; --int-line:#3d2f4f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:3rem 1.25rem 6rem; background:var(--bg); color:var(--ink);
+    font:17.5px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 750px; margin: 0 auto; }
+  h1 { font-size:2.2rem; line-height:1.18; letter-spacing:-0.022em; margin:0 0 .6rem; }
+  .lede { font-size:1.1rem; color:var(--muted); margin:0 0 2rem; }
+  h2 {
+    font-size:1.55rem; line-height:1.25; letter-spacing:-0.015em;
+    margin:3.5rem 0 1rem; padding-top:1.25rem; border-top:1px solid var(--line);
+  }
+  h3 { font-size:1.16rem; margin:2.25rem 0 .6rem; letter-spacing:-0.01em; }
+  h4 { font-size:1rem; margin:1.6rem 0 .4rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 1.2rem; padding-left: 1.3rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .89em; background: rgba(127,127,127,.14); padding: .12em .36em; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); padding: 1rem 1.1rem; border-radius: 10px;
+    overflow-x: auto; margin: 0 0 1.3rem; font-size: 14.5px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .cmt { color: var(--code-dim); }
+  .lbl { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600;
+         padding:.45rem .9rem; border-radius:10px 10px 0 0; margin-top:1.3rem; border:1px solid; border-bottom:none; }
+  .lbl + pre { border-radius: 0 0 10px 10px; margin-top:0; }
+  .lbl.bad { background:var(--bad-bg); border-color:var(--bad-line); color:var(--bad-ink); }
+  .lbl.good { background:var(--ok-bg); border-color:var(--ok-line); color:var(--ok-ink); }
+  .lbl.step { background:var(--info-bg); border-color:var(--info-line); color:var(--accent); }
+  .box { border:1px solid; border-radius:10px; padding:1.05rem 1.2rem; margin:1.6rem 0; font-size:.97rem; }
+  .box > :last-child { margin-bottom: 0; }
+  .box .t { display:block; font-weight:700; margin-bottom:.4rem; font-size:.95rem; }
+  .wait { background:var(--warn-bg); border-color:var(--warn-line); }
+  .misc { background:var(--bad-bg); border-color:var(--bad-line); }
+  .hood { background:var(--hood-bg); border-color:var(--hood-line); }
+  .intv { background:var(--int-bg); border-color:var(--int-line); }
+  .say { background:var(--info-bg); border-color:var(--info-line); }
+  .say p { font-style: italic; }
+  .say .t { font-style: normal; }
+  .toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.4rem; margin:0 0 2.5rem; }
+  .toc ol { margin:0; padding-left:1.2rem; }
+  .toc li { margin-bottom:.3rem; font-size:.96rem; }
+  table { border-collapse: collapse; width:100%; margin:0 0 1.4rem; font-size:.94rem; }
+  th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line); vertical-align: top; }
+  th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fig { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1.2rem; margin:1.6rem 0; overflow-x:auto; }
+  .fig svg { display:block; margin:0 auto; max-width:100%; }
+  .fig figcaption { font-size:.87rem; color:var(--muted); text-align:center; margin-top:.7rem; }
+  details { border:1px solid var(--line); border-radius:10px; padding:.7rem 1rem; margin:1.2rem 0; background:var(--card); }
+  details summary { cursor:pointer; font-weight:600; font-size:.95rem; }
+  details[open] summary { margin-bottom:.7rem; }
+  .cheat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:.4rem 1.3rem 1rem; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.5rem 0; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Modal, toasts, and a traffic light</h1>
+<p class="lede">Three prompts that look unrelated, and share one nasty property: they involve
+time, or DOM that lives outside your component, or both. Same five-step method as always —
+but these are the ones where step 5 is where the interview actually happens.</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#why">What makes these three different</a></li>
+    <li><a href="#modal">Modal — a flag, and a lot of etiquette</a></li>
+    <li><a href="#toast">Toasts — a list of records, each with its own clock</a></li>
+    <li><a href="#light">Traffic light — a pointer over a config array</a></li>
+    <li><a href="#followups">Follow-ups</a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+  </ol>
+</nav>
+
+<h2 id="why">What makes these three different</h2>
+
+<p>Everything in <a href="34-ui-the-interview-framework.html">the framework guide</a> still
+applies: clarify, state shape, static render, wire, polish. The four shapes still cover it — a
+modal is a <strong>flag</strong>, toasts are a <strong>list of records</strong>, a traffic light
+is a <strong>pointer</strong>. Honestly, the state on all three is a two-minute job.</p>
+
+<p>So what are they testing? Two things the earlier components never touch. A modal has to reach
+<em>outside</em> your component — outside the React tree, outside the CSS stacking context,
+outside your keyboard focus. Toasts and the traffic light have to deal with <em>time</em>: timers
+that must be cancelled, timers that must not leak, timers that must survive a re-render.</p>
+
+<h2 id="modal">Modal — a flag, and a lot of etiquette</h2>
+
+<pre><code><span class="cmt">// state:
+//   isOpen → boolean, owned by the PARENT (not the modal)
+// if there are several modals in one screen, upgrade to:
+//   openModal → 'confirm-delete' | 'share' | null   ← one pointer, illegal states gone</span></code></pre>
+
+<p>Note who owns the flag. The modal is a dumb, controlled component: it takes
+<code>isOpen</code> and <code>onClose</code> and holds nothing. If it owned its own
+<code>isOpen</code>, the parent couldn't open it — which is the entire point of a modal.</p>
+
+<div class="lbl good">✅ The simplest version that's worth showing</div>
+<pre><code>function Modal({ isOpen, onClose, title, children }) {
+  if (!isOpen) return null;
+  return (
+    &lt;div className="backdrop" onClick={(e) =&gt; {
+      if (e.target === e.currentTarget) onClose();   <span class="cmt">// 👈 backdrop only</span>
+    }}&gt;
+      &lt;div className="panel" role="dialog" aria-modal="true" aria-label={title}&gt;
+        {children}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<p>That <code>e.target === e.currentTarget</code> line is small and interviewers watch for it.
+Clicks inside the panel bubble up to the backdrop, so a naive <code>onClick={onClose}</code>
+closes the modal when you click your own Save button. Comparing target to currentTarget means
+"the click <em>started</em> on me, not on a child."</p>
+
+<h3>Upgrade 1: put it in a portal</h3>
+
+<p>Rendering the modal where it's used is asking for trouble, and the reason isn't React — it's
+CSS. If any ancestor has <code>overflow: hidden</code>, your modal gets clipped. If any ancestor
+has a <code>transform</code>, <code>filter</code> or <code>will-change</code>, it becomes the
+containing block for <code>position: fixed</code>, so your full-screen overlay is now
+sidebar-sized. And an ancestor with its own <code>z-index</code> traps you in a stacking
+context you can never escape, no matter how many nines you add.</p>
+
+<pre><code>return createPortal(markup, document.body); <span class="cmt">// escapes all three problems at once</span></code></pre>
+
+<p>The portal moves the DOM node to <code>document.body</code> while keeping it in the React
+tree, so props, context and event bubbling all still work. Say that sentence out loud.</p>
+
+<h3>Upgrade 2: Escape, and a tiny reusable hook</h3>
+
+<pre><code>function useOnEscape(enabled, onEscape) {
+  useEffect(() =&gt; {
+    if (!enabled) return;
+    const onKey = (e) =&gt; e.key === 'Escape' &amp;&amp; onEscape();
+    document.addEventListener('keydown', onKey);
+    return () =&gt; document.removeEventListener('keydown', onKey); <span class="cmt">// always</span>
+  }, [enabled, onEscape]);
+}</code></pre>
+
+<p>Bind it on <code>document</code>, not the panel — a keypress only reaches the panel if focus
+is already inside it, which it might not be. And note the cleanup; the toasts need the same
+discipline in a minute.</p>
+
+<h3>Upgrade 3: scroll lock, focus trap, restore focus</h3>
+
+<p>Scroll lock is one line and its cleanup: set <code>document.body.style.overflow = 'hidden'</code>
+on open, restore it on close. Do it in an effect so the restore happens even if the modal
+unmounts abruptly.</p>
+
+<p>Focus is the fiddly part, and I'd rather you say so than fake it. Three obligations: move
+focus into the dialog on open, keep Tab from escaping it, and put focus <em>back</em> on the
+element that opened it when it closes. That last one is the most-forgotten and the most
+noticeable — a keyboard user who closes a modal and lands at the top of the page has lost their
+place entirely.</p>
+
+<pre><code>const opener = useRef(null);
+useEffect(() =&gt; {
+  if (!isOpen) return;
+  opener.current = document.activeElement;      <span class="cmt">// remember</span>
+  panelRef.current?.focus();
+  return () =&gt; opener.current?.focus();          <span class="cmt">// restore</span>
+}, [isOpen]);</code></pre>
+
+<p>The Tab-cycling trap itself — query the focusable children, wrap Tab on the last and
+Shift+Tab on the first — is genuinely tedious to write from memory. In a real interview I'd
+write the sketch above, then say: "a full focus trap needs a focusable-elements query and wrap
+logic on Tab; in production I'd use <code>focus-trap-react</code> or the native dialog." That's
+a better answer than twelve shaky lines.</p>
+
+<div class="box intv">
+  <span class="t">"So why not just use &lt;dialog&gt;?"</span>
+  <p>You should, in production. <code>&lt;dialog&gt;.showModal()</code> gives you the top layer
+  (no z-index fights at all), a real backdrop pseudo-element, Escape, focus containment and
+  inertness on everything behind it, for free. Interviewers still ask for the manual version
+  because the manual version is the one that reveals whether you know <em>what a modal owes the
+  user</em>. Name <code>&lt;dialog&gt;</code>, explain that it's the right production answer, then
+  build it by hand anyway. You get credit for both.</p>
+</div>
+
+<h2 id="toast">Toasts — a list of records, each with its own clock</h2>
+
+<pre><code><span class="cmt">// state:
+//   toasts → [{ id, message, type }]   ids generated at PUSH time
+// lives in a context provider near the root, so anything can call toast()
+// derived: nothing. removal is always BY ID.</span></code></pre>
+
+<p>The clarifying question: "does any component need to fire a toast, or just this page?" If it's
+anything, you need a provider — the toast <em>list</em> has to live above everything that triggers
+it, while the <em>trigger</em> has to be reachable from anywhere below.</p>
+
+<pre><code>const ToastCtx = createContext(null);
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const push = useCallback((message, type = 'info') =&gt; {
+    setToasts((t) =&gt; [...t, { id: crypto.randomUUID(), message, type }]);
+  }, []);
+  const remove = useCallback((id) =&gt; {
+    setToasts((t) =&gt; t.filter((x) =&gt; x.id !== id));   <span class="cmt">// 👈 by id, never index</span>
+  }, []);
+  return (
+    &lt;ToastCtx.Provider value={push}&gt;{children}
+      &lt;div className="toast-stack" role="status" aria-live="polite"&gt;
+        {toasts.map((t) =&gt; &lt;Toast key={t.id} {...t} onDone={remove} /&gt;)}
+      &lt;/div&gt;
+    &lt;/ToastCtx.Provider&gt;
+  );
+}</code></pre>
+
+<p>Now the timer. Where does it go? Not in the provider — in each <code>Toast</code>. One timer
+per toast, owned by the component that it kills.</p>
+
+<pre><code>function Toast({ id, message, onDone, ms = 4000 }) {
+  useEffect(() =&gt; {
+    const t = setTimeout(() =&gt; onDone(id), ms);
+    return () =&gt; clearTimeout(t);         <span class="cmt">// unmount early? no ghost callback</span>
+  }, [id, ms, onDone]);
+  return &lt;div className="toast" onClick={() =&gt; onDone(id)}&gt;{message}&lt;/div&gt;;
+}</code></pre>
+
+<p>The cleanup is not optional politeness. Without it, a toast dismissed manually still fires its
+timeout four seconds later, calling <code>onDone</code> on an id that's already gone. It happens
+to be harmless here, and it is absolutely not harmless in the general case — say so.</p>
+
+<h3>Upgrade: pause on hover</h3>
+
+<p>Nobody wants a toast to vanish while they're reading it. The cheap version: a
+<code>paused</code> flag in the toast, hovering sets it, and the effect returns early while
+paused — restarting a fresh full-length timer on mouse-leave.</p>
+
+<pre><code>useEffect(() =&gt; {
+  if (paused) return;                     <span class="cmt">// effect re-runs when paused flips</span>
+  const t = setTimeout(() =&gt; onDone(id), ms);
+  return () =&gt; clearTimeout(t);
+}, [paused, id, ms, onDone]);</code></pre>
+
+<p>Exact? No — it restarts the full duration instead of resuming the remainder. Say so: "for true
+resume I'd track the remaining time in a ref." Knowing your own code's limitation beats not
+having one.</p>
+
+<h2 id="light">Traffic light — a pointer over a config array</h2>
+
+<p>Here's the trap. Almost everyone starts with three booleans, or a <code>color</code> string
+and a ladder of <code>if (color === 'red') setColor('green')</code>. It works, it's ten times
+longer than it needs to be, and adding a blinking amber breaks it.</p>
+
+<div class="lbl bad">❌ Three booleans and a ladder of ifs</div>
+<pre><code>const [red, setRed] = useState(true);
+const [amber, setAmber] = useState(false);
+const [green, setGreen] = useState(false);
+<span class="cmt">// nothing stops all three being true. now write the advance handler. good luck.</span></code></pre>
+
+<p>The whole component is one idea: <strong>the sequence is data, and the state is just a finger
+pointing at a row.</strong></p>
+
+<div class="lbl good">✅ Config-driven, and that's the entire component</div>
+<pre><code>const LIGHTS = [
+  { color: 'red',   ms: 4000 },
+  { color: 'green', ms: 3000 },
+  { color: 'amber', ms: 1000 },
+];
+
+function TrafficLight() {
+  const [i, setI] = useState(0);                 <span class="cmt">// state: a pointer. that's all.</span>
+  useEffect(() =&gt; {
+    const t = setTimeout(() =&gt; setI((n) =&gt; (n + 1) % LIGHTS.length), LIGHTS[i].ms);
+    return () =&gt; clearTimeout(t);
+  }, [i]);
+  return LIGHTS.map((l, n) =&gt;
+    &lt;Lamp key={l.color} color={l.color} on={n === i} /&gt;);
+}</code></pre>
+
+<div class="fig">
+<svg viewBox="0 0 620 200" role="img" aria-label="Traffic light as a three-state cycle driven by an index">
+  <g font-family="system-ui, sans-serif" font-size="13">
+    <circle cx="110" cy="80" r="38" fill="#fdf0ef" stroke="#a3312a" stroke-width="2"/>
+    <text x="110" y="76" text-anchor="middle" font-weight="700" fill="#a3312a">red</text>
+    <text x="110" y="94" text-anchor="middle" fill="#5c6478">i = 0 · 4000ms</text>
+
+    <circle cx="310" cy="80" r="38" fill="#eefaf1" stroke="#1d6b39" stroke-width="2"/>
+    <text x="310" y="76" text-anchor="middle" font-weight="700" fill="#1d6b39">green</text>
+    <text x="310" y="94" text-anchor="middle" fill="#5c6478">i = 1 · 3000ms</text>
+
+    <circle cx="510" cy="80" r="38" fill="#fff6e5" stroke="#8a5a00" stroke-width="2"/>
+    <text x="510" y="76" text-anchor="middle" font-weight="700" fill="#8a5a00">amber</text>
+    <text x="510" y="94" text-anchor="middle" fill="#5c6478">i = 2 · 1000ms</text>
+
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#98a0b3"/></marker></defs>
+    <path d="M150 80 L266 80" stroke="#98a0b3" stroke-width="1.6" marker-end="url(#ar)"/>
+    <path d="M350 80 L466 80" stroke="#98a0b3" stroke-width="1.6" marker-end="url(#ar)"/>
+    <path d="M510 120 C 510 175, 110 175, 110 120" fill="none"
+          stroke="#98a0b3" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+    <text x="310" y="168" text-anchor="middle" fill="#2f5fd8" font-size="12.5" font-weight="600">
+      setI(n =&gt; (n + 1) % LIGHTS.length)</text>
+    <text x="310" y="30" text-anchor="middle" fill="#5c6478" font-size="12.5">
+      one timer, one number — the sequence is data, not code</text>
+  </g>
+</svg>
+<figcaption>The whole state machine. Adding a fourth phase means adding a row to the array.</figcaption>
+</div>
+
+<p>Adding "flashing amber before red"? A row in the array. Making it configurable by props? Pass
+<code>LIGHTS</code> in. A pedestrian button that jumps to red? <code>setI(0)</code>. This shape
+generalises to <em>any</em> timed sequence — a carousel that auto-advances, an onboarding tour,
+a slideshow, a Pomodoro timer. Recognise it once and you get four components for free.</p>
+
+<div class="box hood">
+  <span class="t">Under the hood — why <code>[i]</code> in the deps is the right call</span>
+  <p>Each render with a new <code>i</code> tears down the old timeout and schedules the next one
+  with <em>that</em> phase's duration. Per-phase timing falls out for free, and there's never
+  more than one timer alive. A single <code>setInterval</code> can't do variable durations
+  without extra bookkeeping — that's the trade you're making, and it's worth saying out loud.</p>
+</div>
+
+<h2 id="followups">The follow-ups you'll actually get</h2>
+
+<details>
+<summary>"Why a portal? Can't you just set z-index: 9999?"</summary>
+<p>No — z-index only competes inside its own stacking context. If an ancestor created one, my
+9999 loses to a sibling's 1. And an ancestor with <code>overflow: hidden</code> clips me, while
+an ancestor with a <code>transform</code> re-anchors my <code>position: fixed</code>. A portal
+sidesteps all three by moving the node to <code>document.body</code>, and I keep React context
+and event bubbling because the React tree is unchanged.</p>
+</details>
+
+<details>
+<summary>"Why not one shared timer for all toasts instead of one each?"</summary>
+<p>Because they don't share a deadline. Each toast is born at a different moment and may have its
+own duration, and hovering pauses one without pausing the others. One interval ticking over the
+whole list means storing per-toast expiry timestamps and re-rendering every tick — more state,
+more code, and lower resolution. One timer owned by the component it dismisses is the simpler
+thing, and it cleans itself up on unmount.</p>
+</details>
+
+<details>
+<summary>"What breaks if you remove a toast by index?"</summary>
+<p>Everything, intermittently. The index is captured when the timeout is scheduled, but the array
+shifts every time another toast is added or dismissed — so a toast that expires after its
+neighbour was removed dismisses the wrong one. Ids are stable from creation, so
+<code>filter(t =&gt; t.id !== id)</code> is always right. Same reason ids make better keys.</p>
+</details>
+
+<details>
+<summary>"How do you stop the traffic light drifting?"</summary>
+<p>For a UI demo I wouldn't bother — a few milliseconds of <code>setTimeout</code> lag per phase
+is invisible. If it had to stay honest over hours, I'd stop trusting the delay and compute from
+wall-clock: record the phase's start with <code>Date.now()</code>, and schedule the next tick for
+<code>start + ms - Date.now()</code> so each correction absorbs the previous error instead of
+accumulating it. Same fix for a countdown timer, which is where this actually gets asked.</p>
+</details>
+
+<details>
+<summary>"Should the modal render null when closed, or stay mounted and hide with CSS?"</summary>
+<p>Return null by default — unmounting drops the DOM, releases focus and leaves no hidden
+focusable elements to tab into. The one reason to stay mounted is an exit animation, since you
+can't animate a node that's already gone; then I'd delay the unmount until
+<code>transitionend</code>. A real trade-off, not an oversight.</p>
+</details>
+
+<h2 id="cheat">Cheat sheet</h2>
+
+<div class="cheat">
+<ul>
+  <li><strong>Modal = a flag the parent owns.</strong> Several modals? One
+  <code>openModal: id | null</code> pointer, not several booleans.</li>
+  <li><strong>Portal because of CSS, not React:</strong> <code>overflow:hidden</code> clips,
+  <code>transform</code> re-anchors <code>fixed</code>, stacking contexts trap z-index.</li>
+  <li><strong><code>e.target === e.currentTarget</code></strong> — close on backdrop, not on
+  clicks inside the panel.</li>
+  <li><strong>Modal owes the user four things:</strong> Escape closes, scroll locks, focus enters
+  and is trapped, focus is <em>restored</em> to the opener.</li>
+  <li><strong><code>role="dialog"</code> + <code>aria-modal="true"</code> + a label.</strong>
+  Name <code>&lt;dialog&gt;.showModal()</code> as the modern answer, then build it by hand.</li>
+  <li><strong>Toasts = list of records with ids at push time.</strong> Remove by id, never index.</li>
+  <li><strong>Provider + context</strong> so any component can call <code>toast()</code>;
+  the list lives above everything that fires it.</li>
+  <li><strong>One <code>setTimeout</code> per toast, in an effect, with
+  <code>clearTimeout</code> in the cleanup.</strong> Pause-on-hover = a flag in the deps array.</li>
+  <li><strong><code>role="status"</code> / <code>aria-live="polite"</code></strong> on the stack,
+  or screen readers never hear it.</li>
+  <li><strong>Traffic light = a pointer into a config array.</strong>
+  <code>setI(n =&gt; (n + 1) % LIGHTS.length)</code>, per-phase <code>ms</code> in the data.</li>
+  <li><strong>Any timed sequence is that same shape</strong> — auto-carousel, tour, slideshow,
+  Pomodoro.</li>
+  <li><strong>Every timer and every listener gets a cleanup.</strong> If you can't point at the
+  cleanup, you've written a leak.</li>
+</ul>
+</div>
+
+<footer>Next: the components where the data arrives late — infinite scroll, typeahead and
+the async patterns around them.</footer>
+
+</div>
+</body>
+</html>
