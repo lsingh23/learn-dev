@@ -104,23 +104,6 @@
     <li><a href="33-promise-all-and-event-emitter.html"><span class="t"><span class="n">33</span>Polyfill <code>Promise.all</code> &amp; build an <code>EventEmitter</code></span><span class="d">Preserving input order, counting completions, fail-fast rejection; on/emit/off/once and the mutation-during-emit bug.</span></a></li>
   </ul>
 
-  <h2>React UI Machine Coding</h2>
-  <p class="lede" style="font-size:.93rem;margin:-.4rem 0 .9rem;">Short, method-first guides. Not full solutions &mdash; the reasoning, the state shape, and the build order. <strong>Start with 34.</strong></p>
-  <ul>
-    <li><a href="34-ui-the-interview-framework.html"><span class="t"><span class="n">34</span>The UI Machine-Coding Framework</span><span class="d">Read this first. UI = f(state), the 5-step build order, the four state shapes that cover almost every component, derived vs stored, controlled vs uncontrolled.</span></a></li>
-    <li><a href="35-ui-star-rating-accordion-tabs.html"><span class="t"><span class="n">35</span>Star Rating, Accordion &amp; Tabs</span><span class="d">The "pointer" family. Hover preview vs committed value, one <code>openId</code> instead of N booleans, id vs index, roving tabIndex.</span></a></li>
-    <li><a href="36-ui-modal-toast-traffic-light.html"><span class="t"><span class="n">36</span>Modal, Toast System &amp; Traffic Light</span><span class="d">Portals and why, Escape + backdrop + focus trap, a toast queue with per-item timers and pause-on-hover, config-driven state machines.</span></a></li>
-    <li><a href="37-ui-debounced-search-and-custom-hooks.html"><span class="t"><span class="n">37</span>Debounced Search, Autocomplete &amp; Custom Hooks</span><span class="d">The most-asked one. One <code>status</code> string, the race condition and two fixes, keyboard nav, <code>useDebounce</code> and <code>useLocalStorage</code>.</span></a></li>
-    <li><a href="38-ui-pagination-and-sortable-table.html"><span class="t"><span class="n">38</span>Pagination &amp; Sortable Tables</span><span class="d">The derived-data pipeline: raw &rarr; filter &rarr; sort &rarr; slice. Off-by-ones, page 7 of 2, non-mutating sorts, columns as config, client vs server paging.</span></a></li>
-    <li><a href="39-ui-timer-counter-progress.html"><span class="t"><span class="n">39</span>Counter, Timer, Countdown &amp; Progress Bar</span><span class="d">Functional updaters and stale closures, why cleanup is what makes pause work, interval drift and the timestamp fix, derived formatting.</span></a></li>
-    <li><a href="40-ui-async-lists-usefetch-infinite-scroll.html"><span class="t"><span class="n">40</span>Async Lists, <code>useFetch</code> &amp; Infinite Scroll</span><span class="d">Four render states including the empty one, abort and the ignore-flag guard, IntersectionObserver on a sentinel, double-fire and hasMore.</span></a></li>
-    <li><a href="41-ui-recursive-trees-and-nested-checkboxes.html"><span class="t"><span class="n">41</span>Recursive Trees &amp; Nested Checkboxes</span><span class="d">When the data is nested, the component renders itself. Flat list &rarr; tree, where expand state lives, and the indeterminate checkbox derived from leaves.</span></a></li>
-    <li><a href="42-ui-cart-and-optimistic-updates.html"><span class="t"><span class="n">42</span>Shopping Cart &amp; Optimistic Updates</span><span class="d">Array vs map, the four immutable handlers, totals are never state, and flipping the UI before the server answers &mdash; with a rollback.</span></a></li>
-    <li><a href="43-ui-forms-validation-and-wizard.html"><span class="t"><span class="n">43</span>Forms, Validation &amp; the Multi-Step Wizard</span><span class="d">One state object and one handler, <code>touched</code> vs derived <code>errors</code>, validation rules as data, and a wizard as a pointer over step configs.</span></a></li>
-    <li><a href="44-ui-carousel-and-otp-input.html"><span class="t"><span class="n">44</span>Image Carousel &amp; OTP Input</span><span class="d">Where refs are genuinely required. Modulo wrapping and the negative-index bug, translateX tracks, and OTP focus/backspace/paste rules.</span></a></li>
-    <li><a href="45-ui-tic-tac-toe.html"><span class="t"><span class="n">45</span>Tic-Tac-Toe &amp; Any Grid Game</span><span class="d">One array is the only state; turn, winner and draw are all derived. Win lines as data, generalising to N&times;N, and time-travel undo.</span></a></li>
-  </ul>
-
   <h2>React</h2>
   <ul>
     <li><a href="09-react-rendering-model.html"><span class="t"><span class="n">09</span>How React Actually Renders</span><span class="d">The virtual DOM (and what it isn't), render vs commit, reconciliation heuristics, keys and why not array index, Fiber.</span></a></li>
