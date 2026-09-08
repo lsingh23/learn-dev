@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>54 — Contact Form &amp; Validation</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* guide-specific: form mockup */
+  .field{margin:.85rem 0}
+  .field label{display:block;font-size:.78rem;font-weight:600;margin-bottom:.25rem}
+  .field .inp{display:block;width:100%}
+  .inp.bad{border-color:var(--bug);background:#fffafa;box-shadow:0 0 0 3px rgba(179,38,30,.1)}
+  .err{color:var(--bug);font-size:.75rem;margin-top:.3rem;display:flex;gap:.3rem;align-items:center}
+  .ann{font-size:.7rem;color:var(--muted);margin-top:.25rem}
+  .arrow{color:var(--user);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>54. Contact Form &amp; Validation</h1>
+  <p class="sub">Controlled inputs, one state object, one pure validator. The most-asked form question.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a contact form with name, email and message. Show inline errors, and don't let
+    an invalid form submit."
+  </div>
+  <p>Three inputs, one validator, error text under the bad fields.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Contact form — email field in its error state</div>
+    <div class="ui" style="max-width:420px">
+      <div class="field">
+        <label>Name</label>
+        <span class="inp" style="color:var(--ink)">Ada Lovelace</span>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <span class="inp bad" style="color:var(--ink)">ada@</span>
+        <div class="err">⚠ Enter a valid email</div>
+        <div class="ann"><span class="arrow">↑</span> red ring = <code>aria-invalid</code> · text = <code>role="alert"</code>, linked by <code>aria-describedby</code></div>
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <span class="inp" style="display:block;height:3.6rem">Hi there…</span>
+      </div>
+      <div class="row" style="margin-top:.9rem">
+        <span class="btn primary">Send</span>
+        <span class="note">disabled while submitting</span>
+      </div>
+    </div>
+    <p class="ann" style="margin-top:.9rem">Error only appears <b>after blur</b> or after a submit attempt — never while typing letter one.</p>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Keep every value in React state</li>
+    <li>Show errors after blur, not while typing</li>
+    <li>Block submit and focus first bad field</li>
+    <li>Disable the button while submitting</li>
+    <li>Show a success or server-error message</li>
+    <li>Be usable with a screen reader</li>
+  </ul>
+  <p class="ann">Styling barely matters here. Logic and accessibility are what's scored.</p>
+
+  <h2>The mental model</h2>
+  <p><b>Controlled</b> = the input's <code>value</code> comes from state, and <code>onChange</code> writes it back. React is the source of truth; the DOM just mirrors it.</p>
+
+  <svg viewBox="0 0 640 150" role="img" aria-label="State to input to onChange loop">
+    <rect x="30" y="45" width="170" height="58" rx="9" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="115" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#2f5fd8">state</text>
+    <text x="115" y="90" text-anchor="middle" font-size="12" fill="#5c6478">values.email</text>
+
+    <rect x="245" y="45" width="150" height="58" rx="9" fill="#e6f5ef" stroke="#127a5b"/>
+    <text x="320" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#127a5b">&lt;input&gt;</text>
+    <text x="320" y="90" text-anchor="middle" font-size="12" fill="#5c6478">value=…</text>
+
+    <rect x="440" y="45" width="170" height="58" rx="9" fill="#fff6e5" stroke="#9a6400"/>
+    <text x="525" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#9a6400">user types</text>
+    <text x="525" y="90" text-anchor="middle" font-size="12" fill="#5c6478">onChange</text>
+
+    <path d="M200 74 H238" stroke="#127a5b" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <path d="M395 74 H433" stroke="#9a6400" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <path d="M525 110 V130 H115 V110" stroke="#2f5fd8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+    <text x="320" y="146" text-anchor="middle" font-size="11.5" fill="#2f5fd8">setValues → re-render</text>
+    <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+  </svg>
+
+  <div class="box tip"><b>The trick</b>
+  <p>One <code>values</code> object, not three <code>useState</code>s. Give each input a <code>name</code>,
+  and one handler covers all of them via <code>e.target.name</code>.</p></div>
+
+  <h2>The shape of the state</h2>
+<pre><code>const [values, setValues]   = useState({ name:'', email:'', message:'' }); <span class="cmt">// what's typed</span>
+const [touched, setTouched] = useState({});      <span class="cmt">// fields the user has left → may show errors</span>
+const [submitting, setSubmitting] = useState(false); <span class="cmt">// blocks double submit</span>
+const [status, setStatus]   = useState(null);    <span class="cmt">// 'ok' | 'error' | null (server outcome)</span>
+
+const errors = validate(values);                 <span class="cmt">// DERIVED — never stored in state</span>
+</code></pre>
+  <p><b>Rule of thumb:</b> errors are a pure function of values, so compute them on render. Storing them
+  gives you two sources of truth that drift apart.</p>
+
+  <h2>Build it in layers</h2>
+  <p>In an interview, build <b>L1 and L2</b> first, out loud, then ask <i>"want me to add validation and a11y?"</i></p>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup, no state</h3>
+    <p>The dumbest thing that renders. Labels wired with <code>htmlFor</code> from the start.</p>
+<pre><code>&lt;form&gt;
+  &lt;label htmlFor="name"&gt;Name&lt;/label&gt;
+  &lt;input id="name" name="name" /&gt;
+  <span class="cmt">/* email, message the same */</span>
+  &lt;button&gt;Send&lt;/button&gt;
+&lt;/form&gt;
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Controlled: one object, one handler</h3>
+    <p>Every input now reads from and writes to <code>values</code>.</p>
+<pre><code>const handleChange = (e) =&gt;
+  setValues(v =&gt; ({ ...v, [e.target.name]: e.target.value }));
+
+&lt;input id="name" name="name" value={values.name} onChange={handleChange} /&gt;
+&lt;input id="email" name="email" value={values.email} onChange={handleChange} /&gt;
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> A pure validate() + touched</h3>
+    <p><code>validate</code> takes values, returns an errors object. No React inside — trivial to unit test,
+    and reusable on submit.</p>
+<pre><code>function validate(v){
+  const e = {};
+  if (!v.name.trim()) e.name = 'Name is required';
+  if (!/^\S+@\S+\.\S+$/.test(v.email)) e.email = 'Enter a valid email';
+  if (v.message.trim().length &lt; 10) e.message = 'Min 10 characters';
+  return e;                         <span class="cmt">// → { email: 'Enter a valid email' }</span>
+}
+
+const handleBlur = (e) =&gt; setTouched(t =&gt; ({ ...t, [e.target.name]: true }));
+const show = (f) =&gt; touched[f] &amp;&amp; errors[f];   <span class="cmt">// show only after blur</span>
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Submit: block, focus, disable, report</h3>
+    <p>Mark everything touched so all errors appear at once, then jump to the first bad field.</p>
+<pre><code>async function handleSubmit(e){
+  e.preventDefault();
+  setTouched({ name:true, email:true, message:true });
+  const errs = validate(values);
+  if (Object.keys(errs).length){
+    document.getElementById(Object.keys(errs)[0])?.focus();   <span class="cmt">// first bad field</span>
+    return;
+  }
+  setSubmitting(true);
+  try { await send(values); setStatus('ok'); setValues({name:'',email:'',message:''}); }
+  catch { setStatus('error'); }
+  finally { setSubmitting(false); }
+}
+</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>function validate(v){
+  const e = {};
+  if (!v.name.trim()) e.name = 'Name is required';
+  if (!/^\S+@\S+\.\S+$/.test(v.email)) e.email = 'Enter a valid email';
+  if (v.message.trim().length &lt; 10) e.message = 'Min 10 characters';
+  return e;
+}
+
+const FIELDS = [['name','Name','input'],['email','Email','input'],['message','Message','textarea']];
+
+export default function ContactForm({ send }){
+  const [values, setValues] = useState({ name:'', email:'', message:'' });
+  const [touched, setTouched] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState(null);
+  const errors = validate(values);
+
+  const change = (e) =&gt; setValues(v =&gt; ({ ...v, [e.target.name]: e.target.value }));
+  const blur   = (e) =&gt; setTouched(t =&gt; ({ ...t, [e.target.name]: true }));
+
+  async function onSubmit(e){
+    e.preventDefault();
+    setTouched({ name:true, email:true, message:true });
+    const errs = validate(values);
+    if (Object.keys(errs).length){
+      document.getElementById(Object.keys(errs)[0])?.focus();
+      return;
+    }
+    setSubmitting(true); setStatus(null);
+    try { await send(values); setStatus('ok'); setValues({name:'',email:'',message:''}); setTouched({}); }
+    catch { setStatus('error'); }
+    finally { setSubmitting(false); }
+  }
+
+  return (
+    &lt;form onSubmit={onSubmit} noValidate&gt;
+      {FIELDS.map(([name, label, Tag]) =&gt; {
+        const bad = touched[name] &amp;&amp; errors[name];
+        return (
+          &lt;div key={name}&gt;
+            &lt;label htmlFor={name}&gt;{label}&lt;/label&gt;
+            &lt;Tag
+              id={name} name={name} value={values[name]}
+              onChange={change} onBlur={blur}
+              aria-invalid={bad ? true : undefined}
+              aria-describedby={bad ? `${name}-err` : undefined}
+            /&gt;
+            {bad &amp;&amp; &lt;p id={`${name}-err`} role="alert"&gt;{errors[name]}&lt;/p&gt;}
+          &lt;/div&gt;
+        );
+      })}
+      &lt;button disabled={submitting}&gt;{submitting ? 'Sending…' : 'Send'}&lt;/button&gt;
+      {status === 'ok'    &amp;&amp; &lt;p role="status"&gt;Thanks — we'll be in touch.&lt;/p&gt;}
+      {status === 'error' &amp;&amp; &lt;p role="alert"&gt;Something went wrong. Try again.&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+}
+</code></pre>
+
+  <h2>Gotchas</h2>
+  <div class="gotcha"><b>Errors shown while typing.</b> "Email is required" on keystroke one is the classic
+  ding. Gate every error on <code>touched[field]</code>, or on a submit attempt.</div>
+  <div class="gotcha"><b><code>value={x}</code> with no <code>onChange</code>.</b> React warns and the input
+  is read-only. Either wire both, or use <code>defaultValue</code> for an uncontrolled field.</div>
+  <div class="gotcha"><b>Missing <code>e.preventDefault()</code>.</b> The page reloads and your state is gone.
+  Also add <code>noValidate</code> so the browser's own bubbles don't fight your UI.</div>
+  <div class="gotcha"><b>Storing errors in state.</b> Now values and errors can disagree. Derive
+  <code>errors</code> on every render instead.</div>
+  <div class="gotcha"><b>Button not disabled.</b> A double-click sends two emails. Guard with
+  <code>submitting</code>, and reset it in <code>finally</code>.</div>
+
+  <h2>If they push</h2>
+  <div class="qa"><b>"Disable the button until the form is valid."</b>
+  Don't — a disabled button with no explanation is a dead end for screen readers. Keep it enabled,
+  validate on submit, and focus the first error.</div>
+
+  <div class="qa"><b>"Check the username isn't taken."</b>
+  Async validation, debounced so you don't hit the API per keystroke. Keep the result in its own state
+  and ignore stale responses.
+<pre><code>useEffect(() =&gt; {
+  if (!values.username) return;
+  const id = setTimeout(async () =&gt; {
+    const taken = await api.check(values.username);   <span class="cmt">// 400ms after they stop</span>
+    setAsyncErr(taken ? 'Username taken' : null);
+  }, 400);
+  return () =&gt; clearTimeout(id);        <span class="cmt">// cancel on next keystroke</span>
+}, [values.username]);
+</code></pre></div>
+
+  <div class="qa"><b>"Use a schema instead of hand-rolled ifs."</b>
+  Zod: declare the shape once, get types and messages for free.
+<pre><code>const schema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Enter a valid email'),
+  message: z.string().min(10, 'Min 10 characters'),
+});
+<span class="cmt">// flatten() gives you { email: ['Enter a valid email'] }</span>
+const errors = schema.safeParse(values).error?.flatten().fieldErrors ?? {};
+</code></pre></div>
+
+  <div class="qa"><b>"Why is react-hook-form faster?"</b>
+  It keeps values in refs (a ref — a box that survives re-renders) and registers inputs as <b>uncontrolled</b>,
+  so typing doesn't re-render the form. Only the field whose error changed re-renders. Worth it at ~15+ fields.</div>
+
+  <div class="qa"><b>"1000 fields / a giant form."</b>
+  Split into sections, each its own component with its own state slice, so a keystroke re-renders one section.
+  Or go uncontrolled with <code>FormData(e.currentTarget)</code> on submit.</div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"I'll keep one <code>values</code> object rather than a useState per field, so one handler covers all three via <code>e.target.name</code>."</li>
+    <li>"<code>validate</code> is pure — values in, errors out — so it's easy to test and I can call the same function on submit."</li>
+    <li>"Errors are derived, not stored, so they can't drift out of sync with the values."</li>
+    <li>"I only show an error once the field is touched — nagging someone on their first keystroke is bad UX."</li>
+    <li>"Every input has a label with <code>htmlFor</code>, plus <code>aria-invalid</code> and <code>aria-describedby</code> pointing at the error, which is <code>role=\"alert\"</code>."</li>
+    <li>"On submit I preventDefault, mark everything touched, and focus the first invalid field so keyboard users land in the right place."</li>
+    <li>"The button is disabled while submitting so a double-click can't send twice."</li>
+  </ul>
+</div>
+</body>
+</html>

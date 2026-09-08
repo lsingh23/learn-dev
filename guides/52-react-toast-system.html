@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>52 — Toast Notifications</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- toast-specific --- */
+  .screen{position:relative;background:#f2f1ee;border:1px solid #d9d6d0;border-radius:10px;
+    min-height:290px;padding:1rem;overflow:hidden}
+  .stack{position:absolute;top:.9rem;right:.9rem;display:flex;flex-direction:column;gap:.5rem;
+    width:250px}
+  .toast{display:flex;align-items:flex-start;gap:.55rem;background:#fff;border:1px solid #d9d6d0;
+    border-left:4px solid var(--muted);border-radius:8px;padding:.55rem .6rem;font-size:.82rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.07);position:relative}
+  .toast.s{border-left-color:var(--dom)} .toast.e{border-left-color:var(--bug)}
+  .toast.i{border-left-color:var(--accent)}
+  .toast .ic{font-size:.9rem;line-height:1.3}
+  .toast .msg{flex:1;line-height:1.35}
+  .toast .x{color:var(--muted);font-size:.9rem;cursor:default}
+  .bar{position:absolute;left:0;bottom:0;height:3px;background:#cfd3dc;border-radius:0 0 0 6px}
+  .arrow{font-size:.72rem;color:var(--user);position:absolute;white-space:nowrap}
+  .idtag{font-family:ui-monospace,Menlo,monospace;font-size:.68rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>52. Toast Notifications</h1>
+  <p class="sub">A queue of little messages in a corner. Tests arrays-by-id, timers, and Context.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a toast system. Any component in the app can fire a notification; they stack in
+    the corner, disappear after 3 seconds, and can be closed by hand."
+  </div>
+  <p>Plain English: an array of messages, each with an id, that removes itself on a timer.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Toast stack — top right</div>
+    <div class="screen">
+      <div class="row" style="gap:.4rem">
+        <span class="btn">Save</span><span class="btn">Delete</span><span class="btn primary">Send</span>
+      </div>
+      <p style="color:var(--muted);font-size:.82rem;margin-top:.8rem;max-width:330px">
+        Any button, anywhere, calls <code>toast.success("Saved")</code>.<br>No props passed down.
+      </p>
+
+      <div class="stack">
+        <div class="toast s">
+          <span class="ic">✓</span>
+          <span class="msg">Profile saved<br><span class="idtag">id: 1</span></span>
+          <span class="x">✕</span>
+          <span class="bar" style="width:35%"></span>
+        </div>
+        <div class="toast e">
+          <span class="ic">✕</span>
+          <span class="msg">Upload failed<br><span class="idtag">id: 2</span></span>
+          <span class="x">✕</span>
+          <span class="bar" style="width:65%"></span>
+        </div>
+        <div class="toast i">
+          <span class="ic">i</span>
+          <span class="msg">3 items synced<br><span class="idtag">id: 3</span></span>
+          <span class="x">✕</span>
+          <span class="bar" style="width:92%"></span>
+        </div>
+      </div>
+
+      <div class="arrow" style="left:1rem;bottom:4.6rem">↗ newest pushed onto the array</div>
+      <div class="arrow" style="left:1rem;bottom:2.9rem">↗ colour + icon come from <code>type</code></div>
+      <div class="arrow" style="left:1rem;bottom:1.2rem">↗ each toast owns its own 3s timer</div>
+    </div>
+    <p style="margin:.9rem 0 0"><span class="note">styling barely matters here — the logic is what's scored</span></p>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Stack multiple toasts, newest last</li>
+    <li>Auto-dismiss each after ~3 seconds</li>
+    <li>Close on ✕ click, immediately</li>
+    <li>Support success / error / info types</li>
+    <li>Be callable from any component, no props</li>
+    <li>Render above everything (portal)</li>
+    <li>Announce itself to screen readers</li>
+  </ul>
+
+  <h2>The mental model</h2>
+  <p>One array lives at the top. Anyone can push to it. Each toast removes <em>itself</em> by id.</p>
+
+  <svg viewBox="0 0 720 210" role="img" aria-label="Provider holds an array; components push; each toast removes itself by id">
+    <rect x="8" y="70" width="150" height="70" rx="8" fill="#fff6e5" stroke="#f0dcb4"/>
+    <text x="83" y="96" text-anchor="middle" font-size="13" fill="#9a6400">any component</text>
+    <text x="83" y="118" text-anchor="middle" font-size="12" fill="#9a6400" font-family="monospace">addToast(...)</text>
+
+    <path d="M162 105 H222" stroke="#9a6400" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+    <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#9a6400"/></marker>
+      <marker id="b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#2f5fd8"/></marker>
+      <marker id="c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#b3261e"/></marker></defs>
+
+    <rect x="228" y="30" width="196" height="150" rx="8" fill="#eaf0fe" stroke="#c3d4fb"/>
+    <text x="326" y="52" text-anchor="middle" font-size="12" fill="#2f5fd8">ToastProvider state</text>
+    <rect x="242" y="64" width="168" height="26" rx="5" fill="#fff" stroke="#c3d4fb"/>
+    <text x="252" y="82" font-size="11.5" font-family="monospace" fill="#2f5fd8">{id:1, type:'success'}</text>
+    <rect x="242" y="96" width="168" height="26" rx="5" fill="#fff" stroke="#c3d4fb"/>
+    <text x="252" y="114" font-size="11.5" font-family="monospace" fill="#2f5fd8">{id:2, type:'error'}</text>
+    <rect x="242" y="128" width="168" height="26" rx="5" fill="#fff" stroke="#c3d4fb"/>
+    <text x="252" y="146" font-size="11.5" font-family="monospace" fill="#2f5fd8">{id:3, type:'info'}</text>
+
+    <path d="M428 105 H492" stroke="#2f5fd8" stroke-width="1.6" fill="none" marker-end="url(#b)"/>
+    <text x="460" y="97" text-anchor="middle" font-size="10.5" fill="#5c6478">map</text>
+
+    <rect x="498" y="45" width="200" height="120" rx="8" fill="#e6f5ef" stroke="#bfe4d5"/>
+    <text x="598" y="67" text-anchor="middle" font-size="12" fill="#127a5b">portal → document.body</text>
+    <rect x="512" y="78" width="172" height="22" rx="4" fill="#fff" stroke="#bfe4d5"/>
+    <rect x="512" y="105" width="172" height="22" rx="4" fill="#fff" stroke="#bfe4d5"/>
+    <rect x="512" y="132" width="172" height="22" rx="4" fill="#fff" stroke="#bfe4d5"/>
+
+    <path d="M598 172 Q598 200 340 196 Q250 194 250 168" stroke="#b3261e" stroke-width="1.4"
+      fill="none" stroke-dasharray="4 3" marker-end="url(#c)"/>
+    <text x="440" y="209" text-anchor="middle" font-size="11" fill="#b3261e">timer fires → removeToast(id)</text>
+  </svg>
+
+  <div class="box key"><b>The one idea</b>
+    Everything is keyed by <code>id</code>, never by position. Positions shift; ids don't.</div>
+
+  <h2>The shape of the state</h2>
+<pre><code>const [toasts, setToasts] = useState([]);
+<span class="cmt">// [
+//   { id: 1,               // unique, permanent handle — the whole system hinges on this
+//     type: 'success',     // drives colour + icon; data, not branches in JSX
+//     message: 'Saved' }   // what the user reads
+// ]</span>
+
+const nextId = useRef(0); <span class="cmt">// a ref = a box that survives re-renders</span>
+</code></pre>
+  <p><b>Rule of thumb:</b> one array is the source of truth. Order is render order. Timers are
+  <em>not</em> state — they live inside each toast.</p>
+
+  <h2>Build it in layers</h2>
+  <p class="note">In an interview: build L1 and L2 out loud, then ask "want me to add Context and auto-dismiss?"</p>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Dumbest thing that renders</h3>
+    <p>Hard-coded array. No state, no timers.</p>
+<pre><code>const toasts = [{ id: 1, type: 'success', message: 'Saved' }];
+
+&lt;div className="toast-stack"&gt;
+  {toasts.map(t =&gt; (
+    &lt;div key={t.id} className={`toast ${t.type}`}&gt;
+      {t.message} &lt;button&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+  ))}
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Add + remove by id</h3>
+    <p>Push with a fresh id; filter that id out.</p>
+<pre><code>const [toasts, setToasts] = useState([]);
+const nextId = useRef(0);
+
+const addToast = (message, type = 'info') =&gt;
+  setToasts(ts =&gt; [...ts, { id: nextId.current++, type, message }]);
+
+const removeToast = (id) =&gt;
+  setToasts(ts =&gt; ts.filter(t =&gt; t.id !== id));   <span class="cmt">// ← by id, never by index</span></code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> Each toast owns its timer</h3>
+    <p>The child sets its own <code>setTimeout</code> and cleans it up. The parent juggles nothing.</p>
+<pre><code>function Toast({ toast, onClose }) {
+  useEffect(() =&gt; {
+    const t = setTimeout(() =&gt; onClose(toast.id), 3000);
+    return () =&gt; clearTimeout(t);          <span class="cmt">// cleanup on unmount</span>
+  }, [toast.id, onClose]);                 <span class="cmt">// onClose must be stable — useCallback</span>
+
+  return (
+    &lt;div className={`toast ${toast.type}`} role="status"&gt;
+      &lt;span&gt;{ICONS[toast.type]}&lt;/span&gt;
+      {toast.message}
+      &lt;button onClick={() =&gt; onClose(toast.id)} aria-label="Dismiss"&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Context + <code>useToast()</code> + portal</h3>
+    <p>This is the point of the question: fire a toast from anywhere, zero prop drilling.</p>
+<pre><code>const ToastCtx = createContext(null);
+export const useToast = () =&gt; useContext(ToastCtx);
+
+<span class="cmt">// in any component, 12 levels deep:</span>
+const toast = useToast();
+&lt;button onClick={() =&gt; toast.success('Profile saved')}&gt;Save&lt;/button&gt;</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>const ToastCtx = createContext(null);
+export const useToast = () =&gt; useContext(ToastCtx);
+const ICONS = { success: '✓', error: '✕', info: 'i' };
+
+function Toast({ toast, onClose }) {
+  useEffect(() =&gt; {
+    const t = setTimeout(() =&gt; onClose(toast.id), 3000);
+    return () =&gt; clearTimeout(t);
+  }, [toast.id, onClose]);
+
+  return (
+    &lt;div className={`toast ${toast.type}`}&gt;
+      &lt;span&gt;{ICONS[toast.type]}&lt;/span&gt;
+      &lt;span&gt;{toast.message}&lt;/span&gt;
+      &lt;button onClick={() =&gt; onClose(toast.id)} aria-label="Dismiss"&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const nextId = useRef(0);
+
+  const removeToast = useCallback((id) =&gt;
+    setToasts(ts =&gt; ts.filter(t =&gt; t.id !== id)), []);
+
+  const api = useMemo(() =&gt; {
+    const add = (message, type) =&gt;
+      setToasts(ts =&gt; [...ts, { id: nextId.current++, type, message }]);
+    return {
+      success: (m) =&gt; add(m, 'success'),
+      error:   (m) =&gt; add(m, 'error'),
+      info:    (m) =&gt; add(m, 'info'),
+    };
+  }, []);
+
+  return (
+    &lt;ToastCtx.Provider value={api}&gt;
+      {children}
+      {createPortal(
+        &lt;div className="toast-stack" aria-live="polite" aria-atomic="false"&gt;
+          {toasts.map(t =&gt; (
+            &lt;Toast key={t.id} toast={t} onClose={removeToast} /&gt;
+          ))}
+        &lt;/div&gt;,
+        document.body
+      )}
+    &lt;/ToastCtx.Provider&gt;
+  );
+}</code></pre>
+  <p class="note">CSS: <code>.toast-stack{position:fixed;top:1rem;right:1rem;display:flex;flex-direction:column;gap:.5rem}</code></p>
+
+  <h2>Gotchas</h2>
+  <div class="gotcha"><b>Dismissing by index.</b>
+    <code>splice(i,1)</code> inside a timer captures a stale index — toast&nbsp;2's timer fires
+    after toast&nbsp;1 already left, and kills the wrong one. Filter by id.</div>
+  <div class="gotcha"><b>Stale state in the timer.</b>
+    <code>setToasts(toasts.filter(...))</code> closes over an old array. Always use the updater
+    form: <code>setToasts(ts =&gt; ...)</code>.</div>
+  <div class="gotcha"><b>Unstable <code>onClose</code>.</b>
+    A new function every render re-runs the effect, restarting the 3s timer forever — the toast
+    never dies. Wrap it in <code>useCallback</code>.</div>
+  <div class="gotcha"><b>Using array index as <code>key</code>.</b>
+    Remove the first toast and React reuses the wrong DOM node — text swaps, animation jumps.
+    <code>key={t.id}</code>.</div>
+  <div class="gotcha"><b>The parent holding a map of timers.</b>
+    Works, but you now hand-clear on unmount, on manual close, on re-render. Let the child own it.</div>
+
+  <h2>If they push</h2>
+  <div class="qa"><b>"Pause the timer on hover."</b>
+    Store the deadline in a ref; clear on <code>mouseenter</code>, restart with the remaining time
+    on <code>mouseleave</code>.
+<pre><code>const left = useRef(3000), start = useRef(0);
+const pause = () =&gt; { clearTimeout(id.current);
+  left.current -= Date.now() - start.current; };
+const resume = () =&gt; { start.current = Date.now();
+  id.current = setTimeout(() =&gt; onClose(toast.id), left.current); };</code></pre></div>
+
+  <div class="qa"><b>"Only show 3 at a time, queue the rest."</b>
+    Keep the full array; render <code>toasts.slice(0, 3)</code>. Unrendered toasts have no timer,
+    so they wait automatically and start counting when they scroll into the visible slice.</div>
+
+  <div class="qa"><b>"Animate them out."</b>
+    Removal unmounts instantly, so there's nothing to animate. Add <code>exiting: true</code> to the
+    toast, wait for <code>onAnimationEnd</code>, then filter it out. Or use a library
+    (Framer Motion <code>AnimatePresence</code>).</div>
+
+  <div class="qa"><b>"Screen readers?"</b>
+    Wrap the stack in <code>aria-live="polite"</code> so new toasts are announced without stealing
+    focus. Errors can use <code>role="alert"</code> (assertive). Give ✕ an
+    <code>aria-label</code>. Never auto-dismiss something the user must act on.</div>
+
+  <div class="qa"><b>"Same message fired 10 times?"</b>
+    Dedupe on add: if a toast with the same <code>message</code> exists, bump its id/timer instead
+    of pushing a new one — or show a count badge.</div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"State is one array of toasts — id, type, message. The id is the handle for everything."</li>
+    <li>"I'll remove by id, not index, so a firing timer can't delete the wrong toast."</li>
+    <li>"Each Toast owns its own setTimeout in an effect with cleanup — the parent doesn't track N timers."</li>
+    <li>"onClose goes through useCallback, otherwise the effect restarts and it never dismisses."</li>
+    <li>"Context plus a useToast hook, so any component fires one without prop drilling."</li>
+    <li>"Stack is portalled to body with aria-live polite, so it isn't clipped and is announced."</li>
+    <li>"Styling I'd keep minimal — happy to add hover-pause or a max-visible queue if you want."</li>
+  </ul>
+</div>
+</body>
+</html>

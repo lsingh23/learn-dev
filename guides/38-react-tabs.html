@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>38 — Tabs</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- tabs-specific --- */
+  .tabstrip{display:flex;gap:.15rem;border-bottom:2px solid #e4e2dd}
+  .tab{padding:.5rem .9rem;font-size:.88rem;color:var(--muted);border-bottom:2px solid transparent;
+    margin-bottom:-2px;border-radius:6px 6px 0 0}
+  .tab.on{color:var(--accent);font-weight:600;border-bottom-color:var(--accent);background:var(--state-bg)}
+  .panel{padding:1rem .2rem;font-size:.9rem;color:#333a4a;min-height:74px}
+  .anno{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:.35rem;margin:.35rem 0}
+  .arrow{color:var(--accent);font-weight:700}
+  .pill{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;border-radius:999px;
+    padding:.1rem .5rem;border:1px solid}
+  .p-state{background:var(--state-bg);border-color:#c3d4fb;color:var(--state)}
+  .p-dom{background:var(--dom-bg);border-color:#bfe4d5;color:var(--dom)}
+  .p-user{background:var(--user-bg);border-color:#f0dcb4;color:var(--user)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>38. Tabs</h1>
+  <p class="sub">One state value, one <code>find()</code>. The whole test is whether you store the right thing.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a Tabs component. It takes an array of <code>{ id, label, content }</code> and shows one panel at a time. Clicking a tab switches the panel."
+  </div>
+  <p>Plain English: highlight one button, show the matching content.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Tabs — 3 items, second one active</div>
+    <div class="ui">
+      <div class="tabstrip">
+        <div class="tab">Overview</div>
+        <div class="tab on">Reviews</div>
+        <div class="tab">Shipping</div>
+      </div>
+      <div class="panel">
+        4.6 out of 5 from 812 reviews. Most mention the battery life.
+      </div>
+    </div>
+    <div class="anno"><span class="arrow">↑</span> the strip <span class="pill p-dom">role="tablist"</span> — one button per item in the array</div>
+    <div class="anno"><span class="arrow">↑</span> active tab is the one whose <code>id === activeId</code> <span class="pill p-state">activeId = "reviews"</span></div>
+    <div class="anno"><span class="arrow">↑</span> the panel <span class="pill p-dom">role="tabpanel"</span> — content of the found tab, nothing else rendered</div>
+    <div class="anno"><span class="arrow">↑</span> click or <span class="pill p-user">← →</span> keys change <code>activeId</code></div>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Render one button per array item.</li>
+    <li>Show exactly one panel at a time.</li>
+    <li>Highlight the active tab.</li>
+    <li>Switch on click.</li>
+    <li>Move with arrow keys.</li>
+    <li>Announce itself correctly to screen readers.</li>
+  </ul>
+  <p class="sub" style="font-size:.85rem;margin:.4rem 0 0">Styling barely matters here. Logic and markup are what's scored.</p>
+
+  <h2>The mental model</h2>
+  <p>You store <b>which tab is open</b> — a string. Everything on screen is computed from it.</p>
+
+  <svg viewBox="0 0 700 210" role="img" aria-label="activeId flows into both the strip and the panel">
+    <rect x="230" y="10" width="240" height="46" rx="9" fill="#eaf0fe" stroke="#c3d4fb"/>
+    <text x="350" y="32" text-anchor="middle" font-size="14" font-family="ui-monospace,Menlo,monospace" fill="#2f5fd8">activeId = "reviews"</text>
+    <text x="350" y="48" text-anchor="middle" font-size="11" fill="#5c6478">the only state</text>
+
+    <path d="M300 56 L170 96" stroke="#9aa3b5" fill="none" stroke-width="1.5" marker-end="url(#a)"/>
+    <path d="M400 56 L530 96" stroke="#9aa3b5" fill="none" stroke-width="1.5" marker-end="url(#a)"/>
+    <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0 0 L6 3 L0 6 z" fill="#9aa3b5"/></marker></defs>
+
+    <rect x="30" y="100" width="280" height="80" rx="9" fill="#e6f5ef" stroke="#bfe4d5"/>
+    <text x="170" y="126" text-anchor="middle" font-size="13" fill="#127a5b">the strip</text>
+    <text x="170" y="148" text-anchor="middle" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="#127a5b">t.id === activeId → highlighted</text>
+    <text x="170" y="166" text-anchor="middle" font-size="11" fill="#5c6478">map over the array</text>
+
+    <rect x="390" y="100" width="280" height="80" rx="9" fill="#e6f5ef" stroke="#bfe4d5"/>
+    <text x="530" y="126" text-anchor="middle" font-size="13" fill="#127a5b">the panel</text>
+    <text x="530" y="148" text-anchor="middle" font-size="11.5" font-family="ui-monospace,Menlo,monospace" fill="#127a5b">tabs.find(t =&gt; t.id === activeId)</text>
+    <text x="530" y="166" text-anchor="middle" font-size="11" fill="#5c6478">derived, never stored</text>
+  </svg>
+
+  <div class="box tip"><b>One source of truth</b>
+  The active tab <i>object</i> is not state — it's a <code>find()</code> away. Store the id; derive the rest.</div>
+
+  <h2>The shape of the state</h2>
+<pre><code><span class="cmt">// props — the data drives everything</span>
+tabs = [{ id: <span class="hi">'overview'</span>, label: 'Overview', content: … }, …]
+
+<span class="cmt">// state — exactly one value</span>
+const [activeId, setActiveId] = useState(tabs[0].id);
+<span class="cmt">//     ^ which tab is open. A string id, not an index, not the object.</span>
+
+<span class="cmt">// derived — recomputed each render, free</span>
+const active = tabs.find(t =&gt; t.id === activeId);
+</code></pre>
+
+  <p><b>Why an id, not an index?</b></p>
+  <table>
+    <tr><th>If you store</th><th>What breaks</th></tr>
+    <tr><td><code>activeIndex = 1</code></td><td>Reorder or remove a tab and the wrong panel opens. Index means "second thing", not "Reviews".</td></tr>
+    <tr><td><code>activeTab = {…}</code></td><td>The object goes stale when <code>tabs</code> updates. Two truths, one screen.</td></tr>
+    <tr><td><code>activeId = 'reviews'</code></td><td>Nothing. It's a stable name and it survives reorders.</td></tr>
+  </table>
+
+  <h2>Build it in layers</h2>
+  <div class="box key"><b>In the interview</b>
+  Build L1 and L2 out loud — that's a working Tabs in about ten lines. Then stop and ask: <i>"want me to add keyboard nav and ARIA?"</i></div>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup, no state</h3>
+    <p>The dumbest thing that renders. Prove the shape first.</p>
+<pre><code>function Tabs({ tabs }) {
+  return (
+    &lt;div&gt;
+      &lt;div className="strip"&gt;
+        {tabs.map(t =&gt; &lt;button key={t.id}&gt;{t.label}&lt;/button&gt;)}
+      &lt;/div&gt;
+      &lt;div className="panel"&gt;{tabs[0].content}&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> One state value + find()</h3>
+    <p>Adds switching. This is already a correct answer.</p>
+<pre><code>const [activeId, setActiveId] = useState(tabs[0].id);
+const active = tabs.find(t =&gt; t.id === activeId);
+
+{tabs.map(t =&gt; (
+  &lt;button key={t.id}
+    className={t.id === activeId ? 'on' : ''}
+    onClick={() =&gt; setActiveId(t.id)}&gt;{t.label}&lt;/button&gt;
+))}
+&lt;div className="panel"&gt;{active?.content}&lt;/div&gt;
+<span class="cmt">// ?. because a tab can be deleted while it's open</span></code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> ARIA roles</h3>
+    <p>Three roles and three attributes. Free points.</p>
+<pre><code>&lt;div role="tablist"&gt;
+  &lt;button role="tab" id={`tab-${t.id}`}
+    aria-selected={t.id === activeId}
+    aria-controls={`panel-${t.id}`}&gt;{t.label}&lt;/button&gt;
+&lt;/div&gt;
+&lt;div role="tabpanel" id={`panel-${active.id}`}
+     aria-labelledby={`tab-${active.id}`} tabIndex={0}&gt;
+  {active.content}
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Arrow keys + roving tabindex</h3>
+    <p><i>Roving tabindex</i> — only the active tab is Tab-reachable; arrows move between tabs.</p>
+<pre><code>const move = (dir) =&gt; {
+  const i = tabs.findIndex(t =&gt; t.id === activeId);
+  const next = tabs[(i + dir + tabs.length) % tabs.length]; <span class="cmt">// wraps</span>
+  setActiveId(next.id);
+  document.getElementById(`tab-${next.id}`)?.focus();      <span class="cmt">// focus follows</span>
+};
+
+onKeyDown={(e) =&gt; {
+  if (e.key === 'ArrowRight') move(1);
+  if (e.key === 'ArrowLeft')  move(-1);
+  if (e.key === 'Home') setActiveId(tabs[0].id);
+  if (e.key === 'End')  setActiveId(tabs.at(-1).id);
+}}
+<span class="cmt">// on each button: tabIndex={t.id === activeId ? 0 : -1}</span></code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useState } from 'react';
+
+export default function Tabs({ tabs, defaultId }) {
+  const [activeId, setActiveId] = useState(defaultId ?? tabs[0]?.id);
+  const active = tabs.find(t =&gt; t.id === activeId) ?? tabs[0];
+
+  const move = (dir) =&gt; {
+    const i = tabs.findIndex(t =&gt; t.id === active.id);
+    const next = tabs[(i + dir + tabs.length) % tabs.length];
+    setActiveId(next.id);
+    document.getElementById(`tab-${next.id}`)?.focus();
+  };
+
+  const onKeyDown = (e) =&gt; {
+    const k = e.key;
+    if (k === 'ArrowRight') { e.preventDefault(); move(1); }
+    else if (k === 'ArrowLeft') { e.preventDefault(); move(-1); }
+    else if (k === 'Home') { e.preventDefault(); setActiveId(tabs[0].id); }
+    else if (k === 'End') { e.preventDefault(); setActiveId(tabs.at(-1).id); }
+  };
+
+  if (!tabs?.length) return null;
+
+  return (
+    &lt;div className="tabs"&gt;
+      &lt;div role="tablist" aria-label="Sections" onKeyDown={onKeyDown}&gt;
+        {tabs.map(t =&gt; {
+          const on = t.id === active.id;
+          return (
+            &lt;button
+              key={t.id}
+              id={`tab-${t.id}`}
+              role="tab"
+              type="button"
+              aria-selected={on}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={on ? 0 : -1}
+              className={on ? 'tab on' : 'tab'}
+              onClick={() =&gt; setActiveId(t.id)}
+            &gt;
+              {t.label}
+            &lt;/button&gt;
+          );
+        })}
+      &lt;/div&gt;
+
+      &lt;div
+        role="tabpanel"
+        id={`panel-${active.id}`}
+        aria-labelledby={`tab-${active.id}`}
+        tabIndex={0}
+      &gt;
+        {active.content}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha"><b>Storing the tab object in state.</b>
+  It goes stale the moment <code>tabs</code> changes. Store <code>activeId</code>, derive with <code>find()</code>.</div>
+
+  <div class="gotcha"><b>Storing an index.</b>
+  Reorder or delete a tab and the panel silently switches. Ids are stable, positions are not.</div>
+
+  <div class="gotcha"><b>Assuming <code>find()</code> found something.</b>
+  The open tab can be removed. Fall back: <code>?? tabs[0]</code>, and handle an empty array.</div>
+
+  <div class="gotcha"><b><code>&lt;div&gt;</code> instead of <code>&lt;button&gt;</code> for a tab.</b>
+  No focus, no Enter/Space, no announcement. Always a real <code>&lt;button type="button"&gt;</code>.</div>
+
+  <div class="gotcha"><b>Every tab left in the tab order.</b>
+  A tablist is one stop, not five. Roving tabindex: <code>0</code> on the active tab, <code>-1</code> on the rest.</div>
+
+  <h2>If they push</h2>
+
+  <div class="qa"><b>"Render all panels and hide the inactive ones instead?"</b>
+  <p>Trade-off. Rendering only the active one unmounts the others — <b>they lose their state</b> (a half-typed form, a scroll position). Keep them mounted with <code>hidden</code> when that matters:</p>
+<pre><code>{tabs.map(t =&gt; (
+  &lt;div key={t.id} role="tabpanel" hidden={t.id !== activeId}&gt;{t.content}&lt;/div&gt;
+))}
+<span class="cmt">// hidden, not display:none in a class — screen readers respect it</span></code></pre>
+  <p>Cost: all panels mount up front. Default to active-only; switch when losing state hurts.</p></div>
+
+  <div class="qa"><b>"Make it controlled."</b>
+  <p>Support both: use the prop when given, internal state when not.</p>
+<pre><code>const [inner, setInner] = useState(defaultId ?? tabs[0].id);
+const activeId = value ?? inner;                <span class="cmt">// controlled if `value` passed</span>
+const select = (id) =&gt; { setInner(id); onChange?.(id); };</code></pre></div>
+
+  <div class="qa"><b>"The panel is expensive — don't build it until it's opened."</b>
+  <p>Lazy-mount: remember which tabs have ever been visited, render only those.</p>
+<pre><code>const [seen, setSeen] = useState(() =&gt; new Set([activeId]));
+<span class="cmt">// on select: setSeen(s =&gt; new Set(s).add(id))  — new Set, or React won't re-render</span>
+{tabs.filter(t =&gt; seen.has(t.id)).map(...)}</code></pre></div>
+
+  <div class="qa"><b>"Put the active tab in the URL."</b>
+  <p>Then the URL is the state — drop <code>useState</code> and read the query param. Refresh and share now work.</p>
+<pre><code>const [params, setParams] = useSearchParams();
+const activeId = params.get('tab') ?? tabs[0].id;
+const select = (id) =&gt; setParams({ tab: id }, { replace: true });
+<span class="cmt">// replace: true so tab clicks don't spam the back button</span></code></pre></div>
+
+  <div class="qa"><b>"Twenty tabs, they overflow."</b>
+  <p>Horizontal scroll on the tablist, plus <code>scrollIntoView</code> on the newly active tab so keyboard nav never lands off-screen.</p></div>
+
+  <h2>Say this out loud</h2>
+  <ol class="say">
+    <li>"There's really one piece of state here — which tab is open — so I'll hold <code>activeId</code>."</li>
+    <li>"I'm storing the id rather than an index, so reordering the tabs can't open the wrong panel."</li>
+    <li>"The active tab object is derived with a <code>find()</code>, not stored — one source of truth."</li>
+    <li>"I'll render only the active panel. If panels held form state I'd keep them all mounted and use <code>hidden</code> instead."</li>
+    <li>"These are real buttons in a tablist, with roving tabindex so the whole strip is one tab stop."</li>
+    <li>"Want it controlled, or the active tab synced to the URL? Both are small changes from here."</li>
+  </ol>
+</div>
+</body>
+</html>

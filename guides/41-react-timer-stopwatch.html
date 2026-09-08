@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>41 — Timer &amp; Stopwatch</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* guide-specific */
+  .clock{font:600 3.2rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    letter-spacing:.04em;text-align:center;margin:.4rem 0 .1rem}
+  .clock .ms{font-size:1.6rem;color:var(--muted)}
+  .pill{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;border-radius:99px;
+    padding:.1rem .55rem;border:1px solid}
+  .pill.on{background:var(--dom-bg);border-color:#bfe4d5;color:var(--dom)}
+  .laps{margin-top:.8rem;border-top:1px dashed #d9d6d0;padding-top:.6rem;
+    font:.82rem/1.9 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted)}
+  .laps div{display:flex;justify-content:space-between}
+  .ann{display:flex;gap:.5rem;align-items:center;font-size:.75rem;color:var(--muted);margin:.5rem 0}
+  .ann .arm{color:#b9b5ac}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>41. Timer &amp; Stopwatch</h1>
+  <p class="sub">Start, pause, reset, <code>mm:ss</code>. A 10-minute warm-up that quietly tests effects, cleanup and stale closures.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a stopwatch. Start, pause, reset, and show the time as <code>mm:ss</code>.
+    Then tell me why it drifts."
+  </div>
+  <p>A number that goes up on its own while a flag says it should.</p>
+
+  <h2>What we're building</h2>
+
+  <div class="mock">
+    <div class="mock-label">Stopwatch — running state</div>
+    <div class="ui" style="max-width:340px;margin:0 auto">
+      <div class="row" style="justify-content:space-between">
+        <span class="pill on">● running</span>
+        <span class="note">derived from state</span>
+      </div>
+      <div class="clock">02:07<span class="ms">.4</span></div>
+      <div class="ann" style="justify-content:center">
+        <span class="arm">▲</span> one number in state: <code>elapsed</code> ms
+      </div>
+      <div class="row" style="justify-content:center;margin-top:.6rem">
+        <span class="btn primary">Pause</span>
+        <span class="btn">Lap</span>
+        <span class="btn">Reset</span>
+      </div>
+      <div class="ann" style="justify-content:center">
+        <span class="arm">▲</span> label flips Start ⇄ Pause
+      </div>
+      <div class="laps">
+        <div><span>Lap 3</span><span>00:41.2</span></div>
+        <div><span>Lap 2</span><span>00:52.9</span></div>
+        <div><span>Lap 1</span><span>00:33.3</span></div>
+      </div>
+      <div class="ann"><span class="arm">▲</span> optional — only if they ask</div>
+    </div>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Start counting on Start.</li>
+    <li>Freeze on Pause, keep the value.</li>
+    <li>Resume from where it stopped.</li>
+    <li>Reset to <code>00:00</code>.</li>
+    <li>Show <code>mm:ss</code>, zero-padded.</li>
+    <li>Stop the interval when unmounted.</li>
+  </ul>
+  <p class="sub" style="font-size:.9rem;margin:0">Styling barely matters here. The clock ticking correctly is the whole score.</p>
+
+  <h2>The mental model</h2>
+  <p>One boolean drives one interval. <code>isRunning</code> flips → the effect tears the old interval down and builds a new one. You never start or stop a timer inside a click handler.</p>
+
+  <svg viewBox="0 0 700 190" role="img" aria-label="isRunning drives an effect which owns the interval which updates elapsed">
+    <rect x="10" y="60" width="150" height="62" rx="9" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="85" y="86" text-anchor="middle" font-size="14" font-family="monospace" fill="#2f5fd8">isRunning</text>
+    <text x="85" y="106" text-anchor="middle" font-size="12" fill="#5c6478">true / false</text>
+
+    <rect x="215" y="45" width="185" height="92" rx="9" fill="#fff" stroke="#5c6478"/>
+    <text x="307" y="72" text-anchor="middle" font-size="13" font-family="monospace">useEffect</text>
+    <text x="307" y="94" text-anchor="middle" font-size="12" fill="#127a5b">setInterval →</text>
+    <text x="307" y="114" text-anchor="middle" font-size="12" fill="#b3261e">cleanup: clearInterval</text>
+
+    <rect x="455" y="60" width="150" height="62" rx="9" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="530" y="86" text-anchor="middle" font-size="14" font-family="monospace" fill="#2f5fd8">elapsed</text>
+    <text x="530" y="106" text-anchor="middle" font-size="12" fill="#5c6478">milliseconds</text>
+
+    <path d="M160 91 H210" stroke="#5c6478" fill="none" marker-end="url(#a)"/>
+    <path d="M400 91 H450" stroke="#5c6478" fill="none" marker-end="url(#a)"/>
+    <path d="M530 130 V160 H85 V126" stroke="#9a6400" fill="none" stroke-dasharray="4 4" marker-end="url(#b)"/>
+    <text x="310" y="176" text-anchor="middle" font-size="11.5" fill="#9a6400">re-render — but the effect does NOT re-run (isRunning unchanged)</text>
+    <defs>
+      <marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#5c6478"/></marker>
+      <marker id="b" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#9a6400"/></marker>
+    </defs>
+  </svg>
+
+  <h2>The shape of the state</h2>
+<pre><code>const [elapsed, setElapsed]     = useState(0);     <span class="cmt">// ms since start — the ONLY truth</span>
+const [isRunning, setIsRunning] = useState(false); <span class="cmt">// should the interval exist?</span>
+</code></pre>
+  <p>That's it. <code>mm:ss</code> is <b>derived</b> every render — never stored.</p>
+  <div class="box tip">
+    <b>Rule of thumb</b>
+    Store the rawest value you have (a number of ms). Anything you could compute from it —
+    the label, the padding, "is it over a minute" — is a variable, not state.
+  </div>
+
+  <h2>Build it in layers</h2>
+  <p><b>In an interview, build L1 and L2 out loud, get it ticking, then ask "want me to add lap times or make it drift-free?"</b></p>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup</h3>
+    <p>Dumbest thing that renders.</p>
+<pre><code>function Stopwatch(){
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;00:00&lt;/h1&gt;
+      &lt;button&gt;Start&lt;/button&gt;
+      &lt;button&gt;Reset&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> It ticks</h3>
+    <p>One effect, keyed on <code>isRunning</code>, with cleanup.</p>
+<pre><code>const [elapsed, setElapsed] = useState(0);
+const [isRunning, setIsRunning] = useState(false);
+
+useEffect(() =&gt; {
+  if (!isRunning) return;
+  const id = setInterval(() =&gt; setElapsed(e =&gt; e + 100), 100);
+  return () =&gt; clearInterval(id);   <span class="cmt">// ← never optional</span>
+}, [isRunning]);
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> Format it</h3>
+    <p>A pure function outside the component.</p>
+<pre><code>function format(ms){
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+format(127400) <span class="cmt">// → "02:07"</span>
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Controls</h3>
+    <p>Buttons only flip state. They never touch the timer.</p>
+<pre><code>&lt;button onClick={() =&gt; setIsRunning(r =&gt; !r)}&gt;
+  {isRunning ? "Pause" : "Start"}
+&lt;/button&gt;
+&lt;button onClick={() =&gt; { setIsRunning(false); setElapsed(0); }}&gt;
+  Reset
+&lt;/button&gt;
+</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useState, useEffect } from "react";
+
+function format(ms){
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+export default function Stopwatch(){
+  const [elapsed, setElapsed] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() =&gt; {
+    if (!isRunning) return;
+    const id = setInterval(() =&gt; setElapsed(e =&gt; e + 100), 100);
+    return () =&gt; clearInterval(id);
+  }, [isRunning]);
+
+  return (
+    &lt;div&gt;
+      &lt;h1 aria-live="polite"&gt;{format(elapsed)}&lt;/h1&gt;
+      &lt;button onClick={() =&gt; setIsRunning(r =&gt; !r)}&gt;
+        {isRunning ? "Pause" : "Start"}
+      &lt;/button&gt;
+      &lt;button
+        onClick={() =&gt; { setIsRunning(false); setElapsed(0); }}
+        disabled={elapsed === 0}
+      &gt;
+        Reset
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha">
+    <b>No <code>clearInterval</code> in the cleanup.</b>
+    Every start stacks another interval. Two intervals = the clock runs at double speed,
+    and it keeps running after unmount. Return <code>() =&gt; clearInterval(id)</code>, always.
+  </div>
+
+  <div class="gotcha">
+    <b>Stale closure: <code>setElapsed(elapsed + 100)</code>.</b>
+    The callback captured <code>elapsed</code> from the render that created it — forever <code>0 + 100</code>.
+    The clock freezes at <code>00:00</code>. Use the functional updater <code>setElapsed(e =&gt; e + 100)</code>,
+    which reads the latest value.
+  </div>
+
+  <div class="mock">
+    <div class="mock-label">Same interval, two updaters</div>
+    <div class="row" style="gap:1rem;align-items:stretch">
+      <div class="ui" style="flex:1;min-width:210px;background:var(--bug-bg);border-color:#f3c9c4">
+        <div style="font-family:monospace;font-size:.8rem;color:var(--bug)">setElapsed(elapsed + 100)</div>
+        <div style="font-family:monospace;font-size:.85rem;margin-top:.5rem">
+          tick 1 → 100<br>tick 2 → 100<br>tick 3 → 100
+        </div>
+      </div>
+      <div class="ui" style="flex:1;min-width:210px;background:var(--dom-bg);border-color:#bfe4d5">
+        <div style="font-family:monospace;font-size:.8rem;color:var(--dom)">setElapsed(e =&gt; e + 100)</div>
+        <div style="font-family:monospace;font-size:.85rem;margin-top:.5rem">
+          tick 1 → 100<br>tick 2 → 200<br>tick 3 → 300
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gotcha">
+    <b>Storing the formatted string in state.</b>
+    <code>useState("00:00")</code> means you can't add milliseconds, laps or a countdown later.
+    Store ms; derive the string.
+  </div>
+
+  <div class="gotcha">
+    <b>Assuming <code>setInterval(fn, 1000)</code> fires every 1000&nbsp;ms.</b>
+    It fires <i>at least</i> 1000&nbsp;ms later, and background tabs throttle it to ~1/sec or less.
+    Counting ticks drifts seconds per minute. See below for the fix.
+  </div>
+
+  <div class="gotcha">
+    <b>Reset leaves it running.</b>
+    Reset must set both: <code>setIsRunning(false)</code> <i>and</i> <code>setElapsed(0)</code>.
+  </div>
+
+  <h2>If they push</h2>
+
+  <div class="qa">
+    <b>"Make it accurate — no drift."</b>
+    Stop counting ticks. Remember when you started and subtract. The interval becomes a
+    repaint trigger, not the clock.
+<pre><code>const startRef = useRef(0);   <span class="cmt">// a ref — a box that survives re-renders</span>
+const baseRef  = useRef(0);   <span class="cmt">// ms banked from previous runs</span>
+
+useEffect(() =&gt; {
+  if (!isRunning) return;
+  startRef.current = Date.now();
+  const id = setInterval(() =&gt; {
+    setElapsed(baseRef.current + (Date.now() - startRef.current));
+  }, 50);
+  return () =&gt; {
+    clearInterval(id);
+    baseRef.current += Date.now() - startRef.current;  <span class="cmt">// bank it on pause</span>
+  };
+}, [isRunning]);
+</code></pre>
+    <p style="margin-bottom:0">Late ticks no longer lose time — the next one reads the real clock.
+    Reset must also zero <code>baseRef.current</code>.</p>
+  </div>
+
+  <div class="qa">
+    <b>"Now make it a countdown."</b>
+    Same machinery, flipped. Keep a <code>duration</code>, render <code>duration - elapsed</code>,
+    and stop at zero:
+<pre><code>const left = Math.max(0, duration - elapsed);
+useEffect(() =&gt; { if (left === 0) setIsRunning(false); }, [left]);
+</code></pre>
+    Clamp with <code>Math.max(0, …)</code> so a late tick can't show <code>-00:01</code>.
+  </div>
+
+  <div class="qa">
+    <b>"Add lap times."</b>
+    Store the absolute marks, derive the splits.
+<pre><code>const [laps, setLaps] = useState([]);          <span class="cmt">// [1200, 4500, 7100]</span>
+const lap = () =&gt; setLaps(l =&gt; [...l, elapsed]);
+const splits = laps.map((t, i) =&gt; t - (laps[i - 1] ?? 0));
+</code></pre>
+  </div>
+
+  <div class="qa">
+    <b>"Show milliseconds."</b>
+    Tick at ~16&nbsp;ms (or use <code>requestAnimationFrame</code>) and extend <code>format</code>:
+    <code>String(ms % 1000).padStart(3,"0")</code>. Nothing else changes — that's the payoff for storing ms.
+  </div>
+
+  <div class="qa">
+    <b>"What if the tab is backgrounded?"</b>
+    Timers throttle, but the <code>Date.now()</code> version is immune: it recomputes from real time
+    the moment the tab wakes.
+  </div>
+
+  <div class="qa">
+    <b>"Extract a <code>useStopwatch</code> hook."</b>
+    Move both states plus the effect into a hook, return
+    <code>{ elapsed, isRunning, start, pause, reset }</code>. The component becomes markup only.
+  </div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"I'll keep elapsed milliseconds in state and derive mm:ss on render — one source of truth."</li>
+    <li>"The effect depends on isRunning, so flipping it tears down the old interval and starts a new one."</li>
+    <li>"I always return clearInterval — otherwise intervals stack and the clock runs double speed."</li>
+    <li>"Functional updater here, because the interval callback would otherwise close over a stale value."</li>
+    <li>"setInterval drifts, so if you want accuracy I'd store a start timestamp and diff against Date.now()."</li>
+    <li>"I'll put aria-live polite on the time and disable Reset at zero — styling I'll leave rough unless you want it."</li>
+  </ul>
+</div>
+</body>
+</html>

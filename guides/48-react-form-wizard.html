@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>48 — Multi-Step Form Wizard</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- guide-specific: step indicator --- */
+  .steps{display:flex;align-items:flex-start;margin:.2rem 0 1.1rem}
+  .stp{flex:1;text-align:center;position:relative}
+  .stp .dot{width:26px;height:26px;border-radius:50%;margin:0 auto .3rem;display:flex;
+    align-items:center;justify-content:center;font-size:.78rem;font-weight:700;
+    background:#eeece7;color:var(--muted);border:1px solid #d9d6d0;position:relative;z-index:1}
+  .stp.done .dot{background:var(--dom);border-color:var(--dom);color:#fff}
+  .stp.now  .dot{background:var(--accent);border-color:var(--accent);color:#fff;
+    box-shadow:0 0 0 4px var(--state-bg)}
+  .stp .cap{font-size:.72rem;color:var(--muted)}
+  .stp.now .cap{color:var(--accent);font-weight:600}
+  .stp::before{content:"";position:absolute;top:13px;left:-50%;width:100%;height:2px;background:#e4e2dd}
+  .stp:first-child::before{display:none}
+  .stp.done::before,.stp.now::before{background:var(--dom)}
+  .field{margin:.65rem 0}
+  .field label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:.2rem}
+  .field .inp{width:100%;display:block}
+  .field .inp.bad{border-color:var(--bug);background:#fffafa}
+  .err{color:var(--bug);font-size:.74rem;margin-top:.22rem}
+  .anno{font-size:.72rem;color:var(--muted);display:flex;gap:.45rem;align-items:center;margin:.35rem 0}
+  .anno .arw{color:var(--user)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:560px){ .cols{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>48. Multi-Step Form Wizard</h1>
+  <p class="sub">Three screens, one form. It tests whether you keep state in one place.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a 3-step signup form with a progress indicator. Back and Next between steps,
+    validate each step before moving on, and submit at the end."
+  </div>
+  <p>Plain English: <b>one</b> object holds every answer, and a number says which slice of it you're looking at.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Step 2 of 3, with a failed Next</div>
+    <div class="ui">
+      <div class="steps">
+        <div class="stp done"><div class="dot">✓</div><div class="cap">Account</div></div>
+        <div class="stp now"><div class="dot">2</div><div class="cap">Profile</div></div>
+        <div class="stp"><div class="dot">3</div><div class="cap">Review</div></div>
+      </div>
+
+      <div class="field">
+        <label>Full name</label>
+        <span class="inp">Ada Lovelace</span>
+      </div>
+      <div class="field">
+        <label>Age</label>
+        <span class="inp bad">7</span>
+        <div class="err">Must be 18 or older</div>
+      </div>
+
+      <div class="row" style="justify-content:space-between;margin-top:1rem">
+        <span class="btn">← Back</span>
+        <span class="btn primary">Next →</span>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem">
+      <div class="anno"><span class="arw">↑</span> dots come from the same <code>steps</code> array that picks the screen</div>
+      <div class="anno"><span class="arw">↑</span> green = passed, blue = current, grey = not reached</div>
+      <div class="anno"><span class="arw">↑</span> Back always works and keeps typed values</div>
+      <div class="anno"><span class="arw">↑</span> Next is blocked until this step validates</div>
+      <div class="anno"><span class="arw">↑</span> last step's button says <span class="note">Submit</span>, not Next</div>
+    </div>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Show which step you're on.</li>
+    <li>Keep typed values when you go Back.</li>
+    <li>Block Next on invalid fields.</li>
+    <li>Show errors only after you try.</li>
+    <li>Hide Back on step 1.</li>
+    <li>Submit the whole form at the end.</li>
+  </ul>
+  <p style="font-size:.9rem;color:var(--muted)">Styling barely matters here. Logic and state layout are what's scored.</p>
+
+  <h2>The mental model</h2>
+  <p>Not three forms. <b>One</b> form, revealed a third at a time. The inputs unmount when you
+  change step — the data must live <em>above</em> them, so it survives.</p>
+
+  <svg viewBox="0 0 700 210" role="img" aria-label="One formData object above three step views">
+    <rect x="170" y="8" width="360" height="62" rx="10" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="350" y="32" text-anchor="middle" font-size="13" font-weight="700" fill="#2f5fd8" font-family="ui-monospace,Menlo,monospace">formData</text>
+    <text x="350" y="52" text-anchor="middle" font-size="11.5" fill="#5c6478" font-family="ui-monospace,Menlo,monospace">{ email, pw, name, age, plan }</text>
+    <text x="350" y="90" text-anchor="middle" font-size="11" fill="#5c6478">one object · lives in the parent · never reset</text>
+
+    <line x1="350" y1="96" x2="90" y2="128" stroke="#2f5fd8" stroke-width="1.5"/>
+    <line x1="350" y1="96" x2="350" y2="128" stroke="#2f5fd8" stroke-width="1.5"/>
+    <line x1="350" y1="96" x2="610" y2="128" stroke="#2f5fd8" stroke-width="1.5"/>
+
+    <rect x="10" y="130" width="160" height="58" rx="9" fill="#fff" stroke="#e4e2dd"/>
+    <text x="90" y="152" text-anchor="middle" font-size="12" fill="#5c6478">step 0</text>
+    <text x="90" y="172" text-anchor="middle" font-size="11.5" fill="#1f2430">email · password</text>
+
+    <rect x="270" y="130" width="160" height="58" rx="9" fill="#e6f5ef" stroke="#127a5b"/>
+    <text x="350" y="152" text-anchor="middle" font-size="12" fill="#127a5b" font-weight="700">step 1 (rendered)</text>
+    <text x="350" y="172" text-anchor="middle" font-size="11.5" fill="#1f2430">name · age</text>
+
+    <rect x="530" y="130" width="160" height="58" rx="9" fill="#fff" stroke="#e4e2dd"/>
+    <text x="610" y="152" text-anchor="middle" font-size="12" fill="#5c6478">step 2</text>
+    <text x="610" y="172" text-anchor="middle" font-size="11.5" fill="#1f2430">plan</text>
+  </svg>
+
+  <div class="box tip">
+    <b>The whole trick</b>
+    <code>step</code> chooses what to <em>render</em>. It never chooses what to <em>store</em>.
+  </div>
+
+  <h2>The shape of the state</h2>
+<pre><code>const [step, setStep] = useState(0);      <span class="cmt">// which screen — a number, nothing more</span>
+const [data, setData] = useState({        <span class="cmt">// every answer from every step, in one bag</span>
+  email:"", password:"", name:"", age:"", plan:"free"
+});
+const [errors, setErrors] = useState({}); <span class="cmt">// { age: "Must be 18 or older" }</span>
+const [tried, setTried] = useState(false);<span class="cmt">// has Next been pressed on this step?</span>
+</code></pre>
+
+  <p><b>Rule of thumb:</b> one source of truth, derive the rest. Progress, button labels,
+  "is this the last step" — all computed from <code>step</code> at render time.</p>
+
+<pre><code><span class="cmt">// derived, NOT state:</span>
+const isLast  = step === steps.length - 1;
+const percent = (step / (steps.length - 1)) * 100;
+</code></pre>
+
+  <h2>Build it in layers</h2>
+  <div class="box key">
+    <b>In an interview</b>
+    Build L1 and L2 out loud first. Then say: "shared state next, then validation — want me to keep going?"
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup, no state</h3>
+    <p>Get one screen on the page. Prove the layout.</p>
+<pre><code>function Wizard(){
+  return (
+    &lt;div className="card"&gt;
+      &lt;h2&gt;Account&lt;/h2&gt;
+      &lt;input placeholder="Email" /&gt;
+      &lt;input placeholder="Password" /&gt;
+      &lt;button&gt;Next&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> A steps config + <code>step</code></h3>
+    <p>One array feeds both the dots and the body. Adding a step is now a one-line change.</p>
+<pre><code>const steps = [
+  { id:"account", title:"Account" },
+  { id:"profile", title:"Profile" },
+  { id:"plan",    title:"Plan"    },
+];
+
+const [step, setStep] = useState(0);
+const isLast = step === steps.length - 1;
+
+&lt;ol className="steps"&gt;
+  {steps.map((s, i) =&gt; (
+    &lt;li key={s.id} className={i &lt; step ? "done" : i === step ? "now" : ""}&gt;
+      {s.title}
+    &lt;/li&gt;
+  ))}
+&lt;/ol&gt;
+
+{step &gt; 0 &amp;&amp; &lt;button onClick={() =&gt; setStep(step - 1)}&gt;Back&lt;/button&gt;}
+&lt;button onClick={() =&gt; setStep(step + 1)}&gt;{isLast ? "Submit" : "Next"}&lt;/button&gt;
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> One shared <code>data</code> object</h3>
+    <p>Every input is controlled by the same bag, so Back keeps what you typed. One handler for all fields.</p>
+<pre><code>const [data, setData] = useState({ email:"", password:"", name:"", age:"" });
+
+function handleChange(e){
+  const { name, value } = e.target;              <span class="cmt">// name="email" → data.email</span>
+  setData(d =&gt; ({ ...d, [name]: value }));       <span class="cmt">// copy, then overwrite one key</span>
+}
+
+&lt;input name="email" value={data.email} onChange={handleChange} /&gt;
+&lt;input name="name"  value={data.name}  onChange={handleChange} /&gt;
+</code></pre>
+    <div class="box ok"><b>Demo it</b> Type, hit Next, hit Back — the text is still there. That's the answer to the question.</div>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Per-step validate + gated errors</h3>
+    <p>Each step owns a <code>validate(data)</code> that returns an errors object. Next runs it.</p>
+<pre><code>const steps = [
+  { id:"account", title:"Account", validate: d =&gt; ({
+      ...(!d.email.includes("@") &amp;&amp; { email:"Enter a valid email" }),
+      ...(d.password.length &lt; 8  &amp;&amp; { password:"8 characters minimum" }),
+  })},
+  <span class="cmt">// ...profile, plan</span>
+];
+
+function next(){
+  const errs = steps[step].validate(data);
+  setErrors(errs);
+  setTried(true);                               <span class="cmt">// now errors are allowed to show</span>
+  if (Object.keys(errs).length) return;         <span class="cmt">// blocked</span>
+  setTried(false);
+  setStep(s =&gt; s + 1);
+}
+
+{tried &amp;&amp; errors.email &amp;&amp; &lt;p className="err"&gt;{errors.email}&lt;/p&gt;}
+</code></pre>
+    <p style="font-size:.9rem;color:var(--muted)"><code>tried</code> is why you don't scream
+    "invalid email" at someone who has typed the letter <code>a</code>.</p>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>const steps = [
+  { id:"account", title:"Account",
+    fields:[["email","Email"],["password","Password"]],
+    validate: d =&gt; ({
+      ...(!d.email.includes("@") &amp;&amp; { email:"Enter a valid email" }),
+      ...(d.password.length &lt; 8  &amp;&amp; { password:"8 characters minimum" }) }) },
+  { id:"profile", title:"Profile",
+    fields:[["name","Full name"],["age","Age"]],
+    validate: d =&gt; ({
+      ...(!d.name.trim() &amp;&amp; { name:"Required" }),
+      ...(Number(d.age) &lt; 18 &amp;&amp; { age:"Must be 18 or older" }) }) },
+  { id:"plan", title:"Plan", fields:[["plan","Plan"]], validate: () =&gt; ({}) },
+];
+
+export default function Wizard(){
+  const [step, setStep]     = useState(0);
+  const [data, setData]     = useState({ email:"", password:"", name:"", age:"", plan:"free" });
+  const [errors, setErrors] = useState({});
+  const [tried, setTried]   = useState(false);
+
+  const current = steps[step];
+  const isLast  = step === steps.length - 1;
+
+  const handleChange = e =&gt;
+    setData(d =&gt; ({ ...d, [e.target.name]: e.target.value }));
+
+  function go(){
+    const errs = current.validate(data);
+    setErrors(errs); setTried(true);
+    if (Object.keys(errs).length) return;
+    if (isLast) return submit(data);
+    setTried(false); setStep(s =&gt; s + 1);
+  }
+
+  return (
+    &lt;form onSubmit={e =&gt; { e.preventDefault(); go(); }}&gt;
+      &lt;ol className="steps"&gt;
+        {steps.map((s,i) =&gt; (
+          &lt;li key={s.id} className={i &lt; step ? "done" : i === step ? "now" : ""}&gt;
+            {s.title}
+          &lt;/li&gt;))}
+      &lt;/ol&gt;
+
+      {current.fields.map(([name,label]) =&gt; (
+        &lt;div key={name}&gt;
+          &lt;label htmlFor={name}&gt;{label}&lt;/label&gt;
+          &lt;input id={name} name={name} value={data[name]}
+                 onChange={handleChange}
+                 aria-invalid={tried &amp;&amp; !!errors[name]}
+                 aria-describedby={`${name}-err`} /&gt;
+          {tried &amp;&amp; errors[name] &amp;&amp;
+            &lt;p id={`${name}-err`} className="err"&gt;{errors[name]}&lt;/p&gt;}
+        &lt;/div&gt;))}
+
+      {step &gt; 0 &amp;&amp; &lt;button type="button" onClick={() =&gt; setStep(s =&gt; s - 1)}&gt;Back&lt;/button&gt;}
+      &lt;button type="submit"&gt;{isLast ? "Submit" : "Next"}&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha">
+    <b>State per step (<code>step1Data</code>, <code>step2Data</code>).</b>
+    Now Back and Submit both have to stitch three objects together. One <code>data</code> bag, always.
+  </div>
+
+  <div class="gotcha">
+    <b>Rendering steps as three components that each own their inputs.</b>
+    Unmounting on step change wipes the values. Lift the data; the step is just a view.
+  </div>
+
+  <div class="gotcha">
+    <b>Validating on every keystroke.</b>
+    "Invalid email" after one character feels hostile. Gate on <code>tried</code> (or per-field <code>touched</code>).
+  </div>
+
+  <div class="gotcha">
+    <b>Mutating: <code>data[name] = value; setData(data)</code>.</b>
+    Same object reference → React skips the re-render. Always spread a new object.
+  </div>
+
+  <div class="gotcha">
+    <b>Forgetting <code>e.preventDefault()</code>.</b>
+    Enter inside a form reloads the page and you lose everything mid-demo.
+  </div>
+
+  <h2>If they push</h2>
+
+  <div class="qa">
+    <b>"Add a review step before submit."</b>
+    It's a step with no fields and no validation — just render <code>Object.entries(data)</code>
+    as a summary list, each row with an <em>Edit</em> button that calls <code>setStep(i)</code>.
+    Free, because everything is already in one object.
+  </div>
+
+  <div class="qa">
+    <b>"Now actually submit it."</b>
+    Add <code>status</code>, not three booleans.
+<pre><code>const [status, setStatus] = useState("idle"); <span class="cmt">// idle | sending | error | done</span>
+
+async function submit(){
+  setStatus("sending");
+  try { await api.signup(data); setStatus("done"); }
+  catch { setStatus("error"); }                <span class="cmt">// data still intact — user can retry</span>
+}
+&lt;button disabled={status === "sending"}&gt;{status === "sending" ? "Submitting…" : "Submit"}&lt;/button&gt;
+</code></pre>
+  </div>
+
+  <div class="qa">
+    <b>"Keep the step in the URL."</b>
+    Read it instead of storing it: <code>const step = Number(searchParams.get("step") ?? 0)</code>,
+    and <code>setSearchParams</code> to move. Refresh keeps the step — but <em>not</em> the data,
+    so mention that trade-off (sessionStorage if they care).
+  </div>
+
+  <div class="qa">
+    <b>"Fields depend on earlier answers."</b>
+    Make <code>steps</code> a function of data: <code>const steps = buildSteps(data)</code>.
+    Skipped steps just aren't in the array, so the dots update for free.
+  </div>
+
+  <div class="qa">
+    <b>"Would you use a library?"</b>
+    In real code, yes: <b>react-hook-form</b> for uncontrolled inputs (fewer re-renders, touched/dirty
+    built in) and <b>Zod</b> for the schema — one <code>schema.pick()</code> per step replaces the
+    hand-written validate. In an interview, say that, then hand-roll it anyway.
+  </div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"Two pieces of state: which step, and one object with every answer."</li>
+    <li>"The data lives in the parent, so going Back can't lose it — that's the point of the question."</li>
+    <li>"One steps array drives the progress dots and the rendered fields, so they can't drift apart."</li>
+    <li>"Each step carries its own validate, so validation scales with the config, not with if-statements."</li>
+    <li>"I won't show errors until they press Next — nagging on the first keystroke is bad UX."</li>
+    <li>"Inputs get a label, aria-invalid and aria-describedby so the error is announced, not just red."</li>
+    <li>"If this were production I'd reach for react-hook-form and a Zod schema per step."</li>
+  </ul>
+</div>
+</body>
+</html>

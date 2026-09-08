@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>58 — Like Button with Optimistic Update</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- guide-specific --- */
+  .states{display:flex;gap:.8rem;flex-wrap:wrap}
+  .states > div{flex:1 1 200px}
+  .cap{font-size:.72rem;color:var(--muted);margin:.45rem 0 .3rem;text-transform:uppercase;
+    letter-spacing:.07em}
+  .like{display:inline-flex;align-items:center;gap:.4rem;border:1px solid #d9d6d0;
+    border-radius:999px;padding:.35rem .8rem;background:#fff;font-size:.9rem}
+  .like.on{border-color:#e0435c;background:#fdeef1;color:#c02843;font-weight:600}
+  .heart{font-size:1rem}
+  .toast{margin-top:.7rem;background:var(--bug-bg);border:1px solid #f3c9c4;color:var(--bug);
+    border-radius:6px;padding:.35rem .6rem;font-size:.78rem}
+  .steps{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
+  .steps div{flex:1 1 130px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+    padding:.6rem .7rem;font-size:.82rem}
+  .steps b{display:block;font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:.2rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>58. Like Button with Optimistic Update</h1>
+  <p class="sub">Paint the result before the server confirms it — and undo cleanly when it lies.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    “Build a like button. It should feel instant — don’t make me wait for the network — but if
+    the request fails, put it back the way it was and tell me.”
+  </div>
+  <p>Update the UI first, ask the server after, roll back if it fails.</p>
+
+  <h2>What we're building</h2>
+
+  <div class="mock">
+    <div class="mock-label">Three states of one button</div>
+    <div class="states">
+      <div>
+        <div class="cap">1 · Unliked</div>
+        <div class="ui">
+          <div class="row"><span class="like"><span class="heart">🤍</span> Like · 128</span></div>
+          <p style="margin:.6rem 0 0;font-size:.75rem;color:#5c6478">Idle. Click me.</p>
+        </div>
+      </div>
+      <div>
+        <div class="cap">2 · Liked <span class="note">instantly</span></div>
+        <div class="ui">
+          <div class="row"><span class="like on"><span class="heart">❤️</span> Liked · 129</span></div>
+          <p style="margin:.6rem 0 0;font-size:.75rem;color:#5c6478">0&nbsp;ms. Request still in flight.</p>
+        </div>
+      </div>
+      <div>
+        <div class="cap">3 · Rolled back</div>
+        <div class="ui">
+          <div class="row"><span class="like"><span class="heart">🤍</span> Like · 128</span></div>
+          <div class="toast">Couldn’t save your like. Try again.</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin:1.1rem 0 0;font-size:.8rem;color:#5c6478">
+      ↑ heart, label and count move together — they are <b>one</b> piece of truth, never three.
+    </p>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Flip heart + count on click, instantly</li>
+    <li>Send the request in the background</li>
+    <li>Restore the old value on failure</li>
+    <li>Show a message when it rolls back</li>
+    <li>Survive rapid double-clicks</li>
+    <li>Be a real toggle button for screen readers</li>
+  </ul>
+
+  <h2>The mental model</h2>
+  <p>
+    Pessimistic UI waits for the server, then paints. Optimistic UI paints the <i>guess</i>,
+    then reconciles. The guess is right ~99% of the time, so you trade a rare rollback for
+    always-instant feedback.
+  </p>
+
+  <svg viewBox="0 0 700 230" role="img" aria-label="Timeline comparing pessimistic and optimistic updates">
+    <text x="0" y="16" font-size="12" font-weight="700" fill="#b3261e">PESSIMISTIC — feels slow</text>
+    <line x1="0" y1="60" x2="690" y2="60" stroke="#e4e2dd" stroke-width="2"/>
+    <circle cx="60" cy="60" r="6" fill="#9a6400"/>
+    <text x="42" y="46" font-size="11" fill="#9a6400">click</text>
+    <rect x="60" y="52" width="300" height="16" rx="8" fill="#fdecea" stroke="#f3c9c4"/>
+    <text x="150" y="64" font-size="11" fill="#b3261e">spinner… 300ms of nothing</text>
+    <circle cx="360" cy="60" r="6" fill="#127a5b"/>
+    <text x="374" y="64" font-size="11" fill="#127a5b">❤️ 129 appears</text>
+
+    <text x="0" y="132" font-size="12" font-weight="700" fill="#127a5b">OPTIMISTIC — feels instant</text>
+    <line x1="0" y1="176" x2="690" y2="176" stroke="#e4e2dd" stroke-width="2"/>
+    <circle cx="60" cy="176" r="6" fill="#9a6400"/>
+    <text x="42" y="162" font-size="11" fill="#9a6400">click</text>
+    <text x="72" y="164" font-size="11" fill="#127a5b">❤️ 129 appears (0ms)</text>
+    <rect x="60" y="168" width="300" height="16" rx="8" fill="#e6f5ef" stroke="#bfe4d5"/>
+    <text x="150" y="180" font-size="11" fill="#127a5b">request runs in background</text>
+    <circle cx="360" cy="176" r="6" fill="#2f5fd8"/>
+    <text x="374" y="180" font-size="11" fill="#2f5fd8">ok → nothing to do</text>
+    <text x="374" y="196" font-size="11" fill="#b3261e">fail → restore snapshot + toast</text>
+  </svg>
+
+  <div class="steps">
+    <div><b>1 · Snapshot</b>Copy the current <code>liked</code> and <code>count</code>.</div>
+    <div><b>2 · Set</b>Write the guessed value to state.</div>
+    <div><b>3 · Await</b>Fire the request, keep rendering.</div>
+    <div><b>4 · Restore</b>On throw, write the snapshot back.</div>
+  </div>
+
+  <div class="box key">
+    <b>Snapshot, don’t un-flip</b>
+    “Just flip it back” breaks the moment clicks overlap or the server disagrees. The snapshot is
+    the value that was <i>actually on screen</i> before this click — restoring it is always correct.
+  </div>
+
+  <h2>The shape of the state</h2>
+<pre><code><span class="cmt">// what the user sees right now — may be a guess</span>
+const [liked, setLiked] = useState(post.liked);
+const [count, setCount] = useState(post.likeCount);
+
+<span class="cmt">// rollback message; null = everything is fine</span>
+const [error, setError] = useState(null);
+
+<span class="cmt">// a ref — a box that survives re-renders.</span>
+<span class="cmt">// holds a ticket number for the newest click.</span>
+const latest = useRef(0);
+</code></pre>
+  <p>
+    <b>Rule of thumb:</b> the snapshot is a <i>local variable inside the handler</i>, not state.
+    It only needs to live as long as one request, so nothing should re-render because of it.
+  </p>
+
+  <h2>Build it in layers</h2>
+  <div class="box tip">
+    <b>In an interview</b>
+    Build L1 and L2 out loud first — that’s a working button in 90 seconds. Then say
+    “want me to add the optimistic update and rollback?” and do L3. L4 only if there’s time.
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup</h3>
+    <p>The dumbest thing that renders. No state, no server.</p>
+<pre><code>function LikeButton() {
+  return (
+    &lt;button className="like"&gt;
+      &lt;span&gt;🤍&lt;/span&gt; Like · 128
+    &lt;/button&gt;
+  );
+}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Local toggle</h3>
+    <p>Make it feel alive. Count and heart move together.</p>
+<pre><code>const [liked, setLiked] = useState(false);
+const [count, setCount] = useState(128);
+
+function toggle() {
+  const next = !liked;
+  setLiked(next);
+  setCount(c =&gt; c + (next ? 1 : -1));   <span class="cmt">// updater form: safe under batching</span>
+}
+
+&lt;button className={liked ? "like on" : "like"}
+        aria-pressed={liked} onClick={toggle}&gt;
+  {liked ? "❤️" : "🤍"} {liked ? "Liked" : "Like"} · {count}
+&lt;/button&gt;
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> Optimistic + rollback</h3>
+    <p>Snapshot, set, await, restore. This is the answer to the question.</p>
+<pre><code>async function toggle() {
+  const snapshot = { liked, count };      <span class="hi">// 1. remember</span>
+  const next = !liked;
+  setLiked(next);                          <span class="hi">// 2. paint the guess</span>
+  setCount(snapshot.count + (next ? 1 : -1));
+  setError(null);
+
+  try {
+    await api.setLike(postId, next);       <span class="hi">// 3. ask</span>
+  } catch {
+    setLiked(snapshot.liked);              <span class="hi">// 4. put it back</span>
+    setCount(snapshot.count);
+    setError("Couldn't save your like.");
+  }
+}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Survive rapid clicks</h3>
+    <p>Give each click a ticket. Only the newest ticket is allowed to touch state.</p>
+<pre><code>const id = ++latest.current;               <span class="cmt">// this click's ticket</span>
+try {
+  await api.setLike(postId, next);
+  if (id !== latest.current) return;       <span class="cmt">// a newer click already won</span>
+} catch {
+  if (id !== latest.current) return;       <span class="cmt">// stale failure — ignore it</span>
+  setLiked(snapshot.liked);
+  setCount(snapshot.count);
+  setError("Couldn't save your like.");
+}
+</code></pre>
+    <p style="font-size:.9rem;color:#5c6478">
+      Simpler alternative: <code>disabled={pending}</code>. Cheap, but it makes a fast tapper
+      feel blocked. Say you know both; last-click-wins is the nicer UX.
+    </p>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useState, useRef } from "react";
+
+export default function LikeButton({ postId, initialLiked, initialCount }) {
+  const [liked, setLiked] = useState(initialLiked);
+  const [count, setCount] = useState(initialCount);
+  const [error, setError] = useState(null);
+  const latest = useRef(0);
+
+  async function toggle() {
+    const snapshot = { liked, count };
+    const next = !liked;
+    const id = ++latest.current;
+
+    setLiked(next);
+    setCount(snapshot.count + (next ? 1 : -1));
+    setError(null);
+
+    try {
+      await api.setLike(postId, next);
+      if (id !== latest.current) return;          <span class="cmt">// stale success</span>
+    } catch {
+      if (id !== latest.current) return;          <span class="cmt">// stale failure</span>
+      setLiked(snapshot.liked);
+      setCount(snapshot.count);
+      setError("Couldn't save your like. Try again.");
+    }
+  }
+
+  return (
+    &lt;div&gt;
+      &lt;button
+        className={liked ? "like on" : "like"}
+        aria-pressed={liked}
+        aria-label={liked ? "Unlike" : "Like"}
+        onClick={toggle}
+      &gt;
+        &lt;span aria-hidden="true"&gt;{liked ? "❤️" : "🤍"}&lt;/span&gt;
+        {liked ? "Liked" : "Like"} · {count}
+      &lt;/button&gt;
+
+      {error &amp;&amp; &lt;p role="status" className="toast"&gt;{error}&lt;/p&gt;}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+  <p style="font-size:.9rem;color:#5c6478">Styling barely matters here — logic and rollback are what’s scored.</p>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha">
+    <b>Rolling back by flipping, not restoring.</b>
+    <code>setLiked(l =&gt; !l)</code> in the catch can land on the wrong value after a second click.
+    Write the snapshot.
+  </div>
+
+  <div class="gotcha">
+    <b>Reading <code>count</code> inside <code>setCount(c =&gt; …)</code> for the optimistic bump, then
+    restoring a stale number.</b>
+    Derive both from the same <code>snapshot</code> so the pair can never disagree.
+  </div>
+
+  <div class="gotcha">
+    <b>Silent rollback.</b>
+    The heart quietly un-fills and the user thinks the app is broken. Always pair a rollback with a
+    <code>role="status"</code> message.
+  </div>
+
+  <div class="gotcha">
+    <b>No stale-response guard.</b>
+    Click 5 times fast, five requests race, the slowest one lands last and sets the wrong state.
+    Ticket number, or disable while pending.</div>
+
+  <div class="gotcha">
+    <b>Fake button.</b>
+    A <code>&lt;div onClick&gt;</code> isn’t focusable or keyboard-operable. Use <code>&lt;button&gt;</code>
+    with <code>aria-pressed</code>.
+  </div>
+
+  <h2>If they push</h2>
+
+  <div class="qa">
+    <b>“Do it the React 19 way.”</b>
+    <code>useOptimistic</code> holds a temporary value that auto-reverts when the action settles —
+    no manual snapshot.
+<pre><code>const [optimisticLiked, setOptimisticLiked] = useOptimistic(liked);
+
+async function toggle() {
+  setOptimisticLiked(!liked);       <span class="cmt">// shown until the action ends</span>
+  await api.setLike(postId, !liked);
+  setLiked(!liked);                  <span class="cmt">// on throw, React reverts for you</span>
+}
+</code></pre>
+    Must be called inside a transition or a form action.
+  </div>
+
+  <div class="qa">
+    <b>“5 clicks shouldn’t be 5 requests.”</b>
+    Keep the UI instant, debounce only the network: on each click reset a 400ms timer, and send
+    the <i>final</i> value once it fires. Net effect: 5 clicks → 1 request carrying the last state.
+  </div>
+
+  <div class="qa">
+    <b>“What if they’re offline?”</b>
+    Push the intent onto a queue in <code>localStorage</code>, keep the optimistic UI, and flush on
+    the <code>online</code> event. Send the desired state (<code>liked: true</code>), never a
+    “toggle” — replaying a toggle twice inverts it.
+  </div>
+
+  <div class="qa">
+    <b>“How does React Query do this?”</b>
+    Same four steps, named:
+<pre><code>useMutation({
+  mutationFn: setLike,
+  onMutate: async (next) =&gt; {
+    await qc.cancelQueries({ queryKey: ["post", id] });
+    const prev = qc.getQueryData(["post", id]);       <span class="cmt">// snapshot</span>
+    qc.setQueryData(["post", id], p =&gt; ({ ...p, liked: next }));
+    return { prev };                                  <span class="cmt">// → context</span>
+  },
+  onError: (e, next, ctx) =&gt; qc.setQueryData(["post", id], ctx.prev),
+  onSettled: () =&gt; qc.invalidateQueries({ queryKey: ["post", id] }),
+});
+</code></pre>
+    <code>cancelQueries</code> matters: an in-flight refetch would otherwise overwrite your guess.
+  </div>
+
+  <div class="qa">
+    <b>“Many buttons on a feed?”</b>
+    Keep truth in one cache keyed by post id and let each button read its own entry, so two views
+    of the same post can’t drift apart.
+  </div>
+
+  <h2>Say this out loud</h2>
+  <div class="say">
+    <ul>
+      <li>“Optimistic just means: paint the guess now, ask the server after, undo if it says no.”</li>
+      <li>“I’ll snapshot the previous liked and count in a local variable — not state, it only lives for one request.”</li>
+      <li>“Count and liked are derived from the same snapshot, so they can never disagree.”</li>
+      <li>“Rapid clicks race, so I’ll tag each request and let only the newest one write state.”</li>
+      <li>“If it rolls back I show a status message — I don’t want to silently lie to the user.”</li>
+      <li>“It’s a real button with aria-pressed, so screen readers announce it as a toggle.”</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

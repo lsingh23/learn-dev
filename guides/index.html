@@ -104,6 +104,35 @@
     <li><a href="33-promise-all-and-event-emitter.html"><span class="t"><span class="n">33</span>Polyfill <code>Promise.all</code> &amp; build an <code>EventEmitter</code></span><span class="d">Preserving input order, counting completions, fail-fast rejection; on/emit/off/once and the mutation-during-emit bug.</span></a></li>
   </ul>
 
+  <h2>React Machine Coding</h2>
+  <ul>
+    <li><a href="34-react-todo-list.html"><span class="t"><span class="n">34</span>Todo List</span><span class="d">Immutable array updates, ids over indexes, derived filtering, clearing the input.</span></a></li>
+    <li><a href="35-react-debounced-search.html"><span class="t"><span class="n">35</span>Debounced Search &amp; Autocomplete</span><span class="d">One request per pause, the stale-response race, abort/ignore, loading and empty states.</span></a></li>
+    <li><a href="36-react-star-rating.html"><span class="t"><span class="n">36</span>Star Rating</span><span class="d">The <code>hover || rating</code> two-state trick, controlled vs uncontrolled, a11y, half stars.</span></a></li>
+    <li><a href="37-react-accordion.html"><span class="t"><span class="n">37</span>Accordion</span><span class="d"><code>openId</code> vs a Set of open ids, data-driven sections, aria-expanded.</span></a></li>
+    <li><a href="38-react-tabs.html"><span class="t"><span class="n">38</span>Tabs</span><span class="d">One <code>activeId</code>, panel derived by find, roving tabindex, tablist/tab/tabpanel.</span></a></li>
+    <li><a href="39-react-modal.html"><span class="t"><span class="n">39</span>Modal</span><span class="d">Parent owns <code>isOpen</code>, stopPropagation, Escape + scroll lock, portals, focus trap.</span></a></li>
+    <li><a href="40-react-pagination.html"><span class="t"><span class="n">40</span>Pagination</span><span class="d">The slice formula, totalPages, disabled ends, resetting page on filter change.</span></a></li>
+    <li><a href="41-react-timer-stopwatch.html"><span class="t"><span class="n">41</span>Timer &amp; Stopwatch</span><span class="d">clearInterval or it runs double speed, the functional updater, drift and timestamps.</span></a></li>
+    <li><a href="42-react-progress-bar.html"><span class="t"><span class="n">42</span>Progress Bar</span><span class="d">Track + fill, clamping, width vs <code>scaleX</code>, N bars in sequence, role=progressbar.</span></a></li>
+    <li><a href="43-react-traffic-light.html"><span class="t"><span class="n">43</span>Traffic Light</span><span class="d">It's a state machine: a config array + index + modulo, setTimeout with cleanup.</span></a></li>
+    <li><a href="44-react-custom-hooks.html"><span class="t"><span class="n">44</span>Custom Hooks: useDebounce &amp; useLocalStorage</span><span class="d">What a hook really is, lazy init, functional updaters, try/catch, cross-tab sync.</span></a></li>
+    <li><a href="45-react-infinite-scroll.html"><span class="t"><span class="n">45</span>Infinite Scroll</span><span class="d">IntersectionObserver on a sentinel, appending not replacing, the three anti-storm guards.</span></a></li>
+    <li><a href="46-react-nested-comments.html"><span class="t"><span class="n">46</span>Nested Comments &amp; File Explorer</span><span class="d">A component that renders itself, the base case, and the immutable deep update.</span></a></li>
+    <li><a href="47-react-shopping-cart.html"><span class="t"><span class="n">47</span>Shopping Cart</span><span class="d">Cart as <code>{id, qty}</code>, bump instead of duplicate, total derived with reduce, useReducer.</span></a></li>
+    <li><a href="48-react-form-wizard.html"><span class="t"><span class="n">48</span>Multi-Step Form Wizard</span><span class="d">One <code>step</code> + one <code>formData</code> so Back keeps your typing; per-step validation and touched.</span></a></li>
+    <li><a href="49-react-carousel.html"><span class="t"><span class="n">49</span>Image Carousel</span><span class="d">Modulo wrap (and the backwards off-by-one), a translated track, autoplay with cleanup.</span></a></li>
+    <li><a href="50-react-nested-checkboxes.html"><span class="t"><span class="n">50</span>Nested Checkboxes</span><span class="d">Down to children, up from children, and <code>indeterminate</code> as a ref-only DOM property.</span></a></li>
+    <li><a href="51-react-otp-input.html"><span class="t"><span class="n">51</span>OTP Input</span><span class="d">An array of chars, a ref array to focus siblings, backspace-back, paste-to-fill.</span></a></li>
+    <li><a href="52-react-toast-system.html"><span class="t"><span class="n">52</span>Toast Notifications</span><span class="d">An array keyed by id, each toast owning its own timer, Context + <code>useToast()</code>, aria-live.</span></a></li>
+    <li><a href="53-react-tic-tac-toe.html"><span class="t"><span class="n">53</span>Tic-Tac-Toe</span><span class="d">A flat array of 9, the 8 winning lines as a constant, draw detection, reset.</span></a></li>
+    <li><a href="54-react-contact-form.html"><span class="t"><span class="n">54</span>Contact Form &amp; Validation</span><span class="d">One values object, a pure validate(), touched so errors wait, aria-describedby.</span></a></li>
+    <li><a href="55-react-job-board.html"><span class="t"><span class="n">55</span>API List with Loading &amp; Error States</span><span class="d">Loading / error / empty / success, one status string, and why fetch doesn't reject on a 500.</span></a></li>
+    <li><a href="56-react-usefetch-hook.html"><span class="t"><span class="n">56</span>useFetch with Cleanup &amp; Abort</span><span class="d">The return shape, the slow-then-fast race, AbortController, the inline-options infinite loop.</span></a></li>
+    <li><a href="57-react-sortable-table.html"><span class="t"><span class="n">57</span>Sortable Table</span><span class="d">Store <code>{key, direction}</code>, derive the rows, never mutate with sort, filter&#8202;&#8594;&#8202;sort&#8202;&#8594;&#8202;paginate.</span></a></li>
+    <li><a href="58-react-optimistic-like.html"><span class="t"><span class="n">58</span>Like Button with Optimistic Update</span><span class="d">Snapshot, apply, roll back; rapid clicks and stale responses; React 19's useOptimistic.</span></a></li>
+  </ul>
+
   <h2>React</h2>
   <ul>
     <li><a href="09-react-rendering-model.html"><span class="t"><span class="n">09</span>How React Actually Renders</span><span class="d">The virtual DOM (and what it isn't), render vs commit, reconciliation heuristics, keys and why not array index, Fiber.</span></a></li>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>47 — Shopping Cart</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* guide-specific: cart mockup */
+  .cols{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 250px;min-width:230px}
+  .ctitle{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    margin:0 0 .5rem}
+  .prod{display:flex;align-items:center;gap:.6rem;padding:.5rem .2rem;
+    border-bottom:1px solid #eeece7}
+  .prod:last-child{border-bottom:none}
+  .thumb{width:30px;height:30px;border-radius:6px;background:#eeece7;flex:none;
+    font-size:16px;line-height:30px;text-align:center}
+  .prod .nm{flex:1}
+  .prod .pr{color:var(--muted);font-size:.82rem}
+  .line{display:flex;align-items:center;gap:.5rem;padding:.5rem .2rem;
+    border-bottom:1px solid #eeece7}
+  .line .nm{flex:1}
+  .stp{display:flex;align-items:center;gap:.3rem}
+  .sq{width:22px;height:22px;border:1px solid #cfd3dc;border-radius:5px;background:#f4f5f7;
+    font-size:.8rem;line-height:20px;text-align:center;flex:none}
+  .qty{min-width:16px;text-align:center;font-variant-numeric:tabular-nums}
+  .tot{display:flex;justify-content:space-between;font-weight:700;
+    padding-top:.6rem;margin-top:.3rem;border-top:2px solid #e4e2dd}
+  .anno{display:flex;gap:.5rem;align-items:baseline;font-size:.75rem;color:var(--muted);
+    margin:.35rem 0}
+  .anno .arm{color:var(--user);font-family:ui-monospace,Menlo,monospace}
+  .empty{color:var(--muted);font-size:.85rem;padding:.5rem .2rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; All guides</a>
+  <h1>47. Shopping Cart</h1>
+  <p class="sub">Scores one thing above all: do you store a reference, or a copy?</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    &ldquo;Here&rsquo;s a list of products. Let me add them to a cart, change the quantity,
+    remove things, and show me the running total.&rdquo;
+  </div>
+  <p>Two lists on screen, one array in state, one number derived from it.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Shop &mdash; the whole UI</div>
+    <div class="ui">
+      <div class="cols">
+        <div class="col">
+          <p class="ctitle">Products</p>
+          <div class="prod"><span class="thumb">&#9749;</span><span class="nm">Espresso</span>
+            <span class="pr">$3.50</span><span class="btn primary">Add</span></div>
+          <div class="prod"><span class="thumb">&#127849;</span><span class="nm">Croissant</span>
+            <span class="pr">$4.25</span><span class="btn primary">Add</span></div>
+          <div class="prod"><span class="thumb">&#127850;</span><span class="nm">Cookie</span>
+            <span class="pr">$2.00</span><span class="btn primary">Add</span></div>
+        </div>
+        <div class="col">
+          <p class="ctitle">Cart &middot; 3 items</p>
+          <div class="line"><span class="nm">Espresso</span>
+            <span class="stp"><span class="sq">&minus;</span><span class="qty">2</span><span class="sq">+</span></span>
+            <span class="pr">$7.00</span><span class="x">&times;</span></div>
+          <div class="line"><span class="nm">Cookie</span>
+            <span class="stp"><span class="sq">&minus;</span><span class="qty">1</span><span class="sq">+</span></span>
+            <span class="pr">$2.00</span><span class="x">&times;</span></div>
+          <div class="tot"><span>Total</span><span>$9.00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="anno"><span class="arm">&uarr; Add</span> already in cart? bump qty. Not there? push <code>{id, qty:1}</code>.</div>
+    <div class="anno"><span class="arm">&uarr; &minus;</span> at qty 1 removes the row entirely.</div>
+    <div class="anno"><span class="arm">&uarr; Total</span> not stored anywhere &mdash; recomputed every render.</div>
+    <div class="anno"><span class="arm">&uarr; Empty</span> cart shows &ldquo;Your cart is empty&rdquo;, total $0.00.</div>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>List products with name and price.</li>
+    <li>Add to cart; duplicates bump quantity.</li>
+    <li>+ / &minus; adjust quantity per line.</li>
+    <li>Removing at qty 1 deletes the row.</li>
+    <li>Show a running total, always correct.</li>
+    <li>Show an empty state.</li>
+  </ul>
+  <p class="sub" style="font-size:.85rem;margin:.4rem 0 0">Styling barely matters here. State shape and immutable updates are the score.</p>
+
+  <h2>The mental model</h2>
+  <p>The cart does <b>not</b> hold products. It holds <b>tickets</b>: an id and a quantity.
+  Prices live in exactly one place &mdash; the product list &mdash; and the cart points at them.</p>
+
+  <svg viewBox="0 0 700 210" role="img" aria-label="Cart holds ids and quantities that point into the product list; total is derived">
+    <rect x="10" y="30" width="230" height="150" rx="10" fill="#e6f5ef" stroke="#bfe4d5"/>
+    <text x="24" y="52" font-size="12" font-family="ui-monospace,Menlo,monospace" fill="#127a5b">products (never changes)</text>
+    <text x="24" y="82" font-size="13" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">{id:1, name:'Espresso', price:3.5}</text>
+    <text x="24" y="112" font-size="13" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">{id:2, name:'Croissant', price:4.25}</text>
+    <text x="24" y="142" font-size="13" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">{id:3, name:'Cookie', price:2}</text>
+
+    <rect x="300" y="30" width="180" height="150" rx="10" fill="#eaf0fe" stroke="#c3d4fb"/>
+    <text x="314" y="52" font-size="12" font-family="ui-monospace,Menlo,monospace" fill="#2f5fd8">cart (state)</text>
+    <text x="314" y="82" font-size="13" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">{id:1, qty:2}</text>
+    <text x="314" y="112" font-size="13" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">{id:3, qty:1}</text>
+
+    <path d="M310 78 C 270 78, 270 78, 246 78" stroke="#2f5fd8" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <path d="M310 108 C 270 108, 270 140, 246 140" stroke="#2f5fd8" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0 0 L7 3.5 L0 7 z" fill="#2f5fd8"/></marker></defs>
+
+    <rect x="530" y="70" width="155" height="70" rx="10" fill="#fff6e5" stroke="#f0dcb4"/>
+    <text x="544" y="93" font-size="12" font-family="ui-monospace,Menlo,monospace" fill="#9a6400">derived</text>
+    <text x="544" y="120" font-size="14" font-family="ui-monospace,Menlo,monospace" fill="#1f2430">total = $9.00</text>
+    <path d="M486 105 L 524 105" stroke="#9a6400" stroke-width="1.5" fill="none" marker-end="url(#b)"/>
+    <defs><marker id="b" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0 0 L7 3.5 L0 7 z" fill="#9a6400"/></marker></defs>
+  </svg>
+
+  <div class="box tip">
+    <b>Why not copy the product into the cart?</b>
+    Because then a price lives in two places. Change it once and the cart is stale.
+    Store the id; look the product up when you render.
+  </div>
+
+  <h2>The shape of the state</h2>
+<pre><code><span class="cmt">// data, not state — it never changes, so it lives outside the component</span>
+const PRODUCTS = [
+  { id: 1, name: 'Espresso',  price: 3.50 },
+  { id: 2, name: 'Croissant', price: 4.25 },
+  { id: 3, name: 'Cookie',    price: 2.00 },
+];
+
+<span class="cmt">// the ONLY state. one line per distinct product in the cart.</span>
+const [cart, setCart] = useState([]);
+<span class="cmt">// → [{ id: 1, qty: 2 }, { id: 3, qty: 1 }]</span>
+<span class="cmt">//     id  = which product (a pointer, not a copy)</span>
+<span class="cmt">//     qty = how many. qty is never 0 — a 0 row gets deleted.</span>
+</code></pre>
+
+  <div class="box key">
+    <b>Rule of thumb</b>
+    One source of truth &mdash; derive the rest. Total, item count and &ldquo;is this in the cart?&rdquo;
+    are all computed from <code>cart</code>, never stored beside it.
+  </div>
+
+  <p>A lookup map saves you a <code>find()</code> on every row:</p>
+<pre><code>const BY_ID = Object.fromEntries(PRODUCTS.map(p =&gt; [p.id, p]));
+<span class="cmt">// BY_ID[1].price → 3.5</span>
+</code></pre>
+
+  <h2>Build it in layers</h2>
+  <div class="box warn">
+    <b>In the interview</b>
+    Build L1 and L2 out loud, get something on screen, then ask
+    &ldquo;want me to add quantities, or persistence?&rdquo; Don&rsquo;t silently write all four.
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup, zero state</h3>
+    <p>Prove the products render. Nothing is clickable yet.</p>
+<pre><code>function Shop() {
+  return (
+    &lt;ul&gt;
+      {PRODUCTS.map(p =&gt; (
+        &lt;li key={p.id}&gt;{p.name} — ${p.price.toFixed(2)}
+          &lt;button&gt;Add&lt;/button&gt;
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Add to cart &mdash; the line they&rsquo;re watching for</h3>
+    <p>Existing line? bump it. New? append it. Never push a duplicate.</p>
+<pre><code>const [cart, setCart] = useState([]);
+
+function add(id) {
+  setCart(c =&gt;
+    <span class="hi">c.some(i =&gt; i.id === id)</span>
+      ? c.map(i =&gt; i.id === id ? { ...i, qty: i.qty + 1 } : i)
+      : [...c, { id, qty: 1 }]
+  );
+}
+</code></pre>
+    <p>Then render the cart by looking each id up:</p>
+<pre><code>{cart.map(i =&gt; (
+  &lt;li key={i.id}&gt;{BY_ID[i.id].name} &times; {i.qty}&lt;/li&gt;
+))}
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> Quantity &plusmn; and remove</h3>
+    <p>One function does both: map to change, filter to drop the zeros.</p>
+<pre><code>function changeQty(id, delta) {
+  setCart(c =&gt;
+    c.map(i =&gt; i.id === id ? { ...i, qty: i.qty + delta } : i)
+     <span class="hi">.filter(i =&gt; i.qty &gt; 0)</span>   <span class="cmt">// qty hit 0 → row disappears</span>
+  );
+}
+
+const remove = id =&gt; setCart(c =&gt; c.filter(i =&gt; i.id !== id));
+</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> The derived total</h3>
+    <p>Plain variables in the render body. No <code>useState</code>, no <code>useEffect</code>.</p>
+<pre><code>const total = cart.reduce(
+  (sum, i) =&gt; sum + BY_ID[i.id].price * i.qty, 0
+);
+const count = cart.reduce((n, i) =&gt; n + i.qty, 0);
+<span class="cmt">// → total 9, count 3</span>
+</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>const PRODUCTS = [
+  { id: 1, name: 'Espresso', price: 3.5 },
+  { id: 2, name: 'Croissant', price: 4.25 },
+  { id: 3, name: 'Cookie', price: 2 },
+];
+const BY_ID = Object.fromEntries(PRODUCTS.map(p =&gt; [p.id, p]));
+const money = n =&gt; n.toFixed(2);
+
+export default function Cart() {
+  const [cart, setCart] = useState([]);
+
+  const add = id =&gt; setCart(c =&gt;
+    c.some(i =&gt; i.id === id)
+      ? c.map(i =&gt; (i.id === id ? { ...i, qty: i.qty + 1 } : i))
+      : [...c, { id, qty: 1 }]);
+
+  const changeQty = (id, d) =&gt; setCart(c =&gt;
+    c.map(i =&gt; (i.id === id ? { ...i, qty: i.qty + d } : i))
+     .filter(i =&gt; i.qty &gt; 0));
+
+  const total = cart.reduce((s, i) =&gt; s + BY_ID[i.id].price * i.qty, 0);
+
+  return (
+    &lt;div&gt;
+      &lt;h2&gt;Products&lt;/h2&gt;
+      &lt;ul&gt;
+        {PRODUCTS.map(p =&gt; (
+          &lt;li key={p.id}&gt;
+            {p.name} — ${money(p.price)}
+            &lt;button onClick={() =&gt; add(p.id)}&gt;Add&lt;/button&gt;
+          &lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+
+      &lt;h2&gt;Cart&lt;/h2&gt;
+      {cart.length === 0 ? (
+        &lt;p&gt;Your cart is empty.&lt;/p&gt;
+      ) : (
+        &lt;ul&gt;
+          {cart.map(i =&gt; {
+            const p = BY_ID[i.id];
+            return (
+              &lt;li key={i.id}&gt;
+                {p.name}
+                &lt;button onClick={() =&gt; changeQty(i.id, -1)}
+                        aria-label={`Remove one ${p.name}`}&gt;−&lt;/button&gt;
+                &lt;span&gt;{i.qty}&lt;/span&gt;
+                &lt;button onClick={() =&gt; changeQty(i.id, 1)}
+                        aria-label={`Add one ${p.name}`}&gt;+&lt;/button&gt;
+                ${money(p.price * i.qty)}
+                &lt;button onClick={() =&gt; changeQty(i.id, -i.qty)}&gt;×&lt;/button&gt;
+              &lt;/li&gt;
+            );
+          })}
+        &lt;/ul&gt;
+      )}
+      &lt;p&gt;&lt;b&gt;Total: ${money(total)}&lt;/b&gt;&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha">
+    <b>Pushing a duplicate row on second Add.</b>
+    Check <code>some(i =&gt; i.id === id)</code> first. Two &ldquo;Espresso&rdquo; rows is the classic fail.
+  </div>
+
+  <div class="gotcha">
+    <b>Copying the whole product into the cart.</b>
+    <code>{...product, qty:1}</code> duplicates the price. Store <code>{id, qty}</code> and look it up.
+  </div>
+
+  <div class="gotcha">
+    <b>Keeping <code>total</code> in state.</b>
+    A second source of truth that drifts. Compute it in the render body with <code>reduce</code>.
+  </div>
+
+  <div class="gotcha">
+    <b>Mutating the cart.</b>
+    <code>item.qty++</code> or <code>cart.push(...)</code> changes the same array &mdash; React sees no
+    new reference and skips the re-render. Always map/filter/spread.
+  </div>
+
+  <div class="gotcha">
+    <b>Letting quantity go to 0 or negative.</b>
+    Filter <code>qty &gt; 0</code> right after the map, so 0 removes the row in one step.
+  </div>
+
+  <h2>If they push</h2>
+
+  <div class="qa">
+    <b>&ldquo;That&rsquo;s a lot of setCart calls &mdash; tidy it up.&rdquo;</b>
+    <p>Move the rules into a <code>useReducer</code>. Actions read like the UI, and the logic is
+    testable without React.</p>
+<pre><code>function cartReducer(cart, action) {
+  switch (action.type) {
+    case 'add':
+      return cart.some(i =&gt; i.id === action.id)
+        ? cart.map(i =&gt; i.id === action.id ? { ...i, qty: i.qty + 1 } : i)
+        : [...cart, { id: action.id, qty: 1 }];
+    case 'changeQty':
+      return cart.map(i =&gt; i.id === action.id
+                ? { ...i, qty: i.qty + action.delta } : i)
+                .filter(i =&gt; i.qty &gt; 0);
+    case 'remove': return cart.filter(i =&gt; i.id !== action.id);
+    case 'clear':  return [];
+    default: return cart;
+  }
+}
+
+const [cart, dispatch] = useReducer(cartReducer, []);
+<span class="cmt">// dispatch({ type: 'add', id: 1 })</span>
+</code></pre>
+  </div>
+
+  <div class="qa">
+    <b>&ldquo;The header needs a cart badge.&rdquo;</b>
+    <p>Context, so you don&rsquo;t thread props through the layout.</p>
+<pre><code>const CartCtx = createContext(null);
+
+&lt;CartCtx.Provider value={{ cart, dispatch }}&gt;…&lt;/CartCtx.Provider&gt;
+
+<span class="cmt">// in Header, derive the number where it's used:</span>
+const { cart } = useContext(CartCtx);
+const count = cart.reduce((n, i) =&gt; n + i.qty, 0);
+</code></pre>
+  </div>
+
+  <div class="qa">
+    <b>&ldquo;Keep the cart across refreshes.&rdquo;</b>
+    <p>Lazy initial state to read, one effect to write.</p>
+<pre><code>const [cart, setCart] = useState(() =&gt;
+  JSON.parse(localStorage.getItem('cart') || '[]'));
+
+useEffect(() =&gt; {
+  localStorage.setItem('cart', JSON.stringify(cart));
+}, [cart]);
+</code></pre>
+    <p>Storing only <code>{id, qty}</code> pays off here &mdash; prices are never stale on reload.</p>
+  </div>
+
+  <div class="qa">
+    <b>&ldquo;Format the money properly.&rdquo;</b>
+<pre><code>const fmt = new Intl.NumberFormat('en-US',
+  { style: 'currency', currency: 'USD' });
+fmt.format(9);  <span class="cmt">// → "$9.00"</span>
+</code></pre>
+    <p>Build the formatter once outside the component, not per render. For real money, keep
+    prices in cents (integers) and divide only when displaying.</p>
+  </div>
+
+  <div class="qa">
+    <b>&ldquo;Products come from an API.&rdquo;</b>
+    <p>Nothing about the cart changes &mdash; that&rsquo;s the payoff of storing ids. Fetch into
+    <code>products</code> state, build <code>byId</code> with <code>useMemo</code>, and guard
+    the lookup for a product that vanished.</p>
+  </div>
+
+  <h2>Say this out loud</h2>
+  <div class="say">
+    <ul>
+      <li>&ldquo;The cart stores ids and quantities, not copies of the products &mdash; so the price
+      lives in one place.&rdquo;</li>
+      <li>&ldquo;Add checks whether the item is already in the cart; if it is I bump qty instead of
+      pushing a duplicate.&rdquo;</li>
+      <li>&ldquo;The total is derived with reduce on every render. I&rsquo;m deliberately not keeping
+      it in state.&rdquo;</li>
+      <li>&ldquo;Every update is a new array &mdash; map and filter, no mutation &mdash; so React
+      re-renders.&rdquo;</li>
+      <li>&ldquo;Decrementing to zero filters the row out, so I never show a qty-0 line.&rdquo;</li>
+      <li>&ldquo;The +/&minus; buttons get aria-labels naming the product, otherwise a screen reader
+      just hears &lsquo;plus, plus, plus&rsquo;.&rdquo;</li>
+      <li>&ldquo;If this grew, I&rsquo;d move these updates into a reducer and expose the cart through
+      context.&rdquo;</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

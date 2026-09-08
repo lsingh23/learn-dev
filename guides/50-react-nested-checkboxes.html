@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>50 — Nested Checkboxes</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- guide-specific: fake checkboxes + tree --- */
+  .cb{width:15px;height:15px;border:1.5px solid #8c93a3;border-radius:3px;background:#fff;
+    display:inline-block;position:relative;flex:none}
+  .cb.on,.cb.mixed{background:var(--accent);border-color:var(--accent)}
+  .cb.on::after{content:"";position:absolute;left:4.3px;top:.8px;width:4px;height:8px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .cb.mixed::after{content:"";position:absolute;left:2.5px;top:5.5px;width:8px;height:2px;
+    background:#fff;border-radius:1px}
+  .tree,.tree ul{list-style:none;margin:0;padding-left:0}
+  .tree ul{padding-left:1.4rem;margin:.2rem 0;border-left:1px dashed #dcd9d3}
+  .tree li{margin:.4rem 0}
+  .tree label{display:flex;align-items:center;gap:.55rem;font-size:.92rem}
+  .tri{display:flex;gap:.8rem;flex-wrap:wrap;margin:1rem 0}
+  .tri>div{flex:1;min-width:180px;border:1px solid var(--line);border-radius:9px;
+    padding:.75rem .9rem;background:#fff}
+  .tri h4{margin:.1rem 0 .5rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted)}
+  .tri .cap{font-size:.78rem;color:var(--muted);margin-top:.5rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>50. Nested Checkboxes</h1>
+  <p class="sub">A checkbox tree. Parents drive children down; children decide parents up.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Render this category tree with checkboxes. Checking a parent checks everything under it.
+    If only some children are checked, the parent shows a dash."
+  </div>
+  <p>Two flows through one tree: selection falls <b>down</b>, status bubbles <b>up</b>.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Category picker</div>
+    <div class="ui">
+      <ul class="tree">
+        <li>
+          <label><span class="cb mixed"></span> <b>All</b>
+            <span class="note">indeterminate — some, not all</span></label>
+          <ul>
+            <li>
+              <label><span class="cb on"></span> Fruit
+                <span class="note">all kids on → on</span></label>
+              <ul>
+                <li><label><span class="cb on"></span> Apple</label></li>
+                <li><label><span class="cb on"></span> Mango</label></li>
+              </ul>
+            </li>
+            <li>
+              <label><span class="cb mixed"></span> Vegetables</label>
+              <ul>
+                <li><label><span class="cb on"></span> Carrot <span class="note">leaf = the only real state</span></label></li>
+                <li><label><span class="cb"></span> Peas</label></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Check a parent → check every descendant.</li>
+    <li>Uncheck a parent → uncheck every descendant.</li>
+    <li>All children on → parent on.</li>
+    <li>Some children on → parent dashed.</li>
+    <li>No children on → parent off.</li>
+    <li>Work at any depth, any branching.</li>
+  </ul>
+
+  <h2>The mental model</h2>
+  <p>Only the <b>leaves</b> hold state. Every parent's box is <i>computed</i> from the leaves below it —
+    never stored. One source of truth, so the two directions can never disagree.</p>
+
+  <div class="tri">
+    <div>
+      <h4>Unchecked</h4>
+      <ul class="tree">
+        <li><label><span class="cb"></span> Parent</label>
+          <ul>
+            <li><label><span class="cb"></span> a</label></li>
+            <li><label><span class="cb"></span> b</label></li>
+          </ul></li>
+      </ul>
+      <div class="cap">0 of 2 → <code>false</code></div>
+    </div>
+    <div>
+      <h4>Indeterminate</h4>
+      <ul class="tree">
+        <li><label><span class="cb mixed"></span> Parent</label>
+          <ul>
+            <li><label><span class="cb on"></span> a</label></li>
+            <li><label><span class="cb"></span> b</label></li>
+          </ul></li>
+      </ul>
+      <div class="cap">1 of 2 → <code>indeterminate</code></div>
+    </div>
+    <div>
+      <h4>Checked</h4>
+      <ul class="tree">
+        <li><label><span class="cb on"></span> Parent</label>
+          <ul>
+            <li><label><span class="cb on"></span> a</label></li>
+            <li><label><span class="cb on"></span> b</label></li>
+          </ul></li>
+      </ul>
+      <div class="cap">2 of 2 → <code>true</code></div>
+    </div>
+  </div>
+
+  <svg viewBox="0 0 700 150" role="img" aria-label="Down and up flow">
+    <rect x="10" y="15" width="320" height="120" rx="9" fill="#fff6e5" stroke="#f0dcb4"/>
+    <text x="26" y="40" font-size="13" font-weight="700" fill="#9a6400">DOWN — user action</text>
+    <text x="26" y="64" font-size="12.5" fill="#1f2430">click a node</text>
+    <text x="26" y="86" font-size="12.5" fill="#1f2430">→ write every leaf under it</text>
+    <text x="26" y="112" font-size="12.5" fill="#5c6478">this is the only write</text>
+
+    <rect x="370" y="15" width="320" height="120" rx="9" fill="#eaf0fe" stroke="#c3d4fb"/>
+    <text x="386" y="40" font-size="13" font-weight="700" fill="#2f5fd8">UP — render</text>
+    <text x="386" y="64" font-size="12.5" fill="#1f2430">stateOf(node) reads its leaves</text>
+    <text x="386" y="86" font-size="12.5" fill="#1f2430">→ on / mixed / off</text>
+    <text x="386" y="112" font-size="12.5" fill="#5c6478">never stored, always derived</text>
+  </svg>
+
+  <h2>The shape of the state</h2>
+<pre><code><span class="cmt">// the tree — static data, not state</span>
+const TREE = { id:'all', label:'All', children:[
+  { id:'fruit', label:'Fruit', children:[
+      {id:'apple',label:'Apple'}, {id:'mango',label:'Mango'} ]},
+  { id:'veg', label:'Vegetables', children:[
+      {id:'carrot',label:'Carrot'}, {id:'peas',label:'Peas'} ]},
+]};
+
+<span class="cmt">// ALL the state: which leaves are on. Nothing else.</span>
+const [checked, setChecked] = useState(() =&gt; new Set());
+<span class="cmt">// → Set { 'apple', 'mango', 'carrot' }</span></code></pre>
+  <div class="box tip"><b>Rule of thumb</b>
+    If a value can be computed from other state, don't store it. A stored parent flag is a
+    second truth you must remember to sync — and you will forget.</div>
+
+  <h2>Build it in layers</h2>
+  <p>In an interview, build <b>L1 and L2</b> first, out loud, then ask <i>"want me to add the
+    parent roll-up?"</i> Styling barely matters here; the recursion and the third state are what's scored.</p>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Render the tree, no state</h3>
+    <p>Dumbest thing that draws. A component that calls itself.</p>
+<pre><code>function Node({ node }) {
+  return (
+    &lt;li&gt;
+      &lt;label&gt;&lt;input type="checkbox" /&gt; {node.label}&lt;/label&gt;
+      {node.children &amp;&amp; (
+        &lt;ul&gt;{node.children.map(c =&gt; &lt;Node key={c.id} node={c} /&gt;)}&lt;/ul&gt;
+      )}
+    &lt;/li&gt;
+  );
+}</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Leaves toggle themselves</h3>
+    <p>One <code>Set</code> of ids at the top; every checkbox reads and writes it.</p>
+<pre><code>const on = checked.has(node.id);
+
+&lt;input type="checkbox" checked={on}
+  onChange={() =&gt; setChecked(prev =&gt; {
+    const next = new Set(prev);        <span class="cmt">// copy — never mutate state</span>
+    on ? next.delete(node.id) : next.add(node.id);
+    return next;
+  })} /&gt;</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> DOWN — a parent writes all its leaves</h3>
+    <p>Flatten the node to its leaf ids, then add or remove them all at once.</p>
+<pre><code>const leafIds = n =&gt; n.children ? n.children.flatMap(leafIds) : [n.id];
+<span class="cmt">// leafIds(TREE) → ['apple','mango','carrot','peas']</span>
+
+function toggle(node, turnOn) {
+  setChecked(prev =&gt; {
+    const next = new Set(prev);
+    leafIds(node).forEach(id =&gt; turnOn ? next.add(id) : next.delete(id));
+    return next;
+  });
+}</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> UP — derive the parent, incl. the dash</h3>
+    <p>One recursive read. Then the trick: <code>indeterminate</code> is a DOM property, not an
+      HTML attribute — JSX can't set it, so you reach the element with a <b>ref</b> (a callback that
+      hands you the real DOM node).</p>
+<pre><code>function stateOf(node, checked) {              <span class="cmt">// 'on' | 'off' | 'mixed'</span>
+  if (!node.children) return checked.has(node.id) ? 'on' : 'off';
+  const kids = node.children.map(c =&gt; stateOf(c, checked));
+  if (kids.every(s =&gt; s === 'on'))  return 'on';
+  if (kids.every(s =&gt; s === 'off')) return 'off';
+  return 'mixed';
+}
+
+const s = stateOf(node, checked);
+&lt;input type="checkbox"
+  checked={s === 'on'}
+  <span class="hi">ref={el =&gt; el &amp;&amp; (el.indeterminate = s === 'mixed')}</span>
+  onChange={() =&gt; toggle(node, s !== 'on')} /&gt;   <span class="cmt">// mixed → click turns all ON</span></code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useState } from 'react';
+
+const leafIds = n =&gt; (n.children ? n.children.flatMap(leafIds) : [n.id]);
+
+function stateOf(node, checked) {
+  if (!node.children) return checked.has(node.id) ? 'on' : 'off';
+  const kids = node.children.map(c =&gt; stateOf(c, checked));
+  if (kids.every(s =&gt; s === 'on'))  return 'on';
+  if (kids.every(s =&gt; s === 'off')) return 'off';
+  return 'mixed';
+}
+
+function Node({ node, checked, onToggle }) {
+  const s = stateOf(node, checked);
+  return (
+    &lt;li&gt;
+      &lt;label&gt;
+        &lt;input
+          type="checkbox"
+          checked={s === 'on'}
+          ref={el =&gt; el &amp;&amp; (el.indeterminate = s === 'mixed')}
+          onChange={() =&gt; onToggle(node, s !== 'on')}
+        /&gt;{' '}
+        {node.label}
+      &lt;/label&gt;
+      {node.children &amp;&amp; (
+        &lt;ul&gt;
+          {node.children.map(c =&gt; (
+            &lt;Node key={c.id} node={c} checked={checked} onToggle={onToggle} /&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/li&gt;
+  );
+}
+
+export default function CheckTree({ tree }) {
+  const [checked, setChecked] = useState(() =&gt; new Set());
+
+  const onToggle = (node, turnOn) =&gt;
+    setChecked(prev =&gt; {
+      const next = new Set(prev);
+      leafIds(node).forEach(id =&gt; (turnOn ? next.add(id) : next.delete(id)));
+      return next;
+    });
+
+  return &lt;ul&gt;&lt;Node node={tree} checked={checked} onToggle={onToggle} /&gt;&lt;/ul&gt;;
+}</code></pre>
+
+  <h2>Gotchas</h2>
+  <div class="gotcha"><b>Writing <code>indeterminate</code> in JSX.</b>
+    <code>&lt;input indeterminate /&gt;</code> does nothing — React drops unknown attributes.
+    It's a property on the DOM node; set it through a ref.</div>
+  <div class="gotcha"><b>Storing a <code>checked</code> flag on parents too.</b>
+    Two truths that drift. Derive parents from leaves instead.</div>
+  <div class="gotcha"><b>Mutating the Set or the tree in place.</b>
+    <code>prev.add(id); return prev;</code> is the same object — React skips the re-render. Copy first.</div>
+  <div class="gotcha"><b>Forgetting a parent with zero children.</b>
+    <code>[].every(...)</code> is <code>true</code>, so an empty folder reads as "on". Guard it if your data allows it.</div>
+  <div class="gotcha"><b>No <code>key</code> on the recursive map.</b>
+    Free points lost, and checkbox DOM state gets reused across the wrong rows.</div>
+
+  <h2>If they push</h2>
+  <div class="qa"><b>"Why a flat Set instead of flags in the tree?"</b>
+    The Set is O(1) to read/write and the tree stays immutable data you never clone.
+    Flags in the tree mean a recursive copy on every click, plus syncing parents by hand.</div>
+  <div class="qa"><b>"Now do it with the flags in the tree."</b>
+    Rebuild only the path you touched:
+<pre><code>const setAll = (n, v) =&gt; ({ ...n, checked: v,
+  children: n.children?.map(c =&gt; setAll(c, v)) });</code></pre></div>
+  <div class="qa"><b>"10,000 nodes?"</b>
+    <code>stateOf</code> re-walks the tree per node — O(n²). Compute every node's state in one
+    bottom-up pass into a <code>Map</code>, pass it down, and virtualise the rows so only what's
+    on screen renders.</div>
+  <div class="qa"><b>"Add Select all."</b>
+    Already there — that's <code>onToggle(root, true)</code>. The root's own checkbox is the
+    select-all, dash included.</div>
+  <div class="qa"><b>"Keyboard and screen readers?"</b>
+    Real <code>&lt;input&gt;</code>s in <code>&lt;label&gt;</code>s give you Tab and Space for free.
+    Add <code>role="tree"</code> / <code>role="treeitem"</code> with <code>aria-checked="mixed"</code>,
+    and arrow keys to move between rows.</div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"The only state I'll keep is a Set of checked leaf ids — everything above is derived."</li>
+    <li>"Clicking a node writes down to its leaves; rendering reads back up. One write path, one read path."</li>
+    <li>"The parent has three states, so I need <code>indeterminate</code> — that's a DOM property, so I'll set it via a ref."</li>
+    <li>"I'm copying the Set before mutating, otherwise React won't see a change."</li>
+    <li>"A partially-checked parent should turn everything on when clicked — that's the convention users expect."</li>
+    <li>"If the tree got huge I'd precompute states in one pass and virtualise the list."</li>
+  </ul>
+</div>
+</body>
+</html>

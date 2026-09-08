@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>39 — Modal</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* --- modal-specific --- */
+  .stage{position:relative;border:1px solid #d9d6d0;border-radius:8px;background:#fdfdfc;
+    padding:1rem;min-height:250px;overflow:hidden}
+  .page-behind{filter:blur(.4px);opacity:.55}
+  .skel{background:#eceae5;border-radius:4px;height:9px;margin:.5rem 0}
+  .overlay{position:absolute;inset:0;background:rgba(20,24,34,.45);
+    display:flex;align-items:center;justify-content:center;border-radius:7px}
+  .dialog{background:#fff;border-radius:10px;width:78%;max-width:330px;
+    box-shadow:0 14px 40px rgba(0,0,0,.3);padding:1rem 1.1rem;position:relative}
+  .dialog h4{margin:.1rem 0 .5rem;font-size:1rem}
+  .xbtn{position:absolute;top:.5rem;right:.6rem;width:24px;height:24px;line-height:22px;
+    text-align:center;border:1px solid #d9d6d0;border-radius:5px;background:#f7f6f4;
+    font-size:.8rem;color:var(--muted)}
+  .tag{position:absolute;font-size:.68rem;background:#fff;border:1px solid var(--user);
+    color:var(--user);border-radius:4px;padding:.05rem .35rem;white-space:nowrap;z-index:5}
+  .legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-top:.9rem}
+  .legend span{display:flex;align-items:center;gap:.35rem}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>39. Modal</h1>
+  <p class="sub">One boolean, one portal, three ways to close. The classic "do you know the DOM?" question.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Build a reusable Modal. A button opens it, it dims the page behind, and it closes on the X,
+    on clicking the backdrop, and on Escape."
+  </div>
+  <p>Parent owns a boolean. Modal renders nothing when it's false.</p>
+
+  <h2>What we're building</h2>
+
+  <div class="mock">
+    <div class="mock-label">Closed → click "Delete account"</div>
+    <div class="ui">
+      <div class="skel" style="width:45%"></div>
+      <div class="skel" style="width:80%"></div>
+      <div class="row" style="margin-top:.8rem">
+        <span class="btn primary">Delete account</span>
+        <span class="note">the trigger — owns <code>isOpen</code></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-label">Open</div>
+    <div class="stage">
+      <div class="page-behind">
+        <div class="skel" style="width:45%"></div>
+        <div class="skel" style="width:80%"></div>
+        <div class="skel" style="width:65%"></div>
+        <div class="row" style="margin-top:.8rem"><span class="btn primary">Delete account</span></div>
+      </div>
+
+      <div class="overlay">
+        <div class="dialog">
+          <div class="xbtn">✕</div>
+          <h4>Delete account?</h4>
+          <div class="skel" style="width:90%"></div>
+          <div class="skel" style="width:60%"></div>
+          <div class="row" style="margin-top:.9rem;justify-content:flex-end">
+            <span class="btn">Cancel</span>
+            <span class="btn primary" style="background:var(--bug);border-color:var(--bug)">Delete</span>
+          </div>
+        </div>
+      </div>
+
+      <span class="tag" style="top:.5rem;left:.6rem">overlay — click here closes</span>
+      <span class="tag" style="bottom:.5rem;right:.6rem">Esc closes too</span>
+      <span class="tag" style="top:42%;left:.6rem">page behind: dimmed, can't scroll</span>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--state)"></i> state</span>
+      <span><i class="sw" style="background:var(--user)"></i> user action</span>
+      <span><i class="sw" style="background:var(--dom)"></i> DOM</span>
+    </div>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Open when the trigger is clicked.</li>
+    <li>Dim and cover the whole page.</li>
+    <li>Close on X, backdrop, and Escape.</li>
+    <li>Not close when you click inside.</li>
+    <li>Unmount its content when closed.</li>
+    <li>Lock body scroll while open.</li>
+    <li>Accept any <code>children</code> — reusable.</li>
+  </ul>
+
+  <h2>The mental model</h2>
+  <p>The modal is a <b>dumb component</b>. It has no state at all. The parent holds one boolean and
+    passes it down with a way to flip it back off.</p>
+
+  <svg viewBox="0 0 700 210" role="img" aria-label="Parent owns isOpen; Modal renders overlay plus box or null">
+    <rect x="8" y="20" width="230" height="170" rx="10" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="24" y="46" font-size="13" font-weight="700" fill="#2f5fd8">Parent</text>
+    <text x="24" y="70" font-size="12.5" font-family="monospace" fill="#1f2430">isOpen = false</text>
+    <rect x="24" y="88" width="150" height="30" rx="6" fill="#fff" stroke="#9a6400"/>
+    <text x="38" y="108" font-size="12" fill="#9a6400">click trigger →</text>
+    <text x="24" y="140" font-size="12.5" font-family="monospace" fill="#1f2430">isOpen = true</text>
+    <text x="24" y="168" font-size="11.5" fill="#5c6478">onClose = () =&gt; set(false)</text>
+
+    <path d="M245 105 H300" stroke="#5c6478" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#5c6478"/></marker></defs>
+    <text x="248" y="97" font-size="11" fill="#5c6478">isOpen, onClose</text>
+
+    <rect x="310" y="20" width="380" height="170" rx="10" fill="#e6f5ef" stroke="#127a5b"/>
+    <text x="326" y="46" font-size="13" font-weight="700" fill="#127a5b">Modal (no state)</text>
+    <text x="326" y="72" font-size="12" font-family="monospace" fill="#b3261e">!isOpen → return null</text>
+    <rect x="326" y="86" width="348" height="86" rx="7" fill="#fff" stroke="#bfe4d5"/>
+    <text x="340" y="106" font-size="11.5" fill="#5c6478">else, into document.body:</text>
+    <rect x="340" y="114" width="320" height="48" rx="5" fill="#f1f4f8" stroke="#cfd3dc"/>
+    <text x="352" y="132" font-size="11.5" fill="#1f2430">overlay (onClick = onClose)</text>
+    <rect x="440" y="136" width="180" height="20" rx="4" fill="#fff" stroke="#2f5fd8"/>
+    <text x="452" y="150" font-size="11" fill="#2f5fd8">box (stopPropagation)</text>
+  </svg>
+
+  <div class="box tip"><b>The whole trick</b>
+    The overlay closes on click. The box sits <i>inside</i> the overlay, so a click on the box
+    bubbles up to it. Stop that bubble and clicks inside are safe.</div>
+
+  <h2>The shape of the state</h2>
+<pre><code><span class="cmt">// in the PARENT, not the modal</span>
+const [isOpen, setIsOpen] = useState(false); <span class="cmt">// the only state that exists</span>
+</code></pre>
+  <p>The modal takes props only:</p>
+<pre><code>&lt;Modal isOpen={isOpen} onClose={() =&gt; setIsOpen(false)}&gt;
+  ...
+&lt;/Modal&gt;</code></pre>
+  <div class="box ok"><b>Rule of thumb</b>
+    State lives with whoever decides. The parent decides when it opens, so the parent owns the boolean.
+    That's also what makes the modal reusable.</div>
+
+  <h2>Build it in layers</h2>
+  <div class="box key"><b>In the interview</b>
+    Build L1 and L2 out loud, get it opening and closing, then ask
+    <i>"want me to add Escape, portal and focus trap?"</i> Don't start with a portal.</div>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Static markup, no state</h3>
+    <p>Get the picture on screen. Styling barely matters — say that once and move on.</p>
+<pre><code>function Modal() {
+  return (
+    &lt;div className="overlay"&gt;
+      &lt;div className="box"&gt;
+        &lt;button&gt;✕&lt;/button&gt;
+        &lt;h2&gt;Delete account?&lt;/h2&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<pre><code><span class="cmt">/* the only CSS that matters */</span>
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5);
+           display: flex; align-items: center; justify-content: center; }
+.box     { background: #fff; border-radius: 10px; padding: 20px; }</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Open and close</h3>
+    <p>Boolean in the parent; <code>return null</code> in the modal so it truly unmounts.</p>
+<pre><code>function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;                      <span class="cmt">// unmounted, not hidden</span>
+  return (
+    &lt;div className="overlay" onClick={onClose}&gt;  <span class="cmt">// backdrop click</span>
+      &lt;div className="box" onClick={(e) =&gt; e.stopPropagation()}&gt;
+        &lt;button onClick={onClose}&gt;✕&lt;/button&gt;
+        {children}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<pre><code>function App() {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    &lt;&gt;
+      &lt;button onClick={() =&gt; setIsOpen(true)}&gt;Delete account&lt;/button&gt;
+      &lt;Modal isOpen={isOpen} onClose={() =&gt; setIsOpen(false)}&gt;
+        &lt;h2&gt;Delete account?&lt;/h2&gt;
+      &lt;/Modal&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+    <div class="box tip"><b>stopPropagation — halt the bubble</b>
+      A click starts on the box and travels up through every ancestor, including the overlay.
+      <code>e.stopPropagation()</code> ends that journey early.</div>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> Escape key + body scroll lock</h3>
+    <p>One effect, one cleanup. The cleanup is the part they're checking.</p>
+<pre><code>useEffect(() =&gt; {
+  if (!isOpen) return;
+  const onKey = (e) =&gt; { if (e.key === "Escape") onClose(); };
+  document.addEventListener("keydown", onKey);
+  document.body.style.overflow = "hidden";        <span class="cmt">// lock page scroll</span>
+  return () =&gt; {                                  <span class="cmt">// runs on close/unmount</span>
+    document.removeEventListener("keydown", onKey);
+    document.body.style.overflow = "";
+  };
+}, [isOpen, onClose]);</code></pre>
+    <p>Hooks can't sit behind an <code>if</code>, so the effect goes <b>above</b> the
+      <code>if (!isOpen) return null</code> and bails inside itself.</p>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> Portal — escape the parent's box</h3>
+    <p>A modal rendered deep in the tree inherits its ancestors' <code>overflow: hidden</code>,
+      <code>transform</code> and z-index stacking. It gets clipped or buried. A portal — render here,
+      appear there — moves the DOM node to <code>&lt;body&gt;</code> while keeping React props and events.</p>
+<pre><code>import { createPortal } from "react-dom";
+
+return createPortal(
+  &lt;div className="overlay" onClick={onClose}&gt; ... &lt;/div&gt;,
+  document.body                                  <span class="cmt">// where the DOM node lands</span>
+);</code></pre>
+
+    <svg viewBox="0 0 700 200" role="img" aria-label="Without portal the modal is clipped inside a card; with a portal it renders on body above everything">
+      <text x="10" y="18" font-size="12" font-weight="700" fill="#b3261e">Without portal</text>
+      <rect x="10" y="28" width="300" height="150" rx="8" fill="#fff" stroke="#cfd3dc"/>
+      <text x="22" y="46" font-size="11" fill="#5c6478">body</text>
+      <rect x="26" y="56" width="268" height="110" rx="7" fill="#fdecea" stroke="#b3261e"/>
+      <text x="38" y="74" font-size="11" fill="#b3261e">.card { overflow:hidden; z-index:1 }</text>
+      <rect x="38" y="84" width="180" height="70" rx="5" fill="#f1f4f8" stroke="#cfd3dc"/>
+      <text x="50" y="106" font-size="11" fill="#1f2430">modal — clipped,</text>
+      <text x="50" y="122" font-size="11" fill="#1f2430">stuck under the header</text>
+
+      <text x="380" y="18" font-size="12" font-weight="700" fill="#127a5b">With portal</text>
+      <rect x="380" y="28" width="310" height="150" rx="8" fill="#fff" stroke="#cfd3dc"/>
+      <text x="392" y="46" font-size="11" fill="#5c6478">body</text>
+      <rect x="396" y="56" width="150" height="60" rx="7" fill="#f7f6f4" stroke="#cfd3dc"/>
+      <text x="408" y="80" font-size="11" fill="#5c6478">.card (still here)</text>
+      <rect x="396" y="124" width="278" height="44" rx="6" fill="#e6f5ef" stroke="#127a5b"/>
+      <text x="410" y="151" font-size="11.5" fill="#127a5b">modal — sibling of everything, on top</text>
+      <path d="M470 116 C 500 118, 500 120, 520 124" stroke="#127a5b" stroke-width="1.5" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L5</span> Accessibility — the layer that impresses</h3>
+    <p>Announce it, trap the keyboard inside it, hand focus back when it closes.</p>
+<pre><code>&lt;div className="box" role="dialog" aria-modal="true" aria-labelledby="t"&gt;
+  &lt;h2 id="t"&gt;Delete account?&lt;/h2&gt;</code></pre>
+<pre><code>const boxRef = useRef(null);          <span class="cmt">// a ref — a box that survives re-renders</span>
+
+useEffect(() =&gt; {
+  if (!isOpen) return;
+  const trigger = document.activeElement;        <span class="cmt">// who opened us</span>
+  boxRef.current?.focus();                       <span class="cmt">// move focus in (needs tabIndex={-1})</span>
+  return () =&gt; trigger?.focus();                 <span class="cmt">// give it back</span>
+}, [isOpen]);</code></pre>
+    <p>Trap Tab: on the last element, wrap to the first.</p>
+<pre><code>const SEL = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+if (e.key === "Tab") {
+  const els = boxRef.current.querySelectorAll(SEL);
+  const first = els[0], last = els[els.length - 1];
+  if (e.shiftKey &amp;&amp; document.activeElement === first) { last.focus();  e.preventDefault(); }
+  if (!e.shiftKey &amp;&amp; document.activeElement === last) { first.focus(); e.preventDefault(); }
+}</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+
+export function Modal({ isOpen, onClose, title, children }) {
+  const boxRef = useRef(null);
+
+  useEffect(() =&gt; {
+    if (!isOpen) return;
+    const trigger = document.activeElement;
+
+    const onKey = (e) =&gt; {
+      if (e.key === "Escape") return onClose();
+      if (e.key !== "Tab") return;
+      const els = boxRef.current.querySelectorAll(
+        'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!els.length) return;
+      const first = els[0], last = els[els.length - 1];
+      if (e.shiftKey &amp;&amp; document.activeElement === first) { last.focus();  e.preventDefault(); }
+      else if (!e.shiftKey &amp;&amp; document.activeElement === last) { first.focus(); e.preventDefault(); }
+    };
+
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    boxRef.current?.focus();
+
+    return () =&gt; {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+      trigger?.focus();
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    &lt;div className="overlay" onClick={onClose}&gt;
+      &lt;div
+        className="box"
+        ref={boxRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onClick={(e) =&gt; e.stopPropagation()}
+      &gt;
+        &lt;button onClick={onClose} aria-label="Close"&gt;✕&lt;/button&gt;
+        &lt;h2 id="modal-title"&gt;{title}&lt;/h2&gt;
+        {children}
+      &lt;/div&gt;
+    &lt;/div&gt;,
+    document.body
+  );
+}</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha"><b>Hiding instead of unmounting.</b>
+    <code>display:none</code> keeps forms, timers and video playing. <code>return null</code> so it
+    really goes away.</div>
+
+  <div class="gotcha"><b>Forgetting stopPropagation.</b>
+    Every click inside the box bubbles to the overlay and closes the modal. Most common miss.</div>
+
+  <div class="gotcha"><b>No cleanup on the keydown listener.</b>
+    Open/close ten times and you have ten listeners; Escape then fires <code>onClose</code> ten times.
+    Always return the <code>removeEventListener</code>.</div>
+
+  <div class="gotcha"><b>Modal owning its own <code>isOpen</code>.</b>
+    Then the parent can't open it. Boolean up, callback down.</div>
+
+  <div class="gotcha"><b>Never restoring <code>body.overflow</code>.</b>
+    The page stays unscrollable forever after close. Also don't hard-code <code>"auto"</code> — reset
+    to <code>""</code> so the original stylesheet wins.</div>
+
+  <h2>If they push</h2>
+
+  <div class="qa"><b>"Make it animate out."</b>
+    <code>return null</code> kills the exit animation. Keep it mounted one beat: track a
+    <code>isClosing</code> flag, unmount on <code>onTransitionEnd</code> (or use a library).</div>
+
+  <div class="qa"><b>"Two modals at once."</b>
+    Escape should close only the top one. Keep a module-level stack of open modals; on Escape, close
+    the last. Same for restoring scroll — only unlock when the stack empties.</div>
+
+  <div class="qa"><b>"Mouse-down on the box, mouse-up on the overlay."</b>
+    Dragging text out of the box fires <code>click</code> on the overlay and closes it. Close on the
+    overlay only if <code>e.target === e.currentTarget</code> and the mousedown started there too.</div>
+
+  <div class="qa"><b>"Do it without a portal."</b>
+    Render <code>&lt;Modal /&gt;</code> at the top level of the app, next to the router — no clipped
+    ancestors to escape.</div>
+
+  <div class="qa"><b>"What about <code>&lt;dialog&gt;</code>?"</b>
+    Native <code>dialog.showModal()</code> gives Escape, focus trap, top-layer and the backdrop free.
+    Say you'd reach for it in real code; interviews usually want the manual version.</div>
+
+  <h2>Say this out loud</h2>
+  <ul class="say">
+    <li>"The modal holds no state — the parent owns one boolean and passes <code>onClose</code> down, so it's reusable."</li>
+    <li>"I'll return null when it's closed rather than hiding it, so the content actually unmounts."</li>
+    <li>"The overlay closes on click, and I stop propagation on the box so clicks inside don't bubble up."</li>
+    <li>"The Escape listener goes in an effect with a cleanup, otherwise listeners pile up on every open."</li>
+    <li>"I'm portalling to body so an ancestor with overflow hidden can't clip us."</li>
+    <li>"For a11y: <code>role=dialog</code>, <code>aria-modal</code>, focus moves in, Tab is trapped, and focus goes back to the trigger on close."</li>
+  </ul>
+</div>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>56 — useFetch with Cleanup &amp; Abort</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#fff; --ink:#1f2430; --muted:#5c6478; --line:#e4e2dd;
+    --accent:#2f5fd8; --state:#2f5fd8; --dom:#127a5b; --bug:#b3261e; --user:#9a6400;
+    --state-bg:#eaf0fe; --dom-bg:#e6f5ef; --bug-bg:#fdecea; --user-bg:#fff6e5;
+    --code-bg:#1e222b; --code-ink:#e6e9ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2.5rem 1.25rem 5rem;background:var(--bg);color:var(--ink);
+    font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto}
+  a{color:var(--accent)}
+  .back{font-size:.85rem;color:var(--muted);text-decoration:none}
+  h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.6rem 0 .3rem}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    margin:3rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+  p{margin:.7rem 0}
+  ul,ol{margin:.7rem 0;padding-left:1.2rem}
+  li{margin:.3rem 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    background:#eeece7;border-radius:4px;padding:.1em .35em}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:1rem 1.1rem;
+    overflow-x:auto;margin:.9rem 0;font-size:.86rem;line-height:1.6}
+  pre code{background:none;padding:0;color:inherit;font-size:1em}
+  .cmt{color:#8b95a7}
+  .hi{color:#ffd479}
+
+  /* the ask */
+  .ask{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:1rem 1.2rem;margin:1rem 0;font-size:1.02rem}
+  .ask .who{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin-bottom:.35rem}
+
+  /* mockup canvas */
+  .mock{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.5rem;
+    margin:1rem 0;font-size:.9rem}
+  .mock-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    margin-bottom:.9rem}
+  .note{font-size:.72rem;color:var(--user);background:var(--user-bg);border:1px solid #f0dcb4;
+    border-radius:5px;padding:.12rem .45rem;display:inline-block}
+  .ui{border:1px solid #d9d6d0;border-radius:8px;padding:.9rem;background:#fdfdfc}
+  .btn{display:inline-block;border:1px solid #cfd3dc;border-radius:6px;padding:.35rem .7rem;
+    background:#f4f5f7;font-size:.85rem}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .inp{border:1px solid #cfd3dc;border-radius:6px;padding:.4rem .6rem;background:#fff;
+    color:var(--muted);font-size:.85rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+
+  /* callouts */
+  .box{border-radius:9px;padding:.85rem 1.1rem;margin:1rem 0;font-size:.94rem;border:1px solid}
+  .box p:first-child{margin-top:0} .box p:last-child{margin-bottom:0}
+  .box b{display:block;margin-bottom:.2rem}
+  .tip{background:var(--state-bg);border-color:#c3d4fb}
+  .warn{background:var(--bug-bg);border-color:#f3c9c4}
+  .ok{background:var(--dom-bg);border-color:#bfe4d5}
+  .key{background:var(--user-bg);border-color:#f0dcb4}
+
+  /* layers */
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:.2rem 1.1rem 1rem;margin:1rem 0}
+  .layer h3{display:flex;align-items:center;gap:.6rem}
+  .lnum{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;border-radius:5px;
+    padding:.2rem .45rem;letter-spacing:.04em}
+
+  /* gotchas / follow-ups */
+  .gotcha{border-left:3px solid var(--bug);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .gotcha b{color:var(--bug)}
+  .qa{border-left:3px solid var(--line);padding:.15rem 0 .15rem .9rem;margin:1.1rem 0}
+  .qa b{display:block}
+
+  /* say this */
+  .say{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.4rem 1.1rem;
+    margin:1rem 0}
+  .say li{margin:.6rem 0;font-style:italic;color:#333a4a}
+
+  /* small tables & legends */
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:1rem auto}
+  @media (max-width:520px){ body{font-size:16px;padding-top:1.5rem} h1{font-size:1.6rem} }
+
+  /* guide-specific */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:560px){ .two{grid-template-columns:1fr} }
+  .hookchip{display:block;text-align:center;font-family:ui-monospace,Menlo,monospace;
+    font-size:.8rem;background:var(--state-bg);border:1px solid #c3d4fb;color:var(--state);
+    border-radius:8px;padding:.5rem;margin:.9rem 0}
+  .skel{background:#ebe9e4;border-radius:4px;height:.6rem;margin:.4rem 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← All guides</a>
+  <h1>56. useFetch with Cleanup &amp; Abort</h1>
+  <p class="sub">Take the loading/error/data dance out of a component and put it in one hook — without stale data landing on screen.</p>
+
+  <h2>The ask</h2>
+  <div class="ask">
+    <span class="who">Interviewer</span>
+    "Write a <code>useFetch(url)</code> hook. It should refetch when the url changes, and it must not
+    set state after the component unmounts or after a newer request has started."
+  </div>
+  <p>Plain English: one hook, many components, and <b>only the latest request is allowed to win</b>.</p>
+
+  <h2>What we're building</h2>
+  <div class="mock">
+    <div class="mock-label">Two components · one hook</div>
+    <div class="two">
+      <div class="ui">
+        <div style="font-size:.72rem;color:#5c6478;margin-bottom:.5rem">&lt;UserProfile id="7" /&gt;</div>
+        <div class="row" style="gap:.6rem">
+          <div style="width:34px;height:34px;border-radius:50%;background:#dfe4ee"></div>
+          <div>
+            <div style="font-weight:600">Ada Lovelace</div>
+            <div style="font-size:.78rem;color:#5c6478">ada@calc.io</div>
+          </div>
+        </div>
+      </div>
+      <div class="ui">
+        <div style="font-size:.72rem;color:#5c6478;margin-bottom:.5rem">&lt;JobList /&gt;</div>
+        <div style="font-size:.85rem">▸ Frontend Engineer</div>
+        <div style="font-size:.85rem">▸ Design Systems Dev</div>
+        <div class="skel" style="width:60%"></div>
+        <div style="margin-top:.5rem"><span class="btn">Retry</span></div>
+      </div>
+    </div>
+
+    <svg viewBox="0 0 620 70" role="img" aria-label="Both components call the same useFetch hook">
+      <path d="M155 4 L155 30 L310 30 L310 44" fill="none" stroke="#2f5fd8" stroke-width="1.5"/>
+      <path d="M465 4 L465 30 L310 30" fill="none" stroke="#2f5fd8" stroke-width="1.5"/>
+      <path d="M305 38 L310 46 L315 38 Z" fill="#2f5fd8"/>
+    </svg>
+
+    <div class="hookchip">useFetch(url) → { data, error, isLoading, refetch }</div>
+    <p style="margin:.6rem 0 0"><span class="note">same hook, different url</span></p>
+  </div>
+
+  <p><b>It should:</b></p>
+  <ul>
+    <li>Fetch on mount, refetch when <code>url</code> changes</li>
+    <li>Return loading, error and data</li>
+    <li>Clear old data the moment the url changes</li>
+    <li>Ignore results from outdated requests</li>
+    <li>Abort the in-flight request on unmount</li>
+    <li>Expose <code>refetch()</code> for a retry button</li>
+  </ul>
+  <p style="font-size:.9rem;color:var(--muted)">(Guide 55 covers rendering the four states — loading / error / empty / data. Here we only move that logic into a hook.)</p>
+
+  <h2>The mental model</h2>
+  <p>An effect is a <b>subscription with an expiry date</b>. React hands you a cleanup function; whatever you started in the effect must be cancelled there. A fetch you can't cancel is a fetch that lands late — on the wrong url.</p>
+
+  <svg viewBox="0 0 640 210" role="img" aria-label="Race condition timeline: request A is slow, request B is fast, A lands last with stale data">
+    <text x="0" y="14" font-size="12" fill="#5c6478" font-family="monospace">url = /users/1  → request A (slow)</text>
+    <rect x="60" y="26" width="380" height="20" rx="6" fill="#eaf0fe" stroke="#2f5fd8"/>
+    <text x="70" y="40" font-size="11" fill="#2f5fd8" font-family="monospace">A ────────────────────────────▶ lands 3rd</text>
+
+    <text x="0" y="76" font-size="12" fill="#5c6478" font-family="monospace">url = /users/2  → request B (fast)</text>
+    <rect x="140" y="88" width="150" height="20" rx="6" fill="#e6f5ef" stroke="#127a5b"/>
+    <text x="150" y="102" font-size="11" fill="#127a5b" font-family="monospace">B ──────▶ lands 2nd</text>
+
+    <line x1="290" y1="112" x2="290" y2="140" stroke="#127a5b" stroke-width="1.5"/>
+    <text x="296" y="136" font-size="11" fill="#127a5b">setData(user 2) ✓ correct</text>
+
+    <line x1="440" y1="48" x2="440" y2="168" stroke="#b3261e" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <rect x="300" y="158" width="330" height="24" rx="6" fill="#fdecea" stroke="#b3261e"/>
+    <text x="310" y="174" font-size="11" fill="#b3261e">setData(user 1) ✗ screen now shows the wrong user</text>
+
+    <line x1="60" y1="196" x2="620" y2="196" stroke="#e4e2dd"/>
+    <text x="60" y="208" font-size="10" fill="#5c6478">time →</text>
+  </svg>
+
+  <div class="box warn">
+    <b>The bug in one line</b>
+    Responses come back in whatever order the network feels like. Last <em>response</em> wins, not last <em>request</em>.
+  </div>
+  <div class="box ok">
+    <b>Two fixes, use both</b>
+    <code>ignore</code> flag in cleanup → stale response can't call setState. <code>AbortController</code> → the request itself is cancelled, saving bandwidth.
+  </div>
+
+  <h2>The shape of the state</h2>
+  <pre><code>const [data, setData]       = useState(null);   <span class="cmt">// the parsed JSON, null until it arrives</span>
+const [error, setError]     = useState(null);   <span class="cmt">// an Error, null when things are fine</span>
+const [isLoading, setLoading] = useState(true); <span class="cmt">// true while a request is in flight</span>
+const [tick, setTick]       = useState(0);      <span class="cmt">// bump it to force a refetch</span>
+
+return { data, error, isLoading, refetch };</code></pre>
+  <p><b>Why this shape?</b> Three independent slots the caller can render directly, plus one verb. No <code>status</code> string to keep in sync — and never a single object, or one <code>setState</code> would clobber the others.</p>
+
+  <h2>Build it in layers</h2>
+  <p>In an interview build <b>L1 and L2 out loud</b>, then say <i>"this has a race condition — want me to fix it?"</i> That sentence is most of the score.</p>
+
+  <div class="layer">
+    <h3><span class="lnum">L1</span> Fetch once, no safety</h3>
+    <p>The dumbest version that works.</p>
+<pre><code>function useFetch(url) {
+  const [data, setData] = useState(null);
+  useEffect(() =&gt; {
+    fetch(url).then(r =&gt; r.json()).then(setData);
+  }, [url]);
+  return { data };
+}</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L2</span> Loading + error + reset</h3>
+    <p>Reset on every url change, so you never show the old resource.</p>
+<pre><code>useEffect(() =&gt; {
+  setData(null); setError(null); setLoading(true); <span class="cmt">// ← reset first</span>
+  fetch(url)
+    .then(r =&gt; { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(setData)
+    .catch(setError)
+    .finally(() =&gt; setLoading(false));
+}, [url]);</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L3</span> The <code>ignore</code> flag</h3>
+    <p>A local boolean the cleanup flips. Stale responses arrive and do nothing.</p>
+<pre><code>useEffect(() =&gt; {
+  let <span class="hi">ignore = false</span>;
+  fetch(url).then(r =&gt; r.json())
+    .then(d =&gt; { <span class="hi">if (!ignore)</span> setData(d); })
+    .finally(() =&gt; { <span class="hi">if (!ignore)</span> setLoading(false); });
+  return () =&gt; { <span class="hi">ignore = true</span>; };  <span class="cmt">// runs before the next effect + on unmount</span>
+}, [url]);</code></pre>
+  </div>
+
+  <div class="layer">
+    <h3><span class="lnum">L4</span> AbortController + refetch</h3>
+    <p>Actually cancel the network call. An abort is <b>not</b> an error — swallow it.</p>
+<pre><code>const controller = new AbortController();
+fetch(url, { signal: controller.signal })
+  .catch(err =&gt; {
+    <span class="hi">if (err.name === 'AbortError') return;</span> <span class="cmt">// we caused this. not a failure.</span>
+    setError(err);
+  });
+return () =&gt; controller.abort();</code></pre>
+<pre><code>const refetch = useCallback(() =&gt; setTick(t =&gt; t + 1), []);
+useEffect(() =&gt; { <span class="cmt">/* ... */</span> }, [url, <span class="hi">tick</span>]);</code></pre>
+  </div>
+
+  <h2>The whole thing</h2>
+<pre><code>import { useState, useEffect, useCallback } from 'react';
+
+export function useFetch(url) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [isLoading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
+
+  const refetch = useCallback(() =&gt; setTick(t =&gt; t + 1), []);
+
+  useEffect(() =&gt; {
+    let ignore = false;
+    const controller = new AbortController();
+
+    setData(null); setError(null); setLoading(true);
+
+    fetch(url, { signal: controller.signal })
+      .then(res =&gt; {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(json =&gt; { if (!ignore) setData(json); })
+      .catch(err =&gt; {
+        if (err.name === 'AbortError') return;   <span class="cmt">// expected, ignore</span>
+        if (!ignore) setError(err);
+      })
+      .finally(() =&gt; { if (!ignore) setLoading(false); });
+
+    return () =&gt; { ignore = true; controller.abort(); };
+  }, [url, tick]);
+
+  return { data, error, isLoading, refetch };
+}
+
+<span class="cmt">// usage</span>
+const { data, error, isLoading, refetch } = useFetch('/api/users/' + id);</code></pre>
+
+  <h2>Gotchas</h2>
+
+  <div class="gotcha">
+    <b>Passing an inline options object as a dependency.</b>
+    <code>useFetch(url, { headers })</code> creates a <em>new</em> object every render → the effect
+    re-runs → setState → render → new object → infinite loop.
+<pre><code><span class="cmt">// ✗ new identity every render</span>
+useEffect(() =&gt; {...}, [url, options]);
+
+<span class="cmt">// ✓ pick one</span>
+useEffect(() =&gt; {...}, [url, JSON.stringify(options)]);   <span class="cmt">// small & serialisable</span>
+const optsRef = useRef(options); optsRef.current = options; <span class="cmt">// don't want to refetch</span>
+const opts = useMemo(() =&gt; ({ headers }), [headers]);       <span class="cmt">// caller stabilises it</span></code></pre>
+  </div>
+
+  <div class="gotcha">
+    <b>Treating an abort as a failure.</b>
+    Cleanup fires → <code>catch</code> runs → you render "Something went wrong" on a perfectly good page.
+    Always <code>if (err.name === 'AbortError') return;</code> first.
+  </div>
+
+  <div class="gotcha">
+    <b>Not resetting state on url change.</b>
+    Without the reset, user 2's loading spinner sits next to user 1's name. Blank it out, then load.
+  </div>
+
+  <div class="gotcha">
+    <b>Only aborting, no <code>ignore</code>.</b>
+    Abort can lose to a response already in the microtask queue. The boolean is the cheap, always-correct guard; abort is the optimisation.
+  </div>
+
+  <div class="gotcha">
+    <b><code>refetch</code> defined without <code>useCallback</code>.</b>
+    A new function every render breaks any consumer that puts it in a dependency array or a memoised child.
+  </div>
+
+  <h2>If they push</h2>
+
+  <div class="qa">
+    <b>"Add caching."</b>
+    A module-level <code>Map</code> keyed by url. Seed state from it, write to it on success.
+<pre><code>const cache = new Map();
+const [data, setData] = useState(() =&gt; cache.get(url) ?? null);
+<span class="cmt">// on success:</span> cache.set(url, json);</code></pre>
+    Then you need invalidation — say that out loud; it's the hard part.
+  </div>
+
+  <div class="qa">
+    <b>"Two components request the same url at once."</b>
+    Dedupe with an in-flight map: <code>Map&lt;url, Promise&gt;</code>. If a promise exists, await it instead of firing a second request.
+  </div>
+
+  <div class="qa">
+    <b>"Why does it fetch twice in dev?"</b>
+    React 18 StrictMode mounts, unmounts, remounts every component to surface exactly this class of bug.
+    Dev-only. If your cleanup is correct it's harmless — that's the point of the test.
+  </div>
+
+  <div class="qa">
+    <b>"Cancel on a fast-typing search box."</b>
+    Same hook: debounce the url in the caller, and the abort handles the rest. Every keystroke's request dies with its effect.
+  </div>
+
+  <div class="qa">
+    <b>"So why does everyone use React Query / SWR instead?"</b>
+    Because this hook is the easy 10%. A real app also needs a shared cache across components,
+    request dedupe, retries with backoff, refetch on window focus and reconnect, pagination,
+    optimistic updates, and cache invalidation after a mutation — plus the data surviving unmount
+    so going back doesn't re-flash a spinner. <code>useFetch</code> stores data <em>per component</em>;
+    React Query stores it <em>per url, globally</em>. That single difference is the whole library.
+    Write <code>useFetch</code> to prove you understand effects; ship React Query.
+  </div>
+
+  <h2>Say this out loud</h2>
+  <div class="say">
+  <ul>
+    <li>"I'll return <code>data</code>, <code>error</code>, <code>isLoading</code> and <code>refetch</code> — three things to render, one verb."</li>
+    <li>"The effect is keyed on the url, so changing the url is the refetch."</li>
+    <li>"This version has a race — a slow first request can land after a fast second one and overwrite it."</li>
+    <li>"So I set <code>ignore = true</code> in the cleanup, and abort the request too."</li>
+    <li>"An <code>AbortError</code> isn't a real error, I bail out before touching error state."</li>
+    <li>"I reset data to null when the url changes so we never show the previous resource."</li>
+    <li>"For anything real I'd reach for React Query — the caching and dedupe is where this gets hard."</li>
+  </ul>
+  </div>
+</div>
+</body>
+</html>
